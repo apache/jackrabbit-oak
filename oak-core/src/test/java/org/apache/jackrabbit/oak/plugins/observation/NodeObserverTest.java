@@ -38,6 +38,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class NodeObserverTest {
+
     private final NodeState before;
 
     {
@@ -90,7 +91,8 @@ public class NodeObserverTest {
         assertTrue(nodeObserver.added.isEmpty());
         assertTrue(nodeObserver.deleted.isEmpty());
         assertEquals(ImmutableMap.of("/m/n", ImmutableSet.of("p")), nodeObserver.changed);
-        assertEquals(ImmutableMap.of("/m/n", ImmutableMap.of("extra", "42")), nodeObserver.properties);
+        assertEquals(ImmutableMap.of("/m/n", ImmutableMap.of("extra", "42")),
+            nodeObserver.properties);
     }
 
     @Test
@@ -132,6 +134,7 @@ public class NodeObserverTest {
     //------------------------------------------------------------< TestNodeObserver >---
 
     private static class TestNodeObserver extends NodeObserver {
+
         private final Map<String, Set<String>> added = newHashMap();
         private final Map<String, Set<String>> deleted = newHashMap();
         private final Map<String, Set<String>> changed = newHashMap();
@@ -143,12 +146,12 @@ public class NodeObserverTest {
 
         @Override
         protected void added(
-                @NotNull String path,
-                @NotNull Set<String> added,
-                @NotNull Set<String> deleted,
-                @NotNull Set<String> changed,
-                @NotNull Map<String, String> properties,
-                @NotNull CommitInfo commitInfo) {
+            @NotNull String path,
+            @NotNull Set<String> added,
+            @NotNull Set<String> deleted,
+            @NotNull Set<String> changed,
+            @NotNull Map<String, String> properties,
+            @NotNull CommitInfo commitInfo) {
             this.added.put(path, newHashSet(added));
             if (!properties.isEmpty()) {
                 this.properties.put(path, newHashMap(properties));
@@ -157,12 +160,12 @@ public class NodeObserverTest {
 
         @Override
         protected void deleted(
-                @NotNull String path,
-                @NotNull Set<String> added,
-                @NotNull Set<String> deleted,
-                @NotNull Set<String> changed,
-                @NotNull Map<String, String> properties,
-                @NotNull CommitInfo commitInfo) {
+            @NotNull String path,
+            @NotNull Set<String> added,
+            @NotNull Set<String> deleted,
+            @NotNull Set<String> changed,
+            @NotNull Map<String, String> properties,
+            @NotNull CommitInfo commitInfo) {
             this.deleted.put(path, newHashSet(deleted));
             if (!properties.isEmpty()) {
                 this.properties.put(path, newHashMap(properties));
@@ -171,12 +174,12 @@ public class NodeObserverTest {
 
         @Override
         protected void changed(
-                @NotNull String path,
-                @NotNull Set<String> added,
-                @NotNull Set<String> deleted,
-                @NotNull Set<String> changed,
-                @NotNull Map<String, String> properties,
-                @NotNull CommitInfo commitInfo) {
+            @NotNull String path,
+            @NotNull Set<String> added,
+            @NotNull Set<String> deleted,
+            @NotNull Set<String> changed,
+            @NotNull Map<String, String> properties,
+            @NotNull CommitInfo commitInfo) {
             this.changed.put(path, newHashSet(changed));
             if (!properties.isEmpty()) {
                 this.properties.put(path, newHashMap(properties));

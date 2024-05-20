@@ -39,11 +39,14 @@ class GroupPredicate implements Predicate<Authorizable> {
     private final Iterator<Authorizable> membersIterator;
     private final Set<String> memberIds = new HashSet<>();
 
-    GroupPredicate(@NotNull UserManager userManager, @NotNull String groupId, boolean declaredMembersOnly) throws RepositoryException {
+    GroupPredicate(@NotNull UserManager userManager, @NotNull String groupId,
+        boolean declaredMembersOnly) throws RepositoryException {
         Authorizable authorizable = userManager.getAuthorizable(groupId);
-        Group group = (authorizable == null || !authorizable.isGroup()) ? null : (Group) authorizable;
+        Group group =
+            (authorizable == null || !authorizable.isGroup()) ? null : (Group) authorizable;
         if (group != null) {
-            membersIterator = (declaredMembersOnly) ? group.getDeclaredMembers() : group.getMembers();
+            membersIterator =
+                (declaredMembersOnly) ? group.getDeclaredMembers() : group.getMembers();
         } else {
             membersIterator = Collections.emptyIterator();
         }

@@ -52,16 +52,16 @@ class VersionStorageEditor extends DefaultEditor {
     private ReadWriteVersionManager vMgr;
 
     VersionStorageEditor(@NotNull NodeBuilder versionStorageNode,
-                         @NotNull NodeBuilder workspaceRoot) {
+        @NotNull NodeBuilder workspaceRoot) {
         this(versionStorageNode, workspaceRoot, versionStorageNode,
-                VERSION_STORE_PATH, false);
+            VERSION_STORE_PATH, false);
     }
 
     private VersionStorageEditor(@NotNull NodeBuilder versionStorageNode,
-                                 @NotNull NodeBuilder workspaceRoot,
-                                 @NotNull NodeBuilder builder,
-                                 @NotNull String path,
-                                 boolean initPhase) {
+        @NotNull NodeBuilder workspaceRoot,
+        @NotNull NodeBuilder builder,
+        @NotNull String path,
+        boolean initPhase) {
         this.versionStorageNode = checkNotNull(versionStorageNode);
         this.workspaceRoot = checkNotNull(workspaceRoot);
         this.builder = checkNotNull(builder);
@@ -78,29 +78,30 @@ class VersionStorageEditor extends DefaultEditor {
 
     @Override
     public Editor childNodeChanged(String name,
-                                   NodeState before,
-                                   NodeState after)
-            throws CommitFailedException {
+        NodeState before,
+        NodeState after)
+        throws CommitFailedException {
         int d = getDepth(path);
         String p = concat(path, name);
         if (d == VERSION_HISTORY_DEPTH
-                && name.equals(JCR_VERSIONLABELS)) {
+            && name.equals(JCR_VERSIONLABELS)) {
             return new VersionLabelsEditor(p, getVersionManager());
         }
         if (d < VERSION_HISTORY_DEPTH && !isVersionStorageNode(after)) {
             return null;
         }
-        return new VersionStorageEditor(versionStorageNode, workspaceRoot, builder.child(name), p, initPhase);
+        return new VersionStorageEditor(versionStorageNode, workspaceRoot, builder.child(name), p,
+            initPhase);
     }
 
     @Override
     public Editor childNodeAdded(String name, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         int d = getDepth(path);
         // allow child nodes under version storage node, unless an attempt
         // is made to create rep:versionStorage nodes manually.
         if (d == getDepth(VERSION_STORE_PATH) &&
-                !isVersionStorageNode(after)) {
+            !isVersionStorageNode(after)) {
             return null;
         }
         // allow node addition during initialization phase
@@ -112,7 +113,7 @@ class VersionStorageEditor extends DefaultEditor {
 
     @Override
     public Editor childNodeDeleted(String name, NodeState before)
-            throws CommitFailedException {
+        throws CommitFailedException {
         int d = getDepth(path);
         if (d == VERSION_HISTORY_DEPTH) {
             // restore version on builder
@@ -129,7 +130,7 @@ class VersionStorageEditor extends DefaultEditor {
 
     @Override
     public void propertyAdded(PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (getDepth(path) < VERSION_HISTORY_DEPTH) {
             return;
         }
@@ -138,7 +139,7 @@ class VersionStorageEditor extends DefaultEditor {
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (getDepth(path) < VERSION_HISTORY_DEPTH) {
             return;
         }
@@ -147,7 +148,7 @@ class VersionStorageEditor extends DefaultEditor {
 
     @Override
     public void propertyDeleted(PropertyState before)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (getDepth(path) < VERSION_HISTORY_DEPTH) {
             return;
         }
@@ -159,7 +160,7 @@ class VersionStorageEditor extends DefaultEditor {
     private static boolean isVersionStorageNode(NodeState state) {
         String ntName = state.getName(JCR_PRIMARYTYPE);
         return VERSION_STORE_NT_NAMES.contains(ntName)
-                || VERSION_NODE_TYPE_NAMES.contains(ntName);
+            || VERSION_NODE_TYPE_NAMES.contains(ntName);
     }
 
     private ReadWriteVersionManager getVersionManager() {

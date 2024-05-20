@@ -47,10 +47,10 @@ public class NodeTypeIndexQueryTest extends AbstractQueryTest {
     @Override
     protected ContentRepository createRepository() {
         return new Oak().with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .with(new NodeTypeIndexProvider())
-                .with(new PropertyIndexEditorProvider())
-                .createContentRepository();
+                        .with(new OpenSecurityProvider())
+                        .with(new NodeTypeIndexProvider())
+                        .with(new PropertyIndexEditorProvider())
+                        .createContentRepository();
     }
 
     private static Tree child(Tree t, String n, String type) {
@@ -78,74 +78,74 @@ public class NodeTypeIndexQueryTest extends AbstractQueryTest {
         mixLanguage(t, "f");
 
         Tree n = root.getTree("/oak:index");
-        createIndexDefinition(n, "nodetype", false, new String[] {
-                JCR_PRIMARYTYPE, JCR_MIXINTYPES }, new String[] { "nt:folder",
-                "mix:language" });
+        createIndexDefinition(n, "nodetype", false, new String[]{
+            JCR_PRIMARYTYPE, JCR_MIXINTYPES}, new String[]{"nt:folder",
+            "mix:language"});
 
         root.commit();
 
         assertQuery("select [jcr:path] from [nt:unstructured] ",
-                new ArrayList<String>());
+            new ArrayList<String>());
         assertQuery("select [jcr:path] from [nt:folder] ", of("/c", "/d"));
         assertQuery("select [jcr:path] from [mix:language] ", of("/e", "/f"));
 
         setTraversalEnabled(true);
     }
-    
+
     @Test
     public void oak3371() throws Exception {
         setTraversalEnabled(false);
         Tree t, t1;
 
         Tree n = root.getTree("/oak:index");
-        createIndexDefinition(n, "nodeType", false, new String[] {
-                JCR_PRIMARYTYPE }, new String[] { NT_UNSTRUCTURED });
+        createIndexDefinition(n, "nodeType", false, new String[]{
+            JCR_PRIMARYTYPE}, new String[]{NT_UNSTRUCTURED});
 
         root.commit();
-        
+
         t = root.getTree("/");
         t = child(t, "test", NT_UNSTRUCTURED);
         t1 = child(t, "a", NT_UNSTRUCTURED);
         t1.setProperty("foo", "bar");
         child(t, "b", NT_UNSTRUCTURED);
-        
+
         root.commit();
-        
+
         List<String> plan;
 
         plan = executeQuery(
-                "explain SELECT * FROM [nt:unstructured] " + 
-                "WHERE ISDESCENDANTNODE([/test]) " + 
-                "AND CONTAINS(foo, 'bar')", 
-                Query.JCR_SQL2, false);
+            "explain SELECT * FROM [nt:unstructured] " +
+                "WHERE ISDESCENDANTNODE([/test]) " +
+                "AND CONTAINS(foo, 'bar')",
+            Query.JCR_SQL2, false);
         assertEquals(1, plan.size());
         assertTrue(plan.get(0).contains("no-index"));
         assertEquals("[nt:unstructured] as [nt:unstructured] /* no-index\n"
                 + " */",
-                plan.get(0));
+            plan.get(0));
 
         plan = executeQuery(
-                "explain SELECT * FROM [nt:unstructured] " + 
-                "WHERE ISDESCENDANTNODE([/test]) " + 
-                "AND NOT CONTAINS(foo, 'bar')", 
-                Query.JCR_SQL2, false);
+            "explain SELECT * FROM [nt:unstructured] " +
+                "WHERE ISDESCENDANTNODE([/test]) " +
+                "AND NOT CONTAINS(foo, 'bar')",
+            Query.JCR_SQL2, false);
         assertEquals(1, plan.size());
         assertTrue(plan.get(0).contains("no-index"));
         assertEquals("[nt:unstructured] as [nt:unstructured] /* no-index\n"
                 + " */",
-                plan.get(0));
-        
+            plan.get(0));
+
         plan = executeQuery(
-                "explain SELECT * FROM [nt:unstructured] " + 
-                "WHERE ISDESCENDANTNODE([/test]) " + 
-                "AND NOT NOT CONTAINS(foo, 'bar')", 
-                Query.JCR_SQL2, false);
+            "explain SELECT * FROM [nt:unstructured] " +
+                "WHERE ISDESCENDANTNODE([/test]) " +
+                "AND NOT NOT CONTAINS(foo, 'bar')",
+            Query.JCR_SQL2, false);
         assertEquals(1, plan.size());
         assertTrue(plan.get(0).contains("no-index"));
         assertEquals("[nt:unstructured] as [nt:unstructured] /* no-index\n"
                 + " */",
-                plan.get(0));
-        
+            plan.get(0));
+
         setTraversalEnabled(true);
     }
 }

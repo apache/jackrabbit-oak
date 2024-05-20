@@ -56,10 +56,10 @@ public class QueryLimitTest extends AbstractQueryTest {
         qeSettings = new QueryEngineSettings();
 
         return new Oak(store)
-                .with(new OpenSecurityProvider())
-                .with(new InitialContent())
-                .with(qeSettings)
-                .createContentRepository();
+            .with(new OpenSecurityProvider())
+            .with(new InitialContent())
+            .with(qeSettings)
+            .createContentRepository();
     }
 
     @Before
@@ -80,35 +80,43 @@ public class QueryLimitTest extends AbstractQueryTest {
     public void queryLengthErrorLimitBreachThrowsException() throws Exception {
         String generatedString = RandomStringUtils.random(queryLengthErrorLimit, true, false);
 
-        String query = "SELECT [jcr:path] FROM [nt:base] AS a WHERE a.[x]='" + generatedString + "'";
+        String query =
+            "SELECT [jcr:path] FROM [nt:base] AS a WHERE a.[x]='" + generatedString + "'";
         assertThrows(ParseException.class,
-                () -> {
-                    try {
-                        qe.executeQuery(query, QueryEngineImpl.SQL2, 10, 0,
-                                QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
-                    } catch (RuntimeException e) {
-                        Assert.assertEquals("Query length " + query.length() + " is larger than max supported query length: " + queryLengthErrorLimit, e.getMessage());
-                        throw e;
-                    }
-                });
+            () -> {
+                try {
+                    qe.executeQuery(query, QueryEngineImpl.SQL2, 10, 0,
+                        QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
+                } catch (RuntimeException e) {
+                    Assert.assertEquals("Query length " + query.length()
+                            + " is larger than max supported query length: " + queryLengthErrorLimit,
+                        e.getMessage());
+                    throw e;
+                }
+            });
     }
 
     @Test
     public void queryLengthWarnLimitBreachLogsWarning() throws Exception {
         String generatedString = RandomStringUtils.random(queryLengthWarnLimit, true, false);
 
-        LogCustomizer customLogs = LogCustomizer.forLogger(QueryEngineImpl.class.getName()).enable(Level.WARN).create();
+        LogCustomizer customLogs = LogCustomizer.forLogger(QueryEngineImpl.class.getName())
+                                                .enable(Level.WARN).create();
 
         try {
             customLogs.starting();
-            String query = "SELECT [jcr:path] FROM [nt:base] AS a WHERE a.[x]='" + generatedString + "'";
+            String query =
+                "SELECT [jcr:path] FROM [nt:base] AS a WHERE a.[x]='" + generatedString + "'";
 
             qe.executeQuery(query, QueryEngineImpl.SQL2, 10, 0,
-                    QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
+                QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
 
-            String expectedLogMessage = "Query length " + query.length() + " breached queryWarnLimit " + queryLengthWarnLimit + ". Query: " + query;
+            String expectedLogMessage =
+                "Query length " + query.length() + " breached queryWarnLimit "
+                    + queryLengthWarnLimit + ". Query: " + query;
 
-            Assert.assertThat(customLogs.getLogs(), IsCollectionContaining.hasItems(expectedLogMessage));
+            Assert.assertThat(customLogs.getLogs(),
+                IsCollectionContaining.hasItems(expectedLogMessage));
         } finally {
             customLogs.finished();
         }
@@ -118,8 +126,9 @@ public class QueryLimitTest extends AbstractQueryTest {
     public void queryLimitFromOptions() throws Exception {
         String query = "SELECT [jcr:path] FROM [nt:base] AS a OPTION(LIMIT 10)";
 
-        Iterator<? extends ResultRow> row = qe.executeQuery(query, QueryEngineImpl.SQL2, Optional.empty(),
-                Optional.empty(), Collections.emptyMap(), Collections.emptyMap()).getRows().iterator();
+        Iterator<? extends ResultRow> row = qe.executeQuery(query, QueryEngineImpl.SQL2,
+            Optional.empty(),
+            Optional.empty(), Collections.emptyMap(), Collections.emptyMap()).getRows().iterator();
         int count = 0;
         while (row.hasNext()) {
             count++;

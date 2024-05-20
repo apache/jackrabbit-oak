@@ -39,9 +39,9 @@ public final class Filters {
     }
 
     /**
-     * A filter that matches if and only if any the filter passed to this
-     * method does not match.
-     * @param filter  filter which must not match
+     * A filter that matches if and only if any the filter passed to this method does not match.
+     *
+     * @param filter filter which must not match
      * @return {@code true} if {@code filter} does not match.
      */
     @NotNull
@@ -93,9 +93,9 @@ public final class Filters {
     }
 
     /**
-     * A filter that matches if and only if any of the filters passed to this
-     * method matches.
-     * @param filters  filters of which any must match
+     * A filter that matches if and only if any of the filters passed to this method matches.
+     *
+     * @param filters filters of which any must match
      * @return {@code true} if any of {@code filters} match.
      */
     @NotNull
@@ -104,9 +104,9 @@ public final class Filters {
     }
 
     /**
-     * A filter that matches if and only if all of the filters passed to this
-     * method matches.
-     * @param filters  filters of which all must match
+     * A filter that matches if and only if all of the filters passed to this method matches.
+     *
+     * @param filters filters of which all must match
      * @return {@code true} if all of {@code filters} match.
      */
     @NotNull
@@ -115,7 +115,7 @@ public final class Filters {
     }
 
     /**
-     * @return  Filter that includes everything
+     * @return Filter that includes everything
      */
     @NotNull
     public static EventFilter includeAll() {
@@ -123,7 +123,7 @@ public final class Filters {
     }
 
     /**
-     * @return  Filter that excludes everything
+     * @return Filter that excludes everything
      */
     @NotNull
     public static EventFilter excludeAll() {
@@ -131,9 +131,9 @@ public final class Filters {
     }
 
     /**
-     * A filter that matches if and only if any of the filters passed to this
-     * method matches.
-     * @param filters  filters of which any must match
+     * A filter that matches if and only if any of the filters passed to this method matches.
+     *
+     * @param filters filters of which any must match
      * @return {@code true} if any of {@code filters} match.
      */
     @NotNull
@@ -230,9 +230,9 @@ public final class Filters {
     }
 
     /**
-     * A filter that matches if and only if all of the filters passed to this
-     * method matches.
-     * @param filters  filters of which all must match
+     * A filter that matches if and only if all of the filters passed to this method matches.
+     *
+     * @param filters filters of which all must match
      * @return {@code true} if all of {@code filters} match.
      */
     @NotNull

@@ -98,11 +98,12 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
      */
     @Test
     public void testNotEqualAuthorizables() throws Exception {
-        UserManager otherUserManager = getUserConfiguration().getUserManager(root, getNamePathMapper());
+        UserManager otherUserManager = getUserConfiguration().getUserManager(root,
+            getNamePathMapper());
         Authorizable user = otherUserManager.getAuthorizable(testUser.getID());
         Authorizable group = otherUserManager.getAuthorizable(testGroup.getID());
 
-        User differentId = userMgr.createUser(user.getID()+"_", null);
+        User differentId = userMgr.createUser(user.getID() + "_", null);
 
         Map<Authorizable, Authorizable> notEqual = new HashMap<>();
         notEqual.put(testUser, testGroup);
@@ -135,7 +136,8 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
 
         sameHashCode.forEach((key, value) -> assertEquals(key.hashCode(), value.hashCode()));
 
-        UserManager otherUserManager = getUserConfiguration().getUserManager(root, getNamePathMapper());
+        UserManager otherUserManager = getUserConfiguration().getUserManager(root,
+            getNamePathMapper());
         user = otherUserManager.getAuthorizable(testUser.getID());
         group = otherUserManager.getAuthorizable(testGroup.getID());
 
@@ -169,4 +171,5 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
 
         // getPrincipalName must throw
         authorizable.getPrincipalName();
-    }}
+    }
+}

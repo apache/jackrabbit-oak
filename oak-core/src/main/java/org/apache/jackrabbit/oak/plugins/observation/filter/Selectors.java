@@ -33,22 +33,22 @@ import org.jetbrains.annotations.Nullable;
 public final class Selectors {
 
     /**
-     * A selector returning the node for which a call back on {@link EventFilter} was
-     * called or a non existing node in the case of a property call back.
+     * A selector returning the node for which a call back on {@link EventFilter} was called or a
+     * non existing node in the case of a property call back.
      */
     public static final Selector THIS = new ThisSelector();
 
     /**
-     * A selector returning the parent node of the item for which a call back
-     * on {@link EventFilter} was called.
+     * A selector returning the parent node of the item for which a call back on {@link EventFilter}
+     * was called.
      */
     public static final Selector PARENT = new ParentSelector();
 
     /**
-     * A selector returning the node at {@code relPath} relative to
-     * {@link #THIS}
-     * @param relPath  relative path
-     * @return  selector for {@code relPath} from {@code THIS}
+     * A selector returning the node at {@code relPath} relative to {@link #THIS}
+     *
+     * @param relPath relative path
+     * @return selector for {@code relPath} from {@code THIS}
      */
     @NotNull
     public static Selector fromThis(@NotNull String relPath) {
@@ -56,10 +56,10 @@ public final class Selectors {
     }
 
     /**
-     * A selector returning the node at {@code relPath} relative to
-     * {@link #PARENT}
-     * @param relPath  relative path
-     * @return  selector for {@code relPath} from {@code PARENT}
+     * A selector returning the node at {@code relPath} relative to {@link #PARENT}
+     *
+     * @param relPath relative path
+     * @return selector for {@code relPath} from {@code PARENT}
      */
     @NotNull
     public static Selector fromParent(@NotNull String relPath) {
@@ -70,36 +70,38 @@ public final class Selectors {
     }
 
     private static class ThisSelector implements Selector {
+
         @Override
         public NodeState select(@NotNull UniversalFilter filter,
-                @Nullable PropertyState before, @Nullable PropertyState after) {
+            @Nullable PropertyState before, @Nullable PropertyState after) {
             return MISSING_NODE;
         }
 
         @Override
         public NodeState select(@NotNull UniversalFilter filter, @NotNull String name,
-                @NotNull NodeState before, @NotNull NodeState after) {
+            @NotNull NodeState before, @NotNull NodeState after) {
             return after.exists()
-                    ? after
-                    : before;
+                ? after
+                : before;
         }
     }
 
     private static class ParentSelector implements Selector {
+
         @Override
         public NodeState select(@NotNull UniversalFilter filter,
-                @Nullable PropertyState before, @Nullable PropertyState after) {
+            @Nullable PropertyState before, @Nullable PropertyState after) {
             return after != null
-                    ? filter.getAfterState()
-                    : filter.getBeforeState();
+                ? filter.getAfterState()
+                : filter.getBeforeState();
         }
 
         @Override
         public NodeState select(@NotNull UniversalFilter filter, @NotNull String name,
-                @NotNull NodeState before, @NotNull NodeState after) {
+            @NotNull NodeState before, @NotNull NodeState after) {
             return after.exists()
-                    ? filter.getAfterState()
-                    : filter.getBeforeState();
+                ? filter.getAfterState()
+                : filter.getBeforeState();
         }
     }
 }

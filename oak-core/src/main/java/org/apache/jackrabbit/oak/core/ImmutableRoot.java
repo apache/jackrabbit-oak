@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 import java.io.InputStream;
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -40,10 +39,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Simple implementation of the Root interface that only supports simple read
- * operations based on the {@code NodeState} (or {@code ImmutableTree})
- * passed to the constructor. This root implementation provides a query engine
- * with index support limited to the {@link PropertyIndexProvider}.
+ * Simple implementation of the Root interface that only supports simple read operations based on
+ * the {@code NodeState} (or {@code ImmutableTree}) passed to the constructor. This root
+ * implementation provides a query engine with index support limited to the
+ * {@link PropertyIndexProvider}.
  */
 public final class ImmutableRoot implements Root, ReadOnly {
 
@@ -66,7 +65,8 @@ public final class ImmutableRoot implements Root, ReadOnly {
             authInfo = ir.authInfo;
             wspName = ir.wspName;
         } else {
-            throw new IllegalArgumentException("Unsupported Root implementation: " + root.getClass());
+            throw new IllegalArgumentException(
+                "Unsupported Root implementation: " + root.getClass());
         }
     }
 
@@ -135,17 +135,18 @@ public final class ImmutableRoot implements Root, ReadOnly {
             @Override
             protected ExecutionContext getExecutionContext() {
                 return new ExecutionContext(
-                        rootTree.getNodeState(),
-                        ImmutableRoot.this,
-                        new QueryEngineSettings(),
-                        new PropertyIndexProvider(),
-                        null,
-                        null);
+                    rootTree.getNodeState(),
+                    ImmutableRoot.this,
+                    new QueryEngineSettings(),
+                    new PropertyIndexProvider(),
+                    null,
+                    null);
             }
         };
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Blob createBlob(@NotNull InputStream stream) {
         throw new UnsupportedOperationException();
     }

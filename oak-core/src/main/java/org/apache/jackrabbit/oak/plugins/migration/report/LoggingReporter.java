@@ -24,9 +24,8 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 /**
- * A Reporter implementation that logs every nth node
- * and/or any nth property to the given logger on {@code info}
- * level.
+ * A Reporter implementation that logs every nth node and/or any nth property to the given logger on
+ * {@code info} level.
  */
 public class LoggingReporter extends PeriodicReporter {
 
@@ -37,20 +36,21 @@ public class LoggingReporter extends PeriodicReporter {
     private final EvictingQueue lastPaths = EvictingQueue.create(100);
 
     /**
-     * Constructor that allows setting the intervals to log node and property
-     * accesses to a given logger.
+     * Constructor that allows setting the intervals to log node and property accesses to a given
+     * logger.
      *
      * @param logger              The logger to log the progress to.
      * @param nodeLogInterval     Every how many nodes a log message should be written.
      * @param propertyLogInterval Every how many properties a log message should be written.
      */
-    public LoggingReporter(final Logger logger, final int nodeLogInterval, final int propertyLogInterval) {
+    public LoggingReporter(final Logger logger, final int nodeLogInterval,
+        final int propertyLogInterval) {
         this(logger, "Loading", nodeLogInterval, propertyLogInterval);
     }
 
     /**
-     * Like {@link #LoggingReporter(Logger, int, int)}, however this constructor allow
-     * to customize the verb of the log message.
+     * Like {@link #LoggingReporter(Logger, int, int)}, however this constructor allow to customize
+     * the verb of the log message.
      * <br>
      * The messages are of the format: "{verb} node #100: /path/to/the/node
      *
@@ -59,20 +59,24 @@ public class LoggingReporter extends PeriodicReporter {
      * @param nodeLogInterval     Every how many nodes a log message should be written.
      * @param propertyLogInterval Every how many properties a log message should be written.
      */
-    public LoggingReporter(final Logger logger, final String verb, final int nodeLogInterval, final int propertyLogInterval) {
+    public LoggingReporter(final Logger logger, final String verb, final int nodeLogInterval,
+        final int propertyLogInterval) {
         super(nodeLogInterval, propertyLogInterval);
         this.logger = logger;
         this.verb = verb;
     }
 
     @Override
-    protected void reportPeriodicNode(final long count, @NotNull final ReportingNodeState nodeState) {
+    protected void reportPeriodicNode(final long count,
+        @NotNull final ReportingNodeState nodeState) {
         logger.info("{} node #{}: {}", verb, count, nodeState.getPath());
     }
 
     @Override
-    protected void reportPeriodicProperty(final long count, @NotNull final ReportingNodeState parent, @NotNull final String propertyName) {
-        logger.info("{} properties #{}: {}", verb, count, PathUtils.concat(parent.getPath(), propertyName));
+    protected void reportPeriodicProperty(final long count,
+        @NotNull final ReportingNodeState parent, @NotNull final String propertyName) {
+        logger.info("{} properties #{}: {}", verb, count,
+            PathUtils.concat(parent.getPath(), propertyName));
     }
 
     protected boolean skipNodeState(@NotNull final ReportingNodeState nodeState) {

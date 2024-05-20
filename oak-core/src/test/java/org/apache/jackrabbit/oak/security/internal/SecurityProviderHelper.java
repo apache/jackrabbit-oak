@@ -28,7 +28,7 @@ public final class SecurityProviderHelper {
     }
 
     public static SecurityProvider updateConfig(@NotNull SecurityProvider securityProvider,
-            @NotNull SecurityConfiguration sc, @NotNull Class<? extends SecurityConfiguration> cls) {
+        @NotNull SecurityConfiguration sc, @NotNull Class<? extends SecurityConfiguration> cls) {
 
         Object cc = securityProvider.getConfiguration(cls);
         if (!(cc instanceof CompositeConfiguration)) {

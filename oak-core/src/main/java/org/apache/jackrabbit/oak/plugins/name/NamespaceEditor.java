@@ -22,17 +22,15 @@ import static javax.jcr.NamespaceRegistry.PREFIX_NT;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.plugins.name.Namespaces.isValidPrefix;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NAMESPACES;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NSDATA;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_URIS;
-import static org.apache.jackrabbit.oak.plugins.name.Namespaces.isValidPrefix;
 
 import java.util.Locale;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
@@ -47,12 +45,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 class NamespaceEditor extends DefaultEditor {
 
     /**
-     * Flag controlling the strictness of the check to disallow modifications to
-     * the internal node 'ns:data'. If enabled, any changes will throw a
-     * CommitFailedException, otherwise the index node will be rebuilt on any
-     * external change.
+     * Flag controlling the strictness of the check to disallow modifications to the internal node
+     * 'ns:data'. If enabled, any changes will throw a CommitFailedException, otherwise the index
+     * node will be rebuilt on any external change.
      */
-    private static final boolean strictIntegrityCheck = Boolean.getBoolean("oak.strictIntegrityCheck");
+    private static final boolean strictIntegrityCheck = Boolean.getBoolean(
+        "oak.strictIntegrityCheck");
 
     private final NodeBuilder builder;
 
@@ -62,7 +60,7 @@ class NamespaceEditor extends DefaultEditor {
 
     public NamespaceEditor(NodeState root, NodeBuilder builder) {
         this.namespaces = root.getChildNode(JCR_SYSTEM).getChildNode(
-                REP_NAMESPACES);
+            REP_NAMESPACES);
         this.builder = builder;
     }
 
@@ -76,22 +74,23 @@ class NamespaceEditor extends DefaultEditor {
 
         if (namespaces.hasProperty(prefix)) {
             throw new CommitFailedException(CommitFailedException.NAMESPACE, 1,
-                    "Namespace mapping already registered: " + prefix);
+                "Namespace mapping already registered: " + prefix);
         } else if (isValidPrefix(prefix)) {
             if (after.isArray() || !STRING.equals(after.getType())) {
                 throw new CommitFailedException(
-                        CommitFailedException.NAMESPACE, 2,
-                        "Invalid namespace mapping: " + prefix);
-            } else if (prefix.toLowerCase(Locale.ENGLISH).startsWith("xml") && namespaces.hasProperty("xml")) {
+                    CommitFailedException.NAMESPACE, 2,
+                    "Invalid namespace mapping: " + prefix);
+            } else if (prefix.toLowerCase(Locale.ENGLISH).startsWith("xml")
+                && namespaces.hasProperty("xml")) {
                 throw new CommitFailedException(
-                        CommitFailedException.NAMESPACE, 3,
-                        "XML prefixes are reserved: " + prefix);
+                    CommitFailedException.NAMESPACE, 3,
+                    "XML prefixes are reserved: " + prefix);
             } else if (containsValue(namespaces, after.getValue(STRING))) {
                 throw modificationNotAllowed(prefix);
             }
         } else {
             throw new CommitFailedException(CommitFailedException.NAMESPACE, 4,
-                    "Not a valid namespace prefix: " + prefix);
+                "Not a valid namespace prefix: " + prefix);
         }
         modified = true;
     }
@@ -102,14 +101,14 @@ class NamespaceEditor extends DefaultEditor {
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         // TODO allow changes if there is no content referencing the mappings
         throw modificationNotAllowed(after.getName());
     }
 
     @Override
     public void propertyDeleted(PropertyState before)
-            throws CommitFailedException {
+        throws CommitFailedException {
 
         // FIXME Desired Behavior: if we enable it, there are a few generic
         // #unregister tests that fail
@@ -124,26 +123,26 @@ class NamespaceEditor extends DefaultEditor {
     }
 
     private static Set<String> jcrSystemNS = ImmutableSet.of(PREFIX_JCR,
-            PREFIX_NT, PREFIX_MIX, NamespaceConstants.PREFIX_SV);
+        PREFIX_NT, PREFIX_MIX, NamespaceConstants.PREFIX_SV);
 
     private static CommitFailedException modificationNotAllowed(String prefix) {
         return new CommitFailedException(CommitFailedException.NAMESPACE, 5,
-                "Namespace modification not allowed: " + prefix);
+            "Namespace modification not allowed: " + prefix);
     }
 
     @Override
     public void leave(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (!modified) {
             return;
         }
         Namespaces.buildIndexNode(builder.getChildNode(JCR_SYSTEM).child(
-                REP_NAMESPACES));
+            REP_NAMESPACES));
     }
 
     @Override
     public Editor childNodeChanged(String name, NodeState before,
-            NodeState after) throws CommitFailedException {
+        NodeState after) throws CommitFailedException {
         if (REP_NSDATA.equals(name) && !before.equals(after)) {
             if (strictIntegrityCheck) {
                 throw modificationNotAllowed(name);

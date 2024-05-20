@@ -47,9 +47,8 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * The {@code PrincipalProviderImpl} is a principal provider implementation
- * that operates on principal information read from user information exposed by
- * the configured {@link UserManager}.
+ * The {@code PrincipalProviderImpl} is a principal provider implementation that operates on
+ * principal information read from user information exposed by the configured {@link UserManager}.
  */
 class PrincipalProviderImpl implements PrincipalProvider {
 
@@ -59,8 +58,8 @@ class PrincipalProviderImpl implements PrincipalProvider {
     private final NamePathMapper namePathMapper;
 
     PrincipalProviderImpl(@NotNull Root root,
-                          @NotNull UserConfiguration userConfiguration,
-                          @NotNull NamePathMapper namePathMapper) {
+        @NotNull UserConfiguration userConfiguration,
+        @NotNull NamePathMapper namePathMapper) {
         this.userManager = userConfiguration.getUserManager(root, namePathMapper);
         this.namePathMapper = namePathMapper;
     }
@@ -79,14 +78,16 @@ class PrincipalProviderImpl implements PrincipalProvider {
         }
 
         // no such principal or error while accessing principal from user/group
-        return (EveryonePrincipal.NAME.equals(principalName)) ? EveryonePrincipal.getInstance() : null;
+        return (EveryonePrincipal.NAME.equals(principalName)) ? EveryonePrincipal.getInstance()
+            : null;
     }
 
     @Nullable
     @Override
     public ItemBasedPrincipal getItemBasedPrincipal(@NotNull String principalOakPath) {
         try {
-            Authorizable authorizable = userManager.getAuthorizableByPath(namePathMapper.getJcrPath(principalOakPath));
+            Authorizable authorizable = userManager.getAuthorizableByPath(
+                namePathMapper.getJcrPath(principalOakPath));
             if (authorizable != null) {
                 Principal principal = authorizable.getPrincipal();
                 if (principal instanceof ItemBasedPrincipal) {
@@ -128,14 +129,16 @@ class PrincipalProviderImpl implements PrincipalProvider {
 
     @NotNull
     @Override
-    public Iterator<? extends Principal> findPrincipals(@Nullable final String nameHint, final int searchType) {
+    public Iterator<? extends Principal> findPrincipals(@Nullable final String nameHint,
+        final int searchType) {
         return findPrincipals(nameHint, false, searchType, 0, -1);
     }
 
     @NotNull
     @Override
-    public Iterator<? extends Principal> findPrincipals(@Nullable final String nameHint, final boolean fullText, final int searchType, long offset,
-            long limit) {
+    public Iterator<? extends Principal> findPrincipals(@Nullable final String nameHint,
+        final boolean fullText, final int searchType, long offset,
+        long limit) {
         if (offset < 0) {
             offset = 0;
         }
@@ -143,8 +146,11 @@ class PrincipalProviderImpl implements PrincipalProvider {
             limit = Long.MAX_VALUE;
         }
         try {
-            Iterator<Authorizable> authorizables = findAuthorizables(nameHint, searchType, offset, limit);
-            Iterator<Principal> principals = Iterators.filter(Iterators.transform(authorizables, new AuthorizableToPrincipal()), Objects::nonNull);
+            Iterator<Authorizable> authorizables = findAuthorizables(nameHint, searchType, offset,
+                limit);
+            Iterator<Principal> principals = Iterators.filter(
+                Iterators.transform(authorizables, new AuthorizableToPrincipal()),
+                Objects::nonNull);
             return EveryoneFilter.filter(principals, nameHint, searchType, offset, limit);
         } catch (RepositoryException e) {
             log.debug(e.getMessage());
@@ -189,12 +195,13 @@ class PrincipalProviderImpl implements PrincipalProvider {
 
     @NotNull
     private Iterator<Authorizable> findAuthorizables(@Nullable final String nameHint,
-                                                     final int searchType, final long offset,
-                                                     final long limit) throws RepositoryException {
+        final int searchType, final long offset,
+        final long limit) throws RepositoryException {
         Query userQuery = new Query() {
             @Override
             public <T> void build(@NotNull QueryBuilder<T> builder) {
-                builder.setCondition(builder.like('@' +UserConstants.REP_PRINCIPAL_NAME, buildSearchPattern(nameHint)));
+                builder.setCondition(builder.like('@' + UserConstants.REP_PRINCIPAL_NAME,
+                    buildSearchPattern(nameHint)));
                 builder.setSelector(AuthorizableType.getType(searchType).getAuthorizableClass());
                 builder.setSortOrder(UserConstants.REP_PRINCIPAL_NAME, Direction.ASCENDING);
                 builder.setLimit(offset, limit);
@@ -217,10 +224,13 @@ class PrincipalProviderImpl implements PrincipalProvider {
 
     }
     //--------------------------------------------------------------------------
+
     /**
      * Function to covert an authorizable tree to a principal.
      */
-    private static final class AuthorizableToPrincipal implements Function<Authorizable, Principal> {
+    private static final class AuthorizableToPrincipal implements
+        Function<Authorizable, Principal> {
+
         @Override
         public Principal apply(@Nullable Authorizable authorizable) {
             if (authorizable != null) {

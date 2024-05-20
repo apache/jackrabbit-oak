@@ -23,11 +23,11 @@ import org.apache.jackrabbit.oak.spi.query.IndexRow;
 public class TestCursorVirtual extends AbstractCursor {
 
     private final Iterator<String> it;
-    
+
     TestCursorVirtual(Iterator<String> it) {
         this.it = it;
     }
-    
+
     @Override
     public IndexRow next() {
         return new TestRowVirtual(it.next());
@@ -37,5 +37,5 @@ public class TestCursorVirtual extends AbstractCursor {
     public boolean hasNext() {
         return it.hasNext();
     }
-    
+
 }

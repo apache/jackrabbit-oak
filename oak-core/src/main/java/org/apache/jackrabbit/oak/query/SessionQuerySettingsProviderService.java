@@ -19,6 +19,13 @@
 
 package org.apache.jackrabbit.oak.query;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.query.SessionQuerySettings;
 import org.apache.jackrabbit.oak.spi.query.SessionQuerySettingsProvider;
@@ -31,14 +38,6 @@ import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-
 /**
  * Overrides oak.fastQuerySize system property when available.
  */
@@ -47,19 +46,22 @@ import java.util.Set;
 public class SessionQuerySettingsProviderService implements SessionQuerySettingsProvider {
 
     @ObjectClassDefinition(
-            name = "Apache Jackrabbit Session Query Settings Provider Service",
-            description = "Provides Session-specific query settings exposed by Oak QueryEngine."
+        name = "Apache Jackrabbit Session Query Settings Provider Service",
+        description = "Provides Session-specific query settings exposed by Oak QueryEngine."
     )
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Configuration {
+
         @AttributeDefinition(name = "Direct Counts Principals", description = "Principal names for which executed query result counts directly reflect the index estimate.")
         String[] directCountsPrincipals() default {};
     }
 
     void configure(Configuration config) {
         this.directCountsAllowedPrincipals = Optional.ofNullable(config)
-                .map(cfg -> (Set<String>) new HashSet<>(Arrays.asList(cfg.directCountsPrincipals())))
-                .orElse(Collections.emptySet());
+                                                     .map(cfg -> (Set<String>) new HashSet<>(
+                                                         Arrays.asList(
+                                                             cfg.directCountsPrincipals())))
+                                                     .orElse(Collections.emptySet());
     }
 
     @Activate
@@ -78,7 +80,8 @@ public class SessionQuerySettingsProviderService implements SessionQuerySettings
     public SessionQuerySettings getQuerySettings(@NotNull ContentSession session) {
         final Set<String> principals = directCountsAllowedPrincipals;
         final boolean directCountsAllowed = session.getAuthInfo().getPrincipals().stream()
-                .anyMatch(principal -> principals.contains(principal.getName()));
+                                                   .anyMatch(principal -> principals.contains(
+                                                       principal.getName()));
         return new SessionQuerySettings() {
             @Override
             public boolean useDirectResultCount() {

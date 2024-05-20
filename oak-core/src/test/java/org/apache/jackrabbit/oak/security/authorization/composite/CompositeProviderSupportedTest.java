@@ -47,18 +47,19 @@ import static org.mockito.Mockito.when;
 
 public class CompositeProviderSupportedTest extends AbstractSecurityTest {
 
-    private long[] supportedPermissions = new long[] {READ_NODE, READ_NODE, Permissions.NO_PERMISSION, READ_ACCESS_CONTROL};
-    private AggregatedPermissionProvider[] pps = new AggregatedPermissionProvider[] {
-            mock(AggregatedPermissionProvider.class),
-            mock(AggregatedPermissionProvider.class),
-            mock(AggregatedPermissionProvider.class),
-            mock(AggregatedPermissionProvider.class)
+    private long[] supportedPermissions = new long[]{READ_NODE, READ_NODE,
+        Permissions.NO_PERMISSION, READ_ACCESS_CONTROL};
+    private AggregatedPermissionProvider[] pps = new AggregatedPermissionProvider[]{
+        mock(AggregatedPermissionProvider.class),
+        mock(AggregatedPermissionProvider.class),
+        mock(AggregatedPermissionProvider.class),
+        mock(AggregatedPermissionProvider.class)
     };
 
     private CompositePermissionProvider cppAND;
     private CompositePermissionProvider cppOR;
 
-    private long expectedPermissions = READ_NODE|READ_ACCESS_CONTROL;
+    private long expectedPermissions = READ_NODE | READ_ACCESS_CONTROL;
     private PrivilegeBits expectedBits;
 
     private PrivilegeBitsProvider pbp;
@@ -69,27 +70,41 @@ public class CompositeProviderSupportedTest extends AbstractSecurityTest {
 
         pbp = new PrivilegeBitsProvider(root);
         for (int i = 0; i < pps.length; i++) {
-            when(pps[i].supportedPermissions(any(Tree.class), any(PropertyState.class), anyLong())).thenReturn(supportedPermissions[i]);
-            when(pps[i].supportedPermissions(any(Tree.class), isNull(), anyLong())).thenReturn(supportedPermissions[i]);
-            when(pps[i].supportedPermissions((Tree) isNull(), isNull(), anyLong())).thenReturn(supportedPermissions[i]);
-            when(pps[i].supportedPermissions(any(TreePermission.class), any(PropertyState.class), anyLong())).thenReturn(supportedPermissions[i]);
-            when(pps[i].supportedPermissions(any(TreePermission.class), isNull(), anyLong())).thenReturn(supportedPermissions[i]);
-            when(pps[i].supportedPermissions(any(TreeLocation.class), anyLong())).thenReturn(supportedPermissions[i]);
+            when(pps[i].supportedPermissions(any(Tree.class), any(PropertyState.class),
+                anyLong())).thenReturn(supportedPermissions[i]);
+            when(pps[i].supportedPermissions(any(Tree.class), isNull(), anyLong())).thenReturn(
+                supportedPermissions[i]);
+            when(pps[i].supportedPermissions((Tree) isNull(), isNull(), anyLong())).thenReturn(
+                supportedPermissions[i]);
+            when(pps[i].supportedPermissions(any(TreePermission.class), any(PropertyState.class),
+                anyLong())).thenReturn(supportedPermissions[i]);
+            when(pps[i].supportedPermissions(any(TreePermission.class), isNull(),
+                anyLong())).thenReturn(supportedPermissions[i]);
+            when(pps[i].supportedPermissions(any(TreeLocation.class), anyLong())).thenReturn(
+                supportedPermissions[i]);
 
-            PropertyState ps = PropertyStates.createProperty("any", supportedPermissions[i], Type.LONG);
-            PrivilegeBits bts = (supportedPermissions[i] == Permissions.NO_PERMISSION) ? PrivilegeBits.EMPTY : PrivilegeBits.getInstance(ps);
-            when(pps[i].supportedPrivileges(any(Tree.class), any(PrivilegeBits.class))).thenReturn(bts);
+            PropertyState ps = PropertyStates.createProperty("any", supportedPermissions[i],
+                Type.LONG);
+            PrivilegeBits bts =
+                (supportedPermissions[i] == Permissions.NO_PERMISSION) ? PrivilegeBits.EMPTY
+                    : PrivilegeBits.getInstance(ps);
+            when(pps[i].supportedPrivileges(any(Tree.class), any(PrivilegeBits.class))).thenReturn(
+                bts);
             when(pps[i].supportedPrivileges(isNull(), any(PrivilegeBits.class))).thenReturn(bts);
         }
 
         cppAND = createProvider(AND, pps);
         cppOR = createProvider(OR, pps);
 
-        expectedBits = PrivilegeBits.getInstance(PropertyStates.createProperty("any", expectedPermissions, Type.LONG)).unmodifiable();
+        expectedBits = PrivilegeBits.getInstance(
+            PropertyStates.createProperty("any", expectedPermissions, Type.LONG)).unmodifiable();
     }
 
-    private CompositePermissionProvider createProvider(@NotNull CompositeAuthorizationConfiguration.CompositionType compositionType, @NotNull AggregatedPermissionProvider... aggregated) {
-        return CompositePermissionProvider.create(root, ImmutableList.copyOf(aggregated), Context.DEFAULT, compositionType, getRootProvider(), getTreeProvider());
+    private CompositePermissionProvider createProvider(
+        @NotNull CompositeAuthorizationConfiguration.CompositionType compositionType,
+        @NotNull AggregatedPermissionProvider... aggregated) {
+        return CompositePermissionProvider.create(root, ImmutableList.copyOf(aggregated),
+            Context.DEFAULT, compositionType, getRootProvider(), getTreeProvider());
     }
 
     @Test
@@ -97,9 +112,11 @@ public class CompositeProviderSupportedTest extends AbstractSecurityTest {
         Tree tree = mock(Tree.class);
         PropertyState ps = mock(PropertyState.class);
 
-        for (CompositePermissionProvider ccp : new CompositePermissionProvider[] {cppAND, cppOR}) {
-            assertEquals(expectedPermissions, ccp.supportedPermissions((Tree) null, null, Permissions.ALL));
-            assertEquals(expectedPermissions, ccp.supportedPermissions(tree, null, Permissions.ALL));
+        for (CompositePermissionProvider ccp : new CompositePermissionProvider[]{cppAND, cppOR}) {
+            assertEquals(expectedPermissions,
+                ccp.supportedPermissions((Tree) null, null, Permissions.ALL));
+            assertEquals(expectedPermissions,
+                ccp.supportedPermissions(tree, null, Permissions.ALL));
             assertEquals(expectedPermissions, ccp.supportedPermissions(tree, ps, Permissions.ALL));
         }
     }
@@ -109,7 +126,7 @@ public class CompositeProviderSupportedTest extends AbstractSecurityTest {
         TreePermission tp = mock(TreePermission.class);
         PropertyState ps = mock(PropertyState.class);
 
-        for (CompositePermissionProvider ccp : new CompositePermissionProvider[] {cppAND, cppOR}) {
+        for (CompositePermissionProvider ccp : new CompositePermissionProvider[]{cppAND, cppOR}) {
             assertEquals(expectedPermissions, ccp.supportedPermissions(tp, null, Permissions.ALL));
             assertEquals(expectedPermissions, ccp.supportedPermissions(tp, ps, Permissions.ALL));
         }
@@ -117,9 +134,10 @@ public class CompositeProviderSupportedTest extends AbstractSecurityTest {
 
     @Test
     public void testSupportedPermissionsFromLocation() {
-        TreeLocation location = TreeLocation.create(root, PathUtils.concat(PathUtils.ROOT_PATH, "any"));
+        TreeLocation location = TreeLocation.create(root,
+            PathUtils.concat(PathUtils.ROOT_PATH, "any"));
 
-        for (CompositePermissionProvider ccp : new CompositePermissionProvider[] {cppAND, cppOR}) {
+        for (CompositePermissionProvider ccp : new CompositePermissionProvider[]{cppAND, cppOR}) {
             assertEquals(expectedPermissions, ccp.supportedPermissions(location, Permissions.ALL));
             assertEquals(expectedPermissions, ccp.supportedPermissions(location, Permissions.ALL));
         }
@@ -129,7 +147,7 @@ public class CompositeProviderSupportedTest extends AbstractSecurityTest {
     public void testSupportedPrivilegeBits() {
         PrivilegeBits all = pbp.getBits(PrivilegeConstants.JCR_ALL);
         Tree tree = root.getTree(PathUtils.ROOT_PATH);
-        for (CompositePermissionProvider ccp : new CompositePermissionProvider[] {cppAND, cppOR}) {
+        for (CompositePermissionProvider ccp : new CompositePermissionProvider[]{cppAND, cppOR}) {
             assertEquals(expectedBits, ccp.supportedPrivileges(null, all).unmodifiable());
             assertEquals(expectedBits, ccp.supportedPrivileges(tree, all).unmodifiable());
         }

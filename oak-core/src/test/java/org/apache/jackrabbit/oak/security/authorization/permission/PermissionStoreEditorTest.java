@@ -122,8 +122,10 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
     }
 
     @NotNull
-    private PermissionStoreEditor createPermissionStoreEditor(@NotNull NodeState nodeState, @NotNull NodeBuilder permissionRoot) {
-        return new PermissionStoreEditor("", AccessControlConstants.REP_REPO_POLICY, nodeState, permissionRoot, isACE, isGrantACE, bitsProvider, restrictionProvider, getProviderCtx());
+    private PermissionStoreEditor createPermissionStoreEditor(@NotNull NodeState nodeState,
+        @NotNull NodeBuilder permissionRoot) {
+        return new PermissionStoreEditor("", AccessControlConstants.REP_REPO_POLICY, nodeState,
+            permissionRoot, isACE, isGrantACE, bitsProvider, restrictionProvider, getProviderCtx());
     }
 
     @Test
@@ -134,7 +136,9 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
         when(nodeState.getNames(JCR_MIXINTYPES)).thenReturn(Collections.emptySet());
         when(nodeState.getChildNode(anyString())).thenReturn(nodeState);
 
-        new PermissionStoreEditor("/test", AccessControlConstants.REP_POLICY, nodeState, mock(NodeBuilder.class), isACE, isGrantACE, bitsProvider, restrictionProvider, getProviderCtx());
+        new PermissionStoreEditor("/test", AccessControlConstants.REP_POLICY, nodeState,
+            mock(NodeBuilder.class), isACE, isGrantACE, bitsProvider, restrictionProvider,
+            getProviderCtx());
 
         verify(nodeState, times(3)).getChildNode(anyString());
         verify(isACE, times(3)).test(nodeState);
@@ -183,7 +187,8 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
         NodeState nodeState = mockNodeState(ace);
 
         NodeBuilder parent = when(mock(NodeBuilder.class).exists()).thenReturn(false).getMock();
-        NodeBuilder principalRoot = when(mock(NodeBuilder.class).getChildNode(anyString())).thenReturn(parent).getMock();
+        NodeBuilder principalRoot = when(
+            mock(NodeBuilder.class).getChildNode(anyString())).thenReturn(parent).getMock();
 
         NodeBuilder permissionsRoot = mock(NodeBuilder.class);
         when(permissionsRoot.hasChildNode(PRINCIPAL_NAME)).thenReturn(true);
@@ -206,13 +211,15 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
         NodeState ace = mockACE(PRINCIPAL_NAME);
         NodeState nodeState = mockNodeState(ace);
 
-        PropertyState nonMatchingPathProp = PropertyStates.createProperty(REP_ACCESS_CONTROLLED_PATH, "/noMatch");
+        PropertyState nonMatchingPathProp = PropertyStates.createProperty(
+            REP_ACCESS_CONTROLLED_PATH, "/noMatch");
         NodeBuilder parent = when(mock(NodeBuilder.class).exists()).thenReturn(true).getMock();
         when(parent.getProperty(REP_ACCESS_CONTROLLED_PATH)).thenReturn(nonMatchingPathProp);
         when(parent.getChildNodeNames()).thenReturn(ImmutableSet.of("collision"));
         when(parent.getChildNode(anyString())).thenReturn(parent);
 
-        NodeBuilder principalRoot = when(mock(NodeBuilder.class).getChildNode(anyString())).thenReturn(parent).getMock();
+        NodeBuilder principalRoot = when(
+            mock(NodeBuilder.class).getChildNode(anyString())).thenReturn(parent).getMock();
         NodeBuilder permissionsRoot = mock(NodeBuilder.class);
         when(permissionsRoot.hasChildNode(PRINCIPAL_NAME)).thenReturn(true);
         when(permissionsRoot.getChildNode(PRINCIPAL_NAME)).thenReturn(principalRoot);
@@ -237,7 +244,8 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
         NodeBuilder parent = when(mock(NodeBuilder.class).exists()).thenReturn(true).getMock();
         when(parent.remove()).thenReturn(true);
 
-        NodeBuilder principalRoot = when(mock(NodeBuilder.class).getChildNode(anyString())).thenReturn(parent).getMock();
+        NodeBuilder principalRoot = when(
+            mock(NodeBuilder.class).getChildNode(anyString())).thenReturn(parent).getMock();
         when(principalRoot.isNew()).thenReturn(false);
 
         NodeBuilder permissionsRoot = mock(NodeBuilder.class);
@@ -246,7 +254,8 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
 
         PermissionStoreEditor editor = createPermissionStoreEditor(nodeState, permissionsRoot);
 
-        PropertyState pathProp = PropertyStates.createProperty(REP_ACCESS_CONTROLLED_PATH, editor.getPath());
+        PropertyState pathProp = PropertyStates.createProperty(REP_ACCESS_CONTROLLED_PATH,
+            editor.getPath());
         when(parent.getProperty(REP_ACCESS_CONTROLLED_PATH)).thenReturn(pathProp);
 
         editor.removePermissionEntries();
@@ -267,9 +276,11 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
         NodeBuilder parent = when(mock(NodeBuilder.class).exists()).thenReturn(true).getMock();
         when(parent.remove()).thenReturn(true);
 
-        NodeBuilder principalRoot = when(mock(NodeBuilder.class).getChildNode(anyString())).thenReturn(parent).getMock();
+        NodeBuilder principalRoot = when(
+            mock(NodeBuilder.class).getChildNode(anyString())).thenReturn(parent).getMock();
         when(principalRoot.isNew()).thenReturn(true);
-        when(principalRoot.getProperty(REP_NUM_PERMISSIONS)).thenReturn(PropertyStates.createProperty(REP_NUM_PERMISSIONS, 0L, Type.LONG));
+        when(principalRoot.getProperty(REP_NUM_PERMISSIONS)).thenReturn(
+            PropertyStates.createProperty(REP_NUM_PERMISSIONS, 0L, Type.LONG));
 
         NodeBuilder permissionsRoot = mock(NodeBuilder.class);
         when(permissionsRoot.hasChildNode(PRINCIPAL_NAME)).thenReturn(true);
@@ -277,7 +288,8 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
 
         PermissionStoreEditor editor = createPermissionStoreEditor(nodeState, permissionsRoot);
 
-        PropertyState pathProp = PropertyStates.createProperty(REP_ACCESS_CONTROLLED_PATH, editor.getPath());
+        PropertyState pathProp = PropertyStates.createProperty(REP_ACCESS_CONTROLLED_PATH,
+            editor.getPath());
         when(parent.getProperty(REP_ACCESS_CONTROLLED_PATH)).thenReturn(pathProp);
 
         editor.removePermissionEntries();
@@ -302,18 +314,21 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
 
         NodeBuilder parent = mock(NodeBuilder.class);
         when(parent.hasProperty(REP_ACCESS_CONTROLLED_PATH)).thenReturn(true);
-        when(parent.getProperty(REP_ACCESS_CONTROLLED_PATH)).thenReturn(PropertyStates.createProperty(REP_ACCESS_CONTROLLED_PATH, "/noMatch"));
+        when(parent.getProperty(REP_ACCESS_CONTROLLED_PATH)).thenReturn(
+            PropertyStates.createProperty(REP_ACCESS_CONTROLLED_PATH, "/noMatch"));
         when(parent.getChildNodeNames()).thenReturn(ImmutableSet.of("collision"));
         when(parent.getChildNode(anyString())).thenReturn(collision);
         when(parent.child(anyString())).thenReturn(collision);
 
-        NodeBuilder principalRoot = when(mock(NodeBuilder.class).child(anyString())).thenReturn(parent).getMock();
+        NodeBuilder principalRoot = when(mock(NodeBuilder.class).child(anyString())).thenReturn(
+            parent).getMock();
         NodeBuilder permissionsRoot = mock(NodeBuilder.class);
         when(permissionsRoot.child(PRINCIPAL_NAME)).thenReturn(principalRoot);
 
         PermissionStoreEditor editor = createPermissionStoreEditor(nodeState, permissionsRoot);
 
-        when(collision.getProperty(REP_ACCESS_CONTROLLED_PATH)).thenReturn(PropertyStates.createProperty(REP_ACCESS_CONTROLLED_PATH, editor.getPath()));
+        when(collision.getProperty(REP_ACCESS_CONTROLLED_PATH)).thenReturn(
+            PropertyStates.createProperty(REP_ACCESS_CONTROLLED_PATH, editor.getPath()));
 
         editor.updatePermissionEntries();
 
@@ -340,7 +355,8 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
         when(parent.getChildNode(anyString())).thenReturn(child);
         when(parent.child(anyString())).thenReturn(child);
 
-        NodeBuilder principalRoot = when(mock(NodeBuilder.class).child(anyString())).thenReturn(parent).getMock();
+        NodeBuilder principalRoot = when(mock(NodeBuilder.class).child(anyString())).thenReturn(
+            parent).getMock();
         NodeBuilder permissionsRoot = mock(NodeBuilder.class);
         when(permissionsRoot.child(PRINCIPAL_NAME)).thenReturn(principalRoot);
 

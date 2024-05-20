@@ -32,14 +32,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Lock implementation for clustered scenario. The locking is done
- * by setting the lease time for the lane to distant future which
- * prevent AsyncIndexUpdate from  running.
+ * Lock implementation for clustered scenario. The locking is done by setting the lease time for the
+ * lane to distant future which prevent AsyncIndexUpdate from  running.
  */
 public class ClusterNodeStoreLock implements AsyncIndexerLock<ClusteredLockToken> {
+
     /**
-     * Use a looong lease time to ensure that async indexer does not start
-     * in between the import process which can take some time
+     * Use a looong lease time to ensure that async indexer does not start in between the import
+     * process which can take some time
      */
     private static final long LOCK_TIMEOUT = TimeUnit.DAYS.toMillis(100);
     // retry for at most 2 minutes
@@ -48,7 +48,7 @@ public class ClusterNodeStoreLock implements AsyncIndexerLock<ClusteredLockToken
     private final NodeStore nodeStore;
     private final Clock clock;
 
-    public ClusterNodeStoreLock(NodeStore nodeStore){
+    public ClusterNodeStoreLock(NodeStore nodeStore) {
         this(nodeStore, Clock.SIMPLE);
     }
 
@@ -69,9 +69,9 @@ public class ClusterNodeStoreLock implements AsyncIndexerLock<ClusteredLockToken
         String leaseName = AsyncIndexUpdate.leasify(asyncIndexerLane);
         long leaseEndTime = clock.getTime() + LOCK_TIMEOUT;
 
-        if (async.hasProperty(leaseName)){
+        if (async.hasProperty(leaseName)) {
             log.info("AsyncIndexer found to be running currently. Lease update would cause its" +
-                    "commit to fail. Such a failure should be ignored");
+                "commit to fail. Such a failure should be ignored");
         }
 
         async.setProperty(leaseName, leaseEndTime);
@@ -82,7 +82,7 @@ public class ClusterNodeStoreLock implements AsyncIndexerLock<ClusteredLockToken
 
         return new ClusteredLockToken(asyncIndexerLane, leaseEndTime);
     }
-    
+
     private <T> T retryIfNeeded(Callable<T> r) throws CommitFailedException {
         // Attempt few times if merge failure due to current running indexer cycle
         int backOffMaxMillis = 1;
@@ -98,7 +98,8 @@ public class ClusterNodeStoreLock implements AsyncIndexerLock<ClusteredLockToken
                         throw (CommitFailedException) e;
                     }
                     log.error("Unexpected failure retrying", e);
-                    throw new CommitFailedException(CommitFailedException.UNSUPPORTED, 2, e.getMessage(), e);
+                    throw new CommitFailedException(CommitFailedException.UNSUPPORTED, 2,
+                        e.getMessage(), e);
                 }
                 int sleep = (int) (backOffMaxMillis * Math.random());
                 backOffMaxMillis *= 2;
@@ -114,9 +115,9 @@ public class ClusterNodeStoreLock implements AsyncIndexerLock<ClusteredLockToken
 
     @Override
     public void unlock(ClusteredLockToken token) throws CommitFailedException {
-        retryIfNeeded(() -> tryUnlock(token));        
+        retryIfNeeded(() -> tryUnlock(token));
     }
-    
+
     private Void tryUnlock(ClusteredLockToken token) throws CommitFailedException {
         String leaseName = AsyncIndexUpdate.leasify(token.laneName);
 
@@ -141,6 +142,7 @@ public class ClusterNodeStoreLock implements AsyncIndexerLock<ClusteredLockToken
 }
 
 class ClusteredLockToken implements AsyncIndexerLock.LockToken {
+
     final String laneName;
     final long timeout;
 

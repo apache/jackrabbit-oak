@@ -44,18 +44,18 @@ public class RelativePathTest extends AbstractQueryTest {
     @Override
     protected ContentRepository createRepository() {
         return new Oak().with(new InitialContent())
-                .with(new RepositoryInitializer() {
-                    @Override
-                    public void initialize(@NotNull NodeBuilder builder) {
-                        NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
-                        IndexUtils.createIndexDefinition(index, "myProp", true,
-                                false, ImmutableList.<String>of("myProp"), null);
-                    }
-                })
-                .with(new OpenSecurityProvider())
-                .with(new PropertyIndexProvider())
-                .with(new PropertyIndexEditorProvider())
-                .createContentRepository();
+                        .with(new RepositoryInitializer() {
+                            @Override
+                            public void initialize(@NotNull NodeBuilder builder) {
+                                NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
+                                IndexUtils.createIndexDefinition(index, "myProp", true,
+                                    false, ImmutableList.<String>of("myProp"), null);
+                            }
+                        })
+                        .with(new OpenSecurityProvider())
+                        .with(new PropertyIndexProvider())
+                        .with(new PropertyIndexEditorProvider())
+                        .createContentRepository();
     }
 
     @Test
@@ -68,18 +68,18 @@ public class RelativePathTest extends AbstractQueryTest {
         root.commit();
         setTraversalEnabled(false);
         assertQuery("select [jcr:path] from [nt:base] where [n/myProp] is not null",
-                ImmutableList.of("/a", "/b"));
+            ImmutableList.of("/a", "/b"));
 
         List<String> lines = executeQuery(
-                "explain select [jcr:path] from [nt:base] where [n/myProp] is not null",
-                Query.JCR_SQL2);
+            "explain select [jcr:path] from [nt:base] where [n/myProp] is not null",
+            Query.JCR_SQL2);
         assertEquals(1, lines.size());
         // make sure it used the property index
         assertTrue(lines.get(0).contains("property myProp"));
 
         assertQuery(
-                "select [jcr:path] from [nt:base] where [n/myProp] = 'foo'",
-                ImmutableList.of("/a"));
+            "select [jcr:path] from [nt:base] where [n/myProp] = 'foo'",
+            ImmutableList.of("/a"));
         setTraversalEnabled(false);
     }
 }

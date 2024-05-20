@@ -32,6 +32,7 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 public class ConsoleIndexingReporter implements IndexingReporter {
+
     // Print configuration in alphabetical order
     private final Map<String, String> config = new TreeMap<>();
     // Print timings in the order they were added
@@ -46,7 +47,8 @@ public class ConsoleIndexingReporter implements IndexingReporter {
     }
 
     /**
-     * @param envVariablesToLog  These environment variables and their values will be included in the final report.
+     * @param envVariablesToLog These environment variables and their values will be included in the
+     *                          final report.
      */
     public ConsoleIndexingReporter(@NotNull List<String> envVariablesToLog) {
         this.envVariablesToLog = List.copyOf(envVariablesToLog);
@@ -78,24 +80,24 @@ public class ConsoleIndexingReporter implements IndexingReporter {
 
     public String generateReport() {
         return "Indexes: " + String.join(", ", indexes) + "\n" +
-                "Date: " + DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(ZonedDateTime.now()) + "\n" +
-                "OAK Version: " + OakVersion.getVersion() + "\n" +
-                "Configuration:\n" + mapToString(config) + "\n" +
-                "Environment Variables:\n" + genEnvVariables() + "\n" +
-                "Timings:\n" + mapToString(timings) + "\n" +
-                "Metrics:\n" + mapToString(metrics);
+            "Date: " + DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(ZonedDateTime.now()) + "\n" +
+            "OAK Version: " + OakVersion.getVersion() + "\n" +
+            "Configuration:\n" + mapToString(config) + "\n" +
+            "Environment Variables:\n" + genEnvVariables() + "\n" +
+            "Timings:\n" + mapToString(timings) + "\n" +
+            "Metrics:\n" + mapToString(metrics);
     }
 
     private String genEnvVariables() {
         return envVariablesToLog.stream()
-                .sorted()
-                .map(var -> "  " + var + ": " + System.getenv(var))
-                .collect(Collectors.joining("\n"));
+                                .sorted()
+                                .map(var -> "  " + var + ": " + System.getenv(var))
+                                .collect(Collectors.joining("\n"));
     }
 
     private String mapToString(Map<String, String> map) {
         return map.entrySet().stream()
-                .map(entry -> "  " + entry.getKey() + ": " + entry.getValue())
-                .collect(Collectors.joining("\n"));
+                  .map(entry -> "  " + entry.getKey() + ": " + entry.getValue())
+                  .collect(Collectors.joining("\n"));
     }
 }

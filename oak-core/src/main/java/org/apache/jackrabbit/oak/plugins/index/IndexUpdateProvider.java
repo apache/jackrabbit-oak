@@ -29,12 +29,12 @@ import org.jetbrains.annotations.Nullable;
 public class IndexUpdateProvider implements EditorProvider {
 
     private static final IndexUpdateCallback NOOP_CALLBACK =
-            new IndexUpdateCallback() {
-                @Override
-                public void indexUpdate() {
-                    // do nothing
-                }
-            };
+        new IndexUpdateCallback() {
+            @Override
+            public void indexUpdate() {
+                // do nothing
+            }
+        };
 
     private final IndexEditorProvider provider;
 
@@ -55,20 +55,23 @@ public class IndexUpdateProvider implements EditorProvider {
     }
 
     public IndexUpdateProvider(
-            @NotNull IndexEditorProvider provider, @Nullable String async, boolean failOnMissingIndexProvider) {
+        @NotNull IndexEditorProvider provider, @Nullable String async,
+        boolean failOnMissingIndexProvider) {
         this.provider = provider;
         this.async = async;
         this.missingStrategy = new MissingIndexProviderStrategy();
         this.missingStrategy.setFailOnMissingIndexProvider(failOnMissingIndexProvider);
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public Editor getRootEditor(
-            NodeState before, NodeState after,
-            NodeBuilder builder, CommitInfo info) {
+        NodeState before, NodeState after,
+        NodeBuilder builder, CommitInfo info) {
 
-        IndexUpdate editor = new IndexUpdate(provider, async, after, builder, NOOP_CALLBACK, NodeTraversalCallback.NOOP, info, corruptIndexHandler)
-                .withMissingProviderStrategy(missingStrategy);
+        IndexUpdate editor = new IndexUpdate(provider, async, after, builder, NOOP_CALLBACK,
+            NodeTraversalCallback.NOOP, info, corruptIndexHandler)
+            .withMissingProviderStrategy(missingStrategy);
         editor.setIgnoreReindexFlags(ignoreReindexFlags);
         return VisibleEditor.wrap(editor);
     }

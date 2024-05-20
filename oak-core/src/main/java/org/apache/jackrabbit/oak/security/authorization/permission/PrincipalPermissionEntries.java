@@ -34,7 +34,8 @@ class PrincipalPermissionEntries {
     /**
      * max size of the emptyPaths cache.
      */
-    private static int MAX_SIZE = Integer.getInteger("oak.PrincipalPermissionEntries.maxSize", 1000);
+    private static int MAX_SIZE = Integer.getInteger("oak.PrincipalPermissionEntries.maxSize",
+        1000);
 
     private final long expectedSize;
 

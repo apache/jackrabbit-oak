@@ -47,7 +47,7 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
     public String[] getRequiredPrimaryTypeNames() {
         String[] names = getNames(JcrConstants.JCR_REQUIREDPRIMARYTYPES);
         if (names == null) {
-            names = new String[] { JcrConstants.NT_BASE };
+            names = new String[]{JcrConstants.NT_BASE};
         }
         for (int i = 0; i < names.length; i++) {
             names[i] = mapper.getJcrName(names[i]);
@@ -59,7 +59,7 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
     public NodeType[] getRequiredPrimaryTypes() {
         String[] oakNames = getNames(JcrConstants.JCR_REQUIREDPRIMARYTYPES);
         if (oakNames == null) {
-            oakNames = new String[] { JcrConstants.NT_BASE };
+            oakNames = new String[]{JcrConstants.NT_BASE};
         }
 
         NodeType[] types = new NodeType[oakNames.length];

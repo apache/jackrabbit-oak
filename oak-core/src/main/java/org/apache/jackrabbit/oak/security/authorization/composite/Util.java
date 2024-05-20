@@ -26,7 +26,8 @@ final class Util {
 
     private static final Logger log = LoggerFactory.getLogger(Util.class);
 
-    private Util() {}
+    private Util() {
+    }
 
     static boolean doEvaluate(long supportedPermissions) {
         return supportedPermissions != Permissions.NO_PERMISSION;

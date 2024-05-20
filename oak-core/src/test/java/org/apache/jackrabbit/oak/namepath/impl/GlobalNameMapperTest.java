@@ -35,11 +35,11 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 public class GlobalNameMapperTest {
 
     private static final Map<String, String> NAMESPACES = ImmutableMap.of(
-            "jcr", "http://www.jcp.org/jcr/1.0",
-            "nt", "http://www.jcp.org/jcr/nt/1.0",
-            "mix", "http://www.jcp.org/jcr/mix/1.0",
-            "foo", "http://www.example.com/foo",
-            "quu", "http://www.example.com/quu");
+        "jcr", "http://www.jcp.org/jcr/1.0",
+        "nt", "http://www.jcp.org/jcr/nt/1.0",
+        "mix", "http://www.jcp.org/jcr/mix/1.0",
+        "foo", "http://www.example.com/foo",
+        "quu", "http://www.example.com/quu");
 
     private NameMapper mapper = new GlobalNameMapper(NAMESPACES);
 

@@ -52,7 +52,8 @@ public class StatisticsProviderFactoryTest {
     @Test
     public void autoMode() throws Exception {
         MockOsgi.activate(service, context.bundleContext(), Collections.<String, Object>emptyMap());
-        assertTrue(context.getService(StatisticsProvider.class) instanceof MetricStatisticsProvider);
+        assertTrue(
+            context.getService(StatisticsProvider.class) instanceof MetricStatisticsProvider);
         assertNotNull(context.getService(MetricRegistry.class));
 
         MockOsgi.deactivate(service, context.bundleContext());
@@ -61,13 +62,16 @@ public class StatisticsProviderFactoryTest {
 
     @Test
     public void noneMode() throws Exception {
-        MockOsgi.activate(service, context.bundleContext(), ImmutableMap.<String, Object>of("providerType", "NONE"));
+        MockOsgi.activate(service, context.bundleContext(),
+            ImmutableMap.<String, Object>of("providerType", "NONE"));
         assertNull(context.getService(StatisticsProvider.class));
     }
 
     @Test
     public void defaultMode() throws Exception {
-        MockOsgi.activate(service, context.bundleContext(), ImmutableMap.<String, Object>of("providerType", "DEFAULT"));
-        assertTrue(context.getService(StatisticsProvider.class) instanceof DefaultStatisticsProvider);
+        MockOsgi.activate(service, context.bundleContext(),
+            ImmutableMap.<String, Object>of("providerType", "DEFAULT"));
+        assertTrue(
+            context.getService(StatisticsProvider.class) instanceof DefaultStatisticsProvider);
     }
 }

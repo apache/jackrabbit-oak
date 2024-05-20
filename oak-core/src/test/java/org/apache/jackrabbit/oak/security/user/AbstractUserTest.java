@@ -40,14 +40,14 @@ public abstract class AbstractUserTest extends AbstractSecurityTest {
         SecurityProvider sp = getSecurityProvider();
         Whiteboard wb = null;
         if (sp instanceof WhiteboardAware) {
-            wb = ((WhiteboardAware)sp).getWhiteboard();
+            wb = ((WhiteboardAware) sp).getWhiteboard();
         }
         if (wb == null) {
             wb = new DefaultWhiteboard();
         }
         dynamicMembershipService.start(wb);
     }
-    
+
     @After
     public void after() throws Exception {
         try {
@@ -56,13 +56,14 @@ public abstract class AbstractUserTest extends AbstractSecurityTest {
             super.after();
         }
     }
-    
+
     protected UserMonitor getUserMonitor() {
         return monitor;
     }
-    
+
     protected UserManagerImpl createUserManagerImpl(@NotNull Root root) {
-        return new UserManagerImpl(root, getPartialValueFactory(), getSecurityProvider(), getUserMonitor(), dynamicMembershipService);
+        return new UserManagerImpl(root, getPartialValueFactory(), getSecurityProvider(),
+            getUserMonitor(), dynamicMembershipService);
     }
-    
+
 }

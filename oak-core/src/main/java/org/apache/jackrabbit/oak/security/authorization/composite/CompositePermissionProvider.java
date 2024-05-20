@@ -41,10 +41,10 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * Permission provider implementation that aggregates a list of different
- * provider implementations. Note, that the aggregated provider implementations
- * *must* implement the
- * {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider}
+ * Permission provider implementation that aggregates a list of different provider implementations.
+ * Note, that the aggregated provider implementations *must* implement the
+ * {@link
+ * org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider}
  * interface.
  */
 abstract class CompositePermissionProvider implements AggregatedPermissionProvider {
@@ -62,7 +62,8 @@ abstract class CompositePermissionProvider implements AggregatedPermissionProvid
     private final TreeTypeProvider typeProvider;
 
     CompositePermissionProvider(@NotNull Root root, @NotNull List<AggregatedPermissionProvider> pps,
-                                @NotNull Context acContext, @NotNull RootProvider rootProvider, @NotNull TreeProvider treeProvider) {
+        @NotNull Context acContext, @NotNull RootProvider rootProvider,
+        @NotNull TreeProvider treeProvider) {
         this.root = root;
         this.pps = pps.toArray(new AggregatedPermissionProvider[0]);
         this.ctx = acContext;
@@ -75,13 +76,16 @@ abstract class CompositePermissionProvider implements AggregatedPermissionProvid
         typeProvider = new TreeTypeProvider(ctx);
     }
 
-    static CompositePermissionProvider create(@NotNull Root root, @NotNull List<AggregatedPermissionProvider> pps,
-                                              @NotNull Context acContext, @NotNull CompositionType compositionType,
-                                              @NotNull RootProvider rootProvider, @NotNull TreeProvider treeProvider) {
+    static CompositePermissionProvider create(@NotNull Root root,
+        @NotNull List<AggregatedPermissionProvider> pps,
+        @NotNull Context acContext, @NotNull CompositionType compositionType,
+        @NotNull RootProvider rootProvider, @NotNull TreeProvider treeProvider) {
         if (compositionType == CompositionType.AND) {
-            return new CompositePermissionProviderAnd(root, pps, acContext, rootProvider, treeProvider);
+            return new CompositePermissionProviderAnd(root, pps, acContext, rootProvider,
+                treeProvider);
         } else {
-            return new CompositePermissionProviderOr(root, pps, acContext, rootProvider, treeProvider);
+            return new CompositePermissionProviderOr(root, pps, acContext, rootProvider,
+                treeProvider);
         }
     }
 
@@ -90,8 +94,10 @@ abstract class CompositePermissionProvider implements AggregatedPermissionProvid
 
     @NotNull
     abstract RepositoryPermission createRepositoryPermission();
-    
-    abstract boolean hasPrivileges(@Nullable Tree immutableTree, @NotNull PrivilegeBitsProvider bitsProvider, @NotNull PrivilegeBits privilegeBits, @NotNull PrivilegeBits coveredPrivileges);
+
+    abstract boolean hasPrivileges(@Nullable Tree immutableTree,
+        @NotNull PrivilegeBitsProvider bitsProvider, @NotNull PrivilegeBits privilegeBits,
+        @NotNull PrivilegeBits coveredPrivileges);
 
     @NotNull
     Root getImmutableRoot() {
@@ -129,7 +135,8 @@ abstract class CompositePermissionProvider implements AggregatedPermissionProvid
         }
 
         PrivilegeBits coveredPrivs = PrivilegeBits.getInstance();
-        boolean hasPrivileges = hasPrivileges(immutableTree, privilegeBitsProvider, privilegeBits, coveredPrivs);
+        boolean hasPrivileges = hasPrivileges(immutableTree, privilegeBitsProvider, privilegeBits,
+            coveredPrivs);
         return hasPrivileges && coveredPrivs.includes(privilegeBits);
     }
 
@@ -141,14 +148,18 @@ abstract class CompositePermissionProvider implements AggregatedPermissionProvid
 
     @NotNull
     @Override
-    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree,
+        @NotNull TreePermission parentPermission) {
         Tree readOnlyTree = PermissionUtil.getReadOnlyTree(tree, immutableRoot);
         if (tree.isRoot()) {
-            return CompositeTreePermission.create(readOnlyTree, treeProvider, typeProvider, pps, getCompositeType());
+            return CompositeTreePermission.create(readOnlyTree, treeProvider, typeProvider, pps,
+                getCompositeType());
         } else if (parentPermission instanceof CompositeTreePermission) {
-            return CompositeTreePermission.create(readOnlyTree, treeProvider, ((CompositeTreePermission) parentPermission));
+            return CompositeTreePermission.create(readOnlyTree, treeProvider,
+                ((CompositeTreePermission) parentPermission));
         } else {
-            return parentPermission.getChildPermission(readOnlyTree.getName(), treeProvider.asNodeState(readOnlyTree));
+            return parentPermission.getChildPermission(readOnlyTree.getName(),
+                treeProvider.asNodeState(readOnlyTree));
         }
     }
 
@@ -165,28 +176,38 @@ abstract class CompositePermissionProvider implements AggregatedPermissionProvid
 
     @NotNull
     @Override
-    public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
+    public PrivilegeBits supportedPrivileges(@Nullable Tree tree,
+        @Nullable PrivilegeBits privilegeBits) {
         PrivilegeBits result = PrivilegeBits.getInstance();
         for (AggregatedPermissionProvider aggregatedPermissionProvider : pps) {
-            PrivilegeBits supported = aggregatedPermissionProvider.supportedPrivileges(tree, privilegeBits);
+            PrivilegeBits supported = aggregatedPermissionProvider.supportedPrivileges(tree,
+                privilegeBits);
             result.add(supported);
         }
         return result;
     }
 
     @Override
-    public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
-        return supportedPermissions(aggregatedPermissionProvider -> aggregatedPermissionProvider.supportedPermissions(tree, property, permissions));
+    public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property,
+        long permissions) {
+        return supportedPermissions(
+            aggregatedPermissionProvider -> aggregatedPermissionProvider.supportedPermissions(tree,
+                property, permissions));
     }
 
     @Override
     public long supportedPermissions(@NotNull TreeLocation location, long permissions) {
-        return supportedPermissions(aggregatedPermissionProvider -> aggregatedPermissionProvider.supportedPermissions(location, permissions));
+        return supportedPermissions(
+            aggregatedPermissionProvider -> aggregatedPermissionProvider.supportedPermissions(
+                location, permissions));
     }
 
     @Override
-    public long supportedPermissions(@NotNull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
-        return supportedPermissions(aggregatedPermissionProvider -> aggregatedPermissionProvider.supportedPermissions(treePermission, property, permissions));
+    public long supportedPermissions(@NotNull TreePermission treePermission,
+        @Nullable PropertyState property, long permissions) {
+        return supportedPermissions(
+            aggregatedPermissionProvider -> aggregatedPermissionProvider.supportedPermissions(
+                treePermission, property, permissions));
     }
 
     private long supportedPermissions(Function<AggregatedPermissionProvider, Long> supported) {
@@ -200,14 +221,18 @@ abstract class CompositePermissionProvider implements AggregatedPermissionProvid
 
     @NotNull
     @Override
-    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type,
+        @NotNull TreePermission parentPermission) {
         Tree immutableTree = PermissionUtil.getReadOnlyTree(tree, immutableRoot);
         if (tree.isRoot()) {
-            return CompositeTreePermission.create(immutableTree, treeProvider, typeProvider, pps, getCompositeType());
+            return CompositeTreePermission.create(immutableTree, treeProvider, typeProvider, pps,
+                getCompositeType());
         } else if (parentPermission instanceof CompositeTreePermission) {
-            return CompositeTreePermission.create(immutableTree, treeProvider, ((CompositeTreePermission) parentPermission), type);
+            return CompositeTreePermission.create(immutableTree, treeProvider,
+                ((CompositeTreePermission) parentPermission), type);
         } else {
-            return parentPermission.getChildPermission(immutableTree.getName(), treeProvider.asNodeState(immutableTree));
+            return parentPermission.getChildPermission(immutableTree.getName(),
+                treeProvider.asNodeState(immutableTree));
         }
     }
 }

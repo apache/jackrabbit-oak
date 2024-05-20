@@ -50,8 +50,8 @@ public class TokenConfigurationImplOSGiTest extends AbstractSecurityTest {
         tokenConfiguration.setSecurityProvider(getSecurityProvider());
 
         context.registerInjectActivateService(tokenConfiguration, ImmutableMap.of(
-                TokenProvider.PARAM_TOKEN_EXPIRATION, 25,
-                TokenProvider.PARAM_TOKEN_LENGTH, 4));
+            TokenProvider.PARAM_TOKEN_EXPIRATION, 25,
+            TokenProvider.PARAM_TOKEN_LENGTH, 4));
 
         sc = new SimpleCredentials(getTestUser().getID(), new char[0]);
         sc.setAttribute(TokenConstants.TOKEN_ATTRIBUTE, TokenConstants.TOKEN_ATTRIBUTE_DO_CREATE);
@@ -60,8 +60,10 @@ public class TokenConfigurationImplOSGiTest extends AbstractSecurityTest {
     @Test
     public void testGetParameters() {
         ConfigurationParameters params = tokenConfiguration.getParameters();
-        assertEquals(25, params.getConfigValue(TokenProvider.PARAM_TOKEN_EXPIRATION, TokenProviderImpl.DEFAULT_TOKEN_EXPIRATION).longValue());
-        assertEquals(4, params.getConfigValue(TokenProvider.PARAM_TOKEN_LENGTH, TokenProviderImpl.DEFAULT_KEY_SIZE).intValue());
+        assertEquals(25, params.getConfigValue(TokenProvider.PARAM_TOKEN_EXPIRATION,
+            TokenProviderImpl.DEFAULT_TOKEN_EXPIRATION).longValue());
+        assertEquals(4, params.getConfigValue(TokenProvider.PARAM_TOKEN_LENGTH,
+            TokenProviderImpl.DEFAULT_KEY_SIZE).intValue());
     }
 
     @Test
@@ -72,7 +74,8 @@ public class TokenConfigurationImplOSGiTest extends AbstractSecurityTest {
 
     @Test
     public void testBindCredentialsSupport() {
-        context.registerService(CredentialsSupport.class, new TestCredentialsSupport(sc.getUserID()));
+        context.registerService(CredentialsSupport.class,
+            new TestCredentialsSupport(sc.getUserID()));
 
         TokenProvider tp = tokenConfiguration.getTokenProvider(root);
 
@@ -83,7 +86,8 @@ public class TokenConfigurationImplOSGiTest extends AbstractSecurityTest {
     @Test
     public void testUnbindCredentialsSupport() {
         CredentialsSupport testSupport = new TestCredentialsSupport(sc.getUserID());
-        ServiceRegistration registration = context.bundleContext().registerService(CredentialsSupport.class.getName(), testSupport, new Hashtable());
+        ServiceRegistration registration = context.bundleContext().registerService(
+            CredentialsSupport.class.getName(), testSupport, new Hashtable());
 
         TokenProvider tp = tokenConfiguration.getTokenProvider(root);
         assertTrue(tp.doCreateToken(sc));

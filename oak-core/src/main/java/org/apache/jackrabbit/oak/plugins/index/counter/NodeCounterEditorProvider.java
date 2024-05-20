@@ -50,18 +50,18 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
     /**
-     The statistics provider will be null for any testcase that is using the nodeCounter. As some of these testcases are
-     using default repository builders that we can't modify, we default the statisticsProvider to be the NOOP instance,
-     as this is the easiest to instantiate.
-    */
+     * The statistics provider will be null for any testcase that is using the nodeCounter. As some
+     * of these testcases are using default repository builders that we can't modify, we default the
+     * statisticsProvider to be the NOOP instance, as this is the easiest to instantiate.
+     */
     @Reference
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
 
     @Override
     @Nullable
     public Editor getIndexEditor(@NotNull String type,
-            @NotNull NodeBuilder definition, @NotNull NodeState root,
-            @NotNull IndexUpdateCallback callback) throws CommitFailedException {
+        @NotNull NodeBuilder definition, @NotNull NodeState root,
+        @NotNull IndexUpdateCallback callback) throws CommitFailedException {
         if (!TYPE.equals(type)) {
             return null;
         }
@@ -87,11 +87,11 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
 
         if (NodeCounter.USE_OLD_COUNTER) {
             NodeCounterEditorOld.NodeCounterRoot rootData = new NodeCounterEditorOld.NodeCounterRoot(
-                    resolution, seed, definition, root, callback);
+                resolution, seed, definition, root, callback);
             return new NodeCounterEditorOld(rootData, null, "/", null);
         } else {
             NodeCounterEditor.NodeCounterRoot rootData = new NodeCounterEditor.NodeCounterRoot(
-                    resolution, seed, definition, root, callback);
+                resolution, seed, definition, root, callback);
             return new NodeCounterEditor(rootData, mountInfoProvider, statisticsProvider);
         }
     }
@@ -102,9 +102,9 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
     }
 
     /**
-     * This is intended to be used during testing if there is a need to use a statistics provider that can be registered
-     * in the mBean server, e.g. the MetricStatisticsProvider. The DefaultStatisticsProvider and StatisticsProvider.NOOP
-     * will not.
+     * This is intended to be used during testing if there is a need to use a statistics provider
+     * that can be registered in the mBean server, e.g. the MetricStatisticsProvider. The
+     * DefaultStatisticsProvider and StatisticsProvider.NOOP will not.
      *
      * @param statisticsProvider a statisticsProvider as explained above
      * @return the current NodeCounterEditor that is being built.

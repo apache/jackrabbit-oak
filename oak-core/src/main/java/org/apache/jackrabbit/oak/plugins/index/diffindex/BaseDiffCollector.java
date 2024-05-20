@@ -35,7 +35,7 @@ public abstract class BaseDiffCollector implements DiffCollector {
     private final NodeState after;
 
     private Set<String> results;
-    
+
     /**
      * The filter that was used to generate the result.
      */
@@ -43,7 +43,7 @@ public abstract class BaseDiffCollector implements DiffCollector {
 
     /**
      * @param before initial state
-     * @param after after state
+     * @param after  after state
      */
     public BaseDiffCollector(NodeState before, NodeState after) {
         this.before = before;
@@ -73,7 +73,7 @@ public abstract class BaseDiffCollector implements DiffCollector {
 
     public void collect(final Filter filter) {
         DiffCollectorNodeStateDiff diff = new DiffCollectorNodeStateDiff(this,
-                filter);
+            filter);
         after.compareAgainstBaseState(before, diff);
         this.results = new HashSet<String>(diff.getResults());
         this.resultFilter = filter;
@@ -99,8 +99,8 @@ public abstract class BaseDiffCollector implements DiffCollector {
         }
 
         private DiffCollectorNodeStateDiff(
-                BaseDiffCollector collector, Filter filter, String path,
-                Set<String> results) {
+            BaseDiffCollector collector, Filter filter, String path,
+            Set<String> results) {
             this.collector = collector;
             this.filter = filter;
             this.path = path;
@@ -114,16 +114,16 @@ public abstract class BaseDiffCollector implements DiffCollector {
 
         @Override
         public boolean childNodeChanged(String name, NodeState before,
-                NodeState after) {
+            NodeState after) {
             if (NodeStateUtils.isHidden(name)) {
                 return true;
             }
             return testNodeState(after, name)
-                    && after.compareAgainstBaseState(
-                            before,
-                            new DiffCollectorNodeStateDiff(
-                                    collector, filter,
-                                    concat(path, name), results));
+                && after.compareAgainstBaseState(
+                before,
+                new DiffCollectorNodeStateDiff(
+                    collector, filter,
+                    concat(path, name), results));
         }
 
         private boolean testNodeState(NodeState nodeState, String currentPath) {

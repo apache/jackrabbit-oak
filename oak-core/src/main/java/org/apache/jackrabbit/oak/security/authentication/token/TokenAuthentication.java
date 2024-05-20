@@ -34,11 +34,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implementation of the {@code Authentication} interface that deals with
- * token based login. {@link #authenticate(javax.jcr.Credentials) Authentication}
- * will be successful if the specified credentials are valid {@link TokenCredentials}
- * according to the characteristics and constraints enforced by {@link org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider}
- * and the information obtained using {@link org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider#getTokenInfo(String)}
+ * Implementation of the {@code Authentication} interface that deals with token based login.
+ * {@link #authenticate(javax.jcr.Credentials) Authentication} will be successful if the specified
+ * credentials are valid {@link TokenCredentials} according to the characteristics and constraints
+ * enforced by {@link org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider} and
+ * the information obtained using
+ * {@link
+ * org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider#getTokenInfo(String)}
  * respectively.
  */
 class TokenAuthentication implements Authentication {
@@ -75,7 +77,8 @@ class TokenAuthentication implements Authentication {
     @Override
     public String getUserId() {
         if (tokenInfo == null) {
-            throw new IllegalStateException("UserId can only be retrieved after successful authentication.");
+            throw new IllegalStateException(
+                "UserId can only be retrieved after successful authentication.");
         }
         return tokenInfo.getUserId();
     }
@@ -84,7 +87,8 @@ class TokenAuthentication implements Authentication {
     @Override
     public Principal getUserPrincipal() {
         if (tokenInfo == null) {
-            throw new IllegalStateException("Token info can only be retrieved after successful authentication.");
+            throw new IllegalStateException(
+                "Token info can only be retrieved after successful authentication.");
         }
         if (tokenInfo instanceof TokenProviderImpl.TokenInfoImpl) {
             return ((TokenProviderImpl.TokenInfoImpl) tokenInfo).getPrincipal();
@@ -97,13 +101,15 @@ class TokenAuthentication implements Authentication {
     @NotNull
     TokenInfo getTokenInfo() {
         if (tokenInfo == null) {
-            throw new IllegalStateException("Token info can only be retrieved after successful authentication.");
+            throw new IllegalStateException(
+                "Token info can only be retrieved after successful authentication.");
         }
         return tokenInfo;
     }
 
     //------------------------------------------------------------< private >---
-    private boolean validateCredentials(@NotNull TokenCredentials tokenCredentials) throws TokenCredentialsExpiredException {
+    private boolean validateCredentials(@NotNull TokenCredentials tokenCredentials)
+        throws TokenCredentialsExpiredException {
         // credentials without userID -> check if attributes provide
         // sufficient information for successful authentication.
         String token = tokenCredentials.getToken();
@@ -120,7 +126,7 @@ class TokenAuthentication implements Authentication {
             String msg = "Token is expired";
             log.debug(msg);
             tokenInfo.remove();
-            
+
             TokenCredentialsExpiredException tce = new TokenCredentialsExpiredException(msg);
             monitor.loginFailed(tce, tokenCredentials);
             throw tce;

@@ -37,12 +37,13 @@ public class CompositeIndexEditorProvider implements IndexEditorProvider {
 
     @NotNull
     public static IndexEditorProvider compose(
-            @NotNull Collection<IndexEditorProvider> providers) {
+        @NotNull Collection<IndexEditorProvider> providers) {
         if (providers.isEmpty()) {
             return new IndexEditorProvider() {
                 @Override
                 public Editor getIndexEditor(
-                        @NotNull String type, @NotNull NodeBuilder builder, @NotNull NodeState root, @NotNull IndexUpdateCallback callback) {
+                    @NotNull String type, @NotNull NodeBuilder builder, @NotNull NodeState root,
+                    @NotNull IndexUpdateCallback callback) {
                     return null;
                 }
             };
@@ -50,7 +51,7 @@ public class CompositeIndexEditorProvider implements IndexEditorProvider {
             return providers.iterator().next();
         } else {
             return new CompositeIndexEditorProvider(
-                    ImmutableList.copyOf(providers));
+                ImmutableList.copyOf(providers));
         }
     }
 
@@ -66,8 +67,9 @@ public class CompositeIndexEditorProvider implements IndexEditorProvider {
 
     @Override
     public Editor getIndexEditor(
-            @NotNull String type, @NotNull NodeBuilder builder, @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
-            throws CommitFailedException {
+        @NotNull String type, @NotNull NodeBuilder builder, @NotNull NodeState root,
+        @NotNull IndexUpdateCallback callback)
+        throws CommitFailedException {
         List<Editor> indexes = Lists.newArrayList();
         for (IndexEditorProvider provider : providers) {
             Editor e = provider.getIndexEditor(type, builder, root, callback);

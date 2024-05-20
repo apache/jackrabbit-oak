@@ -53,9 +53,8 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
 
 /**
- * Creates initial set of users to be present in a given workspace. This
- * implementation uses the {@code UserManager} such as defined by the
- * user configuration.
+ * Creates initial set of users to be present in a given workspace. This implementation uses the
+ * {@code UserManager} such as defined by the user configuration.
  * <p>
  * Currently the following users are created:
  * <p>
@@ -85,8 +84,9 @@ class UserInitializer implements WorkspaceInitializer, UserConstants, QueryIndex
 
     private final SecurityProvider securityProvider;
 
-    private QueryIndexProvider queryIndexProvider = new CompositeQueryIndexProvider(new PropertyIndexProvider(),
-            new NodeTypeIndexProvider());
+    private QueryIndexProvider queryIndexProvider = new CompositeQueryIndexProvider(
+        new PropertyIndexProvider(),
+        new NodeTypeIndexProvider());
 
     UserInitializer(@NotNull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
@@ -101,39 +101,42 @@ class UserInitializer implements WorkspaceInitializer, UserConstants, QueryIndex
         MemoryNodeStore store = new MemoryNodeStore(base);
 
         Root root = RootFactory.createSystemRoot(store, EmptyHook.INSTANCE, workspaceName,
-                securityProvider,  queryIndexProvider);
+            securityProvider, queryIndexProvider);
 
-        UserConfiguration userConfiguration = securityProvider.getConfiguration(UserConfiguration.class);
+        UserConfiguration userConfiguration = securityProvider.getConfiguration(
+            UserConfiguration.class);
         UserManager userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);
 
         String errorMsg = "Failed to initialize user content.";
         try {
             Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
             checkState(rootTree.exists());
-            Tree index = TreeUtil.getOrAddChild(rootTree, IndexConstants.INDEX_DEFINITIONS_NAME, JcrConstants.NT_UNSTRUCTURED);
+            Tree index = TreeUtil.getOrAddChild(rootTree, IndexConstants.INDEX_DEFINITIONS_NAME,
+                JcrConstants.NT_UNSTRUCTURED);
 
             if (!index.hasChild("authorizableId")) {
-                Tree authorizableId = IndexUtils.createIndexDefinition(index, "authorizableId", true,
-                        new String[]{REP_AUTHORIZABLE_ID},
-                        NT_REP_AUTHORIZABLE);
+                Tree authorizableId = IndexUtils.createIndexDefinition(index, "authorizableId",
+                    true,
+                    new String[]{REP_AUTHORIZABLE_ID},
+                    NT_REP_AUTHORIZABLE);
                 authorizableId.setProperty("info",
-                        "Oak index used by user management " + 
+                    "Oak index used by user management " +
                         "to enforce uniqueness of rep:authorizableId property values.");
             }
             if (!index.hasChild("principalName")) {
                 Tree principalName = IndexUtils.createIndexDefinition(index, "principalName", true,
-                        new String[]{REP_PRINCIPAL_NAME},
-                        NT_REP_AUTHORIZABLE);
+                    new String[]{REP_PRINCIPAL_NAME},
+                    NT_REP_AUTHORIZABLE);
                 principalName.setProperty("info",
-                        "Oak index used by user and principal management " +
+                    "Oak index used by user and principal management " +
                         "to enforce uniqueness of rep:principalName property values and to search a principal by name.");
             }
             if (!index.hasChild("repMembers")) {
                 Tree members = IndexUtils.createIndexDefinition(index, "repMembers", false,
-                        new String[]{REP_MEMBERS},
-                        NT_REP_MEMBER_REFERENCES);
+                    new String[]{REP_MEMBERS},
+                    NT_REP_MEMBER_REFERENCES);
                 members.setProperty("info",
-                        "Oak index used by user management to lookup group membership.");
+                    "Oak index used by user management to lookup group membership.");
             }
 
             ConfigurationParameters params = userConfiguration.getParameters();
@@ -142,7 +145,8 @@ class UserInitializer implements WorkspaceInitializer, UserConstants, QueryIndex
                 boolean omitPw = params.getConfigValue(PARAM_OMIT_ADMIN_PW, false);
                 userManager.createUser(adminId, (omitPw) ? null : adminId);
             }
-            String anonymousId = Strings.emptyToNull(params.getConfigValue(PARAM_ANONYMOUS_ID, DEFAULT_ANONYMOUS_ID, String.class));
+            String anonymousId = Strings.emptyToNull(
+                params.getConfigValue(PARAM_ANONYMOUS_ID, DEFAULT_ANONYMOUS_ID, String.class));
             if (anonymousId != null && userManager.getAuthorizable(anonymousId) == null) {
                 userManager.createUser(anonymousId, null);
             }

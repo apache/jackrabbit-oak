@@ -28,8 +28,8 @@ public class PasswordExpiryTest extends org.apache.jackrabbit.oak.security.user.
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         ConfigurationParameters userConfig = ConfigurationParameters.of(
-                UserConstants.PARAM_PASSWORD_MAX_AGE, 10,
-                UserConstants.PARAM_SUPPORT_AUTOSAVE, true);
+            UserConstants.PARAM_PASSWORD_MAX_AGE, 10,
+            UserConstants.PARAM_SUPPORT_AUTOSAVE, true);
         return ConfigurationParameters.of(UserConfiguration.NAME, userConfig);
     }
 }

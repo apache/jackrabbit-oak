@@ -24,18 +24,18 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Internal interface covering those methods of {link Authorizable} that deal
- * with reading and writing custom properties defined with user and groups.
+ * Internal interface covering those methods of {link Authorizable} that deal with reading and
+ * writing custom properties defined with user and groups.
  */
 interface AuthorizableProperties {
 
     /**
-     * Retrieve all property names located at the given relative path underneath
-     * the associated {@code Authorizable} instance.
+     * Retrieve all property names located at the given relative path underneath the associated
+     * {@code Authorizable} instance.
      *
-     * @param relPath A relative path referring to a node associated with a
-     * given authorizable. A relative path consisting only of the current
-     * element "." refers to the authorizable node itself.
+     * @param relPath A relative path referring to a node associated with a given authorizable. A
+     *                relative path consisting only of the current element "." refers to the
+     *                authorizable node itself.
      * @return An iterator of property names available at the given {@code relPath}.
      * @throws RepositoryException If an error occurs.
      */
@@ -43,10 +43,9 @@ interface AuthorizableProperties {
     Iterator<String> getNames(@NotNull String relPath) throws RepositoryException;
 
     /**
-     * Returns {@code true} if there is a custom authorizable property at the
-     * specified {@code relPath}; false if no such property exists or if the
-     * path refers to a property located outside of the authorizable tree
-     * or a protected property that cannot be read/modified using
+     * Returns {@code true} if there is a custom authorizable property at the specified
+     * {@code relPath}; false if no such property exists or if the path refers to a property located
+     * outside of the authorizable tree or a protected property that cannot be read/modified using
      * the {@code AuthorizableProperties}.
      *
      * @param relPath A relative path to a property.
@@ -56,61 +55,57 @@ interface AuthorizableProperties {
     boolean hasProperty(@NotNull String relPath) throws RepositoryException;
 
     /**
-     * Returns the values of the property identified by the specified
-     * {@code relPath}. If no such property exists or the property doesn't
-     * represent a custom property associated with this authorizable {@code null}
-     * is returned.
+     * Returns the values of the property identified by the specified {@code relPath}. If no such
+     * property exists or the property doesn't represent a custom property associated with this
+     * authorizable {@code null} is returned.
      *
      * @param relPath A relative path to an authorizable property.
-     * @return The value(s) of the specified property or {@code null} if no
-     * such property exists or the property doesn't represent a valid authorizable
-     * property exposed by this interface.
+     * @return The value(s) of the specified property or {@code null} if no such property exists or
+     * the property doesn't represent a valid authorizable property exposed by this interface.
      * @throws RepositoryException If an error occurs.
      */
     @Nullable
     Value[] getProperty(@NotNull String relPath) throws RepositoryException;
 
     /**
-     * Creates or modifies the property at the specified {@code relPath}. If
-     * the property exists and is multi-valued it is converted into a single
-     * valued property.
+     * Creates or modifies the property at the specified {@code relPath}. If the property exists and
+     * is multi-valued it is converted into a single valued property.
      *
-     * @param relPath A relative path referring to a custom authorizable property
-     * located underneath the associated authorizable.
-     * @param value The value of the property.
-     * @throws RepositoryException If the {@code relPath} refers to an invalid
-     * property: located outside of the scope of this authorizable or one
-     * that represents protected content that cannot be modified using this API.
+     * @param relPath A relative path referring to a custom authorizable property located underneath
+     *                the associated authorizable.
+     * @param value   The value of the property.
+     * @throws RepositoryException If the {@code relPath} refers to an invalid property: located
+     *                             outside of the scope of this authorizable or one that represents
+     *                             protected content that cannot be modified using this API.
      * @see #setProperty(String, javax.jcr.Value[])
      */
     void setProperty(@NotNull String relPath, @Nullable Value value) throws RepositoryException;
 
     /**
-     * Creates or modifies the property at the specified {@code relPath}. If
-     * the property exists and is single-valued it is converted into a multi-
-     * value property.
+     * Creates or modifies the property at the specified {@code relPath}. If the property exists and
+     * is single-valued it is converted into a multi- value property.
      *
-     * @param relPath A relative path referring to a custom authorizable property
-     * associated with the authorizable.
-     * @param values The values of the property.
-     * @throws RepositoryException If the {@code relPath} refers to an invalid
-     * property: located outside of the scope of this authorizable or one
-     * that represents protected content that cannot be modified using this API.
+     * @param relPath A relative path referring to a custom authorizable property associated with
+     *                the authorizable.
+     * @param values  The values of the property.
+     * @throws RepositoryException If the {@code relPath} refers to an invalid property: located
+     *                             outside of the scope of this authorizable or one that represents
+     *                             protected content that cannot be modified using this API.
      * @see #setProperty(String, javax.jcr.Value)
      */
     void setProperty(@NotNull String relPath, @Nullable Value[] values) throws RepositoryException;
 
     /**
-     * Removes the property identified by the given {@code relPath} and returns
-     * {@code true} if the property was successfully removed.
+     * Removes the property identified by the given {@code relPath} and returns {@code true} if the
+     * property was successfully removed.
      *
-     * @param relPath A relative path referring to a custom authorizable property
-     * associated with the authorizable.
-     * @return {@code true} if the property exists and could successfully be
-     * removed; {@code false} if no such property exists.
-     * @throws RepositoryException If the specified path points to a property
-     * that cannot be altered using this API because it is not associated with
-     * this authorizable or is otherwise considered protected.
+     * @param relPath A relative path referring to a custom authorizable property associated with
+     *                the authorizable.
+     * @return {@code true} if the property exists and could successfully be removed; {@code false}
+     * if no such property exists.
+     * @throws RepositoryException If the specified path points to a property that cannot be altered
+     *                             using this API because it is not associated with this
+     *                             authorizable or is otherwise considered protected.
      */
     boolean removeProperty(@NotNull String relPath) throws RepositoryException;
 

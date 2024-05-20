@@ -54,12 +54,13 @@ public class CurrentRestrictionTest extends AbstractRestrictionTest {
     @Test
     public void testDefinedProperties() throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/a/d/b/e/c");
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr,
+            "/a/d/b/e/c");
         acl.addEntry(testPrincipal, privilegesFromNames(JCR_READ), true,
-                Collections.emptyMap(),
-                ImmutableMap.of(AccessControlConstants.REP_CURRENT, new Value[] {
-                        vf.createValue(JCR_PRIMARYTYPE),
-                        vf.createValue(JCR_MIXINTYPES)}));
+            Collections.emptyMap(),
+            ImmutableMap.of(AccessControlConstants.REP_CURRENT, new Value[]{
+                vf.createValue(JCR_PRIMARYTYPE),
+                vf.createValue(JCR_MIXINTYPES)}));
         acMgr.setPolicy(acl.getPath(), acl);
         root.commit();
 
@@ -78,10 +79,11 @@ public class CurrentRestrictionTest extends AbstractRestrictionTest {
     @Test
     public void testNoProperties() throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/a/d/b/e/c");
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr,
+            "/a/d/b/e/c");
         acl.addEntry(testPrincipal, privilegesFromNames(JCR_READ), true,
-                Collections.emptyMap(),
-                Collections.singletonMap(AccessControlConstants.REP_CURRENT, new Value[0]));
+            Collections.emptyMap(),
+            Collections.singletonMap(AccessControlConstants.REP_CURRENT, new Value[0]));
         acMgr.setPolicy(acl.getPath(), acl);
         root.commit();
 
@@ -92,18 +94,20 @@ public class CurrentRestrictionTest extends AbstractRestrictionTest {
         assertEquals(0, t.getPropertyCount());
         assertEquals(0, t.getChildrenCount(1));
     }
-    
+
     @Test
     public void testAllProperties() throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/a/d/b/e/c");
-        acl.addEntry(testPrincipal, privilegesFromNames(JCR_READ), true, 
-                Collections.emptyMap(),
-                Collections.singletonMap(AccessControlConstants.REP_CURRENT, new Value[] {vf.createValue(NodeTypeConstants.RESIDUAL_NAME)
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr,
+            "/a/d/b/e/c");
+        acl.addEntry(testPrincipal, privilegesFromNames(JCR_READ), true,
+            Collections.emptyMap(),
+            Collections.singletonMap(AccessControlConstants.REP_CURRENT,
+                new Value[]{vf.createValue(NodeTypeConstants.RESIDUAL_NAME)
                 }));
         acMgr.setPolicy(acl.getPath(), acl);
         root.commit();
-        
+
         Root testRoot = testSession.getLatestRoot();
         assertFalse(testRoot.getTree("/a").exists());
         Tree t = testRoot.getTree("/a/d/b/e/c");
@@ -116,7 +120,7 @@ public class CurrentRestrictionTest extends AbstractRestrictionTest {
         assertEquals(4, t.getPropertyCount());
         assertEquals(0, t.getChildrenCount(1));
     }
-    
+
     @Test
     public void testSetProperties() throws Exception {
         String propertyName = "prop";
@@ -125,13 +129,14 @@ public class CurrentRestrictionTest extends AbstractRestrictionTest {
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/a");
         acl.addEntry(testPrincipal, privilegesFromNames(JCR_READ), true);
         acl.addEntry(testPrincipal, privilegesFromNames(JCR_MODIFY_PROPERTIES), true,
-                Collections.emptyMap(),
-                Collections.singletonMap(AccessControlConstants.REP_CURRENT, new Value[] {vf.createValue(propertyName)}));
+            Collections.emptyMap(),
+            Collections.singletonMap(AccessControlConstants.REP_CURRENT,
+                new Value[]{vf.createValue(propertyName)}));
         acMgr.setPolicy(acl.getPath(), acl);
         root.commit();
 
         Root testRoot = testSession.getLatestRoot();
-        
+
         // on /a added a property 'prop' must be allowed
         Tree a = testRoot.getTree("/a");
         assertTrue(a.exists());
@@ -146,7 +151,7 @@ public class CurrentRestrictionTest extends AbstractRestrictionTest {
         } catch (CommitFailedException e) {
             assertTrue(e.isAccessViolation());
         }
-        
+
         // nor is it jcr:modifyProperties granted on another node
         Tree c = testRoot.getTree("/a/d/b/e/c");
         assertTrue(c.exists());
@@ -165,9 +170,9 @@ public class CurrentRestrictionTest extends AbstractRestrictionTest {
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/a");
         acl.addEntry(testPrincipal, privilegesFromNames(JCR_READ), true);
         acl.addEntry(testPrincipal, privilegesFromNames(JCR_ADD_CHILD_NODES), true,
-                Collections.emptyMap(),
-                // NOTE: specifying property names doesn't make sense for jcr:addChildNode privilege
-                Collections.singletonMap(AccessControlConstants.REP_CURRENT, new Value[0]));
+            Collections.emptyMap(),
+            // NOTE: specifying property names doesn't make sense for jcr:addChildNode privilege
+            Collections.singletonMap(AccessControlConstants.REP_CURRENT, new Value[0]));
         acMgr.setPolicy(acl.getPath(), acl);
         root.commit();
 

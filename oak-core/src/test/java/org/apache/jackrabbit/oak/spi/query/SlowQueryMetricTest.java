@@ -58,7 +58,7 @@ public class SlowQueryMetricTest {
     private ContentRepository repository;
     private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private MetricStatisticsProvider statsProvider =
-            new MetricStatisticsProvider(ManagementFactory.getPlatformMBeanServer(), executor);
+        new MetricStatisticsProvider(ManagementFactory.getPlatformMBeanServer(), executor);
     private QueryEngineSettings queryEngineSettings = new QueryEngineSettings(statsProvider);
 
 
@@ -69,7 +69,8 @@ public class SlowQueryMetricTest {
         queryEngineSettings.setLimitReads(11);
         Whiteboard whiteboard = new DefaultWhiteboard();
         whiteboard.register(StatisticsProvider.class, statsProvider, Collections.emptyMap());
-        oak = new Oak().with(new OpenSecurityProvider()).with(new InitialContent()).with(queryEngineSettings).with(whiteboard);
+        oak = new Oak().with(new OpenSecurityProvider()).with(new InitialContent())
+                       .with(queryEngineSettings).with(whiteboard);
         repository = oak.createContentRepository();
     }
 
@@ -95,8 +96,11 @@ public class SlowQueryMetricTest {
         r.commit();
         ContentSession s2 = repository.login(null, null);
         Root r2 = s2.getLatestRoot();
-        CounterStats slowQueryCounter = queryEngineSettings.getStatisticsProvider().getCounterStats(SLOW_QUERY_COUNT_NAME, StatsOptions.METRICS_ONLY);
-        HistogramStats histogramStats = queryEngineSettings.getStatisticsProvider().getHistogram(SLOW_QUERY_PERCENTILE_METRICS_NAME, StatsOptions.METRICS_ONLY);
+        CounterStats slowQueryCounter = queryEngineSettings.getStatisticsProvider()
+                                                           .getCounterStats(SLOW_QUERY_COUNT_NAME,
+                                                               StatsOptions.METRICS_ONLY);
+        HistogramStats histogramStats = queryEngineSettings.getStatisticsProvider().getHistogram(
+            SLOW_QUERY_PERCENTILE_METRICS_NAME, StatsOptions.METRICS_ONLY);
         long totalQueryCount = histogramStats.getCount();
         long slowQueryCount = slowQueryCounter.getCount();
         Assert.assertEquals(totalQueryCount, 0);
@@ -113,10 +117,14 @@ public class SlowQueryMetricTest {
         executeAndAssertSlowQuery(r2, queryEngineSettings);
     }
 
-    private void executeAndAssertSlowQuery(Root r2, QueryEngineSettings queryEngineSettings) throws ParseException {
+    private void executeAndAssertSlowQuery(Root r2, QueryEngineSettings queryEngineSettings)
+        throws ParseException {
         Result result = executeQuery(r2, "test//element(*, nt:base)");
-        CounterStats slowQueryCounter = queryEngineSettings.getStatisticsProvider().getCounterStats(SLOW_QUERY_COUNT_NAME, StatsOptions.METRICS_ONLY);
-        HistogramStats histogramStats = queryEngineSettings.getStatisticsProvider().getHistogram(SLOW_QUERY_PERCENTILE_METRICS_NAME, StatsOptions.METRICS_ONLY);
+        CounterStats slowQueryCounter = queryEngineSettings.getStatisticsProvider()
+                                                           .getCounterStats(SLOW_QUERY_COUNT_NAME,
+                                                               StatsOptions.METRICS_ONLY);
+        HistogramStats histogramStats = queryEngineSettings.getStatisticsProvider().getHistogram(
+            SLOW_QUERY_PERCENTILE_METRICS_NAME, StatsOptions.METRICS_ONLY);
         long initialSlowQueryCounter = slowQueryCounter.getCount();
         long initialHistogramCounter = histogramStats.getCount();
         try {
@@ -136,7 +144,7 @@ public class SlowQueryMetricTest {
 
     private Result executeQuery(Root r2, String queryString) throws ParseException {
         Result result = r2.getQueryEngine().executeQuery(queryString, Query.XPATH,
-                QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
+            QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
         return result;
     }
 }

@@ -47,13 +47,15 @@ import static org.junit.Assert.assertNotNull;
 
 public class PropertyIndexLookupTest {
 
-    private static final List<String> PROP_NAMES = Lists.newArrayList("jcr:primaryType", "jcr:mixinTypes");
-    private static final List<String> DECL_NODE_TYPES = Lists.newArrayList("nt:unstructured", "mix:versionable");
+    private static final List<String> PROP_NAMES = Lists.newArrayList("jcr:primaryType",
+        "jcr:mixinTypes");
+    private static final List<String> DECL_NODE_TYPES = Lists.newArrayList("nt:unstructured",
+        "mix:versionable");
 
     private NodeState root;
     private NodeBuilder rootBuilder;
     private static final EditorHook HOOK = new EditorHook(
-            new IndexUpdateProvider(new PropertyIndexEditorProvider()));
+        new IndexUpdateProvider(new PropertyIndexEditorProvider()));
 
     @Before
     public void setup() throws Exception {
@@ -65,35 +67,37 @@ public class PropertyIndexLookupTest {
     @Test
     public void getIndexNodeForNamedDeclaringNodeTypes() throws Exception {
         rootBuilder.child(INDEX_DEFINITIONS_NAME).child("nodetype")
-                .setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, DECL_NODE_TYPES, NAMES));
+                   .setProperty(
+                       PropertyStates.createProperty(DECLARING_NODE_TYPES, DECL_NODE_TYPES, NAMES));
         commit();
 
         Filter f = createFilter(root, "nt:unstructured");
         assertNotNull("declaringNodeTypes with Name[] must find index node",
-                new PropertyIndexLookup(root).getIndexNode(root, JCR_PRIMARYTYPE, f));
+            new PropertyIndexLookup(root).getIndexNode(root, JCR_PRIMARYTYPE, f));
     }
 
     @Test
     public void getIndexNodeForStringDeclaringNodeTypes() throws Exception {
         rootBuilder.child(INDEX_DEFINITIONS_NAME).child("nodetype")
-                .setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, DECL_NODE_TYPES, STRINGS));
+                   .setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, DECL_NODE_TYPES,
+                       STRINGS));
         commit();
 
         Filter f = createFilter(root, "nt:unstructured");
         assertNotNull("declaringNodeTypes with String[] should also find index node",
-                new PropertyIndexLookup(root).getIndexNode(root, JCR_PRIMARYTYPE, f));
+            new PropertyIndexLookup(root).getIndexNode(root, JCR_PRIMARYTYPE, f));
     }
 
     @Test
     public void getIndexNodeForStringPropertyNames() throws Exception {
         rootBuilder.child(INDEX_DEFINITIONS_NAME).child("nodetype")
-                .removeProperty(PROPERTY_NAMES)
-                .setProperty(PropertyStates.createProperty(PROPERTY_NAMES, PROP_NAMES, STRINGS));
+                   .removeProperty(PROPERTY_NAMES)
+                   .setProperty(PropertyStates.createProperty(PROPERTY_NAMES, PROP_NAMES, STRINGS));
         commit();
 
         Filter f = createFilter(root, "nt:unstructured");
         assertNotNull("propertyNames with String[] should also find index node",
-                new PropertyIndexLookup(root).getIndexNode(root, JCR_PRIMARYTYPE, f));
+            new PropertyIndexLookup(root).getIndexNode(root, JCR_PRIMARYTYPE, f));
     }
 
     private void commit() throws Exception {
@@ -106,6 +110,6 @@ public class PropertyIndexLookupTest {
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
         return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]",
-                new QueryEngineSettings());
+            new QueryEngineSettings());
     }
 }

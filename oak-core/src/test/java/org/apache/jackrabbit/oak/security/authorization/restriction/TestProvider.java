@@ -42,7 +42,8 @@ final class TestProvider extends AbstractRestrictionProvider {
         this(supportedRestrictions, false);
     }
 
-    TestProvider(@NotNull Map<String, ? extends RestrictionDefinition> supportedRestrictions, boolean nonValidatingRead) {
+    TestProvider(@NotNull Map<String, ? extends RestrictionDefinition> supportedRestrictions,
+        boolean nonValidatingRead) {
         super(supportedRestrictions);
         this.nonValidatingRead = nonValidatingRead;
     }
@@ -55,7 +56,8 @@ final class TestProvider extends AbstractRestrictionProvider {
             for (PropertyState propertyState : getRestrictionsTree(aceTree).getProperties()) {
                 String name = propertyState.getName();
                 if (!JcrConstants.JCR_PRIMARYTYPE.equals(name)) {
-                    restrictions.add(new RestrictionImpl(propertyState, new RestrictionDefinitionImpl(name, propertyState.getType(), false)));
+                    restrictions.add(new RestrictionImpl(propertyState,
+                        new RestrictionDefinitionImpl(name, propertyState.getType(), false)));
                 }
             }
             return restrictions;
@@ -79,7 +81,8 @@ final class TestProvider extends AbstractRestrictionProvider {
 
     @NotNull
     @Override
-    public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
+    public RestrictionPattern getPattern(@Nullable String oakPath,
+        @NotNull Set<Restriction> restrictions) {
         for (Restriction r : restrictions) {
             if (getSupportedRestrictions(oakPath).contains(r.getDefinition())) {
                 return new MatchingPattern();

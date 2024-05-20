@@ -39,7 +39,8 @@ import static org.junit.Assert.assertTrue;
 
 public class XPathConditionVisitorTest extends AbstractSecurityTest {
 
-    private static final Map<String, String> LOCAL = ImmutableMap.of("rcj", "http://www.jcp.org/jcr/1.0");
+    private static final Map<String, String> LOCAL = ImmutableMap.of("rcj",
+        "http://www.jcp.org/jcr/1.0");
 
     private static final String REL_PATH = "r'e/l/path";
     private static final String SERACH_EXPR = "s%e\\%arch\\E[:]xpr";
@@ -92,7 +93,8 @@ public class XPathConditionVisitorTest extends AbstractSecurityTest {
             visitor.visit(new Condition.PropertyValue(REL_PATH, op, v));
 
             String s = statement.toString();
-            String expected = QueryUtils.escapeForQuery(REL_PATH) + op.getOp() + QueryUtil.format(v);
+            String expected =
+                QueryUtils.escapeForQuery(REL_PATH) + op.getOp() + QueryUtil.format(v);
 
             assertEquals(expected, s);
 
@@ -151,7 +153,9 @@ public class XPathConditionVisitorTest extends AbstractSecurityTest {
 
     @Test
     public void testVisitImpersonationAdmin() throws Exception {
-        String adminPrincipalName = getUserManager(root).getAuthorizable(getUserConfiguration().getParameters().getConfigValue(UserConstants.PARAM_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID)).getPrincipal().getName();
+        String adminPrincipalName = getUserManager(root).getAuthorizable(
+            getUserConfiguration().getParameters().getConfigValue(UserConstants.PARAM_ADMIN_ID,
+                UserConstants.DEFAULT_ADMIN_ID)).getPrincipal().getName();
         Condition.Impersonation c = new Condition.Impersonation(adminPrincipalName);
         visitor.visit(c);
 

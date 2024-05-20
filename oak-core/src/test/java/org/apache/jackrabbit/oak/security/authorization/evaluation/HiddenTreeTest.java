@@ -30,6 +30,7 @@ import org.junit.Test;
  * Test to make sure hidden trees are never exposed.
  */
 public class HiddenTreeTest extends AbstractOakCoreTest {
+
     private static final String HIDDEN_NAME = ":index";
 
     private Tree parent;

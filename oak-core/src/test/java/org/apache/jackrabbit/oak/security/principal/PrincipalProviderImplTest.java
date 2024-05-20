@@ -63,7 +63,8 @@ public class PrincipalProviderImplTest extends AbstractPrincipalProviderTest {
     }
 
     private PrincipalProviderImpl createPrincipalProvider(@NotNull UserManager um) {
-        UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(any(Root.class), any(NamePathMapper.class))).thenReturn(um).getMock();
+        UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(any(Root.class),
+            any(NamePathMapper.class))).thenReturn(um).getMock();
         return new PrincipalProviderImpl(root, uc, DEFAULT);
     }
 
@@ -79,9 +80,11 @@ public class PrincipalProviderImplTest extends AbstractPrincipalProviderTest {
             root.commit();
 
             Principal ep = principalProvider.getPrincipal(EveryonePrincipal.NAME);
-            Set<? extends Principal> everyoneMembers = ImmutableSet.copyOf(Collections.list(((GroupPrincipal) ep).members()));
+            Set<? extends Principal> everyoneMembers = ImmutableSet.copyOf(
+                Collections.list(((GroupPrincipal) ep).members()));
 
-            Iterator<? extends Principal> all = principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
+            Iterator<? extends Principal> all = principalProvider.findPrincipals(
+                PrincipalManager.SEARCH_TYPE_ALL);
             while (all.hasNext()) {
                 Principal p = all.next();
                 if (everyone.equals(p)) {
@@ -102,17 +105,23 @@ public class PrincipalProviderImplTest extends AbstractPrincipalProviderTest {
     @Test
     public void testGetGroupMembershipNonGroupPrincipal() throws Exception {
         // Group.getPrincipal doesn't return a GroupPrincipal
-        Group gr = when(mock(Group.class).getPrincipal()).thenReturn(new PrincipalImpl("group")).getMock();
-        Authorizable mockAuthorizable = when(mock(User.class).memberOf()).thenReturn(Iterators.singletonIterator(gr)).getMock();
-        UserManager umMock = when(mock(UserManager.class).getAuthorizable(any(Principal.class))).thenReturn(mockAuthorizable).getMock();
+        Group gr = when(mock(Group.class).getPrincipal()).thenReturn(new PrincipalImpl("group"))
+                                                         .getMock();
+        Authorizable mockAuthorizable = when(mock(User.class).memberOf()).thenReturn(
+            Iterators.singletonIterator(gr)).getMock();
+        UserManager umMock = when(
+            mock(UserManager.class).getAuthorizable(any(Principal.class))).thenReturn(
+            mockAuthorizable).getMock();
 
-        Set<Principal> membership = createPrincipalProvider(umMock).getMembershipPrincipals(new PrincipalImpl("userPrincipal"));
+        Set<Principal> membership = createPrincipalProvider(umMock).getMembershipPrincipals(
+            new PrincipalImpl("userPrincipal"));
         assertEquals(ImmutableSet.of(EveryonePrincipal.getInstance()), membership);
     }
 
     @Test
     public void testGetItemBasedPrincipalNotItemBased() throws Exception {
-        Authorizable mockUser = when(mock(User.class).getPrincipal()).thenReturn(new PrincipalImpl("noPath")).getMock();
+        Authorizable mockUser = when(mock(User.class).getPrincipal()).thenReturn(
+            new PrincipalImpl("noPath")).getMock();
         UserManager umMock = mock(UserManager.class);
         when(umMock.getAuthorizableByPath(anyString())).thenReturn(mockUser);
 
@@ -127,23 +136,31 @@ public class PrincipalProviderImplTest extends AbstractPrincipalProviderTest {
         UserManager umMock = mock(UserManager.class);
         when(umMock.findAuthorizables(any(Query.class))).thenReturn(l.iterator());
 
-        Iterator<? extends Principal> result = createPrincipalProvider(umMock).findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP);
+        Iterator<? extends Principal> result = createPrincipalProvider(umMock).findPrincipals(
+            PrincipalManager.SEARCH_TYPE_NOT_GROUP);
         assertFalse(result.hasNext());
 
         result = createPrincipalProvider(umMock).findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP);
-        assertTrue(Iterators.elementsEqual(Iterators.singletonIterator(EveryonePrincipal.getInstance()), result));
+        assertTrue(
+            Iterators.elementsEqual(Iterators.singletonIterator(EveryonePrincipal.getInstance()),
+                result));
     }
 
     @Test
     public void testFindWithUnexpectedNullPrincipal() throws Exception {
-        Authorizable userMock = when(mock(Authorizable.class).getPrincipal()).thenReturn(null).getMock();
+        Authorizable userMock = when(mock(Authorizable.class).getPrincipal()).thenReturn(null)
+                                                                             .getMock();
         UserManager umMock = mock(UserManager.class);
-        when(umMock.findAuthorizables(any(Query.class))).thenReturn(Iterators.singletonIterator(userMock));
+        when(umMock.findAuthorizables(any(Query.class))).thenReturn(
+            Iterators.singletonIterator(userMock));
 
-        Iterator<? extends Principal> result = createPrincipalProvider(umMock).findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP);
+        Iterator<? extends Principal> result = createPrincipalProvider(umMock).findPrincipals(
+            PrincipalManager.SEARCH_TYPE_NOT_GROUP);
         assertFalse(result.hasNext());
 
         result = createPrincipalProvider(umMock).findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP);
-        assertTrue(Iterators.elementsEqual(Iterators.singletonIterator(EveryonePrincipal.getInstance()), result));
+        assertTrue(
+            Iterators.elementsEqual(Iterators.singletonIterator(EveryonePrincipal.getInstance()),
+                result));
     }
 }

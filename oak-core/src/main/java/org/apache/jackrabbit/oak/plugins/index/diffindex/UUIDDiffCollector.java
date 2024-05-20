@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * DiffCollector that looks for UUID properties
- * 
  */
 public class UUIDDiffCollector extends BaseDiffCollector {
 
@@ -39,23 +38,23 @@ public class UUIDDiffCollector extends BaseDiffCollector {
     public void collect(Filter filter) {
         uuid = null;
         Filter.PropertyRestriction restriction = filter
-                .getPropertyRestriction("jcr:uuid");
+            .getPropertyRestriction("jcr:uuid");
         if (restriction == null || restriction.isLike
-                || !restriction.firstIncluding || !restriction.lastIncluding
-                || !restriction.first.equals(restriction.last)) {
+            || !restriction.firstIncluding || !restriction.lastIncluding
+            || !restriction.first.equals(restriction.last)) {
             init = true;
             return;
         }
         uuid = restriction.first.toString();
         super.collect(filter);
     }
-    
+
     private static String extractUuidFromFilter(Filter filter) {
         Filter.PropertyRestriction restriction = filter
-                .getPropertyRestriction("jcr:uuid");
+            .getPropertyRestriction("jcr:uuid");
         return restriction.first.toString();
     }
-    
+
     @Override
     public Set<String> getResults(Filter filter) {
         if (init && !extractUuidFromFilter(filter).equals(uuid)) {
@@ -71,7 +70,7 @@ public class UUIDDiffCollector extends BaseDiffCollector {
         }
         PropertyState propertyState = state.getProperty("jcr:uuid");
         return propertyState != null
-                && uuid.equals(propertyState.getValue(Type.STRING));
+            && uuid.equals(propertyState.getValue(Type.STRING));
     }
 
     @Override

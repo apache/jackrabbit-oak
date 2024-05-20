@@ -49,7 +49,9 @@ final class UserContext implements Context, UserConstants {
             return PWD_PROPERTY_NAMES.contains(propName);
         } else if (NT_REP_MEMBER_REFERENCES.equals(ntName)) {
             return REP_MEMBERS.equals(propName);
-        } else return NT_REP_MEMBERS.equals(ntName);
+        } else {
+            return NT_REP_MEMBERS.equals(ntName);
+        }
     }
 
     @Override
@@ -76,10 +78,10 @@ final class UserContext implements Context, UserConstants {
             // reliably determine if the specified location defines a user or
             // group node (missing node type information on non-existing location)
             return USER_PROPERTY_NAMES.contains(name)
-                    || GROUP_PROPERTY_NAMES.contains(name)
-                    || path.contains(REP_MEMBERS_LIST)
-                    || path.contains(REP_MEMBERS)
-                    || path.contains(REP_PWD);
+                || GROUP_PROPERTY_NAMES.contains(name)
+                || path.contains(REP_MEMBERS_LIST)
+                || path.contains(REP_MEMBERS)
+                || path.contains(REP_PWD);
         }
     }
 

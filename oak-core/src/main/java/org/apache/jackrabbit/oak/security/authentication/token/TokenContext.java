@@ -29,8 +29,9 @@ import static org.apache.jackrabbit.oak.spi.security.authentication.token.TokenC
 final class TokenContext implements Context {
 
     private static final Context INSTANCE = new TokenContext();
-    
-    private TokenContext() {}
+
+    private TokenContext() {
+    }
 
     static Context getInstance() {
         return INSTANCE;
@@ -67,7 +68,7 @@ final class TokenContext implements Context {
     public boolean definesInternal(@NotNull Tree tree) {
         return false;
     }
-    
+
     private static boolean isTokenNode(@NotNull Tree tree) {
         return TOKEN_NT_NAME.equals(TreeUtil.getPrimaryTypeName(tree));
     }

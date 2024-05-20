@@ -42,10 +42,9 @@ import java.util.Collections;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
- * Commit hook which is responsible for storing the path of the versionable
- * node with every version history. This includes creating the path property
- * for every workspace the version history is represented and updating the
- * path upon moving around a versionable node.
+ * Commit hook which is responsible for storing the path of the versionable node with every version
+ * history. This includes creating the path property for every workspace the version history is
+ * represented and updating the path upon moving around a versionable node.
  */
 public class VersionablePathHook implements CommitHook {
 
@@ -60,13 +59,16 @@ public class VersionablePathHook implements CommitHook {
     @NotNull
     @Override
     public NodeState processCommit(
-            NodeState before, NodeState after, CommitInfo info)
-            throws CommitFailedException {
+        NodeState before, NodeState after, CommitInfo info)
+        throws CommitFailedException {
         NodeBuilder rootBuilder = after.builder();
-        NodeBuilder vsRoot = rootBuilder.child(NodeTypeConstants.JCR_SYSTEM).child(NodeTypeConstants.JCR_VERSIONSTORAGE);
+        NodeBuilder vsRoot = rootBuilder.child(NodeTypeConstants.JCR_SYSTEM)
+                                        .child(NodeTypeConstants.JCR_VERSIONSTORAGE);
 
         ReadWriteVersionManager vMgr = new ReadWriteVersionManager(vsRoot, rootBuilder);
-        ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(providerCtx.getRootProvider().createReadOnlyRoot(rootBuilder.getNodeState()), NamePathMapper.DEFAULT);
+        ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(
+            providerCtx.getRootProvider().createReadOnlyRoot(rootBuilder.getNodeState()),
+            NamePathMapper.DEFAULT);
 
         after.compareAgainstBaseState(before, new Diff(vMgr, ntMgr, new Node(rootBuilder)));
         return rootBuilder.getNodeState();
@@ -84,8 +86,8 @@ public class VersionablePathHook implements CommitHook {
         private final Node nodeAfter;
 
         private Diff(@NotNull ReadWriteVersionManager versionManager,
-                     @NotNull ReadOnlyNodeTypeManager ntMgr,
-                     @NotNull Node node) {
+            @NotNull ReadOnlyNodeTypeManager ntMgr,
+            @NotNull Node node) {
             this.versionManager = versionManager;
             this.ntMgr = ntMgr;
             this.nodeAfter = node;
@@ -108,24 +110,26 @@ public class VersionablePathHook implements CommitHook {
 
         @Override
         public boolean childNodeChanged(
-                String name, NodeState before, NodeState after) {
+            String name, NodeState before, NodeState after) {
             if (NodeStateUtils.isHidden(name)) {
                 // do not traverse into hidden trees
                 return true;
             }
             Node node = new Node(nodeAfter, name);
             return after.compareAgainstBaseState(
-                    before, new Diff(versionManager, ntMgr, node));
+                before, new Diff(versionManager, ntMgr, node));
         }
 
         private boolean setVersionablePath(@NotNull PropertyState after) {
-            if (JcrConstants.JCR_VERSIONHISTORY.equals(after.getName()) && nodeAfter.isVersionable(ntMgr)) {
-                NodeBuilder vhBuilder = versionManager.getOrCreateVersionHistory(nodeAfter.builder, Collections.emptyMap());
+            if (JcrConstants.JCR_VERSIONHISTORY.equals(after.getName()) && nodeAfter.isVersionable(
+                ntMgr)) {
+                NodeBuilder vhBuilder = versionManager.getOrCreateVersionHistory(nodeAfter.builder,
+                    Collections.emptyMap());
                 if (!vhBuilder.hasProperty(JcrConstants.JCR_MIXINTYPES)) {
                     vhBuilder.setProperty(
-                            JcrConstants.JCR_MIXINTYPES,
-                            ImmutableSet.of(MIX_REP_VERSIONABLE_PATHS),
-                            Type.NAMES);
+                        JcrConstants.JCR_MIXINTYPES,
+                        ImmutableSet.of(MIX_REP_VERSIONABLE_PATHS),
+                        Type.NAMES);
                 }
 
                 String versionablePath = nodeAfter.path;

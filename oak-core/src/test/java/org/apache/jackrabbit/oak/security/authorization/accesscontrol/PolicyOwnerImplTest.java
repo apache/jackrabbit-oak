@@ -48,13 +48,15 @@ public class PolicyOwnerImplTest extends AbstractAccessControlTest {
 
     @Test
     public void testDefines() throws Exception {
-        assertTrue(acMgr.defines(TEST_PATH, AccessControlUtils.getAccessControlList(acMgr, TEST_PATH)));
+        assertTrue(
+            acMgr.defines(TEST_PATH, AccessControlUtils.getAccessControlList(acMgr, TEST_PATH)));
     }
 
     @Test
     public void testDefinesReadPolicy() throws Exception {
         String readPath = PermissionConstants.DEFAULT_READ_PATHS.iterator().next();
-        assertTrue(acMgr.defines(readPath, AccessControlUtils.getAccessControlList(acMgr, readPath)));
+        assertTrue(
+            acMgr.defines(readPath, AccessControlUtils.getAccessControlList(acMgr, readPath)));
     }
 
 
@@ -62,17 +64,21 @@ public class PolicyOwnerImplTest extends AbstractAccessControlTest {
     public void testDefinesWrongPath() throws Exception {
         String readPath = PermissionConstants.DEFAULT_READ_PATHS.iterator().next();
 
-        assertFalse(acMgr.defines(PathUtils.ROOT_PATH, AccessControlUtils.getAccessControlList(acMgr, TEST_PATH)));
-        assertFalse(acMgr.defines(TEST_PATH, AccessControlUtils.getAccessControlList(acMgr, readPath)));
+        assertFalse(acMgr.defines(PathUtils.ROOT_PATH,
+            AccessControlUtils.getAccessControlList(acMgr, TEST_PATH)));
+        assertFalse(
+            acMgr.defines(TEST_PATH, AccessControlUtils.getAccessControlList(acMgr, readPath)));
     }
 
     @Test
     public void testDefinesDifferentPolicy() {
-        assertFalse(acMgr.defines(TEST_PATH, new AccessControlPolicy() {}));
+        assertFalse(acMgr.defines(TEST_PATH, new AccessControlPolicy() {
+        }));
     }
 
     @Test
     public void testDefinesWithRelPath() throws Exception {
-        assertFalse(acMgr.defines("testPath", AccessControlUtils.getAccessControlList(acMgr, TEST_PATH)));
+        assertFalse(
+            acMgr.defines("testPath", AccessControlUtils.getAccessControlList(acMgr, TEST_PATH)));
     }
 }

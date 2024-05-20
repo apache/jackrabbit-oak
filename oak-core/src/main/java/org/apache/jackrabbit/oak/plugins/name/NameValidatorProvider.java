@@ -27,20 +27,19 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.osgi.service.component.annotations.Component;
 
 /**
- * Validator service that checks that all node and property names as well
- * as any name values are syntactically valid and that any namespace prefixes
- * are properly registered.
+ * Validator service that checks that all node and property names as well as any name values are
+ * syntactically valid and that any namespace prefixes are properly registered.
  */
 @Component(service = EditorProvider.class)
 public class NameValidatorProvider extends ValidatorProvider {
 
     @Override
     public Validator getRootValidator(
-            NodeState before, NodeState after, CommitInfo info) {
+        NodeState before, NodeState after, CommitInfo info) {
         boolean initPhase = !before.hasChildNode(JCR_SYSTEM);
         return new NameValidator(after
-                .getChildNode(JCR_SYSTEM)
-                .getChildNode(REP_NAMESPACES), initPhase);
+            .getChildNode(JCR_SYSTEM)
+            .getChildNode(REP_NAMESPACES), initPhase);
     }
 
 }

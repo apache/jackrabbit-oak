@@ -46,13 +46,15 @@ public class AccessControlActionTest extends AbstractSecurityTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         ConfigurationParameters userConfig = ConfigurationParameters.of(
-                AccessControlAction.GROUP_PRIVILEGE_NAMES, new String[] {PrivilegeConstants.JCR_READ},
-                AccessControlAction.USER_PRIVILEGE_NAMES, new String[] {PrivilegeConstants.JCR_ALL}
+            AccessControlAction.GROUP_PRIVILEGE_NAMES, new String[]{PrivilegeConstants.JCR_READ},
+            AccessControlAction.USER_PRIVILEGE_NAMES, new String[]{PrivilegeConstants.JCR_ALL}
         );
         ConfigurationParameters authorizationConfig = ConfigurationParameters.of(
-                PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS, new String[] {"administrativePrincipalName"}
+            PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS,
+            new String[]{"administrativePrincipalName"}
         );
-        return ConfigurationParameters.of(UserConfiguration.NAME, userConfig, AuthorizationConfiguration.NAME, authorizationConfig);
+        return ConfigurationParameters.of(UserConfiguration.NAME, userConfig,
+            AuthorizationConfiguration.NAME, authorizationConfig);
     }
 
     @Test
@@ -119,6 +121,7 @@ public class AccessControlActionTest extends AbstractSecurityTest {
         assertTrue(policies[0] instanceof AccessControlList);
         AccessControlList acl = (AccessControlList) policies[0];
         assertEquals(1, acl.getAccessControlEntries().length);
-        assertArrayEquals(new Privilege[]{getPrivilegeManager(root).getPrivilege(expectedPrivName)}, acl.getAccessControlEntries()[0].getPrivileges());
+        assertArrayEquals(new Privilege[]{getPrivilegeManager(root).getPrivilege(expectedPrivName)},
+            acl.getAccessControlEntries()[0].getPrivileges());
     }
 }

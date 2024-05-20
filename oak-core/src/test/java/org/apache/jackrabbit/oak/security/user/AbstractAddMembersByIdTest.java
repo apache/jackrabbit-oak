@@ -56,11 +56,11 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public abstract class AbstractAddMembersByIdTest extends AbstractUserTest {
 
-    static final String[] NON_EXISTING_IDS = new String[] {"nonExisting1", "nonExisting2"};
+    static final String[] NON_EXISTING_IDS = new String[]{"nonExisting1", "nonExisting2"};
 
     Group testGroup;
     Group memberGroup;
-    
+
     @Override
     public void before() throws Exception {
         super.before();
@@ -117,16 +117,20 @@ public abstract class AbstractAddMembersByIdTest extends AbstractUserTest {
     @NotNull
     Set<String> addExistingMemberWithoutAccess() throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testGroup.getPath());
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr,
+            testGroup.getPath());
         if (acl != null) {
-            if (acl.addEntry(getTestUser().getPrincipal(), privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_USER_MANAGEMENT), true)) {
+            if (acl.addEntry(getTestUser().getPrincipal(),
+                privilegesFromNames(PrivilegeConstants.JCR_READ,
+                    PrivilegeConstants.REP_USER_MANAGEMENT), true)) {
                 acMgr.setPolicy(testGroup.getPath(), acl);
                 root.commit();
             }
         }
 
         String userId = getTestUser().getID();
-        try (ContentSession testSession = login(new SimpleCredentials(userId, userId.toCharArray()))) {
+        try (ContentSession testSession = login(
+            new SimpleCredentials(userId, userId.toCharArray()))) {
             Root testRoot = testSession.getLatestRoot();
 
             assertFalse(testRoot.getTree(memberGroup.getPath()).exists());
@@ -288,7 +292,8 @@ public abstract class AbstractAddMembersByIdTest extends AbstractUserTest {
 
             boolean found = false;
             MembershipProvider mp = userManager.getMembershipProvider();
-            for (Iterator<Tree> it = mp.getMembership(root.getTree(everyone.getPath()), true); it.hasNext(); ) {
+            for (Iterator<Tree> it = mp.getMembership(root.getTree(everyone.getPath()), true);
+                it.hasNext(); ) {
                 Tree t = it.next();
                 if (testGroup.getPath().equals(t.getPath())) {
                     found = true;

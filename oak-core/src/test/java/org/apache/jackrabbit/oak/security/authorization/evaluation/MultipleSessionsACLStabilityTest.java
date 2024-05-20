@@ -29,7 +29,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Tests if ACL changes done by different sessions are isolated correctly following the MVCC pattern.
+ * Tests if ACL changes done by different sessions are isolated correctly following the MVCC
+ * pattern.
  */
 public class MultipleSessionsACLStabilityTest extends AbstractOakCoreTest {
 

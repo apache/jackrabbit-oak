@@ -39,11 +39,10 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 
 /**
- * Continuation-based content diff implementation that generates
- * {@link EventHandler} callbacks by recursing down a content diff
- * in a way that guarantees that only a finite number of callbacks
- * will be made during a {@link #generate()} method call, regardless
- * of how large or complex the content diff is.
+ * Continuation-based content diff implementation that generates {@link EventHandler} callbacks by
+ * recursing down a content diff in a way that guarantees that only a finite number of callbacks
+ * will be made during a {@link #generate()} method call, regardless of how large or complex the
+ * content diff is.
  * <p>
  * A simple usage pattern would look like this:
  * <pre>
@@ -56,37 +55,37 @@ import org.slf4j.LoggerFactory;
 public class EventGenerator {
 
     private static final PerfLogger perfLogger = new PerfLogger(
-            LoggerFactory.getLogger(EventGenerator.class.getName()
-                    + ".perf"));
+        LoggerFactory.getLogger(EventGenerator.class.getName()
+            + ".perf"));
 
     /**
-     * Maximum number of content changes to process during the
-     * execution of a single diff continuation.
+     * Maximum number of content changes to process during the execution of a single diff
+     * continuation.
      */
     private static final int MAX_CHANGES_PER_CONTINUATION = 10000;
 
     /**
-     * Maximum number of continuations queued for future processing.
-     * Once this limit has been reached, we'll start pushing for the
-     * processing of property-only diffs, which will automatically
-     * help reduce the backlog.
+     * Maximum number of continuations queued for future processing. Once this limit has been
+     * reached, we'll start pushing for the processing of property-only diffs, which will
+     * automatically help reduce the backlog.
      */
     private static final int MAX_QUEUED_CONTINUATIONS = 1000;
 
     private final LinkedList<Continuation> continuations = newLinkedList();
 
     /**
-     * Creates a new generator instance. Changes to process need to be added
-     * through {@link #addHandler(NodeState, NodeState, EventHandler)}
+     * Creates a new generator instance. Changes to process need to be added through
+     * {@link #addHandler(NodeState, NodeState, EventHandler)}
      */
-    public EventGenerator() {}
+    public EventGenerator() {
+    }
 
     /**
      * Creates a new generator instance for processing the given changes.
      */
     public EventGenerator(
-            @NotNull NodeState before, @NotNull NodeState after,
-            @NotNull EventHandler handler) {
+        @NotNull NodeState before, @NotNull NodeState after,
+        @NotNull EventHandler handler) {
         continuations.addFirst(new Continuation(handler, before, after, 0));
     }
 
@@ -102,20 +101,19 @@ public class EventGenerator {
     }
 
     /**
-     * Generates a finite number of {@link EventHandler} callbacks based
-     * on the content changes that have yet to be processed. Further processing
-     * (even if no callbacks were made) may be postponed to a future
-     * {@link #generate()} call, until the {@link #isDone()} method finally
+     * Generates a finite number of {@link EventHandler} callbacks based on the content changes that
+     * have yet to be processed. Further processing (even if no callbacks were made) may be
+     * postponed to a future {@link #generate()} call, until the {@link #isDone()} method finally
      * return {@code true}.
      */
     public void generate() {
         if (!continuations.isEmpty()) {
             final Continuation c = continuations.removeFirst();
             final long start = perfLogger
-                    .start("generate: Starting event generation");
+                .start("generate: Starting event generation");
             c.run();
             perfLogger.end(start, 1, "generate: Generated {} events",
-                    c.counter);
+                c.counter);
         }
     }
 
@@ -147,8 +145,8 @@ public class EventGenerator {
         private int counter = 0;
 
         private Continuation(
-                EventHandler handler, NodeState before, NodeState after,
-                int skip) {
+            EventHandler handler, NodeState before, NodeState after,
+            int skip) {
             this.handler = handler;
             this.before = before;
             this.after = after;
@@ -158,8 +156,7 @@ public class EventGenerator {
         //------------------------------------------------------< Runnable >--
 
         /**
-         * Continues the content diff from the point where this
-         * continuation was created.
+         * Continues the content diff from the point where this continuation was created.
          */
         @Override
         public void run() {
@@ -189,15 +186,15 @@ public class EventGenerator {
 
         @Override
         public boolean propertyChanged(
-                PropertyState before, PropertyState after) {
+            PropertyState before, PropertyState after) {
             if (beforeEvent()) {
                 // check for reordering of child nodes
                 if (OAK_CHILD_ORDER.equals(before.getName())) {
                     // list the child node names before and after the change
                     List<String> beforeNames =
-                            newArrayList(before.getValue(NAMES));
+                        newArrayList(before.getValue(NAMES));
                     List<String> afterNames =
-                            newArrayList(after.getValue(NAMES));
+                        newArrayList(after.getValue(NAMES));
 
                     // check only those names that weren't added or removed
                     beforeNames.retainAll(newHashSet(afterNames));
@@ -226,7 +223,7 @@ public class EventGenerator {
                             // find the destName of the orderBefore operation
                             String destName = null;
                             Iterator<String> iterator =
-                                    after.getValue(NAMES).iterator();
+                                after.getValue(NAMES).iterator();
                             while (destName == null && iterator.hasNext()) {
                                 if (afterName.equals(iterator.next())) {
                                     if (iterator.hasNext()) {
@@ -237,8 +234,8 @@ public class EventGenerator {
 
                             // deliver the reordering event
                             handler.nodeReordered(
-                                    destName, afterName,
-                                    this.after.getChildNode(afterName));
+                                destName, afterName,
+                                this.after.getChildNode(afterName));
                         }
                     }
                 }
@@ -281,7 +278,7 @@ public class EventGenerator {
 
         @Override
         public boolean childNodeChanged(
-                String name, NodeState before, NodeState after) {
+            String name, NodeState before, NodeState after) {
             if (fullQueue()) {
                 return false;
             } else if (beforeEvent()) {
@@ -308,11 +305,11 @@ public class EventGenerator {
         //-------------------------------------------------------< private >--
 
         /**
-         * Schedules a continuation for processing changes within the given
-         * child node, if changes within that subtree should be processed.
+         * Schedules a continuation for processing changes within the given child node, if changes
+         * within that subtree should be processed.
          */
         private void addChildDiff(
-                String name, NodeState before, NodeState after) {
+            String name, NodeState before, NodeState after) {
             EventHandler h = handler.getChildHandler(name, before, after);
             if (h != null) {
                 continuations.addFirst(new Continuation(h, before, after, 0));
@@ -320,26 +317,24 @@ public class EventGenerator {
         }
 
         /**
-         * Increases the event counter and checks whether the event should
-         * be processed, i.e. whether the initial skip count has been reached.
+         * Increases the event counter and checks whether the event should be processed, i.e.
+         * whether the initial skip count has been reached.
          */
         private boolean beforeEvent() {
             return ++counter > skip;
         }
 
         /**
-         * Checks whether the diff queue has reached the maximum size limit,
-         * and postpones further processing of the current diff to later.
-         * Even though this postponement increases the size of the queue
-         * beyond the limit, doing so ultimately forces property-only
-         * diffs to the beginning of the queue, and thus helps to
-         * automatically clean up the backlog.
+         * Checks whether the diff queue has reached the maximum size limit, and postpones further
+         * processing of the current diff to later. Even though this postponement increases the size
+         * of the queue beyond the limit, doing so ultimately forces property-only diffs to the
+         * beginning of the queue, and thus helps to automatically clean up the backlog.
          */
         private boolean fullQueue() {
             if (counter > skip // must have processed at least one event
-                    && continuations.size() >= MAX_QUEUED_CONTINUATIONS) {
+                && continuations.size() >= MAX_QUEUED_CONTINUATIONS) {
                 continuations.add(new Continuation(
-                        handler, this.before, this.after, counter));
+                    handler, this.before, this.after, counter));
                 return true;
             } else {
                 return false;
@@ -347,15 +342,14 @@ public class EventGenerator {
         }
 
         /**
-         * Checks whether enough events have already been processed in this
-         * continuation. If that is the case, we postpone further processing
-         * to a new continuation that will first skip all the initial events
-         * we've already seen. Otherwise we let the current diff continue.
+         * Checks whether enough events have already been processed in this continuation. If that is
+         * the case, we postpone further processing to a new continuation that will first skip all
+         * the initial events we've already seen. Otherwise we let the current diff continue.
          */
         private boolean afterEvent() {
             if (counter >= skip + MAX_CHANGES_PER_CONTINUATION) {
                 continuations.addFirst(
-                        new Continuation(handler, before, after, counter));
+                    new Continuation(handler, before, after, counter));
                 return false;
             } else {
                 return true;

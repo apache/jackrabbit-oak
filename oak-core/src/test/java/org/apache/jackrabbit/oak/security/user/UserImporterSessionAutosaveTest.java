@@ -36,11 +36,11 @@ public class UserImporterSessionAutosaveTest extends UserImporterTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         ConfigurationParameters userParams = ConfigurationParameters.of(
-                ImmutableMap.of(
-                        UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider,
-                        ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior(),
-                        UserConstants.PARAM_SUPPORT_AUTOSAVE, Boolean.TRUE
-                )
+            ImmutableMap.of(
+                UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider,
+                ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior(),
+                UserConstants.PARAM_SUPPORT_AUTOSAVE, Boolean.TRUE
+            )
         );
         return ConfigurationParameters.of(UserConfiguration.NAME, userParams);
     }

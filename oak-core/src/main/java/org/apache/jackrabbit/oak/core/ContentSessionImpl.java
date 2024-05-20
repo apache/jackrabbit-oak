@@ -20,9 +20,7 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
-
 import javax.security.auth.login.LoginException;
-
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
@@ -62,19 +60,19 @@ class ContentSessionImpl implements ContentSession {
     private final String sessionName;
 
     /**
-     * Flag to indicate whether this session is still alive.
-     * Only accessed from synchronized methods.
+     * Flag to indicate whether this session is still alive. Only accessed from synchronized
+     * methods.
      */
     private boolean live = true;
 
     public ContentSessionImpl(@NotNull LoginContext loginContext,
-                              @NotNull SecurityProvider securityProvider,
-                              @NotNull String workspaceName,
-                              @NotNull NodeStore store,
-                              @NotNull CommitHook hook,
-                              QueryEngineSettings queryEngineSettings,
-                              @NotNull QueryIndexProvider indexProvider,
-                              @Nullable Feature classicMove) {
+        @NotNull SecurityProvider securityProvider,
+        @NotNull String workspaceName,
+        @NotNull NodeStore store,
+        @NotNull CommitHook hook,
+        QueryEngineSettings queryEngineSettings,
+        @NotNull QueryIndexProvider indexProvider,
+        @Nullable Feature classicMove) {
         this.loginContext = loginContext;
         this.securityProvider = securityProvider;
         this.workspaceName = workspaceName;
@@ -108,7 +106,7 @@ class ContentSessionImpl implements ContentSession {
     public Root getLatestRoot() {
         checkLive();
         return new MutableRoot(store, hook, workspaceName, loginContext.getSubject(),
-                securityProvider, queryEngineSettings, indexProvider, classicMove, this);
+            securityProvider, queryEngineSettings, indexProvider, classicMove, this);
     }
 
     //-----------------------------------------------------------< Closable >---

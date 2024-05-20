@@ -62,7 +62,8 @@ public class PasswordExpiryTest extends AbstractSecurityTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        ConfigurationParameters userConfig = ConfigurationParameters.of(UserConstants.PARAM_PASSWORD_MAX_AGE, 10);
+        ConfigurationParameters userConfig = ConfigurationParameters.of(
+            UserConstants.PARAM_PASSWORD_MAX_AGE, 10);
         return ConfigurationParameters.of(UserConfiguration.NAME, userConfig);
     }
 
@@ -82,9 +83,11 @@ public class PasswordExpiryTest extends AbstractSecurityTest {
 
             Tree pwdTree = getUserTree(user).getChild(UserConstants.REP_PWD);
             assertTrue(pwdTree.exists());
-            assertTrue(TreeUtil.isNodeType(pwdTree, UserConstants.NT_REP_PASSWORD, root.getTree(NodeTypeConstants.NODE_TYPES_PATH)));
+            assertTrue(TreeUtil.isNodeType(pwdTree, UserConstants.NT_REP_PASSWORD,
+                root.getTree(NodeTypeConstants.NODE_TYPES_PATH)));
 
-            ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(root, getNamePathMapper());
+            ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(root,
+                getNamePathMapper());
             assertTrue(ntMgr.getDefinition(pwdTree.getParent(), pwdTree).isProtected());
 
             PropertyState property = pwdTree.getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED);
@@ -93,7 +96,8 @@ public class PasswordExpiryTest extends AbstractSecurityTest {
             assertTrue(property.getValue(Type.LONG, 0) > 0);
 
             // protected properties must not be exposed by User#hasProperty
-            assertFalse(user.hasProperty(UserConstants.REP_PWD + "/" + UserConstants.REP_PASSWORD_LAST_MODIFIED));
+            assertFalse(user.hasProperty(
+                UserConstants.REP_PWD + "/" + UserConstants.REP_PASSWORD_LAST_MODIFIED));
         } finally {
             if (user != null) {
                 user.remove();
@@ -105,13 +109,15 @@ public class PasswordExpiryTest extends AbstractSecurityTest {
     @Test
     public void testChangePassword() throws Exception {
         User user = getTestUser();
-        PropertyState p1 = getUserTree(user).getChild(UserConstants.REP_PWD).getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED);
+        PropertyState p1 = getUserTree(user).getChild(UserConstants.REP_PWD)
+                                            .getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED);
         long oldModTime = p1.getValue(Type.LONG, 0);
         assertTrue(oldModTime > 0);
         waitForSystemTimeIncrement(oldModTime);
         user.changePassword(userId);
         root.commit();
-        PropertyState p2 = getUserTree(user).getChild(UserConstants.REP_PWD).getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED);
+        PropertyState p2 = getUserTree(user).getChild(UserConstants.REP_PWD)
+                                            .getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED);
         long newModTime = p2.getValue(Type.LONG, 0);
         assertTrue(newModTime > oldModTime);
     }
@@ -127,7 +133,8 @@ public class PasswordExpiryTest extends AbstractSecurityTest {
     public void testAuthenticatePasswordExpired() throws Exception {
         Authentication a = new UserAuthentication(getUserConfiguration(), root, userId);
         // set password last modified to beginning of epoch
-        getUserTree(getTestUser()).getChild(UserConstants.REP_PWD).setProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED, 0);
+        getUserTree(getTestUser()).getChild(UserConstants.REP_PWD)
+                                  .setProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED, 0);
         root.commit();
         try {
             a.authenticate(new SimpleCredentials(userId, userId.toCharArray()));
@@ -141,7 +148,8 @@ public class PasswordExpiryTest extends AbstractSecurityTest {
     public void testAuthenticateBeforePasswordExpired() throws Exception {
         Authentication a = new UserAuthentication(getUserConfiguration(), root, userId);
         // set password last modified to beginning of epoch
-        getUserTree(getTestUser()).getChild(UserConstants.REP_PWD).setProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED, 0);
+        getUserTree(getTestUser()).getChild(UserConstants.REP_PWD)
+                                  .setProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED, 0);
         root.commit();
         try {
             a.authenticate(new SimpleCredentials(userId, "wrong".toCharArray()));
@@ -156,7 +164,8 @@ public class PasswordExpiryTest extends AbstractSecurityTest {
     public void testAuthenticatePasswordExpiredChangePassword() throws Exception {
         Authentication a = new UserAuthentication(getUserConfiguration(), root, userId);
         // set password last modified to beginning of epoch
-        getUserTree(getTestUser()).getChild(UserConstants.REP_PWD).setProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED, 0);
+        getUserTree(getTestUser()).getChild(UserConstants.REP_PWD)
+                                  .setProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED, 0);
         root.commit();
 
         // changing the password should reset the pw last mod and the pw no longer be expired
@@ -167,12 +176,17 @@ public class PasswordExpiryTest extends AbstractSecurityTest {
 
     @Test
     public void testByDefaultAdminHasNoPwNode() throws Exception {
-        User adminUser = getUserManager(root).getAuthorizable(getUserConfiguration().getParameters().getConfigValue(UserConstants.PARAM_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID), User.class);
+        User adminUser = getUserManager(root).getAuthorizable(getUserConfiguration().getParameters()
+                                                                                    .getConfigValue(
+                                                                                        UserConstants.PARAM_ADMIN_ID,
+                                                                                        UserConstants.DEFAULT_ADMIN_ID),
+            User.class);
         assertFalse(root.getTree(adminUser.getPath()).getChild(UserConstants.REP_PWD).exists());
     }
 
     /**
-     * import existing user: rep:passwordLastModified must not be updated (unless this property is explicitly included in the xml import)
+     * import existing user: rep:passwordLastModified must not be updated (unless this property is
+     * explicitly included in the xml import)
      */
     @Test
     public void testSetPasswordImportExistingUser() throws Exception {
@@ -180,18 +194,23 @@ public class PasswordExpiryTest extends AbstractSecurityTest {
         if (userManager instanceof UserManagerImpl) {
             Tree userTree = getUserTree(getTestUser());
             assertTrue(userTree.hasChild(REP_PWD));
-            PropertyState lastMod = userTree.getChild(REP_PWD).getProperty(REP_PASSWORD_LAST_MODIFIED);
+            PropertyState lastMod = userTree.getChild(REP_PWD)
+                                            .getProperty(REP_PASSWORD_LAST_MODIFIED);
 
             waitForSystemTimeIncrement(lastMod.getValue(Type.LONG));
 
-            ((UserManagerImpl) userManager).setPassword(userTree, getTestUser().getID(), "pwd", true);
+            ((UserManagerImpl) userManager).setPassword(userTree, getTestUser().getID(), "pwd",
+                true);
             assertTrue(userTree.hasChild(REP_PWD));
-            assertEquals(lastMod.getValue(Type.LONG), userTree.getChild(REP_PWD).getProperty(REP_PASSWORD_LAST_MODIFIED).getValue(Type.LONG));
+            assertEquals(lastMod.getValue(Type.LONG),
+                userTree.getChild(REP_PWD).getProperty(REP_PASSWORD_LAST_MODIFIED)
+                        .getValue(Type.LONG));
         }
     }
 
     /**
-     * import new user: rep:passwordLastModified must be created as it would when calling UserManager.createUser
+     * import new user: rep:passwordLastModified must be created as it would when calling
+     * UserManager.createUser
      */
     @Test
     public void testSetPasswordImportNewUser() throws Exception {

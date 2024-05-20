@@ -25,29 +25,27 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Instance of this class provide a {@link EventFilter} for observation
- * events and a filter for commits.
+ * Instance of this class provide a {@link EventFilter} for observation events and a filter for
+ * commits.
  * <p>
- * In order to support OAK-4908 a FilterProvider
- * extends ChangeSetFilter
+ * In order to support OAK-4908 a FilterProvider extends ChangeSetFilter
  */
 public interface FilterProvider extends ChangeSetFilter {
 
     /**
-     * Filter whole commits. Only commits for which this method returns
-     * {@code true} will be further processed to create individual events.
+     * Filter whole commits. Only commits for which this method returns {@code true} will be further
+     * processed to create individual events.
      *
      * @param sessionId id of the filtering (this) session
      * @param info      commit info of the commit or {@code null} if not available
-     * @return {@code true} if observation events should be created from this
-     * commit, {@code false} otherwise.
+     * @return {@code true} if observation events should be created from this commit, {@code false}
+     * otherwise.
      * @see org.apache.jackrabbit.oak.spi.commit.Observer
      */
     boolean includeCommit(@NotNull String sessionId, @Nullable CommitInfo info);
 
     /**
-     * Factory method for creating a {@code Filter} for the passed before and after
-     * states.
+     * Factory method for creating a {@code Filter} for the passed before and after states.
      *
      * @param before before state
      * @param after  after state
@@ -59,7 +57,8 @@ public interface FilterProvider extends ChangeSetFilter {
 
     /**
      * A set of paths whose subtrees include all events of this filter.
-     * @return  list of paths
+     *
+     * @return list of paths
      * @see org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder#addSubTree(String)
      */
     @NotNull
@@ -68,9 +67,8 @@ public interface FilterProvider extends ChangeSetFilter {
     FilterConfigMBean getConfigMBean();
 
     /**
-     * Allows providers to supply an optional EventAggregator that
-     * is used to adjust (aggregate) the event identifier before event
-     * creation (ie after event filtering).
+     * Allows providers to supply an optional EventAggregator that is used to adjust (aggregate) the
+     * event identifier before event creation (ie after event filtering).
      */
     @Nullable
     EventAggregator getEventAggregator();

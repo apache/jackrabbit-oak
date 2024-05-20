@@ -110,7 +110,8 @@ public class MountsNodeCounterTest {
     }
 
     private void assertCountEquals(int expectedCount, Mount mount, String path) {
-        String p = PathUtils.concat("/oak:index/counter", Multiplexers.getNodeForMount(mount, ":index"), path);
+        String p = PathUtils.concat("/oak:index/counter",
+            Multiplexers.getNodeForMount(mount, ":index"), path);
         NodeState s = nodeStore.getRoot();
         for (String element : PathUtils.elements(p)) {
             s = s.getChildNode(element);
@@ -130,8 +131,8 @@ public class MountsNodeCounterTest {
         }
         long v = ps.getValue(Type.LONG);
 
-
-        assertTrue("expected:<" + expectedCount + "> but was:<" + v + ">", Math.abs(expectedCount - v) < 10);
+        assertTrue("expected:<" + expectedCount + "> but was:<" + v + ">",
+            Math.abs(expectedCount - v) < 10);
     }
 
     private static void addChildren(Tree tree, int count) {
@@ -142,18 +143,19 @@ public class MountsNodeCounterTest {
 
     protected ContentRepository createRepository() {
         Mounts.Builder builder = Mounts.newBuilder();
-        builder.mount("libs", false, Arrays.asList("/var/fragments"), Arrays.asList("/apps", "/libs", "/nested/mount"));
+        builder.mount("libs", false, Arrays.asList("/var/fragments"),
+            Arrays.asList("/apps", "/libs", "/nested/mount"));
         mip = builder.build();
 
         nodeStore = new MemoryNodeStore();
         Oak oak = new Oak(nodeStore)
-                .with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .with(new PropertyIndexEditorProvider().with(mip))
-                .with(new NodeCounterEditorProvider().with(mip))
-                //Effectively disable async indexing auto run
-                //such that we can control run timing as per test requirement
-                .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
+            .with(new InitialContent())
+            .with(new OpenSecurityProvider())
+            .with(new PropertyIndexEditorProvider().with(mip))
+            .with(new NodeCounterEditorProvider().with(mip))
+            //Effectively disable async indexing auto run
+            //such that we can control run timing as per test requirement
+            .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
 
         wb = oak.getWhiteboard();
         return oak.createContentRepository();

@@ -20,16 +20,15 @@ import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 
 /**
- * A Cursor implementation where the remove method throws an
- * UnsupportedOperationException.
+ * A Cursor implementation where the remove method throws an UnsupportedOperationException.
  */
 public abstract class AbstractCursor implements Cursor {
-    
+
     @Override
     public void remove() {
         throw new UnsupportedOperationException();
     }
-    
+
     @Override
     public long getSize(SizePrecision precision, long max) {
         return -1;

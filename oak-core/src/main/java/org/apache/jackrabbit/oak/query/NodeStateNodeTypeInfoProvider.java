@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_MIXIN_SUBTYPES;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_NAMED_SINGLE_VALUED_PROPERTIES;
@@ -27,7 +27,6 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_PRIMA
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_SUPERTYPES;
 
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -36,13 +35,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * A nodetype info provider that is based on node states.
  */
 public class NodeStateNodeTypeInfoProvider implements NodeTypeInfoProvider {
-    
+
     private final NodeState types;
-    
+
     public NodeStateNodeTypeInfoProvider(NodeState baseState) {
         this.types = baseState.
-                getChildNode(JCR_SYSTEM).
-                getChildNode(JCR_NODE_TYPES);        
+            getChildNode(JCR_SYSTEM).
+            getChildNode(JCR_NODE_TYPES);
     }
 
     @Override
@@ -50,15 +49,15 @@ public class NodeStateNodeTypeInfoProvider implements NodeTypeInfoProvider {
         NodeState type = types.getChildNode(nodeTypeName);
         return new NodeStateNodeTypeInfo(type);
     }
-    
+
     static class NodeStateNodeTypeInfo implements NodeTypeInfo {
-        
+
         private final NodeState type;
-        
+
         NodeStateNodeTypeInfo(NodeState type) {
             this.type = type;
         }
-        
+
         @Override
         public boolean exists() {
             return type.exists();
@@ -66,18 +65,18 @@ public class NodeStateNodeTypeInfoProvider implements NodeTypeInfoProvider {
 
         @Override
         public String getNodeTypeName() {
-            return  type.getName(JCR_NODETYPENAME);
+            return type.getName(JCR_NODETYPENAME);
         }
 
         @Override
         public Set<String> getSuperTypes() {
-            return  newHashSet(type.getNames(REP_SUPERTYPES));
+            return newHashSet(type.getNames(REP_SUPERTYPES));
         }
 
         @Override
         public Set<String> getPrimarySubTypes() {
             return newHashSet(type
-                    .getNames(REP_PRIMARY_SUBTYPES));
+                .getNames(REP_PRIMARY_SUBTYPES));
         }
 
         @Override

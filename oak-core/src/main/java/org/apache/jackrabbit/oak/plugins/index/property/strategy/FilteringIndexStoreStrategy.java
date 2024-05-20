@@ -29,8 +29,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 
 /**
- * A delegating IndexStoreStrategy that filters out updates that are not
- * accepted by the given predicate
+ * A delegating IndexStoreStrategy that filters out updates that are not accepted by the given
+ * predicate
  */
 public class FilteringIndexStoreStrategy implements IndexStoreStrategy {
 
@@ -39,12 +39,12 @@ public class FilteringIndexStoreStrategy implements IndexStoreStrategy {
     private final boolean readOnly;
 
     public FilteringIndexStoreStrategy(IndexStoreStrategy strategy,
-            Predicate<String> filter) {
+        Predicate<String> filter) {
         this(strategy, filter, false);
     }
 
     public FilteringIndexStoreStrategy(IndexStoreStrategy strategy,
-            Predicate<String> filter, boolean readOnly) {
+        Predicate<String> filter, boolean readOnly) {
         this.strategy = strategy;
         this.filter = filter;
         this.readOnly = readOnly;
@@ -52,17 +52,17 @@ public class FilteringIndexStoreStrategy implements IndexStoreStrategy {
 
     @Override
     public void update(Supplier<NodeBuilder> index, String path, String indexName,
-                       NodeBuilder indexMeta, Set<String> beforeKeys, Set<String> afterKeys)
-            throws CommitFailedException {
+        NodeBuilder indexMeta, Set<String> beforeKeys, Set<String> afterKeys)
+        throws CommitFailedException {
         if (filter.apply(path)) {
             if (readOnly) {
                 throw new CommitFailedException(
-                        CommitFailedException.UNSUPPORTED, 0,
-                        "Unsupported commit to a read-only store!",
-                        new Throwable("Commit path: " + path));
+                    CommitFailedException.UNSUPPORTED, 0,
+                    "Unsupported commit to a read-only store!",
+                    new Throwable("Commit path: " + path));
             }
             strategy.update(index, path, indexName, indexMeta, beforeKeys,
-                    afterKeys);
+                afterKeys);
         }
     }
 
@@ -73,19 +73,19 @@ public class FilteringIndexStoreStrategy implements IndexStoreStrategy {
 
     @Override
     public Iterable<String> query(Filter filter, String indexName,
-            NodeState indexMeta, Iterable<String> values) {
+        NodeState indexMeta, Iterable<String> values) {
         return strategy.query(filter, indexName, indexMeta, values);
     }
 
     @Override
     public long count(NodeState root, NodeState indexMeta, Set<String> values,
-            int max) {
+        int max) {
         return strategy.count(root, indexMeta, values, max);
     }
 
     @Override
     public long count(Filter filter, NodeState root, NodeState indexMeta,
-            Set<String> values, int max) {
+        Set<String> values, int max) {
         return strategy.count(filter, root, indexMeta, values, max);
     }
 

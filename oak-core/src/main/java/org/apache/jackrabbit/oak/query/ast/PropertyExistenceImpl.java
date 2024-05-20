@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Collections;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 /**
@@ -37,7 +36,7 @@ public class PropertyExistenceImpl extends ConstraintImpl {
         this.selectorName = selectorName;
         this.propertyName = propertyName;
     }
-    
+
     public PropertyExistenceImpl(String selectorName, String propertyName) {
         this.selectorName = selectorName;
         this.propertyName = propertyName;
@@ -52,7 +51,7 @@ public class PropertyExistenceImpl extends ConstraintImpl {
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
         return Collections.singleton(this);
     }
-    
+
     @Override
     public Set<SelectorImpl> getSelectors() {
         return Collections.singleton(selector);
@@ -86,12 +85,12 @@ public class PropertyExistenceImpl extends ConstraintImpl {
             s.restrictSelector(this);
         }
     }
-    
+
     @Override
     public int hashCode() {
         String pn = normalizePropertyName(propertyName);
         return ((selectorName == null) ? 0 : selectorName.hashCode()) * 31 +
-                ((pn == null) ? 0 : pn.hashCode());
+            ((pn == null) ? 0 : pn.hashCode());
     }
 
     @Override
@@ -109,7 +108,7 @@ public class PropertyExistenceImpl extends ConstraintImpl {
         String pn2 = normalizePropertyName(other.propertyName);
         return equalsStrings(pn, pn2);
     }
-    
+
     private static boolean equalsStrings(String a, String b) {
         return a == null || b == null ? a == b : a.equals(b);
     }

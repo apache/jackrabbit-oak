@@ -20,9 +20,7 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.List;
 import java.util.Set;
-
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
@@ -89,7 +87,7 @@ public class FirstImpl extends DynamicOperandImpl {
         String fn = getFunction(f.getSelector());
         if (fn != null) {
             f.restrictProperty(QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn,
-                    operator, v, PropertyType.STRING);
+                operator, v, PropertyType.STRING);
         }
     }
 
@@ -131,7 +129,7 @@ public class FirstImpl extends DynamicOperandImpl {
                 QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn,
                 Type.STRING,
                 o.isDescending() ?
-                OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
+                    OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
         }
         return null;
     }

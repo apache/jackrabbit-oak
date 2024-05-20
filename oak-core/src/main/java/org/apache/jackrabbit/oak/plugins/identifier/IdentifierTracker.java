@@ -24,8 +24,8 @@ import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * Simple utility class for lazily tracking the current identifier during
- * a tree traversal that recurses down a subtree.
+ * Simple utility class for lazily tracking the current identifier during a tree traversal that
+ * recurses down a subtree.
  */
 public class IdentifierTracker {
 
@@ -51,7 +51,7 @@ public class IdentifierTracker {
     }
 
     private IdentifierTracker(
-            IdentifierTracker parent, String name, String uuid) {
+        IdentifierTracker parent, String name, String uuid) {
         this.referenceable = parent.referenceable;
         this.parent = parent;
         this.name = name;

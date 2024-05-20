@@ -31,12 +31,12 @@ import org.junit.After;
 import org.junit.Test;
 
 /**
- * Tests the implementation of mix:referenceable in nt:frozenNode.
- * By default from JCR 2.0, nt:frozenNode shouldn't implement mix:referenceable
- * However, the System Property oak.referenceableFrozenNode can be set to true to change this behaviour.
+ * Tests the implementation of mix:referenceable in nt:frozenNode. By default from JCR 2.0,
+ * nt:frozenNode shouldn't implement mix:referenceable However, the System Property
+ * oak.referenceableFrozenNode can be set to true to change this behaviour.
  */
 public class ReferenceableFrozenNodeTest {
-    
+
     private NodeState initializeRepository() throws CommitFailedException {
         NodeStore store = new MemoryNodeStore();
         NodeBuilder builder = store.getRoot().builder();
@@ -44,47 +44,52 @@ public class ReferenceableFrozenNodeTest {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         return store.getRoot();
     }
-    
+
     @After
     public void clearSystemProperty() {
         System.clearProperty("oak.referenceableFrozenNode");
     }
 
     @Test
-    public void testInitializeRepositoryWithoutReferenceableFrozenNode() throws CommitFailedException {
+    public void testInitializeRepositoryWithoutReferenceableFrozenNode()
+        throws CommitFailedException {
         System.setProperty("oak.referenceableFrozenNode", "false");
         doTestInitializeRepositoryWithoutReferenceableFrozenNode();
     }
 
     @Test
-    public void testInitializeRepositoryWithoutReferenceableFrozenNode_noProperty() throws CommitFailedException {
+    public void testInitializeRepositoryWithoutReferenceableFrozenNode_noProperty()
+        throws CommitFailedException {
         System.clearProperty("oak.referenceableFrozenNode");
         doTestInitializeRepositoryWithoutReferenceableFrozenNode();
     }
 
-    private void doTestInitializeRepositoryWithoutReferenceableFrozenNode() throws CommitFailedException {
+    private void doTestInitializeRepositoryWithoutReferenceableFrozenNode()
+        throws CommitFailedException {
         NodeState root = initializeRepository();
-        
-        NodeState frozenNode = root.getChildNode("jcr:system").getChildNode("jcr:nodeTypes").getChildNode("nt:frozenNode");
+
+        NodeState frozenNode = root.getChildNode("jcr:system").getChildNode("jcr:nodeTypes")
+                                   .getChildNode("nt:frozenNode");
         PropertyState superTypes = frozenNode.getProperty("jcr:supertypes");
-        
+
         assertEquals(1, superTypes.count());
         assertEquals("nt:base", superTypes.getValue(Type.NAME, 0));
     }
-    
+
     @Test
     public void testInitializeRepositoryWithReferenceableFrozenNode() throws CommitFailedException {
         System.setProperty("oak.referenceableFrozenNode", "true");
         NodeState root = initializeRepository();
-        
-        NodeState frozenNode = root.getChildNode("jcr:system").getChildNode("jcr:nodeTypes").getChildNode("nt:frozenNode");
+
+        NodeState frozenNode = root.getChildNode("jcr:system").getChildNode("jcr:nodeTypes")
+                                   .getChildNode("nt:frozenNode");
         PropertyState superTypes = frozenNode.getProperty("jcr:supertypes");
-        
+
         assertEquals(2, superTypes.count());
         assertEquals("nt:base", superTypes.getValue(Type.NAME, 0));
         assertEquals("mix:referenceable", superTypes.getValue(Type.NAME, 1));
     }
-    
+
     @Test
     public void testReinitializeRepositoryWithProperty() throws CommitFailedException {
         System.setProperty("oak.referenceableFrozenNode", "false");
@@ -92,19 +97,20 @@ public class ReferenceableFrozenNodeTest {
         NodeBuilder builder = store.getRoot().builder();
         new InitialContent().initialize(builder);
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        
+
         System.setProperty("oak.referenceableFrozenNode", "true");
         new InitialContent().initialize(builder);
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         NodeState root = store.getRoot();
-        
-        NodeState frozenNode = root.getChildNode("jcr:system").getChildNode("jcr:nodeTypes").getChildNode("nt:frozenNode");
+
+        NodeState frozenNode = root.getChildNode("jcr:system").getChildNode("jcr:nodeTypes")
+                                   .getChildNode("nt:frozenNode");
         PropertyState superTypes = frozenNode.getProperty("jcr:supertypes");
-        
+
         assertEquals(1, superTypes.count());
         assertEquals("nt:base", superTypes.getValue(Type.NAME, 0));
     }
-    
+
     @Test
     public void testReinitializeRepositoryWithoutProperty() throws CommitFailedException {
         System.setProperty("oak.referenceableFrozenNode", "true");
@@ -112,15 +118,16 @@ public class ReferenceableFrozenNodeTest {
         NodeBuilder builder = store.getRoot().builder();
         new InitialContent().initialize(builder);
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        
+
         System.setProperty("oak.referenceableFrozenNode", "false");
         new InitialContent().initialize(builder);
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         NodeState root = store.getRoot();
-        
-        NodeState frozenNode = root.getChildNode("jcr:system").getChildNode("jcr:nodeTypes").getChildNode("nt:frozenNode");
+
+        NodeState frozenNode = root.getChildNode("jcr:system").getChildNode("jcr:nodeTypes")
+                                   .getChildNode("nt:frozenNode");
         PropertyState superTypes = frozenNode.getProperty("jcr:supertypes");
-        
+
         assertEquals(2, superTypes.count());
         assertEquals("nt:base", superTypes.getValue(Type.NAME, 0));
         assertEquals("mix:referenceable", superTypes.getValue(Type.NAME, 1));

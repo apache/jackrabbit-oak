@@ -36,10 +36,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Implementation of the {@code PermissionProvider} interface that grants full
- * permission everywhere.
+ * Implementation of the {@code PermissionProvider} interface that grants full permission
+ * everywhere.
  */
-public final class AllPermissionProviderImpl implements PermissionProvider, AggregatedPermissionProvider {
+public final class AllPermissionProviderImpl implements PermissionProvider,
+    AggregatedPermissionProvider {
 
     private static final Set<String> ALL = Collections.singleton(PrivilegeConstants.JCR_ALL);
 
@@ -77,12 +78,14 @@ public final class AllPermissionProviderImpl implements PermissionProvider, Aggr
 
     @NotNull
     @Override
-    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree,
+        @NotNull TreePermission parentPermission) {
         return TreePermission.ALL;
     }
 
     @Override
-    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
+    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property,
+        long permissions) {
         return true;
     }
 
@@ -94,12 +97,15 @@ public final class AllPermissionProviderImpl implements PermissionProvider, Aggr
     //---------------------------------------< AggregatedPermissionProvider >---
     @NotNull
     @Override
-    public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
-        return (privilegeBits != null) ? privilegeBits : new PrivilegeBitsProvider(immutableRoot).getBits(PrivilegeConstants.JCR_ALL);
+    public PrivilegeBits supportedPrivileges(@Nullable Tree tree,
+        @Nullable PrivilegeBits privilegeBits) {
+        return (privilegeBits != null) ? privilegeBits
+            : new PrivilegeBitsProvider(immutableRoot).getBits(PrivilegeConstants.JCR_ALL);
     }
 
     @Override
-    public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
+    public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property,
+        long permissions) {
         return permissions;
     }
 
@@ -109,7 +115,8 @@ public final class AllPermissionProviderImpl implements PermissionProvider, Aggr
     }
 
     @Override
-    public long supportedPermissions(@NotNull TreePermission treePermission, PropertyState property, long permissions) {
+    public long supportedPermissions(@NotNull TreePermission treePermission, PropertyState property,
+        long permissions) {
         return permissions;
     }
 
@@ -120,7 +127,8 @@ public final class AllPermissionProviderImpl implements PermissionProvider, Aggr
 
     @NotNull
     @Override
-    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type,
+        @NotNull TreePermission parentPermission) {
         return TreePermission.ALL;
     }
 }

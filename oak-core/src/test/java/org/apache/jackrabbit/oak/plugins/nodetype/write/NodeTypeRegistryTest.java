@@ -87,11 +87,13 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class NodeTypeRegistryTest {
+
     private ContentRepository repository = null;
     private Root root;
     private ContentSession session = null;
-    
-    static void registerNodeType(@NotNull Root root, @NotNull String resourceName) throws IOException {
+
+    static void registerNodeType(@NotNull Root root, @NotNull String resourceName)
+        throws IOException {
         checkArgument(!Strings.isNullOrEmpty(resourceName));
         checkNotNull(root);
 
@@ -99,23 +101,23 @@ public class NodeTypeRegistryTest {
 
         try {
             stream = NodeTypeRegistryTest.class.getResourceAsStream(resourceName);
-            NodeTypeRegistry.register(root, stream, NodeTypeRegistryTest.class.getName());            
+            NodeTypeRegistry.register(root, stream, NodeTypeRegistryTest.class.getName());
         } finally {
             if (stream != null) {
                 stream.close();
             }
-            
+
         }
     }
-    
+
     @Before
     public void setUp() throws LoginException, NoSuchWorkspaceException {
         repository = new Oak().with(new InitialContent()).with(new OpenSecurityProvider())
-            .with(new TypeEditorProvider()).createContentRepository();
+                              .with(new TypeEditorProvider()).createContentRepository();
         session = repository.login(null, null);
         root = session.getLatestRoot();
     }
-    
+
     @After
     public void tearDown() throws IOException {
         if (session != null) {
@@ -126,21 +128,21 @@ public class NodeTypeRegistryTest {
         }
         repository = null;
     }
-    
+
     @Test(expected = CommitFailedException.class)
     public void oakIndexableFailing() throws IOException, CommitFailedException {
         registerNodeType(root, "oak3725-1.cnd");
-        
+
         Tree test = root.getTree("/").addChild("test");
-        test.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, NAME);            
+        test.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, NAME);
         test.addChild("oak:index").setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);
         root.commit();
     }
-    
+
     @Test
     public void oakIndexableSuccessful() throws IOException, CommitFailedException {
         registerNodeType(root, "oak3725-2.cnd");
-        
+
         Tree test = root.getTree("/").addChild("test");
         test.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, NAME);
         test.setProperty(JCR_MIXINTYPES, of(MIX_INDEXABLE), Type.NAMES);
@@ -149,7 +151,7 @@ public class NodeTypeRegistryTest {
     }
 
     @Test
-    public void oakResource() throws Exception{
+    public void oakResource() throws Exception {
         registerNodeType(root, "oak4567.cnd");
         Tree typeRoot = root.getTree(NODE_TYPES_PATH);
         Tree test1 = TreeUtil.addChild(root.getTree("/"), "test1", NT_FILE, typeRoot, "admin");
@@ -182,6 +184,7 @@ public class NodeTypeRegistryTest {
         registerNodeType(root, "oak6440-1.cnd");
         NodeTypeManager readOnlyNtMgr = new ReadOnlyNodeTypeManager() {
             private Root r = session.getLatestRoot();
+
             @NotNull
             @Override
             protected Tree getTypes() {
@@ -202,16 +205,16 @@ public class NodeTypeRegistryTest {
             }
         };
         ValueFactory valueFactory = new ValueFactoryImpl(
-                root, new NamePathMapperImpl(new GlobalNameMapper(root)));
+            root, new NamePathMapperImpl(new GlobalNameMapper(root)));
         NamespaceRegistry nsRegistry = new ReadOnlyNamespaceRegistry(root);
         DefinitionBuilderFactory<NodeTypeTemplate, NamespaceRegistry> factory
-                = new TemplateBuilderFactory(ntMgr, valueFactory, nsRegistry);
+            = new TemplateBuilderFactory(ntMgr, valueFactory, nsRegistry);
         InputStream in = NodeTypeRegistryTest.class.getResourceAsStream("oak6440-2.cnd");
         List<NodeTypeTemplate> templates;
         try {
             CompactNodeTypeDefReader<NodeTypeTemplate, NamespaceRegistry> reader
-                    = new CompactNodeTypeDefReader<NodeTypeTemplate, NamespaceRegistry>(
-                            new InputStreamReader(in, UTF_8), "oak6440-2.cnd", factory);
+                = new CompactNodeTypeDefReader<NodeTypeTemplate, NamespaceRegistry>(
+                new InputStreamReader(in, UTF_8), "oak6440-2.cnd", factory);
             templates = reader.getNodeTypeDefinitions();
         } finally {
             in.close();
@@ -249,7 +252,7 @@ public class NodeTypeRegistryTest {
             }
         };
         ValueFactory vf = new ValueFactoryImpl(
-                root, new NamePathMapperImpl(new GlobalNameMapper(root)));
+            root, new NamePathMapperImpl(new GlobalNameMapper(root)));
         NamespaceRegistry nsReg = new ReadWriteNamespaceRegistry(root) {
             @Override
             protected Root getWriteRoot() {
@@ -257,7 +260,7 @@ public class NodeTypeRegistryTest {
             }
         };
         DefinitionBuilderFactory<NodeTypeTemplate, NamespaceRegistry> factory
-                = new TemplateBuilderFactory(ntMgr, vf, nsReg);
+            = new TemplateBuilderFactory(ntMgr, vf, nsReg);
 
         NodeType ntResource = ntMgr.getNodeType(NT_RESOURCE);
         List<String> supertypeNames = Arrays.asList(ntResource.getDeclaredSupertypeNames());
@@ -267,8 +270,8 @@ public class NodeTypeRegistryTest {
         InputStream in = NodeTypeRegistryTest.class.getResourceAsStream("ntResource.cnd");
         try {
             CompactNodeTypeDefReader<NodeTypeTemplate, NamespaceRegistry> reader
-                    = new CompactNodeTypeDefReader<NodeTypeTemplate, NamespaceRegistry>(
-                    new InputStreamReader(in, UTF_8), "ntResource.cnd", factory);
+                = new CompactNodeTypeDefReader<NodeTypeTemplate, NamespaceRegistry>(
+                new InputStreamReader(in, UTF_8), "ntResource.cnd", factory);
             templates = reader.getNodeTypeDefinitions();
         } finally {
             in.close();

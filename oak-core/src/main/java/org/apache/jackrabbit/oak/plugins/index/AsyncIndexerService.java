@@ -58,43 +58,50 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgumen
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 @Component(
-        configurationPolicy = ConfigurationPolicy.REQUIRE,
-        service = {})
+    configurationPolicy = ConfigurationPolicy.REQUIRE,
+    service = {})
 @Designate(ocd = AsyncIndexerService.Configuration.class)
 public class AsyncIndexerService {
 
     @ObjectClassDefinition(
-            name = "Apache Jackrabbit Oak Async Indexer Service",
-            description = "Configures the async indexer services which performs periodic indexing of repository content"
+        name = "Apache Jackrabbit Oak Async Indexer Service",
+        description = "Configures the async indexer services which performs periodic indexing of repository content"
     )
     @interface Configuration {
 
         @AttributeDefinition(
-                cardinality = 1024,
-                name = "Async Indexer Configs",
-                description = "Async indexer configs in the form of <name>:<interval in secs>:<lease time out in minutes> e.g. \"async:5:15\""
+            cardinality = 1024,
+            name = "Async Indexer Configs",
+            description = "Async indexer configs in the form of <name>:<interval in secs>:<lease time out in minutes> e.g. \"async:5:15\""
         )
         String[] asyncConfigs() default {"async:5:15"};
 
         @AttributeDefinition(
-                name = "Lease time out",
-                description = "Lease timeout in minutes. AsyncIndexer would wait for this timeout period before breaking " +
-                        "async indexer lease"
+            name = "Lease time out",
+            description =
+                "Lease timeout in minutes. AsyncIndexer would wait for this timeout period before breaking "
+                    +
+                    "async indexer lease"
         )
         long leaseTimeOutMinutes() default 15L;
 
         @AttributeDefinition(
-                name = "Failing Index Timeout (s)",
-                description = "Time interval in seconds after which a failing index is considered as corrupted and " +
-                        "ignored from further indexing until reindex. The default is 7 days (7 * 24 * 60 * 60 = 604800). " +
-                        "To disable this set it to 0."
+            name = "Failing Index Timeout (s)",
+            description =
+                "Time interval in seconds after which a failing index is considered as corrupted and "
+                    +
+                    "ignored from further indexing until reindex. The default is 7 days (7 * 24 * 60 * 60 = 604800). "
+                    +
+                    "To disable this set it to 0."
         )
         long failingIndexTimeoutSeconds() default 7 * 24 * 60 * 60L;
 
         @AttributeDefinition(
-                name = "Error warn interval (s)",
-                description = "Time interval in seconds after which a warning log would be logged for skipped indexes. " +
-                        "This is done to avoid flooding the log in case of corrupted index."
+            name = "Error warn interval (s)",
+            description =
+                "Time interval in seconds after which a warning log would be logged for skipped indexes. "
+                    +
+                    "This is done to avoid flooding the log in case of corrupted index."
         )
         long errorWarnIntervalSeconds() default 15 * 60;
     }
@@ -131,22 +138,25 @@ public class AsyncIndexerService {
 
         for (AsyncConfig c : asyncIndexerConfig) {
             AsyncIndexUpdate task = new AsyncIndexUpdate(c.name, nodeStore, indexEditorProvider,
-                    statisticsProvider, false);
+                statisticsProvider, false);
             task.setCorruptIndexHandler(corruptIndexHandler);
             task.setValidatorProviders(Collections.singletonList(validatorProvider));
 
             long leaseTimeOutMin = config.leaseTimeOutMinutes();
 
             // Set lease time out = 0 for a non clusterable setup.
-            if (!(nodeStore instanceof Clusterable)){
+            if (!(nodeStore instanceof Clusterable)) {
                 leaseTimeOutMin = 0;
-                log.info("Detected non clusterable setup. Lease checking would be disabled for async indexing");
+                log.info(
+                    "Detected non clusterable setup. Lease checking would be disabled for async indexing");
             } else if (c.leaseTimeOutInMin != null) {
                 // If lease time out is configured for a specific lane, use that.
                 leaseTimeOutMin = c.leaseTimeOutInMin;
                 log.info("Lease time out for {} configured as {} mins.", c.name, leaseTimeOutMin);
             } else {
-                log.info("Lease time out for {} not configured explicitly. Using value {} mins configured via Lease Time out property.", c.name, leaseTimeOutMin);
+                log.info(
+                    "Lease time out for {} not configured explicitly. Using value {} mins configured via Lease Time out property.",
+                    c.name, leaseTimeOutMin);
             }
 
             task.setLeaseTimeOut(TimeUnit.MINUTES.toMillis(leaseTimeOutMin));
@@ -160,13 +170,15 @@ public class AsyncIndexerService {
     private void registerAsyncReindexSupport(Whiteboard whiteboard) {
         // async reindex
         String name = IndexConstants.ASYNC_REINDEX_VALUE;
-        AsyncIndexUpdate task = new AsyncIndexUpdate(name, nodeStore, indexEditorProvider, statisticsProvider, true);
+        AsyncIndexUpdate task = new AsyncIndexUpdate(name, nodeStore, indexEditorProvider,
+            statisticsProvider, true);
         PropertyIndexAsyncReindex asyncPI = new PropertyIndexAsyncReindex(task, executor);
 
         final Registration reg = new CompositeRegistration(
-                registerMBean(whiteboard, PropertyIndexAsyncReindexMBean.class, asyncPI,
-                        PropertyIndexAsyncReindexMBean.TYPE, "async"),
-                registerMBean(whiteboard, IndexStatsMBean.class, task.getIndexStats(), IndexStatsMBean.TYPE, name));
+            registerMBean(whiteboard, PropertyIndexAsyncReindexMBean.class, asyncPI,
+                PropertyIndexAsyncReindexMBean.TYPE, "async"),
+            registerMBean(whiteboard, IndexStatsMBean.class, task.getIndexStats(),
+                IndexStatsMBean.TYPE, name));
         closer.register(new Closeable() {
             @Override
             public void close() throws IOException {
@@ -198,14 +210,21 @@ public class AsyncIndexerService {
         TrackingCorruptIndexHandler corruptIndexHandler = new TrackingCorruptIndexHandler();
         corruptIndexHandler.setCorruptInterval(failingIndexTimeoutSeconds, TimeUnit.SECONDS);
         corruptIndexHandler.setErrorWarnInterval(errorWarnIntervalSeconds, TimeUnit.SECONDS);
-        corruptIndexHandler.setMeterStats(statisticsProvider.getMeter(TrackingCorruptIndexHandler.CORRUPT_INDEX_METER_NAME, StatsOptions.METRICS_ONLY));
+        corruptIndexHandler.setMeterStats(
+            statisticsProvider.getMeter(TrackingCorruptIndexHandler.CORRUPT_INDEX_METER_NAME,
+                StatsOptions.METRICS_ONLY));
 
-        if (failingIndexTimeoutSeconds <= 0){
-            log.info("[failingIndexTimeoutSeconds] is set to {}. Auto corrupt index isolation handling is disabled, warning log would be " +
-                            "logged every {} s", failingIndexTimeoutSeconds, errorWarnIntervalSeconds);
+        if (failingIndexTimeoutSeconds <= 0) {
+            log.info(
+                "[failingIndexTimeoutSeconds] is set to {}. Auto corrupt index isolation handling is disabled, warning log would be "
+                    +
+                    "logged every {} s", failingIndexTimeoutSeconds, errorWarnIntervalSeconds);
         } else {
-            log.info("Auto corrupt index isolation handling is enabled. Any async index which fails for {}s would " +
-                    "be marked as corrupted and would be skipped from further indexing. A warning log would be " +
+            log.info(
+                "Auto corrupt index isolation handling is enabled. Any async index which fails for {}s would "
+                    +
+                    "be marked as corrupted and would be skipped from further indexing. A warning log would be "
+                    +
                     "logged every {} s", failingIndexTimeoutSeconds, errorWarnIntervalSeconds);
         }
         return corruptIndexHandler;
@@ -219,8 +238,10 @@ public class AsyncIndexerService {
 
             String[] configElements = config.split(String.valueOf(CONFIG_SEP));
             String name = configElements[0].trim();
-            Long interval = configElements.length > 1 ? Long.parseLong(configElements[1].trim()) : null;
-            Long leaseTimeOut = configElements.length > 2 ? Long.parseLong(configElements[2].trim()) : null;
+            Long interval =
+                configElements.length > 1 ? Long.parseLong(configElements[1].trim()) : null;
+            Long leaseTimeOut =
+                configElements.length > 2 ? Long.parseLong(configElements[2].trim()) : null;
 
             result.add(new AsyncConfig(name, interval, leaseTimeOut));
         }
@@ -228,6 +249,7 @@ public class AsyncIndexerService {
     }
 
     static class AsyncConfig {
+
         final String name;
         final Long timeIntervalInSecs;
         final Long leaseTimeOutInMin;
@@ -241,10 +263,10 @@ public class AsyncIndexerService {
         @Override
         public String toString() {
             return "AsyncConfig{" +
-                    "name='" + name + '\'' +
-                    ", timeIntervalInSecs=" + timeIntervalInSecs +
-                    ", leaseTimeOutInMin=" + leaseTimeOutInMin +
-                    '}';
+                "name='" + name + '\'' +
+                ", timeIntervalInSecs=" + timeIntervalInSecs +
+                ", leaseTimeOutInMin=" + leaseTimeOutInMin +
+                '}';
         }
     }
 }

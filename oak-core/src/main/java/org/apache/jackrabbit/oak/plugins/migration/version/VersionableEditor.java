@@ -45,8 +45,7 @@ import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistory
 import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.removeVersionProperties;
 
 /**
- * The VersionableEditor provides two possible ways to handle
- * versionable nodes:
+ * The VersionableEditor provides two possible ways to handle versionable nodes:
  * <ul>
  *     <li>it can copy the version histories of versionable nodes, or</li>
  *     <li>
@@ -60,7 +59,8 @@ public class VersionableEditor extends DefaultEditor {
 
     private static final Logger logger = LoggerFactory.getLogger(VersionableEditor.class);
 
-    private static final Set<String> SKIPPED_PATHS = of("/oak:index", "/jcr:system/jcr:versionStorage");
+    private static final Set<String> SKIPPED_PATHS = of("/oak:index",
+        "/jcr:system/jcr:versionStorage");
 
     private final Provider provider;
 
@@ -86,7 +86,8 @@ public class VersionableEditor extends DefaultEditor {
         this.provider = provider;
         this.isVersionable = new TypePredicate(rootBuilder.getNodeState(), MIX_VERSIONABLE);
         this.isReferenceable = new TypePredicate(rootBuilder.getNodeState(), MIX_REFERENCEABLE);
-        this.versionCopier = new VersionCopier(rootBuilder, getVersionStorage(provider.sourceRoot), versionStorage);
+        this.versionCopier = new VersionCopier(rootBuilder, getVersionStorage(provider.sourceRoot),
+            versionStorage);
         this.path = "/";
 
     }
@@ -99,14 +100,16 @@ public class VersionableEditor extends DefaultEditor {
 
         private final VersionCopyConfiguration config;
 
-        public Provider(NodeState sourceRoot, String workspaceName, VersionCopyConfiguration config) {
+        public Provider(NodeState sourceRoot, String workspaceName,
+            VersionCopyConfiguration config) {
             this.sourceRoot = sourceRoot;
             this.workspaceName = workspaceName;
             this.config = config;
         }
 
         @Override
-        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder rootBuilder, CommitInfo info) throws CommitFailedException {
+        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder rootBuilder,
+            CommitInfo info) throws CommitFailedException {
             return new VersionableEditor(this, rootBuilder);
         }
     }
@@ -141,7 +144,9 @@ public class VersionableEditor extends DefaultEditor {
                 NodeBuilder versionableBuilder = getNodeBuilder(rootBuilder, this.path);
                 removeVersionProperties(versionableBuilder, isReferenceable);
                 if (isVersionable.test(versionableBuilder.getNodeState())) {
-                    logger.warn("Node {} is still versionable due to node type constraints. Creating initial version history.", path);
+                    logger.warn(
+                        "Node {} is still versionable due to node type constraints. Creating initial version history.",
+                        path);
                     createInitialHistory(versionableBuilder);
                 }
             }
@@ -154,12 +159,14 @@ public class VersionableEditor extends DefaultEditor {
         assert versionable.exists();
 
         final String versionableUuid = versionable.getProperty(JCR_UUID).getValue(Type.STRING);
-        return versionCopier.copyVersionHistory(versionableUuid, provider.config.getVersionsMinDate(),
+        return versionCopier.copyVersionHistory(versionableUuid,
+            provider.config.getVersionsMinDate(),
             provider.config.preserveOnTarget());
     }
 
     private void setVersionablePath(String versionableUuid) {
-        final NodeBuilder versionHistory = VersionHistoryUtil.getVersionHistoryBuilder(versionStorage, versionableUuid);
+        final NodeBuilder versionHistory = VersionHistoryUtil.getVersionHistoryBuilder(
+            versionStorage, versionableUuid);
         if (!versionHistory.hasProperty(provider.workspaceName)) {
             versionHistory.setProperty(provider.workspaceName, path, Type.PATH);
         }
@@ -171,11 +178,12 @@ public class VersionableEditor extends DefaultEditor {
     }
 
     private void createInitialHistory(NodeBuilder versionable) throws CommitFailedException {
-        vMgr.getOrCreateVersionHistory(versionable, Collections.<String,Object>emptyMap());
+        vMgr.getOrCreateVersionHistory(versionable, Collections.<String, Object>emptyMap());
     }
 
     @Override
-    public Editor childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+    public Editor childNodeChanged(String name, NodeState before, NodeState after)
+        throws CommitFailedException {
         return childNodeAdded(name, after);
     }
 

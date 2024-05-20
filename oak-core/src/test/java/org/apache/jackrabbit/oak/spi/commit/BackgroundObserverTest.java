@@ -51,6 +51,7 @@ import org.apache.jackrabbit.guava.common.collect.Lists;
 import junit.framework.AssertionFailedError;
 
 public class BackgroundObserverTest {
+
     private static final CommitInfo COMMIT_INFO = new CommitInfo("no-session", null);
     public static final int CHANGE_COUNT = 1024;
 
@@ -59,9 +60,8 @@ public class BackgroundObserverTest {
     private final List<Closeable> closeables = Lists.newArrayList();
 
     /**
-     * Assert that each observer of many running concurrently sees the same
-     * linearly sequence of commits (i.e. sees the commits in the correct
-     * order).
+     * Assert that each observer of many running concurrently sees the same linearly sequence of
+     * commits (i.e. sees the commits in the correct order).
      */
     @Test
     public void concurrentObservers() throws InterruptedException {
@@ -113,7 +113,8 @@ public class BackgroundObserverTest {
         return new BackgroundObserver(new Observer() {
             // Need synchronised list here to maintain correct memory barrier
             // when this is passed on to done(List<Runnable>)
-            final List<Runnable> assertions = Collections.synchronizedList(Lists.<Runnable> newArrayList());
+            final List<Runnable> assertions = Collections.synchronizedList(
+                Lists.<Runnable>newArrayList());
             volatile NodeState previous;
 
             @Override
@@ -139,7 +140,7 @@ public class BackgroundObserverTest {
             }
         }, executor, queueLength);
     }
-    
+
     class MyFilter implements Filter {
 
         private boolean excludeNext;
@@ -154,7 +155,7 @@ public class BackgroundObserverTest {
             excludeNext = false;
             return excludes;
         }
-        
+
     }
 
     class Recorder implements FilteringAwareObserver {
@@ -165,7 +166,7 @@ public class BackgroundObserverTest {
 
         public Recorder() {
         }
-        
+
         @Override
         public void contentChanged(NodeState before, NodeState after, CommitInfo info) {
             includedChanges.add(new Pair(before, after));
@@ -223,6 +224,7 @@ public class BackgroundObserverTest {
     }
 
     class Pair {
+
         private final NodeState before;
         private final NodeState after;
 
@@ -238,6 +240,7 @@ public class BackgroundObserverTest {
     }
 
     class NodeStateGenerator {
+
         Random r = new Random(1232131); // seed: repeatable tests
         NodeBuilder builder = EMPTY_NODE.builder();
 
@@ -252,8 +255,10 @@ public class BackgroundObserverTest {
     private void assertMatches(String msg, List<Pair> expected, List<Pair> actual) {
         assertEquals("size mismatch. msg=" + msg, expected.size(), actual.size());
         for (int i = 0; i < expected.size(); i++) {
-            assertSame("mismatch of before at pos=" + i + ", msg=" + msg, expected.get(i).before, actual.get(i).before);
-            assertSame("mismatch of after at pos=" + i + ", msg=" + msg, expected.get(i).after, actual.get(i).after);
+            assertSame("mismatch of before at pos=" + i + ", msg=" + msg, expected.get(i).before,
+                actual.get(i).before);
+            assertSame("mismatch of after at pos=" + i + ", msg=" + msg, expected.get(i).after,
+                actual.get(i).after);
         }
     }
 
@@ -283,7 +288,8 @@ public class BackgroundObserverTest {
             filter.excludeNext(true);
             fo.contentChanged(generator.next(), CommitInfo.EMPTY);
         }
-        assertTrue("testExcludedAllCommits", fo.getBackgroundObserver().waitUntilStopped(5, TimeUnit.SECONDS));
+        assertTrue("testExcludedAllCommits",
+            fo.getBackgroundObserver().waitUntilStopped(5, TimeUnit.SECONDS));
         assertMatches("testExcludedAllCommits", expected, recorder.includedChanges);
     }
 
@@ -306,7 +312,8 @@ public class BackgroundObserverTest {
             previous = next;
             fo.contentChanged(next, CommitInfo.EMPTY);
         }
-        assertTrue("testNoExcludedCommits", fo.getBackgroundObserver().waitUntilStopped(5, TimeUnit.SECONDS));
+        assertTrue("testNoExcludedCommits",
+            fo.getBackgroundObserver().waitUntilStopped(5, TimeUnit.SECONDS));
         assertMatches("testNoExcludedCommits", expected, recorder.includedChanges);
     }
 
@@ -328,7 +335,8 @@ public class BackgroundObserverTest {
         expected.add(new Pair(initialHeldBack, firstIncluded));
         fo.contentChanged(firstIncluded, CommitInfo.EMPTY);
 
-        assertTrue("observer did not get called (yet?)", recorder.waitForPausing(5, TimeUnit.SECONDS));
+        assertTrue("observer did not get called (yet?)",
+            recorder.waitForPausing(5, TimeUnit.SECONDS));
 
         // this one will be queued as #1
         NodeState secondIncluded = generator.next();
@@ -385,8 +393,9 @@ public class BackgroundObserverTest {
         // use the last queue entry as the overflow entry
         expected.add(new Pair(seventhAfterQueueFull, last));
         fo.contentChanged(last, CommitInfo.EMPTY);
-        
-        assertTrue("testExcludeCommitsWithFullQueue", fo.getBackgroundObserver().waitUntilStopped(10, TimeUnit.SECONDS));
+
+        assertTrue("testExcludeCommitsWithFullQueue",
+            fo.getBackgroundObserver().waitUntilStopped(10, TimeUnit.SECONDS));
         assertMatches("testExcludeCommitsWithFullQueue", expected, recorder.includedChanges);
     }
 

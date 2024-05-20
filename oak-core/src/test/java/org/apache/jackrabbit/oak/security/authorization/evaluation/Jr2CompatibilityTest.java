@@ -41,7 +41,9 @@ import static org.junit.Assert.fail;
 
 /**
  * Test compatibility with Jackrabbit 2.x using the
- * {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants#PARAM_PERMISSIONS_JR2} configuration parameter.
+ * {@link
+ * org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants#PARAM_PERMISSIONS_JR2}
+ * configuration parameter.
  */
 public class Jr2CompatibilityTest extends AbstractOakCoreTest {
 
@@ -49,7 +51,8 @@ public class Jr2CompatibilityTest extends AbstractOakCoreTest {
     @Before
     public void before() throws Exception {
         super.before();
-        setupPermission("/", getTestUser().getPrincipal(), true, PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+        setupPermission("/", getTestUser().getPrincipal(), true, PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.REP_WRITE);
     }
 
     @Override
@@ -79,7 +82,7 @@ public class Jr2CompatibilityTest extends AbstractOakCoreTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         ConfigurationParameters acConfig = ConfigurationParameters.of(
-                PermissionConstants.PARAM_PERMISSIONS_JR2, PermissionConstants.VALUE_PERMISSIONS_JR2);
+            PermissionConstants.PARAM_PERMISSIONS_JR2, PermissionConstants.VALUE_PERMISSIONS_JR2);
 
         return ConfigurationParameters.of(AuthorizationConfiguration.NAME, acConfig);
     }
@@ -89,7 +92,8 @@ public class Jr2CompatibilityTest extends AbstractOakCoreTest {
         Root testRoot = getTestRoot();
         testRoot.refresh();
 
-        UserManager testUserMgr = getUserConfiguration().getUserManager(testRoot, NamePathMapper.DEFAULT);
+        UserManager testUserMgr = getUserConfiguration().getUserManager(testRoot,
+            NamePathMapper.DEFAULT);
         try {
             User u = testUserMgr.createUser("a", "b");
             testRoot.commit();
@@ -112,14 +116,16 @@ public class Jr2CompatibilityTest extends AbstractOakCoreTest {
     @Test
     public void testRemoveNodeWithJr2Flag() throws Exception {
         /* allow READ/WRITE privilege for testUser at 'path' */
-        setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+        setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.REP_WRITE);
         /* deny REMOVE_NODE privilege at subtree. */
         setupPermission("/a/b", testPrincipal, false, PrivilegeConstants.JCR_REMOVE_NODE);
 
         Root testRoot = getTestRoot();
         AccessControlManager acMgr = getAccessControlManager(testRoot);
         assertTrue(acMgr.hasPrivileges("/a", privilegesFromNames(PrivilegeConstants.REP_WRITE)));
-        assertFalse(acMgr.hasPrivileges("/a/b", privilegesFromNames(PrivilegeConstants.JCR_REMOVE_NODE)));
+        assertFalse(
+            acMgr.hasPrivileges("/a/b", privilegesFromNames(PrivilegeConstants.JCR_REMOVE_NODE)));
 
         // removing the tree must fail
         try {
@@ -135,14 +141,16 @@ public class Jr2CompatibilityTest extends AbstractOakCoreTest {
     @Test
     public void testRemoveNodeWithJr2Flag2() throws Exception {
         /* allow READ/WRITE privilege for testUser at 'path' */
-        setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+        setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.REP_WRITE);
         /* deny REP_REMOVE_PROPERTIES privilege at subtree. */
         setupPermission("/a/b", testPrincipal, false, PrivilegeConstants.REP_REMOVE_PROPERTIES);
 
         Root testRoot = getTestRoot();
         AccessControlManager acMgr = getAccessControlManager(testRoot);
         assertTrue(acMgr.hasPrivileges("/a", privilegesFromNames(PrivilegeConstants.REP_WRITE)));
-        assertFalse(acMgr.hasPrivileges("/a/b", privilegesFromNames(PrivilegeConstants.REP_REMOVE_PROPERTIES)));
+        assertFalse(acMgr.hasPrivileges("/a/b",
+            privilegesFromNames(PrivilegeConstants.REP_REMOVE_PROPERTIES)));
 
         // removing the tree must fail
         try {

@@ -29,17 +29,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.osgi.service.component.annotations.Component;
 
 /**
- * Validator service that checks that all node and property names as well
- * as any name values are syntactically valid and that any namespace prefixes
- * are properly registered.
+ * Validator service that checks that all node and property names as well as any name values are
+ * syntactically valid and that any namespace prefixes are properly registered.
  */
 @Component(service = EditorProvider.class)
 public class NamespaceEditorProvider implements EditorProvider {
 
     @Override
     public Editor getRootEditor(
-            NodeState before, NodeState after, NodeBuilder builder,
-            CommitInfo info) throws CommitFailedException {
+        NodeState before, NodeState after, NodeBuilder builder,
+        CommitInfo info) throws CommitFailedException {
         return new SubtreeEditor(new NamespaceEditor(before, builder), JCR_SYSTEM, REP_NAMESPACES);
     }
 

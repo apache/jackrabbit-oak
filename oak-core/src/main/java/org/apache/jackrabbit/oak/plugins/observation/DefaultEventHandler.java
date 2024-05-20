@@ -23,10 +23,10 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * Default implementation of {@code EventHandler} that
- * does nothing.
+ * Default implementation of {@code EventHandler} that does nothing.
  */
 public class DefaultEventHandler implements EventHandler {
+
     public static EventHandler INSTANCE = new DefaultEventHandler();
 
     @Override
@@ -40,7 +40,7 @@ public class DefaultEventHandler implements EventHandler {
     }
 
     /**
-     * @return  {@code this}
+     * @return {@code this}
      */
     @Override
     public EventHandler getChildHandler(String name, NodeState before, NodeState after) {

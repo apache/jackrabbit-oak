@@ -57,7 +57,8 @@ public class MountPermissionStoreTest extends AbstractSecurityTest {
     private static final String CONTENT_NAME = "content";
     private static final String CONTENT_PATH = TEST_PATH + "/" + CONTENT_NAME;
 
-    private MountInfoProvider mountInfoProvider = Mounts.newBuilder().mount("testMount", TEST_PATH).build();
+    private MountInfoProvider mountInfoProvider = Mounts.newBuilder().mount("testMount", TEST_PATH)
+                                                        .build();
 
     private AuthorizationConfiguration config;
     private PermissionStore permissionStore;
@@ -73,7 +74,8 @@ public class MountPermissionStoreTest extends AbstractSecurityTest {
         Tree child = TreeUtil.addChild(content, "child", JcrConstants.NT_UNSTRUCTURED);
 
         AccessControlManager acMgr = getAccessControlManager(root);
-        Privilege[] privileges = AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ);
+        Privilege[] privileges = AccessControlUtils.privilegesFromNames(acMgr,
+            PrivilegeConstants.JCR_READ);
 
         AccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, content.getPath());
         assertNotNull(acl);
@@ -87,9 +89,11 @@ public class MountPermissionStoreTest extends AbstractSecurityTest {
         root.commit();
 
         String wspName = adminSession.getWorkspaceName();
-        PermissionProvider pp = config.getPermissionProvider(root, wspName, ImmutableSet.of(EveryonePrincipal.getInstance()));
+        PermissionProvider pp = config.getPermissionProvider(root, wspName,
+            ImmutableSet.of(EveryonePrincipal.getInstance()));
         assertTrue(pp instanceof MountPermissionProvider);
-        permissionStore = ((MountPermissionProvider) pp).getPermissionStore(root, wspName, RestrictionProvider.EMPTY);
+        permissionStore = ((MountPermissionProvider) pp).getPermissionStore(root, wspName,
+            RestrictionProvider.EMPTY);
     }
 
     @Override
@@ -116,14 +120,16 @@ public class MountPermissionStoreTest extends AbstractSecurityTest {
 
     @Test
     public void testLoadByAccessControlledPath() {
-        Collection<PermissionEntry> entries = permissionStore.load(EveryonePrincipal.NAME, CONTENT_PATH);
+        Collection<PermissionEntry> entries = permissionStore.load(EveryonePrincipal.NAME,
+            CONTENT_PATH);
         assertNotNull(entries);
         assertEquals(1, entries.size());
     }
 
     @Test
     public void testLoadByNonAccessControlledPath() {
-        Collection<PermissionEntry> entries = permissionStore.load(EveryonePrincipal.NAME, TEST_PATH);
+        Collection<PermissionEntry> entries = permissionStore.load(EveryonePrincipal.NAME,
+            TEST_PATH);
         assertNull(entries);
     }
 
@@ -187,7 +193,9 @@ public class MountPermissionStoreTest extends AbstractSecurityTest {
     }
 
     private PermissionStoreImpl insertMockStore() throws Exception {
-        Field f = Class.forName("org.apache.jackrabbit.oak.security.authorization.permission.MountPermissionProvider$MountPermissionStore").getDeclaredField("stores");
+        Field f = Class.forName(
+                           "org.apache.jackrabbit.oak.security.authorization.permission.MountPermissionProvider$MountPermissionStore")
+                       .getDeclaredField("stores");
         f.setAccessible(true);
 
         PermissionStoreImpl mock = Mockito.mock(PermissionStoreImpl.class);

@@ -104,7 +104,8 @@ class GroupImpl extends AuthorizableImpl implements Group {
         return success;
     }
 
-    private boolean internalAddMember(@NotNull Authorizable authorizable) throws RepositoryException {
+    private boolean internalAddMember(@NotNull Authorizable authorizable)
+        throws RepositoryException {
         if (!isValidAuthorizableImpl(authorizable)) {
             log.warn("Invalid Authorizable: {}", authorizable);
             return false;
@@ -129,7 +130,9 @@ class GroupImpl extends AuthorizableImpl implements Group {
                 return false;
             }
             if (isCyclicMembership((Group) authorizable)) {
-                String msg = "Cyclic group membership detected for group " + getID() + " and member " + authorizable.getID();
+                String msg =
+                    "Cyclic group membership detected for group " + getID() + " and member "
+                        + authorizable.getID();
                 throw new ConstraintViolationException(msg);
             }
         }
@@ -157,7 +160,8 @@ class GroupImpl extends AuthorizableImpl implements Group {
         return success;
     }
 
-    private boolean internalRemoveMember(@NotNull Authorizable authorizable) throws RepositoryException {
+    private boolean internalRemoveMember(@NotNull Authorizable authorizable)
+        throws RepositoryException {
         if (!isValidAuthorizableImpl(authorizable)) {
             log.warn("Invalid Authorizable: {}", authorizable);
             return false;
@@ -168,7 +172,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
             log.debug("Attempt to remove member from dynamic group {}", getID());
             return false;
         }
-        
+
         AuthorizableImpl authorizableImpl = ((AuthorizableImpl) authorizable);
         if (authorizableImpl.isEveryone()) {
             log.debug("Attempt to remove membership for everyone group.");
@@ -191,7 +195,8 @@ class GroupImpl extends AuthorizableImpl implements Group {
 
     //--------------------------------------------------------------------------
     @NotNull
-    private Iterator<Authorizable> getMembersMonitored(boolean includeInherited) throws RepositoryException {
+    private Iterator<Authorizable> getMembersMonitored(boolean includeInherited)
+        throws RepositoryException {
         Stopwatch watch = Stopwatch.createStarted();
         Iterator<Authorizable> members = getMembers(includeInherited);
         getMonitor().doneGetMembers(watch.elapsed(NANOSECONDS), !includeInherited);
@@ -201,8 +206,8 @@ class GroupImpl extends AuthorizableImpl implements Group {
     /**
      * Internal implementation of {@link #getDeclaredMembers()} and {@link #getMembers()}.
      *
-     * @param includeInherited Flag indicating if only the declared or all members
-     * should be returned.
+     * @param includeInherited Flag indicating if only the declared or all members should be
+     *                         returned.
      * @return Iterator of authorizables being member of this group.
      * @throws RepositoryException If an error occurs.
      */
@@ -221,31 +226,36 @@ class GroupImpl extends AuthorizableImpl implements Group {
         if (!trees.hasNext()) {
             return AuthorizableIterator.create(true, dynamicMembers);
         }
-        
-        Iterator<Authorizable> members = AuthorizableIterator.create(trees, userMgr, AuthorizableType.AUTHORIZABLE);
+
+        Iterator<Authorizable> members = AuthorizableIterator.create(trees, userMgr,
+            AuthorizableType.AUTHORIZABLE);
         if (includeInherited) {
-            // need to resolve dynamic members of declared and inherited group-members 
+            // need to resolve dynamic members of declared and inherited group-members
             members = new InheritedMembersIterator(members, dmp);
         }
-        AuthorizableIterator allMembers = AuthorizableIterator.create(true, dynamicMembers, members);
-        return new RangeIteratorAdapter(allMembers, allMembers.getSize()); 
+        AuthorizableIterator allMembers = AuthorizableIterator.create(true, dynamicMembers,
+            members);
+        return new RangeIteratorAdapter(allMembers, allMembers.getSize());
     }
 
     /**
-     * Internal implementation of {@link #isDeclaredMember(Authorizable)} and {@link #isMember(Authorizable)}.
+     * Internal implementation of {@link #isDeclaredMember(Authorizable)} and
+     * {@link #isMember(Authorizable)}.
      *
-     * @param authorizable The authorizable to test.
-     * @param includeInherited Flag indicating if only declared or all members
-     * should taken into account.
-     * @return {@code true} if the specified authorizable is member or declared
-     * member of this group; {@code false} otherwise.
+     * @param authorizable     The authorizable to test.
+     * @param includeInherited Flag indicating if only declared or all members should taken into
+     *                         account.
+     * @return {@code true} if the specified authorizable is member or declared member of this
+     * group; {@code false} otherwise.
      * @throws RepositoryException If an error occurs.
      */
-    private boolean isMember(@NotNull Authorizable authorizable, boolean includeInherited) throws RepositoryException {
+    private boolean isMember(@NotNull Authorizable authorizable, boolean includeInherited)
+        throws RepositoryException {
         if (!isValidAuthorizableImpl(authorizable)) {
             return false;
         }
-        if (getID().equals(authorizable.getID()) || ((AuthorizableImpl) authorizable).isEveryone()) {
+        if (getID().equals(authorizable.getID())
+            || ((AuthorizableImpl) authorizable).isEveryone()) {
             return false;
         }
 
@@ -265,27 +275,33 @@ class GroupImpl extends AuthorizableImpl implements Group {
     }
 
     @NotNull
-    private Set<String> updateMembersMonitored(boolean isRemove, @NotNull String... memberIds) throws RepositoryException {
+    private Set<String> updateMembersMonitored(boolean isRemove, @NotNull String... memberIds)
+        throws RepositoryException {
         Stopwatch watch = Stopwatch.createStarted();
         Set<String> failed = updateMembers(isRemove, memberIds);
-        getMonitor().doneUpdateMembers(watch.elapsed(NANOSECONDS), memberIds.length, failed.size(), isRemove);
+        getMonitor().doneUpdateMembers(watch.elapsed(NANOSECONDS), memberIds.length, failed.size(),
+            isRemove);
         return failed;
     }
 
     /**
      * Internal method to add or remove members by ID.
      *
-     * @param isRemove Boolean flag indicating if members should be added or removed.
+     * @param isRemove  Boolean flag indicating if members should be added or removed.
      * @param memberIds The {@code memberIds} to be added or removed.
      * @return The sub-set of {@code memberIds} that could not be added/removed.
-     * @throws javax.jcr.nodetype.ConstraintViolationException If any of the specified
-     * IDs is empty string or null or if {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior#ABORT}
-     * is configured and an ID cannot be resolved to an existing (or accessible)
-     * authorizable.
-     * @throws javax.jcr.RepositoryException If another error occurs.
+     * @throws javax.jcr.nodetype.ConstraintViolationException If any of the specified IDs is empty
+     *                                                         string or null or if
+     *                                                         {@link
+     *                                                         org.apache.jackrabbit.oak.spi.xml.ImportBehavior#ABORT}
+     *                                                         is configured and an ID cannot be
+     *                                                         resolved to an existing (or
+     *                                                         accessible) authorizable.
+     * @throws javax.jcr.RepositoryException                   If another error occurs.
      */
     @NotNull
-    private Set<String> updateMembers(boolean isRemove, @NotNull String... memberIds) throws RepositoryException {
+    private Set<String> updateMembers(boolean isRemove, @NotNull String... memberIds)
+        throws RepositoryException {
         Set<String> failedIds = Sets.newHashSet(memberIds);
         int importBehavior = UserUtil.getImportBehavior(getUserManager().getConfig());
 
@@ -326,7 +342,8 @@ class GroupImpl extends AuthorizableImpl implements Group {
         return failedIds;
     }
 
-    private boolean isValidMemberId(@NotNull String memberId, int importBehavior) throws RepositoryException {
+    private boolean isValidMemberId(@NotNull String memberId, int importBehavior)
+        throws RepositoryException {
         if (getID().equals(memberId)) {
             log.debug("Attempt to add or remove a group as member of itself ({}).", getID());
             return false;
@@ -336,13 +353,15 @@ class GroupImpl extends AuthorizableImpl implements Group {
             Authorizable member = getUserManager().getAuthorizable(memberId);
             String msg = null;
             if (member == null) {
-                msg = "Attempt to add or remove a non-existing member '" + memberId + "' with ImportBehavior = " + ImportBehavior.nameFromValue(importBehavior);
+                msg = "Attempt to add or remove a non-existing member '" + memberId
+                    + "' with ImportBehavior = " + ImportBehavior.nameFromValue(importBehavior);
             } else if (member.isGroup()) {
                 if (((AuthorizableImpl) member).isEveryone()) {
                     log.debug("Attempt to add everyone group as member.");
                     return false;
                 } else if (isCyclicMembership((Group) member)) {
-                    msg = "Cyclic group membership detected for group " + getID() + " and member " + member.getID();
+                    msg = "Cyclic group membership detected for group " + getID() + " and member "
+                        + member.getID();
                 }
             }
             if (msg != null) {

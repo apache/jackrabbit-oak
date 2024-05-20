@@ -68,7 +68,8 @@ public class UserImplTest extends AbstractAutoSaveTest {
 
     @Test
     public void testGetCredentials() throws RepositoryException {
-        assertEquals(dlg.getCredentials().getClass().getName(), user.getCredentials().getClass().getName());
+        assertEquals(dlg.getCredentials().getClass().getName(),
+            user.getCredentials().getClass().getName());
         verify(dlg, times(2)).getCredentials();
         verify(autosaveMgr, never()).autosave();
     }

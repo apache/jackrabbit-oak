@@ -28,7 +28,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
@@ -47,13 +46,13 @@ import org.slf4j.MDC;
  * The query engine implementation.
  */
 public abstract class QueryEngineImpl implements QueryEngine {
-    
+
     /**
      * Used to instruct the {@link QueryEngineImpl} on how to act with respect of the SQL2
      * optimisation.
      */
     public static enum QuerySelectionMode {
-        
+
         /**
          * Will execute the cheapest (default).
          */
@@ -62,13 +61,13 @@ public abstract class QueryEngineImpl implements QueryEngine {
         /**
          * Will use the original SQL2 query.
          */
-        ORIGINAL, 
-        
+        ORIGINAL,
+
         /**
          * Will force the computed alternate query to be executed. If available.
          */
         ALTERNATIVE
-        
+
     }
 
     private static final AtomicInteger ID_COUNTER = new AtomicInteger();
@@ -83,29 +82,28 @@ public abstract class QueryEngineImpl implements QueryEngine {
     static final String NO_LITERALS = "-noLiterals";
 
     static final Logger LOG = LoggerFactory.getLogger(QueryEngineImpl.class);
-    
+
     private static final Set<String> SUPPORTED_LANGUAGES = of(
-            SQL2,  SQL2  + NO_LITERALS,
-            SQL,   SQL   + NO_LITERALS,
-            XPATH, XPATH + NO_LITERALS,
-            JQOM);
+        SQL2, SQL2 + NO_LITERALS,
+        SQL, SQL + NO_LITERALS,
+        XPATH, XPATH + NO_LITERALS,
+        JQOM);
 
     /**
-     * Whether node traversal is enabled. This is enabled by default, and can be
-     * disabled for testing purposes.
+     * Whether node traversal is enabled. This is enabled by default, and can be disabled for
+     * testing purposes.
      */
     private boolean traversalEnabled = true;
-    
+
     /**
-     * Which query to select in case multiple options are available. Whether the
-     * query engine should pick the one with the lowest expected cost (default),
-     * or the original, or the alternative.
+     * Which query to select in case multiple options are available. Whether the query engine should
+     * pick the one with the lowest expected cost (default), or the original, or the alternative.
      */
     private QuerySelectionMode querySelectionMode = QuerySelectionMode.CHEAPEST;
 
     /**
      * Get the execution context for a single query execution.
-     * 
+     *
      * @return the context
      */
     protected abstract ExecutionContext getExecutionContext();
@@ -119,34 +117,34 @@ public abstract class QueryEngineImpl implements QueryEngine {
      * Parse the query (check if it's valid) and get the list of bind variable names.
      *
      * @param statement query statement
-     * @param language query language
-     * @param mappings namespace prefix mappings
+     * @param language  query language
+     * @param mappings  namespace prefix mappings
      * @return the list of bind variable names
      * @throws ParseException
      */
     @Override
     public List<String> getBindVariableNames(
-            String statement, String language, Map<String, String> mappings)
-            throws ParseException {
+        String statement, String language, Map<String, String> mappings)
+        throws ParseException {
         List<Query> qs = parseQuery(statement, language, getExecutionContext(), mappings);
-        
+
         return qs.iterator().next().getBindVariableNames();
     }
 
     /**
      * Parse the query.
-     * 
+     *
      * @param statement the statement
-     * @param language the language
-     * @param context the context
-     * @param mappings the mappings
-     * @return the list of queries, where the first is the original, and all
-     *         others are alternatives (for example, a "union" query)
+     * @param language  the language
+     * @param context   the context
+     * @param mappings  the mappings
+     * @return the list of queries, where the first is the original, and all others are alternatives
+     * (for example, a "union" query)
      */
     private static List<Query> parseQuery(
-            String statement, String language, ExecutionContext context,
-            Map<String, String> mappings) throws ParseException {
-        
+        String statement, String language, ExecutionContext context,
+        Map<String, String> mappings) throws ParseException {
+
         boolean isInternal = SQL2Parser.isInternal(statement);
         if (isInternal) {
             LOG.trace("Parsing {} statement: {}", language, statement);
@@ -157,21 +155,25 @@ public abstract class QueryEngineImpl implements QueryEngine {
             }
         }
         QueryEngineSettings settings = context.getSettings();
-        if (statement.length() > (settings.getQueryLengthErrorLimit())){
+        if (statement.length() > (settings.getQueryLengthErrorLimit())) {
             LOG.error("Too large query: " + statement);
-            throw new ParseException("Query length "+ statement.length() + " is larger than max supported query length: " + settings.getQueryLengthErrorLimit(), 0);
+            throw new ParseException("Query length " + statement.length()
+                + " is larger than max supported query length: "
+                + settings.getQueryLengthErrorLimit(), 0);
         }
-        if (statement.length() > (settings.getQueryLengthWarnLimit())){
-            LOG.warn("Query length {} breached queryWarnLimit {}. Query: {}", statement.length(), settings.getQueryLengthWarnLimit(), statement);
+        if (statement.length() > (settings.getQueryLengthWarnLimit())) {
+            LOG.warn("Query length {} breached queryWarnLimit {}. Query: {}", statement.length(),
+                settings.getQueryLengthWarnLimit(), statement);
         }
 
         NamePathMapper mapper = new NamePathMapperImpl(
-                new LocalNameMapper(context.getRoot(), mappings));
+            new LocalNameMapper(context.getRoot(), mappings));
 
         NodeTypeInfoProvider nodeTypes = context.getNodeTypeInfoProvider();
         settings.getQueryValidator().checkStatement(statement);
 
-        QueryExecutionStats stats = settings.getQueryStatsReporter().getQueryExecution(statement, language);
+        QueryExecutionStats stats = settings.getQueryStatsReporter()
+                                            .getQueryExecution(statement, language);
 
         SQL2Parser parser = new SQL2Parser(mapper, nodeTypes, settings, stats);
         if (language.endsWith(NO_LITERALS)) {
@@ -181,9 +183,9 @@ public abstract class QueryEngineImpl implements QueryEngine {
         }
 
         ArrayList<Query> queries = new ArrayList<Query>();
-        
+
         Query q;
-        
+
         if (SQL2.equals(language) || JQOM.equals(language)) {
             q = parser.parse(statement, false);
         } else if (SQL.equals(language)) {
@@ -199,7 +201,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
                 q = parser.parse(sql2, false);
             } catch (ParseException e) {
                 ParseException e2 = new ParseException(
-                        statement + " converted to SQL-2 " + e.getMessage(), 0);
+                    statement + " converted to SQL-2 " + e.getMessage(), 0);
                 e2.initCause(e);
                 throw e2;
             }
@@ -211,9 +213,9 @@ public abstract class QueryEngineImpl implements QueryEngine {
         } else {
             stats.setThreadName(Thread.currentThread().getName());
         }
-        
+
         queries.add(q);
-        
+
         if (settings.isSql2Optimisation()) {
             if (q.isInternal()) {
                 LOG.trace("Skipping optimisation as internal query.");
@@ -226,13 +228,14 @@ public abstract class QueryEngineImpl implements QueryEngine {
                 }
             }
         }
-        
+
         // initialising all the queries.
         for (Query query : queries) {
             try {
                 query.init();
             } catch (Exception e) {
-                ParseException e2 = new ParseException(query.getStatement() + ": " + e.getMessage(), 0);
+                ParseException e2 = new ParseException(query.getStatement() + ": " + e.getMessage(),
+                    0);
                 e2.initCause(e);
                 throw e2;
             }
@@ -240,20 +243,20 @@ public abstract class QueryEngineImpl implements QueryEngine {
 
         return queries;
     }
-    
+
     @Override
     public Result executeQuery(
-            String statement, String language,
-            Map<String, ? extends PropertyValue> bindings,
-            Map<String, String> mappings) throws ParseException {
+        String statement, String language,
+        Map<String, ? extends PropertyValue> bindings,
+        Map<String, String> mappings) throws ParseException {
         return executeQuery(statement, language, Long.MAX_VALUE, 0, bindings, mappings);
     }
 
     @Override
     public Result executeQuery(
-            String statement, String language, Optional<Long> limit, Optional<Long> offset,
-            Map<String, ? extends PropertyValue> bindings,
-            Map<String, String> mappings) throws ParseException {
+        String statement, String language, Optional<Long> limit, Optional<Long> offset,
+        Map<String, ? extends PropertyValue> bindings,
+        Map<String, String> mappings) throws ParseException {
 
         // avoid having to deal with null arguments
         if (bindings == null) {
@@ -297,17 +300,20 @@ public abstract class QueryEngineImpl implements QueryEngine {
 
     @Override
     public Result executeQuery(
-            String statement, String language, long limit, long offset,
-            Map<String, ? extends PropertyValue> bindings,
-            Map<String, String> mappings) throws ParseException {
-        return executeQuery(statement, language, Optional.of(limit), Optional.of(offset), bindings, mappings);
+        String statement, String language, long limit, long offset,
+        Map<String, ? extends PropertyValue> bindings,
+        Map<String, String> mappings) throws ParseException {
+        return executeQuery(statement, language, Optional.of(limit), Optional.of(offset), bindings,
+            mappings);
 
     }
 
-    private static long getValue(List<Query> queries, Optional<Long> value, Function<Query, Optional<Long>> getter, Long defaultValue) {
+    private static long getValue(List<Query> queries, Optional<Long> value,
+        Function<Query, Optional<Long>> getter, Long defaultValue) {
         if (!value.isPresent()) {
-            return queries.stream().map(getter::apply).filter(Optional::isPresent).map(Optional::get).findFirst()
-                    .orElse(defaultValue);
+            return queries.stream().map(getter::apply).filter(Optional::isPresent)
+                          .map(Optional::get).findFirst()
+                          .orElse(defaultValue);
         }
         if (value.get() < 0) {
             throw new IllegalArgumentException("Value may not be negative, is: " + value.get());
@@ -318,15 +324,15 @@ public abstract class QueryEngineImpl implements QueryEngine {
     /**
      * Prepare all the available queries and by based on the {@link QuerySelectionMode} flag return
      * the appropriate.
-     * 
-     * @param queries the list of queries to be executed. Cannot be null.
-     *      If there are multiple, the first one is the original, and the second the alternative.
+     *
+     * @param queries the list of queries to be executed. Cannot be null. If there are multiple, the
+     *                first one is the original, and the second the alternative.
      * @return the query
      */
     @NotNull
     private Query prepareAndSelect(@NotNull List<Query> queries) {
         Query result = null;
-        
+
         if (checkNotNull(queries).size() == 1) {
             // we only have the original query so we prepare and return it.
             result = queries.iterator().next();
@@ -335,7 +341,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
             LOG.trace("No alternatives found. Query: {}", result);
         } else {
             double bestCost = Double.POSITIVE_INFINITY;
-            
+
             // Always prepare all of the queries and compute the cheapest as
             // it's the default behaviour. That way, we always log the cost and
             // can more easily analyze problems. The querySelectionMode flag can
@@ -359,28 +365,28 @@ public abstract class QueryEngineImpl implements QueryEngine {
             }
 
             switch (querySelectionMode) {
-            case ORIGINAL:
-                LOG.debug("Forcing the original SQL2 query to be executed by flag");
-                result = queries.get(0);
-                break;
+                case ORIGINAL:
+                    LOG.debug("Forcing the original SQL2 query to be executed by flag");
+                    result = queries.get(0);
+                    break;
 
-            case ALTERNATIVE:
-                LOG.debug("Forcing the alternative SQL2 query to be executed by flag");
-                result = queries.get(1);
-                break;
+                case ALTERNATIVE:
+                    LOG.debug("Forcing the alternative SQL2 query to be executed by flag");
+                    result = queries.get(1);
+                    break;
 
-            // CHEAPEST is the default behaviour
-            case CHEAPEST:
-            default:
+                // CHEAPEST is the default behaviour
+                case CHEAPEST:
+                default:
             }
             if (isPotentiallySlow) {
                 result.verifyNotPotentiallySlow();
             }
         }
-        
+
         return result;
     }
-    
+
     protected void setTraversalEnabled(boolean traversalEnabled) {
         this.traversalEnabled = traversalEnabled;
     }
@@ -407,7 +413,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
     /**
      * Instruct the query engine on how to behave with regards to the SQL2 optimised query if
      * available.
-     * 
+     *
      * @param querySelectionMode cannot be null
      */
     protected void setQuerySelectionMode(@NotNull QuerySelectionMode querySelectionMode) {

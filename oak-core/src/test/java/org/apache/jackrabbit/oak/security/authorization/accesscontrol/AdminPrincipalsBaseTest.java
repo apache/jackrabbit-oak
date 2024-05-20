@@ -50,14 +50,15 @@ public abstract class AdminPrincipalsBaseTest extends AbstractSecurityTest {
         Tree rootNode = root.getTree(PathUtils.ROOT_PATH);
         TreeUtil.addChild(rootNode, "testNode", JcrConstants.NT_UNSTRUCTURED);
 
-        administrativePrincipal = getUserManager(root).createGroup(new PrincipalImpl(ADMINISTRATORS_PRINCIPAL_NAME)).getPrincipal();
+        administrativePrincipal = getUserManager(root).createGroup(
+            new PrincipalImpl(ADMINISTRATORS_PRINCIPAL_NAME)).getPrincipal();
         root.commit();
 
         AccessControlManager acMgr = getAccessControlManager(root);
         AccessControlPolicyIterator itr = acMgr.getApplicablePolicies("/testNode");
         while (itr.hasNext() && acl == null) {
             AccessControlPolicy policy = itr.nextAccessControlPolicy();
-            if (policy instanceof AccessControlList)  {
+            if (policy instanceof AccessControlList) {
                 acl = (AccessControlList) policy;
             }
         }
@@ -84,19 +85,21 @@ public abstract class AdminPrincipalsBaseTest extends AbstractSecurityTest {
     }
 
     abstract void assertResult(boolean success) throws Exception;
+
     abstract void assertException() throws Exception;
 
     /**
-     * Test if the ACL code properly deals the creation of ACEs for administrative
-     * principals which have full access anyway.
+     * Test if the ACL code properly deals the creation of ACEs for administrative principals which
+     * have full access anyway.
      *
-     * @since Oak 1.1.1
      * @see <a href="https://issues.apache.org/jira/browse/OAK-2158">OAK-2158</a>
+     * @since Oak 1.1.1
      */
     @Test
     public void testAdminPrincipal() throws Exception {
         try {
-            boolean success = acl.addAccessControlEntry((AdminPrincipal) () -> "admin", privilegesFromNames(PrivilegeConstants.JCR_READ));
+            boolean success = acl.addAccessControlEntry((AdminPrincipal) () -> "admin",
+                privilegesFromNames(PrivilegeConstants.JCR_READ));
             assertResult(success);
         } catch (AccessControlException e) {
             assertException();
@@ -108,7 +111,8 @@ public abstract class AdminPrincipalsBaseTest extends AbstractSecurityTest {
         try {
             for (Principal p : adminSession.getAuthInfo().getPrincipals()) {
                 if (p instanceof AdminPrincipal) {
-                    boolean success = acl.addAccessControlEntry(p, privilegesFromNames(PrivilegeConstants.JCR_READ));
+                    boolean success = acl.addAccessControlEntry(p,
+                        privilegesFromNames(PrivilegeConstants.JCR_READ));
                     assertResult(success);
                 }
             }
@@ -118,16 +122,17 @@ public abstract class AdminPrincipalsBaseTest extends AbstractSecurityTest {
     }
 
     /**
-     * Test if the ACL code properly deals the creation of ACEs for system
-     * principals which have full access anyway.
+     * Test if the ACL code properly deals the creation of ACEs for system principals which have
+     * full access anyway.
      *
-     * @since Oak 1.3.0
      * @see <a href="https://issues.apache.org/jira/browse/OAK-2955">OAK-2955</a>
+     * @since Oak 1.3.0
      */
     @Test
     public void testSystemPrincipal() throws Exception {
         try {
-            boolean success = acl.addAccessControlEntry(SystemPrincipal.INSTANCE, privilegesFromNames(PrivilegeConstants.JCR_READ));
+            boolean success = acl.addAccessControlEntry(SystemPrincipal.INSTANCE,
+                privilegesFromNames(PrivilegeConstants.JCR_READ));
             assertResult(success);
         } catch (AccessControlException e) {
             assertException();
@@ -135,16 +140,17 @@ public abstract class AdminPrincipalsBaseTest extends AbstractSecurityTest {
     }
 
     /**
-     * Test if the ACL code properly deals the creation of ACEs for configured
-     * admin-principals, which have full access anyway.
+     * Test if the ACL code properly deals the creation of ACEs for configured admin-principals,
+     * which have full access anyway.
      *
-     * @since Oak 1.3.0
      * @see <a href="https://issues.apache.org/jira/browse/OAK-2955">OAK-2955</a>
+     * @since Oak 1.3.0
      */
     @Test
     public void testConfiguredAdministrativePrincipal() throws Exception {
         try {
-            boolean success = acl.addAccessControlEntry(administrativePrincipal, privilegesFromNames(PrivilegeConstants.JCR_READ));
+            boolean success = acl.addAccessControlEntry(administrativePrincipal,
+                privilegesFromNames(PrivilegeConstants.JCR_READ));
             assertResult(success);
         } catch (AccessControlException e) {
             assertException();

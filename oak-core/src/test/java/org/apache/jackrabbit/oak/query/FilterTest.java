@@ -50,61 +50,62 @@ public class FilterTest {
     public void functionBasedIndex() throws Exception {
         String sql2 = "select [jcr:path] from [nt:base] where lower([test]) = 'hello'";
         assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
-                "where lower([test]) = 'hello', " +
-                "path=*, property=[" +
-                "function*lower*@test=[hello], " +
-                "test=[is not null]])", createFilterSQL(sql2).toString());
+            "where lower([test]) = 'hello', " +
+            "path=*, property=[" +
+            "function*lower*@test=[hello], " +
+            "test=[is not null]])", createFilterSQL(sql2).toString());
 
         sql2 = "select [jcr:path] from [nt:base] where upper([test]) = 'HELLO'";
         assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
-                "where upper([test]) = 'HELLO', " +
-                "path=*, property=[" +
-                "function*upper*@test=[HELLO], " +
-                "test=[is not null]])", createFilterSQL(sql2).toString());
+            "where upper([test]) = 'HELLO', " +
+            "path=*, property=[" +
+            "function*upper*@test=[HELLO], " +
+            "test=[is not null]])", createFilterSQL(sql2).toString());
 
         sql2 = "select [jcr:path] from [nt:base] where upper(name()) = 'ACME:TEST'";
         assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
-                "where upper(name()) = 'ACME:TEST', " +
-                "path=*, property=[" +
-                "function*upper*@:name=[ACME:TEST]])", createFilterSQL(sql2).toString());
+            "where upper(name()) = 'ACME:TEST', " +
+            "path=*, property=[" +
+            "function*upper*@:name=[ACME:TEST]])", createFilterSQL(sql2).toString());
 
         sql2 = "select [jcr:path] from [nt:base] where lower(localname()) > 'test'";
         assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
-                "where lower(localname()) > 'test', " +
-                "path=*, property=[" +
-                "function*lower*@:localname=[(test..]])", createFilterSQL(sql2).toString());
+            "where lower(localname()) > 'test', " +
+            "path=*, property=[" +
+            "function*lower*@:localname=[(test..]])", createFilterSQL(sql2).toString());
 
         sql2 = "select [jcr:path] from [nt:base] where length([test]) <= 10";
         assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
-                "where length([test]) <= 10, " +
-                "path=*, property=[function*length*@test=[..10]], " +
-                "test=[is not null]])", createFilterSQL(sql2).toString());
+            "where length([test]) <= 10, " +
+            "path=*, property=[function*length*@test=[..10]], " +
+            "test=[is not null]])", createFilterSQL(sql2).toString());
 
         sql2 = "select [jcr:path] from [nt:base] where length([data/test]) > 2";
         assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
-                "where length([data/test]) > 2, " +
-                "path=*, property=[data/test=[is not null], " +
-                "function*length*@data/test=[(2..]])", createFilterSQL(sql2).toString());
+            "where length([data/test]) > 2, " +
+            "path=*, property=[data/test=[is not null], " +
+            "function*length*@data/test=[(2..]])", createFilterSQL(sql2).toString());
 
         sql2 = "select [jcr:path] from [nt:base] where name() >= 'x'";
         assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
-                "where name() >= 'x', " +
-                "path=*, property=[function*@:name=[[x..]])", createFilterSQL(sql2).toString());
+            "where name() >= 'x', " +
+            "path=*, property=[function*@:name=[[x..]])", createFilterSQL(sql2).toString());
 
         sql2 = "select [jcr:path] from [nt:base] where localname() >= 'x'";
         assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
-                "where localname() >= 'x', " +
-                "path=*, property=[function*@:localname=[[x..]])", createFilterSQL(sql2).toString());
+            "where localname() >= 'x', " +
+            "path=*, property=[function*@:localname=[[x..]])", createFilterSQL(sql2).toString());
 
         sql2 = "select [jcr:path] from [nt:base] where path() > 'x'";
         assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
-                "where path() > 'x', " +
-                "path=*, property=[function*@:path=[(x..]])", createFilterSQL(sql2).toString());
+            "where path() > 'x', " +
+            "path=*, property=[function*@:path=[(x..]])", createFilterSQL(sql2).toString());
 
         sql2 = "select [jcr:path] from [nt:base] where first([jcr:mixinTypes]) >= ''";
         assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
                 "where first([jcr:mixinTypes]) >= '', " +
-                "path=*, property=[function*first*@jcr:mixinTypes=[]])", createFilterSQL(sql2).toString());
+                "path=*, property=[function*first*@jcr:mixinTypes=[]])",
+            createFilterSQL(sql2).toString());
 
     }
 
@@ -119,9 +120,9 @@ public class FilterTest {
         //         "fullText=jcr:content/metadata/comment:\"december\", " +
         //         "path=*, property=[jcr:content/metadata/comment=[is not null]])", plan);
         assertEquals("Filter(query=select * from [nt:unstructured] " +
-                "where CONTAINS([jcr:content/metadata/comment], 'december') " +
-                "fullText=jcr:content/metadata/comment:\"december\", " +
-                "path=*)", plan);
+            "where CONTAINS([jcr:content/metadata/comment], 'december') " +
+            "fullText=jcr:content/metadata/comment:\"december\", " +
+            "path=*)", plan);
         assertEquals(f.getPropertyRestrictions().toString(), 0, f.getPropertyRestrictions().size());
         f.getPropertyRestriction("jcr:content/metadata/comment");
     }
@@ -164,7 +165,8 @@ public class FilterTest {
     @Ignore("OAK-4170")
     @Test
     public void fulltext() throws Exception {
-        Filter f = createFilterSQL("select * from [nt:unstructured] where CONTAINS([jcr:content/metadata/comment], 'december')");
+        Filter f = createFilterSQL(
+            "select * from [nt:unstructured] where CONTAINS([jcr:content/metadata/comment], 'december')");
         assertNotNull(f.getPropertyRestriction("jcr:content/metadata/comment"));
     }
 }

@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.query.stats.QueryRecorder;
@@ -30,7 +29,7 @@ import org.slf4j.LoggerFactory;
  * A query options (or "hints") that are used to customize the way the query is processed.
  */
 public class QueryOptions {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(QueryOptions.class);
 
     public Traversal traversal = Traversal.DEFAULT;
@@ -40,17 +39,19 @@ public class QueryOptions {
     public Optional<Long> offset = Optional.empty();
     public List<String> prefetch = Collections.emptyList();
     public Optional<Integer> prefetchCount = Optional.empty();
-    
+
     public enum Traversal {
         // traversing without index is OK for this query, and does not fail or log a warning
-        OK, 
+        OK,
         // traversing is OK, but logs a warning
-        WARN, 
+        WARN,
         // traversing will fail the query
         FAIL,
         // the default setting
         DEFAULT
-    };
+    }
+
+    ;
 
     public QueryOptions() {
     }

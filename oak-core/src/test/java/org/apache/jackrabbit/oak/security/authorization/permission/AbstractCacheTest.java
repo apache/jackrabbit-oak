@@ -41,16 +41,19 @@ public abstract class AbstractCacheTest {
     }
 
     @NotNull
-    static PrincipalPermissionEntries generatedPermissionEntries(@NotNull String path, boolean isAllow, int index, @NotNull String privilegeName) {
+    static PrincipalPermissionEntries generatedPermissionEntries(@NotNull String path,
+        boolean isAllow, int index, @NotNull String privilegeName) {
         PrincipalPermissionEntries ppe = new PrincipalPermissionEntries(1);
-        ppe.putEntriesByPath(path, ImmutableSet.of(new PermissionEntry(path, isAllow, index, PrivilegeBits.BUILT_IN.get(privilegeName), RestrictionPattern.EMPTY)));
+        ppe.putEntriesByPath(path, ImmutableSet.of(
+            new PermissionEntry(path, isAllow, index, PrivilegeBits.BUILT_IN.get(privilegeName),
+                RestrictionPattern.EMPTY)));
         return ppe;
     }
 
     @NotNull
     static CacheStrategy createStrategy(long maxSize, long maxPaths, boolean isRefresh) {
         return new CacheStrategyImpl(ConfigurationParameters.of(
-                CacheStrategyImpl.EAGER_CACHE_SIZE_PARAM, maxSize,
-                CacheStrategyImpl.EAGER_CACHE_MAXPATHS_PARAM, maxPaths), isRefresh);
+            CacheStrategyImpl.EAGER_CACHE_SIZE_PARAM, maxSize,
+            CacheStrategyImpl.EAGER_CACHE_MAXPATHS_PARAM, maxPaths), isRefresh);
     }
 }

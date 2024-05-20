@@ -30,49 +30,50 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * A value pattern.
  */
 public class ValuePattern {
+
     public final static ValuePattern MATCH_ALL = new ValuePattern();
 
     private final Pattern pattern;
     private final Iterable<String> includePrefixes;
     private final Iterable<String> excludePrefixes;
-    
+
     public ValuePattern(NodeBuilder node) {
-        this(node.getString(IndexConstants.VALUE_PATTERN), 
-                getStrings(node, IndexConstants.VALUE_INCLUDED_PREFIXES),
-                getStrings(node, IndexConstants.VALUE_EXCLUDED_PREFIXES));
+        this(node.getString(IndexConstants.VALUE_PATTERN),
+            getStrings(node, IndexConstants.VALUE_INCLUDED_PREFIXES),
+            getStrings(node, IndexConstants.VALUE_EXCLUDED_PREFIXES));
     }
-    
+
     public ValuePattern(NodeState node) {
-        this(node.getString(IndexConstants.VALUE_PATTERN), 
-                getStrings(node, IndexConstants.VALUE_INCLUDED_PREFIXES),
-                getStrings(node, IndexConstants.VALUE_EXCLUDED_PREFIXES));
+        this(node.getString(IndexConstants.VALUE_PATTERN),
+            getStrings(node, IndexConstants.VALUE_INCLUDED_PREFIXES),
+            getStrings(node, IndexConstants.VALUE_EXCLUDED_PREFIXES));
     }
-    
+
     public ValuePattern() {
         this(null, null, null);
     }
 
-    public ValuePattern(String pattern, 
-            Iterable<String> includePrefixes, Iterable<String> excludePrefixes) {
+    public ValuePattern(String pattern,
+        Iterable<String> includePrefixes, Iterable<String> excludePrefixes) {
         Pattern p = pattern == null ? null : Pattern.compile(pattern);
         this.includePrefixes = includePrefixes;
         this.excludePrefixes = excludePrefixes;
         this.pattern = p;
     }
-    
+
     public boolean matches(String v) {
         if (matchesAll() || v == null) {
             return true;
         }
         if (includePrefixes != null) {
-            for(String inc : includePrefixes) {
+            for (String inc : includePrefixes) {
                 if (v.startsWith(inc)) {
                     return true;
                 }
             }
         }
         if (excludePrefixes != null) {
-            for(String exc : excludePrefixes) {
+            for (String exc : excludePrefixes) {
                 if (v.startsWith(exc) || exc.startsWith(v)) {
                     return false;
                 }
@@ -84,11 +85,11 @@ public class ValuePattern {
         }
         return pattern == null || pattern.matcher(v).matches();
     }
-    
+
     public boolean matchesAll() {
         return includePrefixes == null && excludePrefixes == null && pattern == null;
     }
-    
+
     public static Iterable<String> getStrings(NodeBuilder node, String propertyName) {
         if (!node.hasProperty(propertyName)) {
             return null;
@@ -99,7 +100,7 @@ public class ValuePattern {
         }
         return Collections.singleton(node.getString(propertyName));
     }
-    
+
     public static Iterable<String> getStrings(NodeState node, String propertyName) {
         if (!node.hasProperty(propertyName)) {
             return null;
@@ -110,7 +111,7 @@ public class ValuePattern {
         }
         return Collections.singleton(node.getString(propertyName));
     }
-    
+
     public boolean matchesAll(Set<String> values) {
         if (matchesAll() || values == null) {
             return true;
@@ -138,7 +139,7 @@ public class ValuePattern {
             return false;
         }
         if (includePrefixes != null) {
-            for(String inc : includePrefixes) {
+            for (String inc : includePrefixes) {
                 if (prefix.startsWith(inc)) {
                     return true;
                 }
@@ -146,7 +147,7 @@ public class ValuePattern {
             return false;
         }
         if (excludePrefixes != null) {
-            for(String exc : excludePrefixes) {
+            for (String exc : excludePrefixes) {
                 if (prefix.startsWith(exc) || exc.startsWith(prefix)) {
                     return false;
                 }
@@ -154,5 +155,5 @@ public class ValuePattern {
         }
         return true;
     }
-    
+
 }

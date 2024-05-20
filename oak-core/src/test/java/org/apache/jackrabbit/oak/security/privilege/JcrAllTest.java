@@ -52,7 +52,8 @@ public class JcrAllTest extends AbstractSecurityTest implements PrivilegeConstan
     @Test
     public void testCalculatePermissionsAll() {
         PrivilegeBits all = bitsProvider.getBits(JCR_ALL);
-        assertFalse(Permissions.ALL == PrivilegeBits.calculatePermissions(all, PrivilegeBits.EMPTY, true));
+        assertFalse(
+            Permissions.ALL == PrivilegeBits.calculatePermissions(all, PrivilegeBits.EMPTY, true));
         assertTrue(Permissions.ALL == PrivilegeBits.calculatePermissions(all, all, true));
     }
 
@@ -67,16 +68,19 @@ public class JcrAllTest extends AbstractSecurityTest implements PrivilegeConstan
     public void testAllAggregation() throws Exception {
         PrivilegeBits all = bitsProvider.getBits(JCR_ALL);
 
-        PrivilegeManager pMgr = getSecurityProvider().getConfiguration(PrivilegeConfiguration.class).getPrivilegeManager(root, NamePathMapper.DEFAULT);
-        Iterable<Privilege> declaredAggr = Arrays.asList(pMgr.getPrivilege(JCR_ALL).getDeclaredAggregatePrivileges());
+        PrivilegeManager pMgr = getSecurityProvider().getConfiguration(PrivilegeConfiguration.class)
+                                                     .getPrivilegeManager(root,
+                                                         NamePathMapper.DEFAULT);
+        Iterable<Privilege> declaredAggr = Arrays.asList(
+            pMgr.getPrivilege(JCR_ALL).getDeclaredAggregatePrivileges());
         String[] allAggregates = Iterables.toArray(Iterables.transform(
-                declaredAggr,
-                new Function<Privilege, String>() {
-                    @Override
-                    public String apply(@Nullable Privilege privilege) {
-                        return checkNotNull(privilege).getName();
-                    }
-                }), String.class);
+            declaredAggr,
+            new Function<Privilege, String>() {
+                @Override
+                public String apply(@Nullable Privilege privilege) {
+                    return checkNotNull(privilege).getName();
+                }
+            }), String.class);
         PrivilegeBits all2 = bitsProvider.getBits(allAggregates);
 
         assertEquals(all, all2);

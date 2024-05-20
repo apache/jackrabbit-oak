@@ -57,7 +57,8 @@ public class RandomAuthorizableNodeNameTest extends AbstractSecurityTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        ConfigurationParameters userConfig = ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, nameGenerator);
+        ConfigurationParameters userConfig = ConfigurationParameters.of(
+            UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, nameGenerator);
         return ConfigurationParameters.of(UserConfiguration.NAME, userConfig);
     }
 
@@ -72,7 +73,8 @@ public class RandomAuthorizableNodeNameTest extends AbstractSecurityTest {
         assertEquals(RandomAuthorizableNodeName.DEFAULT_LENGTH, tree.getName().length());
     }
 
-    private void assertNodeName(Authorizable authorizable, String relPath) throws RepositoryException {
+    private void assertNodeName(Authorizable authorizable, String relPath)
+        throws RepositoryException {
         assertEquals(id, authorizable.getID());
 
         String path = authorizable.getPath();

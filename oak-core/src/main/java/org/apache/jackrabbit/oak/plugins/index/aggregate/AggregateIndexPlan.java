@@ -31,19 +31,19 @@ import org.jetbrains.annotations.Nullable;
  * An index plan for multiple query indexes.
  */
 public class AggregateIndexPlan implements IndexPlan {
-    
+
     private Filter filter;
     private boolean pathWithoutPlan;
-    
+
     /**
      * The map of terms to plans.
      */
     private final HashMap<String, IndexPlan> basePlans = new HashMap<String, IndexPlan>();
-    
+
     AggregateIndexPlan(Filter filter) {
         this.filter = filter;
     }
-    
+
     void setPlan(String path, List<IndexPlan> plans) {
         if (plans.size() == 0) {
             // no index
@@ -54,15 +54,15 @@ public class AggregateIndexPlan implements IndexPlan {
             basePlans.put(path, plans.get(0));
         }
     }
-    
+
     boolean containsPathWithoutPlan() {
         return pathWithoutPlan;
     }
-    
+
     IndexPlan getPlan(String path) {
         return basePlans.get(path);
     }
-    
+
     Collection<IndexPlan> getPlans() {
         return basePlans.values();
     }
@@ -117,7 +117,7 @@ public class AggregateIndexPlan implements IndexPlan {
 
     /**
      * Whether any base plan is delayed.
-     * 
+     *
      * @return true if yes
      */
     @Override
@@ -129,7 +129,7 @@ public class AggregateIndexPlan implements IndexPlan {
         }
         return false;
     }
-    
+
     @Override
     public boolean isDeprecated() {
         for (IndexPlan p : basePlans.values()) {
@@ -142,7 +142,7 @@ public class AggregateIndexPlan implements IndexPlan {
 
     /**
      * Whether any base plan is a full text index.
-     * 
+     *
      * @return true if yes
      */
     @Override
@@ -157,7 +157,7 @@ public class AggregateIndexPlan implements IndexPlan {
 
     /**
      * Whether all base plan include node data.
-     * 
+     *
      * @return true if yes
      */
     @Override
@@ -167,13 +167,12 @@ public class AggregateIndexPlan implements IndexPlan {
                 return false;
             }
         }
-        return true;   
+        return true;
     }
 
     /**
-     * An aggregated query can not sort, as it gets results from a number of
-     * indexes.
-     * 
+     * An aggregated query can not sort, as it gets results from a number of indexes.
+     *
      * @return null
      */
     @Override
@@ -183,7 +182,7 @@ public class AggregateIndexPlan implements IndexPlan {
 
     // the following methods probably shouldn't be in the IndexPlan interface
     // as they are only used locally (in the ordered index, or in the lucene index)
-    
+
     @Override
     @Nullable
     public PropertyRestriction getPropertyRestriction() {
@@ -194,7 +193,7 @@ public class AggregateIndexPlan implements IndexPlan {
     public IndexPlan copy() {
         return null;
     }
-    
+
     @Override
     public NodeState getDefinition() {
         return null;

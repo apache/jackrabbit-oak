@@ -57,9 +57,11 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class MetricStatisticsProviderTest {
+
     private MBeanServer server = ManagementFactory.getPlatformMBeanServer();
     private ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-    private MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(server, executorService);
+    private MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(server,
+        executorService);
 
     @Test
     public void basicSetup() throws Exception {
@@ -113,7 +115,8 @@ public class MetricStatisticsProviderTest {
 
     @Test
     public void timeSeriesIntegration() throws Exception {
-        MeterStats meterStats = statsProvider.getMeter(Type.SESSION_COUNT.name(), StatsOptions.DEFAULT);
+        MeterStats meterStats = statsProvider.getMeter(Type.SESSION_COUNT.name(),
+            StatsOptions.DEFAULT);
 
         meterStats.mark(5);
         assertEquals(5, statsProvider.getRepoStats().getCounter(Type.SESSION_COUNT).get());
@@ -122,35 +125,44 @@ public class MetricStatisticsProviderTest {
     @Test
     public void jmxNaming() throws Exception {
         TimerStats timerStats = statsProvider.getTimer("hello", StatsOptions.DEFAULT);
-        assertNotNull(server.getObjectInstance(new ObjectName("org.apache.jackrabbit.oak:type=Metrics,name=hello")));
+        assertNotNull(server.getObjectInstance(
+            new ObjectName("org.apache.jackrabbit.oak:type=Metrics,name=hello")));
     }
 
     @Test
     public void noopMeter() throws Exception {
-        assertInstanceOf(statsProvider.getTimer(Type.SESSION_READ_DURATION.name(), StatsOptions.TIME_SERIES_ONLY), SimpleStats.class);
-        assertNotEquals(statsProvider.getMeter(Type.OBSERVATION_EVENT_COUNTER.name(), StatsOptions.TIME_SERIES_ONLY), NoopStats.INSTANCE);
+        assertInstanceOf(statsProvider.getTimer(Type.SESSION_READ_DURATION.name(),
+            StatsOptions.TIME_SERIES_ONLY), SimpleStats.class);
+        assertNotEquals(statsProvider.getMeter(Type.OBSERVATION_EVENT_COUNTER.name(),
+            StatsOptions.TIME_SERIES_ONLY), NoopStats.INSTANCE);
     }
 
     @Test
-    public void statsOptions_MetricOnly() throws Exception{
-        assertInstanceOf(statsProvider.getTimer("fooTimer", StatsOptions.METRICS_ONLY), TimerImpl.class);
-        assertInstanceOf(statsProvider.getCounterStats("fooCounter", StatsOptions.METRICS_ONLY), CounterImpl.class);
-        assertInstanceOf(statsProvider.getMeter("fooMeter", StatsOptions.METRICS_ONLY), MeterImpl.class);
-        assertInstanceOf(statsProvider.getHistogram("fooHisto", StatsOptions.METRICS_ONLY), HistogramImpl.class);
+    public void statsOptions_MetricOnly() throws Exception {
+        assertInstanceOf(statsProvider.getTimer("fooTimer", StatsOptions.METRICS_ONLY),
+            TimerImpl.class);
+        assertInstanceOf(statsProvider.getCounterStats("fooCounter", StatsOptions.METRICS_ONLY),
+            CounterImpl.class);
+        assertInstanceOf(statsProvider.getMeter("fooMeter", StatsOptions.METRICS_ONLY),
+            MeterImpl.class);
+        assertInstanceOf(statsProvider.getHistogram("fooHisto", StatsOptions.METRICS_ONLY),
+            HistogramImpl.class);
     }
 
     @Test
-    public void statsOptions_TimeSeriesOnly() throws Exception{
-        assertInstanceOf(statsProvider.getTimer("fooTimer", StatsOptions.TIME_SERIES_ONLY), SimpleStats.class);
+    public void statsOptions_TimeSeriesOnly() throws Exception {
+        assertInstanceOf(statsProvider.getTimer("fooTimer", StatsOptions.TIME_SERIES_ONLY),
+            SimpleStats.class);
     }
 
     @Test
-    public void statsOptions_Default() throws Exception{
-        assertInstanceOf(statsProvider.getTimer("fooTimer", StatsOptions.DEFAULT), CompositeStats.class);
+    public void statsOptions_Default() throws Exception {
+        assertInstanceOf(statsProvider.getTimer("fooTimer", StatsOptions.DEFAULT),
+            CompositeStats.class);
     }
 
     @Test
-    public void concurrentAccess() throws Exception{
+    public void concurrentAccess() throws Exception {
         //Queue is used to collect instances with minimal overhead in concurrent scenario
         final Queue<MeterStats> statsQueue = new ConcurrentLinkedDeque<MeterStats>();
         List<Thread> threads = Lists.newArrayList();
@@ -166,20 +178,20 @@ public class MetricStatisticsProviderTest {
             }));
         }
 
-        for (Thread t : threads){
+        for (Thread t : threads) {
             t.start();
         }
 
         latch.countDown();
 
-        for (Thread t : threads){
+        for (Thread t : threads) {
             t.join();
         }
 
         //Assert that we get same reference for every call
         Set<MeterStats> statsSet = Sets.newIdentityHashSet();
 
-        for (MeterStats m : statsQueue){
+        for (MeterStats m : statsQueue) {
             statsSet.add(m);
         }
 
@@ -198,8 +210,8 @@ public class MetricStatisticsProviderTest {
         return server.queryMBeans(new ObjectName("org.apache.jackrabbit.oak:*"), q);
     }
 
-    private void assertInstanceOf(Object o, Class<?> clazz){
-        if (!clazz.isInstance(o)){
+    private void assertInstanceOf(Object o, Class<?> clazz) {
+        if (!clazz.isInstance(o)) {
             fail(String.format("%s is not an instance of %s", o.getClass(), clazz));
         }
     }

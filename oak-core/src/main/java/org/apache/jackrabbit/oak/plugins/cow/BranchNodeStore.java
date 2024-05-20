@@ -16,6 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.cow;
 
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonMap;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -27,27 +40,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newCopyOnWriteArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonMap;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.StreamSupport.stream;
 
 public class BranchNodeStore implements NodeStore, Observable {
 
@@ -66,7 +58,8 @@ public class BranchNodeStore implements NodeStore, Observable {
         this.inheritedCheckpoints = newArrayList(nodeStore.checkpoints());
         this.checkpointMapping = newConcurrentMap();
 
-        String cp = nodeStore.checkpoint(CHECKPOINT_LIFETIME, singletonMap("type", "copy-on-write"));
+        String cp = nodeStore.checkpoint(CHECKPOINT_LIFETIME,
+            singletonMap("type", "copy-on-write"));
         memoryNodeStore = new MemoryNodeStore(nodeStore.retrieve(cp));
     }
 
@@ -86,7 +79,8 @@ public class BranchNodeStore implements NodeStore, Observable {
 
     @NotNull
     @Override
-    public synchronized NodeState merge(@NotNull NodeBuilder builder, @NotNull CommitHook commitHook, @NotNull CommitInfo info) throws CommitFailedException {
+    public synchronized NodeState merge(@NotNull NodeBuilder builder,
+        @NotNull CommitHook commitHook, @NotNull CommitInfo info) throws CommitFailedException {
         return memoryNodeStore.merge(builder, commitHook, info);
     }
 
@@ -135,9 +129,9 @@ public class BranchNodeStore implements NodeStore, Observable {
         result.retainAll(newArrayList(nodeStore.checkpoints()));
 
         checkpointMapping.entrySet().stream()
-                .filter(e -> memoryNodeStore.listCheckpoints().contains(e.getValue()))
-                .map(Map.Entry::getKey)
-                .forEach(result::add);
+                         .filter(e -> memoryNodeStore.listCheckpoints().contains(e.getValue()))
+                         .map(Map.Entry::getKey)
+                         .forEach(result::add);
 
         return result;
     }

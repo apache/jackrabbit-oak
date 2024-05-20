@@ -63,7 +63,8 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
     AuthorizableActionProvider actionProvider = new AuthorizableActionProvider() {
         @NotNull
         @Override
-        public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
+        public List<? extends AuthorizableAction> getAuthorizableActions(
+            @NotNull SecurityProvider securityProvider) {
             return (testAction == null) ? ImmutableList.of() : ImmutableList.of(testAction);
         }
     };
@@ -94,7 +95,8 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
 
     @NotNull
     private ConfigurationParameters getImportConfig() {
-        return getSecurityConfigParameters().getConfigValue(UserConfiguration.NAME, ConfigurationParameters.EMPTY);
+        return getSecurityConfigParameters().getConfigValue(UserConfiguration.NAME,
+            ConfigurationParameters.EMPTY);
     }
 
     @NotNull
@@ -105,8 +107,8 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         ConfigurationParameters userParams = ConfigurationParameters.of(
-                UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider,
-                ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior()
+            UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider,
+            ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior()
         );
         return ConfigurationParameters.of(UserConfiguration.NAME, userParams);
     }
@@ -133,41 +135,53 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
     boolean init(boolean createAction, Class<?>... extraInterfaces) throws Exception {
         if (createAction) {
             if (extraInterfaces.length > 0) {
-                testAction = mock(AuthorizableAction.class, withSettings().extraInterfaces(extraInterfaces));
+                testAction = mock(AuthorizableAction.class,
+                    withSettings().extraInterfaces(extraInterfaces));
             } else {
                 testAction = mock(AuthorizableAction.class);
             }
         }
-        return importer.init(mockJackrabbitSession(), root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING, refTracker, getSecurityProvider());
+        return importer.init(mockJackrabbitSession(), root, getNamePathMapper(),
+            isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING,
+            refTracker, getSecurityProvider());
     }
 
     @NotNull
     Tree createUserTree() {
-        Tree folder = root.getTree(getUserConfiguration().getParameters().getConfigValue(PARAM_USER_PATH, DEFAULT_USER_PATH));
+        Tree folder = root.getTree(getUserConfiguration().getParameters()
+                                                         .getConfigValue(PARAM_USER_PATH,
+                                                             DEFAULT_USER_PATH));
         Tree userTree = folder.addChild("userTree");
         userTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_USER, Type.NAME);
-        userTree.setProperty(JcrConstants.JCR_UUID, new UserProvider(root, ConfigurationParameters.EMPTY).getContentID(TEST_USER_ID));
+        userTree.setProperty(JcrConstants.JCR_UUID,
+            new UserProvider(root, ConfigurationParameters.EMPTY).getContentID(TEST_USER_ID));
         return userTree;
     }
 
     @NotNull
     Tree createSystemUserTree() {
-        Tree folder = root.getTree(getUserConfiguration().getParameters().getConfigValue(PARAM_USER_PATH, DEFAULT_USER_PATH));
+        Tree folder = root.getTree(getUserConfiguration().getParameters()
+                                                         .getConfigValue(PARAM_USER_PATH,
+                                                             DEFAULT_USER_PATH));
         Tree userTree = folder.addChild("systemUserTree");
         userTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_SYSTEM_USER, Type.NAME);
-        userTree.setProperty(JcrConstants.JCR_UUID, new UserProvider(root, ConfigurationParameters.EMPTY).getContentID(TEST_USER_ID));
+        userTree.setProperty(JcrConstants.JCR_UUID,
+            new UserProvider(root, ConfigurationParameters.EMPTY).getContentID(TEST_USER_ID));
         return userTree;
     }
 
     @NotNull
     Tree createGroupTree() throws Exception {
-        String groupPath = getUserConfiguration().getParameters().getConfigValue(PARAM_GROUP_PATH, DEFAULT_GROUP_PATH);
+        String groupPath = getUserConfiguration().getParameters().getConfigValue(PARAM_GROUP_PATH,
+            DEFAULT_GROUP_PATH);
 
         Tree node = root.getTree(PathUtils.ROOT_PATH);
-        node = Utils.getOrAddTree(node, PathUtils.relativize(PathUtils.ROOT_PATH, groupPath), NT_REP_AUTHORIZABLE_FOLDER);
+        node = Utils.getOrAddTree(node, PathUtils.relativize(PathUtils.ROOT_PATH, groupPath),
+            NT_REP_AUTHORIZABLE_FOLDER);
 
-        Tree groupTree = TreeUtil.addChild(node,"testGroup", NT_REP_GROUP);
-        groupTree.setProperty(JcrConstants.JCR_UUID, new UserProvider(root, ConfigurationParameters.EMPTY).getContentID(TEST_GROUP_ID));
+        Tree groupTree = TreeUtil.addChild(node, "testGroup", NT_REP_GROUP);
+        groupTree.setProperty(JcrConstants.JCR_UUID,
+            new UserProvider(root, ConfigurationParameters.EMPTY).getContentID(TEST_GROUP_ID));
         return groupTree;
     }
 
@@ -196,10 +210,13 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
     }
 
     @NotNull
-    PropertyDefinition mockPropertyDefinition(@NotNull String declaringNt, boolean mv) throws Exception {
+    PropertyDefinition mockPropertyDefinition(@NotNull String declaringNt, boolean mv)
+        throws Exception {
         PropertyDefinition def = mock(PropertyDefinition.class);
         when(def.isMultiple()).thenReturn(mv);
-        when(def.getDeclaringNodeType()).thenReturn(ReadOnlyNodeTypeManager.getInstance(root, getNamePathMapper()).getNodeType(declaringNt));
+        when(def.getDeclaringNodeType()).thenReturn(
+            ReadOnlyNodeTypeManager.getInstance(root, getNamePathMapper())
+                                   .getNodeType(declaringNt));
         return def;
     }
 

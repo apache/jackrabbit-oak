@@ -28,6 +28,7 @@ import org.jetbrains.annotations.NotNull;
  * The base class for all abstract syntax tree nodes.
  */
 abstract class AstElement {
+
     protected QueryImpl query;
 
     abstract boolean accept(AstVisitor v);
@@ -53,16 +54,15 @@ abstract class AstElement {
     public void setQuery(QueryImpl query) {
         this.query = query;
     }
-    
+
     /**
-     * Normalize the property name (including namespace remapping).
-     * Asterisks are kept.
+     * Normalize the property name (including namespace remapping). Asterisks are kept.
      *
      * @param propertyName the property name to normalize
      * @return the normalized (oak-) property name
      */
     protected String normalizePropertyName(String propertyName) {
-        // TODO normalize the path (remove superfluous ".." and "." 
+        // TODO normalize the path (remove superfluous ".." and "."
         // where possible)
         if (query == null) {
             return propertyName;
@@ -97,7 +97,7 @@ abstract class AstElement {
         propertyName = normalizeNonRelativePropertyName(propertyName);
         return PathUtils.concat(relativePath, propertyName);
     }
-    
+
     private String normalizeNonRelativePropertyName(String propertyName) {
         if (propertyName.equals("*")) {
             return propertyName;
@@ -112,14 +112,14 @@ abstract class AstElement {
      * @return the validated and normalized path
      */
     protected String normalizePath(String path) {
-        // TODO normalize the path (remove superfluous ".." and "." 
+        // TODO normalize the path (remove superfluous ".." and "."
         // where possible)
         if (query == null) {
             return path;
         }
         return query.getOakPath(path);
     }
-    
+
     protected PropertyValue convertValueToType(PropertyValue v, PropertyValue targetType) {
         int type = targetType.getType().tag();
         if (v.getType().tag() == type) {
@@ -134,8 +134,7 @@ abstract class AstElement {
     }
 
     /**
-     * Calculate the session local path (the path excluding the workspace name)
-     * if possible.
+     * Calculate the session local path (the path excluding the workspace name) if possible.
      *
      * @param path the absolute path
      * @return the session local path, or null if not within this workspace
@@ -146,11 +145,11 @@ abstract class AstElement {
 
     /**
      * @return a clone of self. Default implementation in {@link AstElement} returns same reference
-     *         to {@code this}.
+     * to {@code this}.
      */
     @NotNull
     public AstElement copyOf() {
         return this;
-    }    
+    }
 }
 

@@ -30,27 +30,29 @@ import org.apache.jackrabbit.oak.spi.commit.SubtreeExcludingValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 
 /**
- * This validator checks that all changes are contained within the subtree
- * rooted at a given path.
+ * This validator checks that all changes are contained within the subtree rooted at a given path.
  */
 class ItemSaveValidator extends SubtreeExcludingValidator {
 
     /**
-     * Name of the property whose {@link #propertyChanged(org.apache.jackrabbit.oak.api.PropertyState, org.apache.jackrabbit.oak.api.PropertyState)} to
-     * ignore or {@code null} if no property should be ignored.
+     * Name of the property whose
+     * {@link #propertyChanged(org.apache.jackrabbit.oak.api.PropertyState,
+     * org.apache.jackrabbit.oak.api.PropertyState)} to ignore or {@code null} if no property should
+     * be ignored.
      */
     private final String ignorePropertyChange;
 
     /**
-     * Create a new validator that only throws a {@link CommitFailedException} whenever
-     * there are changes not contained in the subtree rooted at {@code path}.
+     * Create a new validator that only throws a {@link CommitFailedException} whenever there are
+     * changes not contained in the subtree rooted at {@code path}.
+     *
      * @param path
      */
     public ItemSaveValidator(String path) {
         this(new FailingValidator(CommitFailedException.UNSUPPORTED, 0,
                 "Failed to save subtree at " + path + ". There are " +
-                        "transient modifications outside that subtree."),
-                newArrayList(elements(path)));
+                    "transient modifications outside that subtree."),
+            newArrayList(elements(path)));
     }
 
     private ItemSaveValidator(Validator validator, List<String> path) {
@@ -62,7 +64,7 @@ class ItemSaveValidator extends SubtreeExcludingValidator {
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (!before.getName().equals(ignorePropertyChange)) {
             super.propertyChanged(before, after);
         }
@@ -70,7 +72,7 @@ class ItemSaveValidator extends SubtreeExcludingValidator {
 
     @Override
     protected SubtreeExcludingValidator createValidator(
-            Validator validator, final List<String> path) {
+        Validator validator, final List<String> path) {
         return new ItemSaveValidator(validator, path);
     }
 

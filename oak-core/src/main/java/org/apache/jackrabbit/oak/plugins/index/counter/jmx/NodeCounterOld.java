@@ -40,11 +40,11 @@ import org.apache.jackrabbit.oak.plugins.index.counter.ApproximateCounter;
 public class NodeCounterOld extends AnnotatedStandardMBean implements NodeCounterMBean {
 
     /**
-     * Approximate count using the hashed name (deterministically, so that after
-     * adding a removing all nodes the count goes back to zero).
+     * Approximate count using the hashed name (deterministically, so that after adding a removing
+     * all nodes the count goes back to zero).
      */
     public final static boolean COUNT_HASH =
-            Boolean.parseBoolean(System.getProperty("oak.countHashed", "true"));
+        Boolean.parseBoolean(System.getProperty("oak.countHashed", "true"));
 
     private final NodeStore store;
 
@@ -79,17 +79,16 @@ public class NodeCounterOld extends AnnotatedStandardMBean implements NodeCounte
      *
      * @param root the root
      * @param path the path
-     * @param max whether to get the maximum expected number of nodes (the
-     *            stored value plus the resolution)
-     * @return -1 if unknown, 0 if the node does not exist (or, if max is false,
-     *         if there are probably not many descendant nodes), or the
-     *         (maximum) estimated number of descendant nodes
+     * @param max  whether to get the maximum expected number of nodes (the stored value plus the
+     *             resolution)
+     * @return -1 if unknown, 0 if the node does not exist (or, if max is false, if there are
+     * probably not many descendant nodes), or the (maximum) estimated number of descendant nodes
      */
     public static long getEstimatedNodeCount(NodeState root, String path, boolean max) {
         // check if there is a property in the node itself
         // (for property index nodes)
         NodeState s = child(root,
-                PathUtils.elements(path));
+            PathUtils.elements(path));
         if (s == null || !s.exists()) {
             // node not found
             return 0;
@@ -106,7 +105,8 @@ public class NodeCounterOld extends AnnotatedStandardMBean implements NodeCounte
         return getEstimatedNodeCountOld(root, s, path, max);
     }
 
-    private static long getEstimatedNodeCountOld(NodeState root, NodeState s, String path, boolean max) {
+    private static long getEstimatedNodeCountOld(NodeState root, NodeState s, String path,
+        boolean max) {
         // old code from here
         PropertyState p = s.getProperty(NodeCounterEditor.COUNT_PROPERTY_NAME);
         if (p != null) {
@@ -119,8 +119,8 @@ public class NodeCounterOld extends AnnotatedStandardMBean implements NodeCounte
         }
         // check in the counter index (if it exists)
         s = child(root,
-                IndexConstants.INDEX_DEFINITIONS_NAME,
-                "counter");
+            IndexConstants.INDEX_DEFINITIONS_NAME,
+            "counter");
         if (s == null || !s.exists()) {
             // no index
             return -1;
@@ -164,8 +164,8 @@ public class NodeCounterOld extends AnnotatedStandardMBean implements NodeCounte
         }
         // check in the counter index (if it exists)
         s = child(root,
-                IndexConstants.INDEX_DEFINITIONS_NAME,
-                "counter");
+            IndexConstants.INDEX_DEFINITIONS_NAME,
+            "counter");
         if (s == null || !s.exists()) {
             // no index
             return -1;
@@ -221,7 +221,7 @@ public class NodeCounterOld extends AnnotatedStandardMBean implements NodeCounte
             return;
         }
         NodeState s = child(store.getRoot(),
-                PathUtils.elements(path));
+            PathUtils.elements(path));
         if (!s.exists()) {
             return;
         }

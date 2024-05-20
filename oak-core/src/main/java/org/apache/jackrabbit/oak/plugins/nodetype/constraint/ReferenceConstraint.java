@@ -24,7 +24,7 @@ public class ReferenceConstraint implements Predicate<Value> {
 
     private final String requiredTargetType;
 
-    public ReferenceConstraint(String definition)  {
+    public ReferenceConstraint(String definition) {
         requiredTargetType = definition;
     }
 

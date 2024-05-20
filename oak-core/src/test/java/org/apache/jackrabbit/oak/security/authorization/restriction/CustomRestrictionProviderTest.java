@@ -60,8 +60,9 @@ import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.junit.Assert.assertEquals;
 
 /**
- * Test suite for a custom restriction provider. The restriction is enabled based on the (non) existence of a property.
- * The test creates nodes along '/testRoot/a/b/c/d/e' and sets the 'protect-me' property on '/testRoot/a/b/c'.
+ * Test suite for a custom restriction provider. The restriction is enabled based on the (non)
+ * existence of a property. The test creates nodes along '/testRoot/a/b/c/d/e' and sets the
+ * 'protect-me' property on '/testRoot/a/b/c'.
  */
 public class CustomRestrictionProviderTest extends AbstractSecurityTest {
 
@@ -77,9 +78,12 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        RestrictionProvider rProvider = CompositeRestrictionProvider.newInstance(new PropertyRestrictionProvider(), new RestrictionProviderImpl());
-        Map<String, RestrictionProvider> authorizMap = ImmutableMap.of(AccessControlConstants.PARAM_RESTRICTION_PROVIDER, rProvider);
-        return ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(authorizMap)));
+        RestrictionProvider rProvider = CompositeRestrictionProvider.newInstance(
+            new PropertyRestrictionProvider(), new RestrictionProviderImpl());
+        Map<String, RestrictionProvider> authorizMap = ImmutableMap.of(
+            AccessControlConstants.PARAM_RESTRICTION_PROVIDER, rProvider);
+        return ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME,
+            ConfigurationParameters.of(authorizMap)));
     }
 
     @Before
@@ -115,29 +119,34 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
         }
     }
 
-    private void addEntry(String path, boolean grant, String restriction, String... privilegeNames) throws Exception {
+    private void addEntry(String path, boolean grant, String restriction, String... privilegeNames)
+        throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
         if (restriction.length() > 0) {
             Map<String, Value> rs = new HashMap<>();
             rs.put(PropertyRestrictionProvider.RESTRICTION_NAME, new StringValue(restriction));
-            acl.addEntry(testPrincipal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), grant, rs);
+            acl.addEntry(testPrincipal,
+                AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), grant, rs);
         } else {
-            acl.addEntry(testPrincipal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), grant);
+            acl.addEntry(testPrincipal,
+                AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), grant);
         }
         acMgr.setPolicy(path, acl);
         root.commit();
     }
 
-    private void assertIsGranted(PermissionProvider pp, Root root, boolean allow, String path, long permissions) {
+    private void assertIsGranted(PermissionProvider pp, Root root, boolean allow, String path,
+        long permissions) {
         assertEquals("user should " + (allow ? "" : "not ") + "have " + permissions + " on " + path,
-                allow, pp.isGranted(root.getTree(path), null, permissions));
+            allow, pp.isGranted(root.getTree(path), null, permissions));
     }
 
     private PermissionProvider getPermissionProvider(ContentSession session) {
         return getSecurityProvider()
-                .getConfiguration(AuthorizationConfiguration.class)
-                .getPermissionProvider(root, session.getWorkspaceName(), session.getAuthInfo().getPrincipals());
+            .getConfiguration(AuthorizationConfiguration.class)
+            .getPermissionProvider(root, session.getWorkspaceName(),
+                session.getAuthInfo().getPrincipals());
     }
 
     /**
@@ -147,7 +156,8 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
     public void testProtectByRestriction() throws Exception {
         // allow rep:write      /testroot
         // deny  jcr:removeNode /testroot/a  hasProperty=protect-me
-        addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+        addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.REP_WRITE);
         addEntry(TEST_A_PATH, false, PROP_NAME_PROTECT_ME, PrivilegeConstants.JCR_REMOVE_NODE);
 
         try (ContentSession testSession = createTestSession()) {
@@ -176,8 +186,10 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
     public void testProtectPropertiesByRestriction() throws Exception {
         // allow rep:write            /testroot
         // deny  jcr:modifyProperties /testroot/a  hasProperty=protect-me
-        addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
-        addEntry(TEST_A_PATH, false, PROP_NAME_PROTECT_ME, PrivilegeConstants.JCR_MODIFY_PROPERTIES);
+        addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.REP_WRITE);
+        addEntry(TEST_A_PATH, false, PROP_NAME_PROTECT_ME,
+            PrivilegeConstants.JCR_MODIFY_PROPERTIES);
 
         try (ContentSession testSession = createTestSession()) {
             Root testRoot = testSession.getLatestRoot();
@@ -199,7 +211,8 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
         // allow rep:write      /testroot
         // deny  jcr:removeNode /testroot
         // allow jcr:removeNode /testroot/a  hasProperty=!protect-me
-        addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+        addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.REP_WRITE);
         addEntry(TEST_ROOT_PATH, false, "", PrivilegeConstants.JCR_REMOVE_NODE);
         addEntry(TEST_A_PATH, true, "!" + PROP_NAME_PROTECT_ME, PrivilegeConstants.JCR_REMOVE_NODE);
 
@@ -227,7 +240,8 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
 
         @NotNull
         private static Map<String, RestrictionDefinition> supportedRestrictions() {
-            RestrictionDefinition dates = new RestrictionDefinitionImpl(RESTRICTION_NAME, Type.STRING, false);
+            RestrictionDefinition dates = new RestrictionDefinitionImpl(RESTRICTION_NAME,
+                Type.STRING, false);
             return Collections.singletonMap(dates.getName(), dates);
         }
 
@@ -247,7 +261,8 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
 
         @NotNull
         @Override
-        public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
+        public RestrictionPattern getPattern(@Nullable String oakPath,
+            @NotNull Set<Restriction> restrictions) {
             if (oakPath != null) {
                 for (Restriction r : restrictions) {
                     String name = r.getDefinition().getName();

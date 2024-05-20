@@ -49,7 +49,8 @@ public class DeclaredMembershipPredicate implements Predicate<Authorizable> {
         if (groupTree == null) {
             contentIdIterator = Collections.emptyIterator();
         } else {
-            contentIdIterator = Iterators.filter(membershipProvider.getDeclaredMemberContentIDs(groupTree), Predicates.notNull());
+            contentIdIterator = Iterators.filter(
+                membershipProvider.getDeclaredMemberContentIDs(groupTree), Predicates.notNull());
         }
     }
 

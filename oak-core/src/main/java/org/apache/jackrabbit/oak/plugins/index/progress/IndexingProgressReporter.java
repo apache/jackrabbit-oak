@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 public class IndexingProgressReporter implements NodeTraversalCallback {
+
     private static final String REINDEX_MSG = "Reindexing";
     private static final String INDEX_MSG = "Incremental indexing";
 
@@ -56,7 +57,7 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
     private long estimatedCount;
 
     public IndexingProgressReporter(IndexUpdateCallback updateCallback,
-                                    NodeTraversalCallback traversalCallback) {
+        NodeTraversalCallback traversalCallback) {
         this.updateCallback = updateCallback;
         this.traversalCallback = traversalCallback;
     }
@@ -66,21 +67,21 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
     }
 
     /**
-     * Invoked to indicate that reindexing phase has started in current
-     * indexing cycle
+     * Invoked to indicate that reindexing phase has started in current indexing cycle
+     *
      * @param path
      */
     public void reindexingTraversalStart(String path) {
         estimatedCount = nodeCountEstimator.getEstimatedNodeCount(path, getReindexedIndexPaths());
         if (estimatedCount >= 0) {
-            log.info("Estimated node count to be traversed for reindexing under {} is [{}]", path, estimatedCount);
+            log.info("Estimated node count to be traversed for reindexing under {} is [{}]", path,
+                estimatedCount);
         }
         messagePrefix = REINDEX_MSG;
     }
 
     /**
-     * Invoked to indicate that reindexing phase has ended in current
-     * indexing cycle
+     * Invoked to indicate that reindexing phase has ended in current indexing cycle
      */
     public void reindexingTraversalEnd() {
         messagePrefix = INDEX_MSG;
@@ -93,9 +94,11 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
     public void traversedNode(PathSource pathSource) throws CommitFailedException {
         if (++traversalCount % 10000 == 0) {
             double rate = traversalRateEstimator.getNodesTraversedPerSecond();
-            String formattedRate = String.format("%1.2f nodes/s, %1.2f nodes/hr", rate, rate * 3600);
+            String formattedRate = String.format("%1.2f nodes/s, %1.2f nodes/hr", rate,
+                rate * 3600);
             String estimate = estimatePendingTraversal(rate);
-            log.info("{} Traversed #{} {} [{}] {}", messagePrefix, traversalCount, pathSource.getPath(), formattedRate, estimate);
+            log.info("{} Traversed #{} {} [{}] {}", messagePrefix, traversalCount,
+                pathSource.getPath(), formattedRate, estimate);
         }
         traversalCallback.traversedNode(pathSource);
         traversalRateEstimator.traversedNode();
@@ -104,13 +107,14 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
     /**
      * Registers the index for progress tracking
      *
-     * @param indexPath path of index
-     * @param reindexing true if the index is being reindexed
-     * @param estimatedCount an estimate of count of number of entries in the index. If less
-     *                       than zero then it indicates that estimation cannot be done
+     * @param indexPath      path of index
+     * @param reindexing     true if the index is being reindexed
+     * @param estimatedCount an estimate of count of number of entries in the index. If less than
+     *                       zero then it indicates that estimation cannot be done
      */
     public void registerIndex(String indexPath, boolean reindexing, long estimatedCount) {
-        indexUpdateStates.put(indexPath, new IndexUpdateState(indexPath, reindexing, estimatedCount));
+        indexUpdateStates.put(indexPath,
+            new IndexUpdateState(indexPath, reindexing, estimatedCount));
     }
 
     /**
@@ -120,33 +124,31 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
         indexUpdateStates.get(indexPath).indexUpdate();
     }
 
-    public void logReport(){
-        if (isReindexingPerformed()){
+    public void logReport() {
+        if (isReindexingPerformed()) {
             log.info(getReport());
             log.info("Reindexing completed");
-        } else if (log.isDebugEnabled() && somethingIndexed()){
+        } else if (log.isDebugEnabled() && somethingIndexed()) {
             log.debug(getReport());
         }
     }
 
     public List<String> getReindexStats() {
         return indexUpdateStates.values().stream()
-                .filter(st -> st.reindex)
-                .map(Object::toString)
-                .collect(Collectors.toList());
+                                .filter(st -> st.reindex)
+                                .map(Object::toString)
+                                .collect(Collectors.toList());
     }
 
     /**
-     * Returns true if any reindexing is performed in current indexing
-     * cycle
+     * Returns true if any reindexing is performed in current indexing cycle
      */
     public boolean isReindexingPerformed() {
         return indexUpdateStates.values().stream().anyMatch(st -> st.reindex);
     }
 
     /**
-     * Set of indexPaths which have been updated or accessed
-     * in this indexing cycle.
+     * Set of indexPaths which have been updated or accessed in this indexing cycle.
      */
     public Set<String> getUpdatedIndexPaths() {
         return indexUpdateStates.keySet();
@@ -157,9 +159,9 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
      */
     public Set<String> getReindexedIndexPaths() {
         return indexUpdateStates.values().stream()
-                .filter(st -> st.reindex)
-                .map(st -> st.indexPath)
-                .collect(Collectors.toSet());
+                                .filter(st -> st.reindex)
+                                .map(st -> st.indexPath)
+                                .collect(Collectors.toSet());
     }
 
     public boolean somethingIndexed() {
@@ -178,7 +180,7 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
         this.estimatedCount = estimatedCount;
     }
 
-    public void reset(){
+    public void reset() {
         watch = Stopwatch.createStarted();
         traversalCount = 0;
         messagePrefix = INDEX_MSG;
@@ -186,14 +188,14 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
 
     private String estimatePendingTraversal(double nodesPerSecond) {
         if (estimatedCount >= 0) {
-            if (estimatedCount > traversalCount){
+            if (estimatedCount > traversalCount) {
                 long pending = estimatedCount - traversalCount;
-                long timeRequired = (long)(pending / nodesPerSecond);
-                double percentComplete = ((double) traversalCount/estimatedCount) * 100;
+                long timeRequired = (long) (pending / nodesPerSecond);
+                double percentComplete = ((double) traversalCount / estimatedCount) * 100;
                 return String.format("(Elapsed %s, Expected %s, Completed %1.2f%%)",
-                        watch,
-                        TimeDurationFormatter.forLogging().format(timeRequired, TimeUnit.SECONDS),
-                        percentComplete
+                    watch,
+                    TimeDurationFormatter.forLogging().format(timeRequired, TimeUnit.SECONDS),
+                    percentComplete
                 );
             } else {
                 return String.format("(Elapsed %s)", watch);
@@ -218,6 +220,7 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
     }
 
     private class IndexUpdateState {
+
         final String indexPath;
         final boolean reindex;
         final long estimatedCount;

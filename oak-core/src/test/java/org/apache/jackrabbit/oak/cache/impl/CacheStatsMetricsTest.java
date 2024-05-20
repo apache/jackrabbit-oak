@@ -96,7 +96,7 @@ public class CacheStatsMetricsTest {
         @Override
         protected org.apache.jackrabbit.guava.common.cache.CacheStats getCurrentStats() {
             return new org.apache.jackrabbit.guava.common.cache.CacheStats(
-                    HIT_COUNT, MISS_COUNT, MISS_COUNT, 0, LOAD_TIME, EVICTION_COUNT);
+                HIT_COUNT, MISS_COUNT, MISS_COUNT, 0, LOAD_TIME, EVICTION_COUNT);
         }
 
         @Override

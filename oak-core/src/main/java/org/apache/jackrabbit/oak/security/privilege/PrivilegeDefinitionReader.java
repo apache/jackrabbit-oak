@@ -29,8 +29,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Reads privilege definitions from the repository content without applying
- * any validation.
+ * Reads privilege definitions from the repository content without applying any validation.
  */
 class PrivilegeDefinitionReader implements PrivilegeConstants {
 
@@ -61,8 +60,8 @@ class PrivilegeDefinitionReader implements PrivilegeConstants {
      * Retrieve the privilege definition with the specified {@code privilegeName}.
      *
      * @param privilegeName The name of a registered privilege definition.
-     * @return The privilege definition with the specified name or {@code null}
-     *         if the name doesn't refer to a registered privilege.
+     * @return The privilege definition with the specified name or {@code null} if the name doesn't
+     * refer to a registered privilege.
      */
     @Nullable
     PrivilegeDefinition readDefinition(@NotNull String privilegeName) {
@@ -70,7 +69,8 @@ class PrivilegeDefinitionReader implements PrivilegeConstants {
             return null;
         } else {
             Tree definitionTree = privilegesTree.getChild(privilegeName);
-            return (isPrivilegeDefinition(definitionTree)) ? PrivilegeUtil.readDefinition(definitionTree) : null;
+            return (isPrivilegeDefinition(definitionTree)) ? PrivilegeUtil.readDefinition(
+                definitionTree) : null;
         }
     }
 

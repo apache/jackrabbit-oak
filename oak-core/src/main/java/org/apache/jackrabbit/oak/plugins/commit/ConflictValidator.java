@@ -37,18 +37,18 @@ import org.slf4j.LoggerFactory;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 
 /**
- * {@link Validator} which checks the presence of conflict markers
- * in the tree in fails the commit if any are found.
+ * {@link Validator} which checks the presence of conflict markers in the tree in fails the commit
+ * if any are found.
  *
  * @see AnnotatingConflictHandler
  */
 public class ConflictValidator extends DefaultValidator {
+
     private static Logger log = LoggerFactory.getLogger(ConflictValidator.class);
 
     /**
-     * Current processed path, or null if the debug log is not enabled at the
-     * beginning of the call. The null check will also be used to verify if a
-     * debug log will be needed or not
+     * Current processed path, or null if the debug log is not enabled at the beginning of the call.
+     * The null check will also be used to verify if a debug log will be needed or not
      */
     private final String path;
 
@@ -69,13 +69,13 @@ public class ConflictValidator extends DefaultValidator {
 
     @Override
     public void enter(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         this.after = after;
     }
 
     @Override
     public void leave(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         this.after = null;
     }
 
@@ -86,7 +86,7 @@ public class ConflictValidator extends DefaultValidator {
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         failOnMergeConflict(after);
     }
 
@@ -97,7 +97,7 @@ public class ConflictValidator extends DefaultValidator {
 
     @Override
     public Validator childNodeChanged(String name, NodeState before,
-            NodeState after) {
+        NodeState after) {
         return new ConflictValidator(path, name);
     }
 
@@ -113,7 +113,7 @@ public class ConflictValidator extends DefaultValidator {
                 if (MIX_REP_MERGE_CONFLICT.equals(v)) {
 
                     CommitFailedException ex = new CommitFailedException(
-                            CommitFailedException.STATE, 1, "Unresolved conflicts in " + path);
+                        CommitFailedException.STATE, 1, "Unresolved conflicts in " + path);
 
                     //Conflict details are not made part of ExceptionMessage instead they are
                     //logged. This to avoid exposing property details to the caller as it might not have
@@ -132,7 +132,8 @@ public class ConflictValidator extends DefaultValidator {
         sb.append(path);
         sb.append(" = {");
 
-        for (ChildNodeEntry conflict : after.getChildNode(NodeTypeConstants.REP_OURS).getChildNodeEntries()) {
+        for (ChildNodeEntry conflict : after.getChildNode(NodeTypeConstants.REP_OURS)
+                                            .getChildNodeEntries()) {
             ConflictType ct = ConflictType.fromName(conflict.getName());
             NodeState node = conflict.getNodeState();
             sb.append(ct.getName()).append(" = {");
@@ -158,11 +159,11 @@ public class ConflictValidator extends DefaultValidator {
                     }
 
                     sb.append(ps.getName())
-                            .append(" = {")
-                            .append(toString(ours))
-                            .append(',')
-                            .append(toString(theirs))
-                            .append('}');
+                      .append(" = {")
+                      .append(toString(ours))
+                      .append(',')
+                      .append(toString(theirs))
+                      .append('}');
 
                     sb.append(',');
                 }

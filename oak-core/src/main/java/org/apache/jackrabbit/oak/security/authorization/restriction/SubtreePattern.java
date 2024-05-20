@@ -30,14 +30,14 @@ import java.util.List;
 import java.util.Objects;
 
 class SubtreePattern implements RestrictionPattern {
-    
+
     private static final String SEGMENT_DELIM = "/";
-    
+
     private final String oakPath;
     private final int oakPathLength;
     private final String[] targets;
     private final String[] subtrees;
-    
+
     SubtreePattern(@NotNull String oakPath, @NotNull Iterable<String> subtrees) {
         this.oakPath = oakPath;
         this.oakPathLength = oakPath.length();
@@ -54,13 +54,14 @@ class SubtreePattern implements RestrictionPattern {
                 }
             }
         });
-        this.targets = tl.toArray(new String[0]);        
+        this.targets = tl.toArray(new String[0]);
         this.subtrees = sl.toArray(new String[0]);
     }
-    
+
     @Override
     public boolean matches(@NotNull Tree tree, @Nullable PropertyState property) {
-        String path = (property == null) ? tree.getPath() : PathUtils.concat(tree.getPath(), property.getName());
+        String path = (property == null) ? tree.getPath()
+            : PathUtils.concat(tree.getPath(), property.getName());
         return matches(path);
     }
 
@@ -99,7 +100,8 @@ class SubtreePattern implements RestrictionPattern {
         }
         if (obj instanceof SubtreePattern) {
             SubtreePattern other = (SubtreePattern) obj;
-            return oakPath.equals(other.oakPath) && Arrays.equals(targets, other.targets) && Arrays.equals(subtrees, other.subtrees);
+            return oakPath.equals(other.oakPath) && Arrays.equals(targets, other.targets)
+                && Arrays.equals(subtrees, other.subtrees);
         }
         return false;
     }

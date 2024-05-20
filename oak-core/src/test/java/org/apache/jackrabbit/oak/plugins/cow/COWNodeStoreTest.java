@@ -65,19 +65,31 @@ public class COWNodeStoreTest {
         builder.child("bar");
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        assertTrue("Change introduced before enabling the CoW mode is not available", cowNodeStore.getRoot().hasChildNode("abc"));
-        assertTrue("Change introduced after enabling the CoW mode is not available", cowNodeStore.getRoot().hasChildNode("foo"));
-        assertFalse("Changed introduced to the main store after enabling the CoW mode shouldn't be visible", cowNodeStore.getRoot().hasChildNode("bar"));
+        assertTrue("Change introduced before enabling the CoW mode is not available",
+            cowNodeStore.getRoot().hasChildNode("abc"));
+        assertTrue("Change introduced after enabling the CoW mode is not available",
+            cowNodeStore.getRoot().hasChildNode("foo"));
+        assertFalse(
+            "Changed introduced to the main store after enabling the CoW mode shouldn't be visible",
+            cowNodeStore.getRoot().hasChildNode("bar"));
 
-        assertTrue("Change introduced before enabling the CoW mode should be visible is the main store", store.getRoot().hasChildNode("abc"));
-        assertFalse("Change introduced after enabling the CoW mode shouldn't be visible in the main store", store.getRoot().hasChildNode("foo"));
-        assertTrue("Change introduced to the main store should be visible", store.getRoot().hasChildNode("bar"));
+        assertTrue(
+            "Change introduced before enabling the CoW mode should be visible is the main store",
+            store.getRoot().hasChildNode("abc"));
+        assertFalse(
+            "Change introduced after enabling the CoW mode shouldn't be visible in the main store",
+            store.getRoot().hasChildNode("foo"));
+        assertTrue("Change introduced to the main store should be visible",
+            store.getRoot().hasChildNode("bar"));
 
         cowNodeStore.disableCopyOnWrite();
 
-        assertTrue("Change introduced before enabling the CoW mode is not available", cowNodeStore.getRoot().hasChildNode("abc"));
-        assertFalse("Change introduced in the CoW mode should be dropped after disabling it", cowNodeStore.getRoot().hasChildNode("foo"));
-        assertTrue("Change introduced to the main store should be visible", cowNodeStore.getRoot().hasChildNode("bar"));
+        assertTrue("Change introduced before enabling the CoW mode is not available",
+            cowNodeStore.getRoot().hasChildNode("abc"));
+        assertFalse("Change introduced in the CoW mode should be dropped after disabling it",
+            cowNodeStore.getRoot().hasChildNode("foo"));
+        assertTrue("Change introduced to the main store should be visible",
+            cowNodeStore.getRoot().hasChildNode("bar"));
     }
 
     @Test
@@ -96,12 +108,15 @@ public class COWNodeStoreTest {
         String checkpoint2 = cowNodeStore.checkpoint(Long.MAX_VALUE, of("k", "v2"));
         info = cowNodeStore.checkpointInfo(checkpoint2);
         assertEquals("The new checkpoint is not available", of("k", "v2"), info);
-        assertTrue("The retrieve() doesn't work for the new checkpoint", cowNodeStore.retrieve(checkpoint2).hasChildNode("foo"));
+        assertTrue("The retrieve() doesn't work for the new checkpoint",
+            cowNodeStore.retrieve(checkpoint2).hasChildNode("foo"));
         assertEquals(ImmutableList.of(checkpoint1, checkpoint2), cowNodeStore.checkpoints());
 
-        assertTrue("The new checkpoint shouldn't be stored in the main store", store.checkpointInfo(checkpoint2).isEmpty());
+        assertTrue("The new checkpoint shouldn't be stored in the main store",
+            store.checkpointInfo(checkpoint2).isEmpty());
 
         cowNodeStore.disableCopyOnWrite();
-        assertTrue("The new checkpoint should be dropped after disabling the CoW mode", cowNodeStore.checkpointInfo(checkpoint2).isEmpty());
+        assertTrue("The new checkpoint should be dropped after disabling the CoW mode",
+            cowNodeStore.checkpointInfo(checkpoint2).isEmpty());
     }
 }

@@ -31,13 +31,13 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Instances of this class represent trees that are inaccessible because
- * of the respective content would potentially be internal (hidden).
+ * Instances of this class represent trees that are inaccessible because of the respective content
+ * would potentially be internal (hidden).
  * <p>
- * Calls to any of the mutator methods on this class throws an
- * {@code IllegalStateException}.
+ * Calls to any of the mutator methods on this class throws an {@code IllegalStateException}.
  */
 class HiddenTree implements Tree {
+
     private final Tree parent;
     private final String name;
 

@@ -46,35 +46,39 @@ public class Multiplexers {
     static {
         // TODO OAK-4645 set default to true once the code is stable
         String ro = System.getProperty(
-                "oak.multiplexing.readOnlyPrivateUniqueIndex", "false");
+            "oak.multiplexing.readOnlyPrivateUniqueIndex", "false");
         RO_PRIVATE_UNIQUE_INDEX = Boolean.parseBoolean(ro);
     }
 
-    /** Index storage strategy */
+    /**
+     * Index storage strategy
+     */
     private static final IndexStoreStrategy UNIQUE = new UniqueEntryStoreStrategy(
-            INDEX_CONTENT_NODE_NAME);
+        INDEX_CONTENT_NODE_NAME);
 
-    /** Index storage strategy */
+    /**
+     * Index storage strategy
+     */
     private static final IndexStoreStrategy MIRROR = new ContentMirrorStoreStrategy(
-            INDEX_CONTENT_NODE_NAME);
+        INDEX_CONTENT_NODE_NAME);
 
     public static Set<IndexStoreStrategy> getStrategies(boolean unique,
-            MountInfoProvider mountInfoProvider, NodeBuilder definition,
-            String defaultName) {
+        MountInfoProvider mountInfoProvider, NodeBuilder definition,
+        String defaultName) {
         Iterable<String> children = definition.getChildNodeNames();
         return getStrategies(unique, mountInfoProvider, children, defaultName);
     }
 
     public static Set<IndexStoreStrategy> getStrategies(boolean unique,
-            MountInfoProvider mountInfoProvider, NodeState definition,
-            String defaultName) {
+        MountInfoProvider mountInfoProvider, NodeState definition,
+        String defaultName) {
         Iterable<String> children = definition.getChildNodeNames();
         return getStrategies(unique, mountInfoProvider, children, defaultName);
     }
 
     private static Set<IndexStoreStrategy> getStrategies(boolean unique,
-            MountInfoProvider mountInfoProvider, Iterable<String> children,
-            String defaultName) {
+        MountInfoProvider mountInfoProvider, Iterable<String> children,
+        String defaultName) {
         if (mountInfoProvider.hasNonDefaultMounts()) {
             Set<String> names = new HashSet<String>();
             // TODO should this be collected from the index def?
@@ -102,7 +106,7 @@ public class Multiplexers {
             return strategies;
         } else {
             return unique ? ImmutableSet.of(newUniqueStrategy(defaultName))
-                    : ImmutableSet.of(newMirrorStrategy(defaultName));
+                : ImmutableSet.of(newMirrorStrategy(defaultName));
         }
     }
 
@@ -123,13 +127,13 @@ public class Multiplexers {
     }
 
     private static IndexStoreStrategy newStrategy(boolean unique,
-            boolean defaultMount, String name, Mount m) {
+        boolean defaultMount, String name, Mount m) {
         Predicate<String> filter = newFilter(m);
         boolean readOnly = unique && !m.isDefault() && RO_PRIVATE_UNIQUE_INDEX;
         return unique ? new FilteringIndexStoreStrategy(
-                new UniqueEntryStoreStrategy(name), filter, readOnly)
-                : new FilteringIndexStoreStrategy(
-                        new ContentMirrorStoreStrategy(name), filter);
+            new UniqueEntryStoreStrategy(name), filter, readOnly)
+            : new FilteringIndexStoreStrategy(
+                new ContentMirrorStoreStrategy(name), filter);
     }
 
     private static Predicate<String> newFilter(final Mount m) {
@@ -144,12 +148,12 @@ public class Multiplexers {
 
     private static boolean isIndexStorageNode(String name, String defaultName) {
         return NodeStateUtils.isHidden(name)
-                && (name.equals(defaultName) || name
-                        .endsWith(asSuffix(defaultName)));
+            && (name.equals(defaultName) || name
+            .endsWith(asSuffix(defaultName)));
     }
 
     public static String getIndexNodeName(MountInfoProvider mountInfoProvider,
-            String path, String defaultName) {
+        String path, String defaultName) {
         Mount mount = mountInfoProvider.getMountByPath(path);
         return getNodeForMount(mount, defaultName);
     }

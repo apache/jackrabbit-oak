@@ -46,8 +46,8 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_CREAT
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.MIX_CREATED;
 
 /**
- * Validator implementation that checks for sufficient permission for all
- * write operations executed by a given content session.
+ * Validator implementation that checks for sufficient permission for all write operations executed
+ * by a given content session.
  */
 class PermissionValidator extends DefaultValidator {
 
@@ -63,12 +63,13 @@ class PermissionValidator extends DefaultValidator {
     private final long permission;
 
     PermissionValidator(@NotNull NodeState rootBefore,
-                        @NotNull NodeState rootAfter,
-                        @NotNull PermissionProvider permissionProvider,
-                        @NotNull PermissionValidatorProvider provider) {
+        @NotNull NodeState rootAfter,
+        @NotNull PermissionProvider permissionProvider,
+        @NotNull PermissionValidatorProvider provider) {
         this.parentBefore = provider.createReadOnlyTree(rootBefore);
         this.parentAfter = provider.createReadOnlyTree(rootAfter);
-        this.parentPermission = permissionProvider.getTreePermission(parentBefore, TreePermission.EMPTY);
+        this.parentPermission = permissionProvider.getTreePermission(parentBefore,
+            TreePermission.EMPTY);
 
         this.permissionProvider = permissionProvider;
         this.provider = provider;
@@ -76,13 +77,14 @@ class PermissionValidator extends DefaultValidator {
         this.isReferenceable = new TypePredicate(rootAfter, MIX_REFERENCEABLE);
         this.isCreated = new TypePredicate(rootAfter, MIX_CREATED);
 
-        permission = Permissions.getPermission(PermissionUtil.getPath(parentBefore, parentAfter), Permissions.NO_PERMISSION);
+        permission = Permissions.getPermission(PermissionUtil.getPath(parentBefore, parentAfter),
+            Permissions.NO_PERMISSION);
     }
 
     PermissionValidator(@Nullable Tree parentBefore,
-                        @Nullable Tree parentAfter,
-                        @Nullable TreePermission parentPermission,
-                        @NotNull PermissionValidator parentValidator) {
+        @Nullable Tree parentAfter,
+        @Nullable TreePermission parentPermission,
+        @NotNull PermissionValidator parentValidator) {
         this.parentBefore = parentBefore;
         this.parentAfter = parentAfter;
         this.parentPermission = parentPermission;
@@ -94,7 +96,8 @@ class PermissionValidator extends DefaultValidator {
         this.isCreated = parentValidator.isCreated;
 
         if (Permissions.NO_PERMISSION == parentValidator.permission) {
-            this.permission = Permissions.getPermission(PermissionUtil.getPath(parentBefore, parentAfter), Permissions.NO_PERMISSION);
+            this.permission = Permissions.getPermission(
+                PermissionUtil.getPath(parentBefore, parentAfter), Permissions.NO_PERMISSION);
         } else {
             this.permission = parentValidator.permission;
         }
@@ -104,13 +107,15 @@ class PermissionValidator extends DefaultValidator {
     @Override
     public void propertyAdded(PropertyState after) throws CommitFailedException {
         String name = after.getName();
-        if (!TreeConstants.OAK_CHILD_ORDER.equals(name) && !isImmutableProperty(name, parentAfter)) {
+        if (!TreeConstants.OAK_CHILD_ORDER.equals(name) && !isImmutableProperty(name,
+            parentAfter)) {
             checkPermissions(parentAfter, after, Permissions.ADD_PROPERTY);
         }
     }
 
     @Override
-    public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
+    public void propertyChanged(PropertyState before, PropertyState after)
+        throws CommitFailedException {
         String name = after.getName();
         if (TreeConstants.OAK_CHILD_ORDER.equals(name)) {
             if (ChildOrderDiff.isReordered(before, after)) {
@@ -118,7 +123,7 @@ class PermissionValidator extends DefaultValidator {
             } // else: no re-order but only internal update
         } else if (isImmutableProperty(name, parentAfter)) {
             // parent node has been removed and and re-added as
-            checkPermissions(parentAfter, false, Permissions.ADD_NODE|Permissions.REMOVE_NODE);
+            checkPermissions(parentAfter, false, Permissions.ADD_NODE | Permissions.REMOVE_NODE);
         } else {
             checkPermissions(parentAfter, after, Permissions.MODIFY_PROPERTY);
         }
@@ -127,7 +132,8 @@ class PermissionValidator extends DefaultValidator {
     @Override
     public void propertyDeleted(PropertyState before) throws CommitFailedException {
         String name = before.getName();
-        if (!TreeConstants.OAK_CHILD_ORDER.equals(name) && !isImmutableProperty(name, parentBefore)) {
+        if (!TreeConstants.OAK_CHILD_ORDER.equals(name) && !isImmutableProperty(name,
+            parentBefore)) {
             checkPermissions(parentBefore, before, Permissions.REMOVE_PROPERTY);
         }
     }
@@ -140,7 +146,8 @@ class PermissionValidator extends DefaultValidator {
             if (child == null) {
                 provider.getAccessMonitor().accessViolation();
                 throw new CommitFailedException(
-                        ACCESS, 21, "New version storage node without version history: cannot verify permissions.");
+                    ACCESS, 21,
+                    "New version storage node without version history: cannot verify permissions.");
             }
         }
         return checkPermissions(child, false, Permissions.ADD_NODE);
@@ -151,7 +158,8 @@ class PermissionValidator extends DefaultValidator {
     public Validator childNodeChanged(String name, NodeState before, NodeState after) {
         Tree childBefore = parentBefore.getChild(name);
         Tree childAfter = parentAfter.getChild(name);
-        return nextValidator(childBefore, childAfter, parentPermission.getChildPermission(name, before));
+        return nextValidator(childBefore, childAfter,
+            parentPermission.getChildPermission(name, before));
     }
 
     @Override
@@ -160,7 +168,8 @@ class PermissionValidator extends DefaultValidator {
         if (isVersionstorageTree(child)) {
             provider.getAccessMonitor().accessViolation();
             throw new CommitFailedException(
-                    ACCESS, 22, "Attempt to remove versionstorage node: Fail to verify delete permission.");
+                ACCESS, 22,
+                "Attempt to remove versionstorage node: Fail to verify delete permission.");
         }
         return checkPermissions(child, true, Permissions.REMOVE_NODE);
     }
@@ -168,10 +177,11 @@ class PermissionValidator extends DefaultValidator {
     //-------------------------------------------------< internal / private >---
     @NotNull
     PermissionValidator createValidator(@Nullable Tree parentBefore,
-                                        @Nullable Tree parentAfter,
-                                        @NotNull TreePermission parentPermission,
-                                        @NotNull PermissionValidator parentValidator) {
-        return new PermissionValidator(parentBefore, parentAfter, parentPermission, parentValidator);
+        @Nullable Tree parentAfter,
+        @NotNull TreePermission parentPermission,
+        @NotNull PermissionValidator parentValidator) {
+        return new PermissionValidator(parentBefore, parentAfter, parentPermission,
+            parentValidator);
     }
 
     @Nullable
@@ -196,7 +206,7 @@ class PermissionValidator extends DefaultValidator {
 
     @Nullable
     Validator checkPermissions(@NotNull Tree tree, boolean isBefore,
-                               long defaultPermission) throws CommitFailedException {
+        long defaultPermission) throws CommitFailedException {
         long toTest = getPermission(tree, defaultPermission);
         if (Permissions.isRepositoryPermission(toTest)) {
             checkIsGranted(permissionProvider.getRepositoryPermission().isGranted(toTest));
@@ -209,15 +219,15 @@ class PermissionValidator extends DefaultValidator {
                 return null;
             } else {
                 return (isBefore) ?
-                        nextValidator(tree, null, tp) :
-                        nextValidator(null, tree, tp);
+                    nextValidator(tree, null, tp) :
+                    nextValidator(null, tree, tp);
             }
         }
     }
 
     private void checkPermissions(@NotNull Tree parent,
-                                  @NotNull PropertyState property,
-                                  long defaultPermission) throws CommitFailedException {
+        @NotNull PropertyState property,
+        long defaultPermission) throws CommitFailedException {
         if (NodeStateUtils.isHidden(property.getName())) {
             // ignore any hidden properties (except for OAK_CHILD_ORDER which has
             // been covered in "propertyChanged"
@@ -235,8 +245,8 @@ class PermissionValidator extends DefaultValidator {
 
     @NotNull
     private Validator nextValidator(@Nullable Tree parentBefore,
-                                    @Nullable Tree parentAfter,
-                                    @NotNull TreePermission treePermission) {
+        @Nullable Tree parentAfter,
+        @NotNull TreePermission treePermission) {
         Validator validator = createValidator(parentBefore, parentAfter, treePermission, this);
         return new VisibleValidator(validator, true, false);
     }
@@ -258,7 +268,8 @@ class PermissionValidator extends DefaultValidator {
         return perm;
     }
 
-    private long getPermission(@NotNull Tree parent, @NotNull PropertyState propertyState, long defaultPermission) {
+    private long getPermission(@NotNull Tree parent, @NotNull PropertyState propertyState,
+        long defaultPermission) {
         if (permission != Permissions.NO_PERMISSION) {
             return permission;
         }
@@ -283,7 +294,7 @@ class PermissionValidator extends DefaultValidator {
         } else if (provider.getAccessControlContext().definesProperty(parent, propertyState)) {
             perm = Permissions.MODIFY_ACCESS_CONTROL;
         } else if (provider.getUserContext().definesProperty(parent, propertyState)
-                 && !provider.requiresJr2Permissions(Permissions.USER_MANAGEMENT)) {
+            && !provider.requiresJr2Permissions(Permissions.USER_MANAGEMENT)) {
             perm = Permissions.USER_MANAGEMENT;
         } else if (isIndexDefinition(parent)) {
             perm = Permissions.INDEX_DEFINITION_MANAGEMENT;
@@ -294,13 +305,14 @@ class PermissionValidator extends DefaultValidator {
     }
 
     private boolean noTraverse(long permission, long defaultPermission) {
-        if (defaultPermission == Permissions.REMOVE_NODE && provider.requiresJr2Permissions(Permissions.REMOVE_NODE)) {
+        if (defaultPermission == Permissions.REMOVE_NODE && provider.requiresJr2Permissions(
+            Permissions.REMOVE_NODE)) {
             return false;
         } else {
             return permission == Permissions.MODIFY_ACCESS_CONTROL ||
-                    permission == Permissions.VERSION_MANAGEMENT ||
-                    permission == Permissions.REMOVE_NODE ||
-                    defaultPermission == Permissions.REMOVE_NODE;
+                permission == Permissions.VERSION_MANAGEMENT ||
+                permission == Permissions.REMOVE_NODE ||
+                defaultPermission == Permissions.REMOVE_NODE;
         }
     }
 
@@ -313,12 +325,13 @@ class PermissionValidator extends DefaultValidator {
             return true;
         } else {
             return (JCR_CREATED.equals(name) || JCR_CREATEDBY.equals(name))
-                    && isCreated.test(parentNs);
+                && isCreated.test(parentNs);
         }
     }
 
     private boolean testUserPermission(@NotNull Tree tree) {
-        return provider.getUserContext().definesTree(tree) && !provider.requiresJr2Permissions(Permissions.USER_MANAGEMENT);
+        return provider.getUserContext().definesTree(tree) && !provider.requiresJr2Permissions(
+            Permissions.USER_MANAGEMENT);
     }
 
     private boolean testAccessControlPermission(@NotNull Tree tree) {
@@ -327,11 +340,12 @@ class PermissionValidator extends DefaultValidator {
 
     private boolean isVersionstorageTree(@NotNull Tree tree) {
         return permission == Permissions.VERSION_MANAGEMENT &&
-                VersionConstants.REP_VERSIONSTORAGE.equals(TreeUtil.getPrimaryTypeName(tree));
+            VersionConstants.REP_VERSIONSTORAGE.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
     @Nullable
-    private Tree getVersionHistoryTree(@NotNull Tree versionstorageTree) throws CommitFailedException {
+    private Tree getVersionHistoryTree(@NotNull Tree versionstorageTree)
+        throws CommitFailedException {
         Tree versionHistory = null;
         for (Tree child : versionstorageTree.getChildren()) {
             if (VersionConstants.NT_VERSIONHISTORY.equals(TreeUtil.getPrimaryTypeName(child))) {

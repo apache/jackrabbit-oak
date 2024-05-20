@@ -37,16 +37,17 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class SubtreePatternTest {
-    
+
     private static final String PATH = "/var/foo";
-    private static final List<String> SUBTREES = Arrays.asList("/a/path", "/only/the/subtree/", ".ext", "rel/path/");
+    private static final List<String> SUBTREES = Arrays.asList("/a/path", "/only/the/subtree/",
+        ".ext", "rel/path/");
     private final SubtreePattern pattern = new SubtreePattern(PATH, SUBTREES);
-    
+
     @Test
     public void testMatches() {
         assertFalse(pattern.matches());
     }
-    
+
     @Test
     public void testMatchesTree() {
         Tree tree = when(mock(Tree.class).getPath()).thenReturn("/var").getMock();
@@ -61,7 +62,7 @@ public class SubtreePatternTest {
         verify(prop).getName();
         verifyNoMoreInteractions(tree, prop);
     }
-    
+
     @Test
     public void testTargetMatch() {
         assertTrue(pattern.matches("/var/foo/a/path"));
@@ -76,7 +77,7 @@ public class SubtreePatternTest {
         assertTrue(pattern.matches("/var/foorel/path/something"));
         assertTrue(pattern.matches("/var/foo/any/rel/path/something"));
         assertTrue(pattern.matches("/var/foo/anyrel/path/something"));
-        
+
         assertFalse(pattern.matches("/vara/path"));
         assertFalse(pattern.matches("/var/foo/only/the/subtree"));
         assertFalse(pattern.matches("/var/foorel/path"));
@@ -84,13 +85,12 @@ public class SubtreePatternTest {
         assertFalse(pattern.matches("/var/foo/anyrel/path"));
         assertFalse(pattern.matches("/var/foo/any/rel/path"));
 
-
         assertFalse(pattern.matches("/"));
         assertFalse(pattern.matches("/etc/a/path"));
         assertFalse(pattern.matches("/var"));
         assertFalse(pattern.matches("/content.ext", false));
     }
-    
+
     @Test
     public void testSubtreeMatch() {
         assertTrue(pattern.matches("/var/foo/a/path/child"));
@@ -102,7 +102,7 @@ public class SubtreePatternTest {
         assertFalse(pattern.matches("/var/a/path/child"));
         assertFalse(pattern.matches("/vara/path/child"));
     }
-    
+
     @Test
     public void testEmptyValues() {
         SubtreePattern sp = new SubtreePattern(PATH, Collections.emptyList());
@@ -120,7 +120,7 @@ public class SubtreePatternTest {
         SubtreePattern sp = new SubtreePattern(PATH, Collections.singletonList(null));
         assertNoMatch(sp);
     }
-    
+
     private static void assertNoMatch(@NotNull SubtreePattern sp) {
         assertFalse(sp.matches("/"));
         assertFalse(sp.matches("/etc"));
@@ -134,8 +134,10 @@ public class SubtreePatternTest {
     public void testHashCode() {
         assertEquals(pattern.hashCode(), new SubtreePattern(PATH, SUBTREES).hashCode());
         assertNotEquals(pattern.hashCode(), new SubtreePattern("/var", SUBTREES).hashCode());
-        assertNotEquals(pattern.hashCode(), new SubtreePattern(PATH, SUBTREES.subList(0, 2)).hashCode());
-        assertNotEquals(pattern.hashCode(), new SubtreePattern("/var", Collections.emptyList()).hashCode());
+        assertNotEquals(pattern.hashCode(),
+            new SubtreePattern(PATH, SUBTREES.subList(0, 2)).hashCode());
+        assertNotEquals(pattern.hashCode(),
+            new SubtreePattern("/var", Collections.emptyList()).hashCode());
     }
 
     @Test
@@ -150,9 +152,11 @@ public class SubtreePatternTest {
         assertNotEquals(pattern, new SubtreePattern("/another/path", SUBTREES));
         // different set of subtrees
         assertNotEquals(pattern, new SubtreePattern(PATH, Collections.emptyList()));
-        assertNotEquals(pattern, new SubtreePattern(PATH, Collections.singleton("/some/other/subtree")));
+        assertNotEquals(pattern,
+            new SubtreePattern(PATH, Collections.singleton("/some/other/subtree")));
         assertNotEquals(pattern, new SubtreePattern(PATH, SUBTREES.subList(0, 2)));
-        assertNotEquals(pattern, new SubtreePattern(PATH, Lists.asList("/subtree/", SUBTREES.toArray(new String[0]))));
+        assertNotEquals(pattern,
+            new SubtreePattern(PATH, Lists.asList("/subtree/", SUBTREES.toArray(new String[0]))));
         // different restrictions
         assertNotEquals(pattern, new ItemNamePattern(ImmutableSet.of("a", "b")));
         assertNotEquals(pattern, new PrefixPattern(ImmutableSet.of("a", "b", "c")));

@@ -90,7 +90,8 @@ public class UserMonitorImplTest {
         assertTimerOnly(35, 64, timer, meter);
     }
 
-    private static void assertTimerOnly(long timeDeclaredOnly, long timeInherited, @NotNull TimerStats timer, @NotNull MeterStats meter) {
+    private static void assertTimerOnly(long timeDeclaredOnly, long timeInherited,
+        @NotNull TimerStats timer, @NotNull MeterStats meter) {
         verify(timer, times(1)).update(timeDeclaredOnly, NANOSECONDS);
         verify(timer, times(1)).update(timeInherited, NANOSECONDS);
         verify(timer, times(2)).update(anyLong(), any(TimeUnit.class));
@@ -112,8 +113,9 @@ public class UserMonitorImplTest {
         verifyNoMoreInteractions(meter, timer);
     }
 
-    private static void assertUpdateStats(long time, long total, long failed, @NotNull TimerStats timer, @NotNull MeterStats meter) {
-        long succeeded = total-failed;
+    private static void assertUpdateStats(long time, long total, long failed,
+        @NotNull TimerStats timer, @NotNull MeterStats meter) {
+        long succeeded = total - failed;
         verify(meter, times(1)).mark(succeeded);
         verify(meter, times(1)).mark(failed);
         verify(timer, times(1)).update(time, NANOSECONDS);

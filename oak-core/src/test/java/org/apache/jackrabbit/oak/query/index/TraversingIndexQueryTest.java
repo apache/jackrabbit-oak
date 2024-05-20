@@ -40,8 +40,7 @@ import org.junit.Test;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 /**
- * Tests the query engine using the default index implementation: the
- * {@link TraversingIndex}
+ * Tests the query engine using the default index implementation: the {@link TraversingIndex}
  */
 public class TraversingIndexQueryTest extends AbstractQueryTest {
 
@@ -66,12 +65,12 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
     @Test
     @Ignore("OAK-2050")
     public void testFullTextTerm() throws Exception {
-        //OAK-1024 allow '/' in a full-text query 
+        //OAK-1024 allow '/' in a full-text query
         Tree node = root.getTree("/").addChild("content");
         node.setProperty("jcr:mimeType", "text/plain");
         root.commit();
         assertQuery("//*[jcr:contains(., 'text/plain')]", "xpath",
-                ImmutableList.of("/content"));
+            ImmutableList.of("/content"));
     }
 
     @Test
@@ -82,11 +81,11 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
         c.addChild("testFullTextTermNameFile.txt");
         root.commit();
         assertQuery("//*[jcr:contains(., 'testFullTextTermNameSimple')]",
-                "xpath",
-                ImmutableList.of("/content/testFullTextTermNameSimple"));
+            "xpath",
+            ImmutableList.of("/content/testFullTextTermNameSimple"));
         assertQuery("//*[jcr:contains(., 'testFullTextTermNameFile.txt')]",
-                "xpath",
-                ImmutableList.of("/content/testFullTextTermNameFile.txt"));
+            "xpath",
+            ImmutableList.of("/content/testFullTextTermNameFile.txt"));
     }
 
     @Test
@@ -95,13 +94,13 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
 
         c.addChild("one").setProperty("prop", "value");
         c.addChild("two").setProperty("prop",
-                ImmutableList.of("aaa", "value", "bbb"), Type.STRINGS);
+            ImmutableList.of("aaa", "value", "bbb"), Type.STRINGS);
         c.addChild("three").setProperty("prop",
-                ImmutableList.of("aaa", "bbb", "ccc"), Type.STRINGS);
+            ImmutableList.of("aaa", "bbb", "ccc"), Type.STRINGS);
         root.commit();
 
         assertQuery("//*[@prop != 'value']", "xpath",
-                ImmutableList.of("/content/two", "/content/three"));
+            ImmutableList.of("/content/two", "/content/three"));
     }
 
     @Test
@@ -110,13 +109,13 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
 
         c.addChild("one").setProperty("prop", "aaa");
         c.addChild("two").setProperty("prop",
-                ImmutableList.of("aaa", "bbb", "ccc"), Type.STRINGS);
+            ImmutableList.of("aaa", "bbb", "ccc"), Type.STRINGS);
         c.addChild("three").setProperty("prop", ImmutableList.of("aaa", "bbb"),
-                Type.STRINGS);
+            Type.STRINGS);
         root.commit();
 
         assertQuery("//*[(@prop = 'aaa' and @prop = 'bbb' and @prop = 'ccc')]",
-                "xpath", ImmutableList.of("/content/two"));
+            "xpath", ImmutableList.of("/content/two"));
     }
 
     @Test
@@ -125,13 +124,14 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
 
         c.addChild("one").setProperty("prop", "aaaBoom");
         c.addChild("two").setProperty("prop",
-                ImmutableList.of("aaaBoom", "bbbBoom", "cccBoom"), Type.STRINGS);
+            ImmutableList.of("aaaBoom", "bbbBoom", "cccBoom"), Type.STRINGS);
         c.addChild("three").setProperty("prop", ImmutableList.of("aaaBoom", "bbbBoom"),
-                Type.STRINGS);
+            Type.STRINGS);
         root.commit();
 
-        assertQuery("//*[(jcr:like(@prop, 'aaa%') and jcr:like(@prop, 'bbb%') and jcr:like(@prop, 'ccc%'))]",
-                "xpath", ImmutableList.of("/content/two"));
+        assertQuery(
+            "//*[(jcr:like(@prop, 'aaa%') and jcr:like(@prop, 'bbb%') and jcr:like(@prop, 'ccc%'))]",
+            "xpath", ImmutableList.of("/content/two"));
     }
 
     @Test
@@ -140,18 +140,18 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
 
         c.addChild("one").addChild("child").setProperty("prop", "aaa");
         c.addChild("two")
-                .addChild("child")
-                .setProperty("prop", ImmutableList.of("aaa", "bbb", "ccc"),
-                        Type.STRINGS);
+         .addChild("child")
+         .setProperty("prop", ImmutableList.of("aaa", "bbb", "ccc"),
+             Type.STRINGS);
         c.addChild("three")
-                .addChild("child")
-                .setProperty("prop", ImmutableList.of("aaa", "bbb"),
-                        Type.STRINGS);
+         .addChild("child")
+         .setProperty("prop", ImmutableList.of("aaa", "bbb"),
+             Type.STRINGS);
         root.commit();
 
         assertQuery(
-                "//*[(child/@prop = 'aaa' and child/@prop = 'bbb' and child/@prop = 'ccc')]",
-                "xpath", ImmutableList.of("/content/two"));
+            "//*[(child/@prop = 'aaa' and child/@prop = 'bbb' and child/@prop = 'ccc')]",
+            "xpath", ImmutableList.of("/content/two"));
     }
 
     @Test
@@ -160,24 +160,24 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
 
         c.addChild("one").addChild("child").setProperty("prop", "aaaBoom");
         c.addChild("two")
-                .addChild("child")
-                .setProperty("prop", ImmutableList.of("aaaBoom", "bbbBoom", "cccBoom"),
-                        Type.STRINGS);
+         .addChild("child")
+         .setProperty("prop", ImmutableList.of("aaaBoom", "bbbBoom", "cccBoom"),
+             Type.STRINGS);
         c.addChild("three")
-                .addChild("child")
-                .setProperty("prop", ImmutableList.of("aaaBoom", "bbbBoom"),
-                        Type.STRINGS);
+         .addChild("child")
+         .setProperty("prop", ImmutableList.of("aaaBoom", "bbbBoom"),
+             Type.STRINGS);
         root.commit();
 
         assertQuery(
-                "//*[(jcr:like(child/@prop, 'aaa%') and jcr:like(child/@prop, 'bbb%') and jcr:like(child/@prop, 'ccc%'))]",
-                "xpath", ImmutableList.of("/content/two"));
+            "//*[(jcr:like(child/@prop, 'aaa%') and jcr:like(child/@prop, 'bbb%') and jcr:like(child/@prop, 'ccc%'))]",
+            "xpath", ImmutableList.of("/content/two"));
     }
 
     @Test
     public void testOak1301() throws Exception {
         Tree t1 = root.getTree("/").addChild("home").addChild("users")
-                .addChild("testing").addChild("socialgraph_test_user_4");
+                      .addChild("testing").addChild("socialgraph_test_user_4");
         t1.setProperty("jcr:primaryType", "rep:User");
         t1.setProperty("rep:authorizableId", "socialgraph_test_user_4");
 
@@ -195,17 +195,17 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
         sg.setProperty("id", "socialgraph_test_group");
 
         Tree t2 = root.getTree("/").addChild("home").addChild("groups")
-                .addChild("testing").addChild("socialgraph_test_group");
+                      .addChild("testing").addChild("socialgraph_test_group");
         root.commit();
 
         // select [jcr:path], [jcr:score], * from [nt:base] as a where [id/*] =
         // 'socialgraph_test_group' and isdescendantnode(a, '/home') /* xpath:
         // /jcr:root/home//*[id='socialgraph_test_group'] */
         assertQuery(
-                "/jcr:root/home//*[@id='socialgraph_test_group']",
-                "xpath",
-                ImmutableList
-                        .of("/home/users/testing/socialgraph_test_user_4/social/relationships/friend/socialgraph_test_group"));
+            "/jcr:root/home//*[@id='socialgraph_test_group']",
+            "xpath",
+            ImmutableList
+                .of("/home/users/testing/socialgraph_test_user_4/social/relationships/friend/socialgraph_test_group"));
 
         // sql2 select c.[jcr:path] as [jcr:path], c.[jcr:score] as [jcr:score],
         // c.* from [nt:base] as a inner join [nt:base] as b on ischildnode(b,
@@ -215,36 +215,36 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
         // /jcr:root/home//social/relationships//*[id='socialgraph_test_group']
         // */
         assertQuery(
-                "/jcr:root/home//social/relationships//*[@id='socialgraph_test_group']",
-                "xpath",
-                ImmutableList
-                        .of("/home/users/testing/socialgraph_test_user_4/social/relationships/friend/socialgraph_test_group"));
+            "/jcr:root/home//social/relationships//*[@id='socialgraph_test_group']",
+            "xpath",
+            ImmutableList
+                .of("/home/users/testing/socialgraph_test_user_4/social/relationships/friend/socialgraph_test_group"));
 
     }
 
     @Test
     public void testRelativeProperties() throws Exception {
         root.getTree("/").addChild("content").addChild("node1")
-                .setProperty("prop", 128);
+            .setProperty("prop", 128);
         root.commit();
 
         assertQuery("//*[(@prop > 1)]", "xpath",
-                ImmutableList.of("/content/node1"));
+            ImmutableList.of("/content/node1"));
         assertQuery("//*[(@prop > 2)]", "xpath",
-                ImmutableList.of("/content/node1"));
+            ImmutableList.of("/content/node1"));
         assertQuery("//*[(@prop > 20)]", "xpath",
-                ImmutableList.of("/content/node1"));
+            ImmutableList.of("/content/node1"));
         assertQuery("//*[(@prop > 100)]", "xpath",
-                ImmutableList.of("/content/node1"));
+            ImmutableList.of("/content/node1"));
         assertQuery("//*[(@prop > 200)]", "xpath", new ArrayList<String>());
         assertQuery("//*[(@prop > 1000)]", "xpath", new ArrayList<String>());
 
         assertQuery("//*[(*/@prop > 1)]", "xpath", ImmutableList.of("/content"));
         assertQuery("//*[(*/@prop > 2)]", "xpath", ImmutableList.of("/content"));
         assertQuery("//*[(*/@prop > 20)]", "xpath",
-                ImmutableList.of("/content"));
+            ImmutableList.of("/content"));
         assertQuery("//*[(*/@prop > 100)]", "xpath",
-                ImmutableList.of("/content"));
+            ImmutableList.of("/content"));
         assertQuery("//*[(*/@prop > 200)]", "xpath", new ArrayList<String>());
         assertQuery("//*[(*/@prop > 1000)]", "xpath", new ArrayList<String>());
     }
@@ -271,49 +271,50 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
         root.commit();
 
         assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop >= 9)]", "xpath",
-                ImmutableList.of("/content/nodes/a"));
+            ImmutableList.of("/content/nodes/a"));
 
         assertQuery(
-                "/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 9)]",
-                "xpath", ImmutableList.of("/content/nodes/a"));
+            "/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 9)]",
+            "xpath", ImmutableList.of("/content/nodes/a"));
 
         assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop >= 10)]", "xpath",
-                ImmutableList.of("/content/nodes/a"));
+            ImmutableList.of("/content/nodes/a"));
         assertQuery(
-                "/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 10)]",
-                "xpath", ImmutableList.of("/content/nodes/a"));
+            "/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 10)]",
+            "xpath", ImmutableList.of("/content/nodes/a"));
 
         assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop >= 15)]", "xpath",
-                ImmutableList.of("/content/nodes/a"));
+            ImmutableList.of("/content/nodes/a"));
         assertQuery(
-                "/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 15)]",
-                "xpath", ImmutableList.of("/content/nodes/a"));
+            "/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 15)]",
+            "xpath", ImmutableList.of("/content/nodes/a"));
 
         assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop >= 20)]", "xpath",
-                ImmutableList.of("/content/nodes/a"));
+            ImmutableList.of("/content/nodes/a"));
         assertQuery(
-                "/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 20)]",
-                "xpath", ImmutableList.of("/content/nodes/a"));
+            "/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 20)]",
+            "xpath", ImmutableList.of("/content/nodes/a"));
 
         assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop >= 30)]", "xpath",
-                ImmutableList.of("/content/nodes/a"));
+            ImmutableList.of("/content/nodes/a"));
         assertQuery(
-                "/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 30)]",
-                "xpath", ImmutableList.of("/content/nodes/a"));
+            "/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 30)]",
+            "xpath", ImmutableList.of("/content/nodes/a"));
     }
-    
+
     /**
-     * tests range queries, long comparisons and relative properties 
-     * @throws CommitFailedException 
+     * tests range queries, long comparisons and relative properties
+     *
+     * @throws CommitFailedException
      */
     @Test // OAK-2062
     public void testRangeRelativeProperties() throws CommitFailedException {
         final List<String> emptyList = new ArrayList<String>();
         final String property = "prop";
         Tree contentNodes, t;
-        
+
         contentNodes = root.getTree("/").addChild("content").addChild("nodes");
-        
+
         /* creating content structure
          * content : {
          *   nodes : {
@@ -355,7 +356,7 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
          *     },
          *   }
          * }
-         * 
+         *
          */
         t = addNtUnstructuredChild(contentNodes, "a9", null, null);
         t = addNtUnstructuredChild(t, "b", null, null);
@@ -375,7 +376,7 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
         t = addNtUnstructuredChild(t, "d30", property, 30L);
 
         root.commit();
-        
+
         assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop >= 9)]", "xpath",
             of("/content/nodes/a9", "/content/nodes/a10", "/content/nodes/a20",
                 "/content/nodes/a30"));
@@ -397,7 +398,7 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
         assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop <= 30)]", "xpath",
             of("/content/nodes/a9", "/content/nodes/a10", "/content/nodes/a20",
                 "/content/nodes/a30"));
-        
+
         assertQuery(
             "/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 9)]",
             "xpath",
@@ -431,30 +432,30 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
      * adds a child of type {@link JcrConstants#NT_UNSTRUCTURED} under the provided {@code parent}
      * with the provided {@code name} and an optional {@code propertyName} and {@code value}. If
      * either {@code propertyName} or {@code value} are null the property won't be set.
-     * 
+     *
      * @param parent
      * @param name
      * @param propertyName
      * @param value
      * @return
      */
-    private static Tree addNtUnstructuredChild(@NotNull final Tree parent, 
-                                               @NotNull final String name, 
-                                               @Nullable final String propertyName, 
-                                               @Nullable final Long value) {
+    private static Tree addNtUnstructuredChild(@NotNull final Tree parent,
+        @NotNull final String name,
+        @Nullable final String propertyName,
+        @Nullable final Long value) {
         checkNotNull(parent);
         checkNotNull(name);
-        
+
         Tree ret = parent.addChild(name);
         ret.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);
-        
+
         if (propertyName != null && value != null) {
             ret.setProperty(propertyName, value, LONG);
         }
-        
+
         return ret;
     }
-    
+
     @Test
     public void testMultipleRelativeProperties() throws Exception {
         Tree content = root.getTree("/").addChild("content");
@@ -511,7 +512,7 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
         content.setProperty("array", Arrays.asList("X", "Y"), Type.STRINGS);
         root.commit();
         assertQuery("//*[jcr:like(fn:lower-case(@array), '%x%')]", "xpath",
-                Arrays.asList("/content"));
+            Arrays.asList("/content"));
     }
 
 }

@@ -46,8 +46,8 @@ import org.junit.Test;
 import static org.junit.Assert.assertNotNull;
 
 /**
- * This test validates if Oak initialization works fine with custom QueryIndexProvider
- * and none of the initializers rely on some hard coded index types
+ * This test validates if Oak initialization works fine with custom QueryIndexProvider and none of
+ * the initializers rely on some hard coded index types
  */
 public class CustomQueryIndexProviderTest extends AbstractSecurityTest {
 
@@ -62,11 +62,12 @@ public class CustomQueryIndexProviderTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void initWentFine() throws Exception{
+    public void initWentFine() throws Exception {
         assertNotNull(root);
     }
 
     private class UUIDIndexReplacementInitializer implements RepositoryInitializer {
+
         @Override
         public void initialize(@NotNull NodeBuilder builder) {
             builder.child("oak:index").child("uuid").setProperty("type", TEST_INDEX);
@@ -74,20 +75,23 @@ public class CustomQueryIndexProviderTest extends AbstractSecurityTest {
     }
 
     private static class TestIndexEditor implements IndexEditorProvider {
+
         @Nullable
         @Override
         public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
-                                     @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
-                throws CommitFailedException {
+            @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
+            throws CommitFailedException {
             if (TEST_INDEX.equals(type)) {
                 PropertyIndexEditorProvider piep = new PropertyIndexEditorProvider();
-                return piep.getIndexEditor(PropertyIndexEditorProvider.TYPE, definition, root, callback);
+                return piep.getIndexEditor(PropertyIndexEditorProvider.TYPE, definition, root,
+                    callback);
             }
             return null;
         }
     }
 
     private static class TestQueryProvider implements QueryIndexProvider {
+
         @NotNull
         @Override
         public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
@@ -116,10 +120,12 @@ public class CustomQueryIndexProviderTest extends AbstractSecurityTest {
             if (pr != null) {
                 NodeBuilder nb = rootState.builder();
                 //Fake the index type by reverting to "property" for final evaluation
-                nb.child("oak:index").child("uuid").setProperty("type", PropertyIndexEditorProvider.TYPE);
+                nb.child("oak:index").child("uuid")
+                  .setProperty("type", PropertyIndexEditorProvider.TYPE);
                 rootState = nb.getNodeState();
                 PropertyIndexLookup pil = new PropertyIndexLookup(rootState);
-                return Cursors.newPathCursor(pil.query(filter, "jcr:uuid", pr.first), new QueryEngineSettings());
+                return Cursors.newPathCursor(pil.query(filter, "jcr:uuid", pr.first),
+                    new QueryEngineSettings());
             }
             return null;
         }

@@ -25,20 +25,19 @@ class Selector {
      * The selector name.
      */
     String name;
-    
+
     /**
      * Whether this is the only selector in the query.
      */
     boolean onlySelector;
-    
+
     /**
      * The node type, if set, or null.
      */
     String nodeType;
-    
+
     /**
-     * Whether this is a child node of the previous selector or a given path.
-     * Examples:
+     * Whether this is a child node of the previous selector or a given path. Examples:
      * <ul><li>/jcr:root/*
      * </li><li>/jcr:root/test/*
      * </li><li>/jcr:root/element()
@@ -46,19 +45,17 @@ class Selector {
      * </li></ul>
      */
     boolean isChild;
-    
+
     /**
-     * Whether this is a parent node of the previous selector or given path.
-     * Examples:
+     * Whether this is a parent node of the previous selector or given path. Examples:
      * <ul><li>testroot//child/..[@foo1]
      * </li><li>/jcr:root/test/descendant/..[@test]
      * </li></ul>
      */
     boolean isParent;
-    
+
     /**
-     * Whether this is a descendant of the previous selector or a given path.
-     * Examples:
+     * Whether this is a descendant of the previous selector or a given path. Examples:
      * <ul><li>/jcr:root//descendant
      * </li><li>/jcr:root/test//descendant
      * </li><li>/jcr:root[@x]
@@ -66,27 +63,27 @@ class Selector {
      * </li></ul>
      */
     boolean isDescendant;
-    
+
     /**
      * The path (only used for the first selector).
      */
     String path = "";
-    
+
     /**
      * The node name, if set.
      */
     String nodeName;
-    
+
     /**
      * The condition for this selector.
      */
     Expression condition;
-    
+
     /**
      * The join condition from the previous selector.
      */
     Expression joinCondition;
-    
+
     public Selector() {
     }
 
@@ -102,5 +99,5 @@ class Selector {
         this.condition = s.condition;
         this.joinCondition = s.joinCondition;
     }
-    
+
 }

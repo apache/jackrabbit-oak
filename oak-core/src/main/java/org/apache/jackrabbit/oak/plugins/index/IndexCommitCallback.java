@@ -20,13 +20,13 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 /**
- * Implementations of this interface can be notified of progress of
- * commit that would update the index. e.g. {@link AsyncIndexUpdate}
- * notifies {@link IndexUpdate} about how commit progresses, which,
- * in turn notifies registered callbacks (via
+ * Implementations of this interface can be notified of progress of commit that would update the
+ * index. e.g. {@link AsyncIndexUpdate} notifies {@link IndexUpdate} about how commit progresses,
+ * which, in turn notifies registered callbacks (via
  * {@link IndexingContext#registerIndexCommitCallback}).
  */
 public interface IndexCommitCallback {
+
     void commitProgress(IndexProgress indexProgress);
 
     enum IndexProgress {

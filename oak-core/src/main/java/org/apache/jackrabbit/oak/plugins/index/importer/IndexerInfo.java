@@ -32,32 +32,28 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgumen
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
- * Represents the index data created by oak-run tooling on the file system.
- * It looks for 'indexer-info.properties' file in given directory to read the
- * check point information.
- *
- * Then for each sub directory it looks for 'index-details.txt' file
- * which contains index specific implementation details. It looks for
- * property 'indexPath' which is used to associate the index data to
- * index location in repository
+ * Represents the index data created by oak-run tooling on the file system. It looks for
+ * 'indexer-info.properties' file in given directory to read the check point information.
+ * <p>
+ * Then for each sub directory it looks for 'index-details.txt' file which contains index specific
+ * implementation details. It looks for property 'indexPath' which is used to associate the index
+ * data to index location in repository
  */
 public class IndexerInfo {
+
     /**
-     * File name stored in final index directory which contains meta
-     * information like checkpoint details. This can be used by
-     * importer while importing the indexes
+     * File name stored in final index directory which contains meta information like checkpoint
+     * details. This can be used by importer while importing the indexes
      */
     public static final String INDEXER_META = "indexer-info.properties";
 
     /**
-     * Name of meta file which stores the index related meta information
-     * in properties file format
+     * Name of meta file which stores the index related meta information in properties file format
      */
     public static final String INDEX_METADATA_FILE_NAME = "index-details.txt";
 
     /**
-     * Property name in index-details.txt which refers to the
-     * index path in repository
+     * Property name in index-details.txt which refers to the index path in repository
      */
     public static final String PROP_INDEX_PATH = "indexPath";
 
@@ -94,11 +90,11 @@ public class IndexerInfo {
     public static IndexerInfo fromDirectory(File rootDir) throws IOException {
         File infoFile = new File(rootDir, INDEXER_META);
         checkArgument(infoFile.exists(), "No [%s] file found in [%s]. Not a valid exported index " +
-                "directory", INDEXER_META, rootDir.getAbsolutePath());
+            "directory", INDEXER_META, rootDir.getAbsolutePath());
         Properties p = PropUtils.loadFromFile(infoFile);
         return new IndexerInfo(
-                rootDir,
-                PropUtils.getProp(p, "checkpoint")
+            rootDir,
+            PropUtils.getProp(p, "checkpoint")
         );
     }
 }

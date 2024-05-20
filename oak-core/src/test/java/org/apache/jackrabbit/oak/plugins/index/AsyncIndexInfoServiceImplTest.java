@@ -45,7 +45,7 @@ public class AsyncIndexInfoServiceImplTest {
     private AsyncIndexInfoServiceImpl service = new AsyncIndexInfoServiceImpl(store);
 
     @Test
-    public void names() throws Exception{
+    public void names() throws Exception {
         AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
         async.run();
 
@@ -60,7 +60,7 @@ public class AsyncIndexInfoServiceImplTest {
     }
 
     @Test
-    public void info() throws Exception{
+    public void info() throws Exception {
         AsyncIndexUpdate async = new AsyncIndexUpdate("foo-async", store, provider);
         async.run();
 
@@ -85,7 +85,7 @@ public class AsyncIndexInfoServiceImplTest {
     }
 
     @Test
-    public void indexedUpto() throws Exception{
+    public void indexedUpto() throws Exception {
         AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
         async.run();
 
@@ -100,7 +100,7 @@ public class AsyncIndexInfoServiceImplTest {
     }
 
     @Test
-    public void asyncStateChanged() throws Exception{
+    public void asyncStateChanged() throws Exception {
         AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
         async.run();
 

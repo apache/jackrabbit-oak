@@ -42,7 +42,8 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
  *     this workspace.</li>
  * </ul>.
  */
-class AuthorizationInitializer implements WorkspaceInitializer, AccessControlConstants, PermissionConstants {
+class AuthorizationInitializer implements WorkspaceInitializer, AccessControlConstants,
+    PermissionConstants {
 
     private final MountInfoProvider mountInfoProvider;
 
@@ -55,25 +56,32 @@ class AuthorizationInitializer implements WorkspaceInitializer, AccessControlCon
         // property index for rep:principalName stored in ACEs
         NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
         if (!index.hasChildNode("acPrincipalName")) {
-            NodeBuilder acPrincipalName = IndexUtils.createIndexDefinition(index, "acPrincipalName", true, false,
-                    ImmutableList.<String>of(REP_PRINCIPAL_NAME),
-                    ImmutableList.<String>of(NT_REP_DENY_ACE, NT_REP_GRANT_ACE, NT_REP_ACE));
-            acPrincipalName.setProperty("info", "Oak index used by authorization to quickly search a principal by name.");
+            NodeBuilder acPrincipalName = IndexUtils.createIndexDefinition(index, "acPrincipalName",
+                true, false,
+                ImmutableList.<String>of(REP_PRINCIPAL_NAME),
+                ImmutableList.<String>of(NT_REP_DENY_ACE, NT_REP_GRANT_ACE, NT_REP_ACE));
+            acPrincipalName.setProperty("info",
+                "Oak index used by authorization to quickly search a principal by name.");
         }
 
         // create the permission store and the root for this workspace.
         NodeBuilder permissionStore =
-                builder.child(JCR_SYSTEM).child(REP_PERMISSION_STORE);
+            builder.child(JCR_SYSTEM).child(REP_PERMISSION_STORE);
         if (!permissionStore.hasProperty(JCR_PRIMARYTYPE)) {
             permissionStore.setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
         }
         if (!permissionStore.hasChildNode(workspaceName)) {
-            permissionStore.child(workspaceName).setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
+            permissionStore.child(workspaceName)
+                           .setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE,
+                               Type.NAME);
         }
         for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
-            String permissionRootName =  MountPermissionProvider.getPermissionRootName(m, workspaceName);
+            String permissionRootName = MountPermissionProvider.getPermissionRootName(m,
+                workspaceName);
             if (!permissionStore.hasChildNode(permissionRootName)) {
-                permissionStore.child(permissionRootName).setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
+                permissionStore.child(permissionRootName)
+                               .setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE,
+                                   Type.NAME);
             }
         }
     }

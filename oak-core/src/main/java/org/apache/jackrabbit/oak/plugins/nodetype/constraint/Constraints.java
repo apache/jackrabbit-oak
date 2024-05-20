@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class Constraints {
+
     private static final Logger log = LoggerFactory.getLogger(Constraints.class);
 
     private Constraints() {

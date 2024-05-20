@@ -49,11 +49,13 @@ public class AuthenticationConfigurationImplOSGiTest extends AbstractSecurityTes
 
     @Test
     public void testGetParameters() {
-        context.registerInjectActivateService(authenticationConfiguration, ConfigurationParameters.of(PARAM_APP_NAME, "name"));
+        context.registerInjectActivateService(authenticationConfiguration,
+            ConfigurationParameters.of(PARAM_APP_NAME, "name"));
 
         ConfigurationParameters expected = ConfigurationParameters.of(
-                PARAM_APP_NAME, "name",
-                Constants.SERVICE_PID, authenticationConfiguration.getClass().getName());
-        assertTrue(Maps.difference(expected, authenticationConfiguration.getParameters()).areEqual());
+            PARAM_APP_NAME, "name",
+            Constants.SERVICE_PID, authenticationConfiguration.getClass().getName());
+        assertTrue(
+            Maps.difference(expected, authenticationConfiguration.getParameters()).areEqual());
     }
 }

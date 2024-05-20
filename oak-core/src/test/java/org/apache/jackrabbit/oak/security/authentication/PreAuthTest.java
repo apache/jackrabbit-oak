@@ -65,7 +65,8 @@ public class PreAuthTest extends AbstractSecurityTest {
 
     @Test
     public void testValidSubject() throws Exception {
-        final Subject subject = new Subject(true, principals, Collections.<Object>emptySet(), Collections.<Object>emptySet());
+        final Subject subject = new Subject(true, principals, Collections.<Object>emptySet(),
+            Collections.<Object>emptySet());
         ContentSession cs = Subject.doAsPrivileged(subject, new PrivilegedAction<ContentSession>() {
             @Override
             public @Nullable ContentSession run() {
@@ -91,8 +92,10 @@ public class PreAuthTest extends AbstractSecurityTest {
 
     @Test
     public void testValidSubjectWithCredentials() throws Exception {
-        Set<SimpleCredentials> publicCreds = Collections.singleton(new SimpleCredentials("testUserId", new char[0]));
-        final Subject subject = new Subject(false, principals, publicCreds, Collections.<Object>emptySet());
+        Set<SimpleCredentials> publicCreds = Collections.singleton(
+            new SimpleCredentials("testUserId", new char[0]));
+        final Subject subject = new Subject(false, principals, publicCreds,
+            Collections.<Object>emptySet());
         ContentSession cs = Subject.doAsPrivileged(subject, new PrivilegedAction<ContentSession>() {
             @Override
             public @Nullable ContentSession run() {
@@ -118,8 +121,10 @@ public class PreAuthTest extends AbstractSecurityTest {
 
     @Test
     public void testValidReadSubjectWithCredentials() throws Exception {
-        Set<SimpleCredentials> publicCreds = Collections.singleton(new SimpleCredentials("testUserId", new char[0]));
-        final Subject subject = new Subject(true, principals, publicCreds, Collections.<Object>emptySet());
+        Set<SimpleCredentials> publicCreds = Collections.singleton(
+            new SimpleCredentials("testUserId", new char[0]));
+        final Subject subject = new Subject(true, principals, publicCreds,
+            Collections.<Object>emptySet());
         ContentSession cs = Subject.doAsPrivileged(subject, new PrivilegedAction<ContentSession>() {
             @Override
             public @Nullable ContentSession run() {
@@ -145,9 +150,11 @@ public class PreAuthTest extends AbstractSecurityTest {
 
     @Test
     public void testValidSubjectWithAuthInfo() throws Exception {
-        AuthInfo info = new AuthInfoImpl("testUserId", Collections.<String, Object>emptyMap(), Collections.<Principal>emptySet());
+        AuthInfo info = new AuthInfoImpl("testUserId", Collections.<String, Object>emptyMap(),
+            Collections.<Principal>emptySet());
         Set<AuthInfo> publicCreds = Collections.singleton(info);
-        final Subject subject = new Subject(false, Collections.singleton(new TestPrincipal()), publicCreds, Collections.<Object>emptySet());
+        final Subject subject = new Subject(false, Collections.singleton(new TestPrincipal()),
+            publicCreds, Collections.<Object>emptySet());
         ContentSession cs = Subject.doAsPrivileged(subject, new PrivilegedAction<ContentSession>() {
             @Override
             public @Nullable ContentSession run() {
@@ -170,7 +177,8 @@ public class PreAuthTest extends AbstractSecurityTest {
 
     @Test
     public void testSubjectAndCredentials() throws Exception {
-        final Subject subject = new Subject(true, principals, Collections.<Object>emptySet(), Collections.<Object>emptySet());
+        final Subject subject = new Subject(true, principals, Collections.<Object>emptySet(),
+            Collections.<Object>emptySet());
         ContentSession cs = Subject.doAsPrivileged(subject, new PrivilegedAction<ContentSession>() {
             @Override
             public @Nullable ContentSession run() {
@@ -204,16 +212,17 @@ public class PreAuthTest extends AbstractSecurityTest {
 
     @Test
     public void testSystemSubject() throws Exception {
-        ContentSession cs = Subject.doAsPrivileged(SystemSubject.INSTANCE, new PrivilegedAction<ContentSession>() {
-            @Override
-            public @Nullable ContentSession run() {
-                try {
-                    return login(null);
-                } catch (Exception e) {
-                    return null;
+        ContentSession cs = Subject.doAsPrivileged(SystemSubject.INSTANCE,
+            new PrivilegedAction<ContentSession>() {
+                @Override
+                public @Nullable ContentSession run() {
+                    try {
+                        return login(null);
+                    } catch (Exception e) {
+                        return null;
+                    }
                 }
-            }
-        }, null);
+            }, null);
 
         try {
             AuthInfo authInfo = cs.getAuthInfo();

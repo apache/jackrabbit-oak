@@ -130,7 +130,8 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     }
 
     @NotNull
-    private CallbackHandler createCallbackHandler(@Nullable ContentRepository repository, @Nullable SecurityProvider securityProvider) {
+    private CallbackHandler createCallbackHandler(@Nullable ContentRepository repository,
+        @Nullable SecurityProvider securityProvider) {
         return callbacks -> {
             for (Callback callback : callbacks) {
                 if (callback instanceof RepositoryCallback) {
@@ -147,16 +148,18 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     }
 
     @NotNull
-    private CallbackHandler createCallbackHandler(@NotNull UserAuthenticationFactory authenticationFactory) {
+    private CallbackHandler createCallbackHandler(
+        @NotNull UserAuthenticationFactory authenticationFactory) {
         ConfigurationParameters params = ConfigurationParameters.of(
-                UserConfiguration.NAME,
-                ConfigurationParameters.of(
-                        UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, authenticationFactory));
+            UserConfiguration.NAME,
+            ConfigurationParameters.of(
+                UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, authenticationFactory));
         SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(params).build();
         return createCallbackHandler(getContentRepository(), sp);
     }
 
-    private LoginModuleImpl createLoginModule(@NotNull Subject subject, @Nullable CallbackHandler cbh, @NotNull Map<String, ?> sharedState) {
+    private LoginModuleImpl createLoginModule(@NotNull Subject subject,
+        @Nullable CallbackHandler cbh, @NotNull Map<String, ?> sharedState) {
         LoginModuleImpl lm = new LoginModuleImpl();
         lm.initialize(subject, cbh, sharedState, Maps.newHashMap());
         return lm;
@@ -190,7 +193,8 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         assertFalse(root.getTree(anonymous.getPath()).hasProperty(UserConstants.REP_PASSWORD));
 
         try (ContentSession cs = login(new SimpleCredentials(anonymousID, new char[0]))) {
-            fail("Login with anonymousID should fail since the initial setup doesn't provide a password.");
+            fail(
+                "Login with anonymousID should fail since the initial setup doesn't provide a password.");
         }
     }
 
@@ -206,7 +210,8 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     @Test
     public void testAuthInfoContainsUserId() throws Exception {
         createTestUser();
-        try (ContentSession cs = login(new SimpleCredentials(USER_ID_CASED, USER_PW.toCharArray()))) {
+        try (ContentSession cs = login(
+            new SimpleCredentials(USER_ID_CASED, USER_PW.toCharArray()))) {
             AuthInfo authInfo = cs.getAuthInfo();
             assertEquals(user.getID(), authInfo.getUserID());
         }
@@ -215,7 +220,8 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     @Test
     public void testUserLoginIsCaseInsensitive() throws Exception {
         createTestUser();
-        try (ContentSession cs = login(new SimpleCredentials(USER_ID_CASED, USER_PW.toCharArray()))) {
+        try (ContentSession cs = login(
+            new SimpleCredentials(USER_ID_CASED, USER_PW.toCharArray()))) {
             AuthInfo authInfo = cs.getAuthInfo();
             UserManager userMgr = getUserManager(root);
             Authorizable auth = userMgr.getAuthorizable(authInfo.getUserID());
@@ -227,7 +233,8 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     @Test
     public void testUserLoginIsCaseInsensitive2() throws Exception {
         createTestUser();
-        try (ContentSession cs = login(new SimpleCredentials(USER_ID_CASED, USER_PW.toCharArray()))) {
+        try (ContentSession cs = login(
+            new SimpleCredentials(USER_ID_CASED, USER_PW.toCharArray()))) {
             AuthInfo authInfo = cs.getAuthInfo();
             assertEquals(user.getID(), authInfo.getUserID());
             assertTrue(USER_ID_CASED.equalsIgnoreCase(authInfo.getUserID()));
@@ -267,7 +274,8 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
             assertEquals(USER_ID, authInfo.getUserID());
         }
 
-        ConfigurationParameters config = securityProvider.getConfiguration(UserConfiguration.class).getParameters();
+        ConfigurationParameters config = securityProvider.getConfiguration(UserConfiguration.class)
+                                                         .getParameters();
         String adminId = UserUtil.getAdminId(config);
         SimpleCredentials sc = new SimpleCredentials(adminId, new char[0]);
         ImpersonationCredentials ic = new ImpersonationCredentials(sc, authInfo);
@@ -278,11 +286,11 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testLoginWithAttributes( ) throws Exception {
+    public void testLoginWithAttributes() throws Exception {
         createTestUser();
         SimpleCredentials sc = new SimpleCredentials(USER_ID, USER_PW.toCharArray());
         sc.setAttribute("attr", "value");
-        try (ContentSession cs = login(sc)){
+        try (ContentSession cs = login(sc)) {
             AuthInfo authInfo = cs.getAuthInfo();
             assertTrue(Arrays.asList(authInfo.getAttributeNames()).contains("attr"));
             assertEquals("value", authInfo.getAttribute("attr"));
@@ -310,7 +318,8 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     @Test(expected = LoginException.class)
     public void testImpersonationWithUnsupportedBaseCredentials() throws Exception {
         Credentials baseCredentials = mock(Credentials.class);
-        ImpersonationCredentials ic = new ImpersonationCredentials(baseCredentials, new AuthInfoImpl(USER_ID, null, null));
+        ImpersonationCredentials ic = new ImpersonationCredentials(baseCredentials,
+            new AuthInfoImpl(USER_ID, null, null));
         try (ContentSession cs = login(ic)) {
             fail("Base credentials of ImpersonationCredentials can only be SimpleCredentials.");
         }
@@ -323,7 +332,8 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         Credentials credentials = new SimpleCredentials(USER_ID, "wrongPw".toCharArray());
         HashMap<String, Object> shared = Maps.newHashMap();
         shared.put(SHARED_KEY_CREDENTIALS, credentials);
-        LoginModuleImpl lm = createLoginModule(new Subject(), createCallbackHandler(getContentRepository(), getSecurityProvider()), shared);
+        LoginModuleImpl lm = createLoginModule(new Subject(),
+            createCallbackHandler(getContentRepository(), getSecurityProvider()), shared);
         try {
             lm.login();
         } finally {
@@ -348,7 +358,8 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
             }
         };
 
-        Subject subject = new Subject(false, ImmutableSet.of(), ImmutableSet.of(unsupportedCredentials), ImmutableSet.of());
+        Subject subject = new Subject(false, ImmutableSet.of(),
+            ImmutableSet.of(unsupportedCredentials), ImmutableSet.of());
         LoginModuleImpl lm = createLoginModule(subject, cbh, Maps.newHashMap());
         assertFalse(lm.login());
 
@@ -358,25 +369,32 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     @Test
     public void testLoginPreAuthenticated() throws Exception {
         User testUser = getTestUser();
-        Set<? extends Principal> principals = getConfig(PrincipalConfiguration.class).getPrincipalProvider(root, NamePathMapper.DEFAULT).getPrincipals(testUser.getID());
+        Set<? extends Principal> principals = getConfig(
+            PrincipalConfiguration.class).getPrincipalProvider(root, NamePathMapper.DEFAULT)
+                                         .getPrincipals(testUser.getID());
 
         Authentication authentication = mock(Authentication.class);
         when(authentication.authenticate(any(Credentials.class))).thenReturn(true).getMock();
-        when(authentication.getUserId()).thenReturn(testUser.getID()); // but getUserPrincipal returns null
+        when(authentication.getUserId()).thenReturn(
+            testUser.getID()); // but getUserPrincipal returns null
 
         Principal foreignPrincipal = new PrincipalImpl("foreign");
 
-        UserAuthenticationFactory uaf = when(mock(UserAuthenticationFactory.class).getAuthentication(any(UserConfiguration.class), any(Root.class), anyString())).thenReturn(authentication).getMock();
+        UserAuthenticationFactory uaf = when(
+            mock(UserAuthenticationFactory.class).getAuthentication(any(UserConfiguration.class),
+                any(Root.class), anyString())).thenReturn(authentication).getMock();
         Map<String, Object> sharedState = Maps.newHashMap();
         sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin("uid"));
 
-        Subject subject = new Subject(false, ImmutableSet.of(foreignPrincipal), ImmutableSet.of(), ImmutableSet.of());
+        Subject subject = new Subject(false, ImmutableSet.of(foreignPrincipal), ImmutableSet.of(),
+            ImmutableSet.of());
         LoginModuleImpl lm = createLoginModule(subject, createCallbackHandler(uaf), sharedState);
         assertTrue(lm.login());
         assertTrue(lm.commit());
 
         // verify subject has been updated with test-user principals
-        Set<Principal> expected = new ImmutableSet.Builder().add(foreignPrincipal).addAll(principals).build();
+        Set<Principal> expected = new ImmutableSet.Builder().add(foreignPrincipal)
+                                                            .addAll(principals).build();
         assertEquals(expected, subject.getPrincipals());
         // no other public credentials than the AuthInfo
         assertEquals(1, subject.getPublicCredentials().size());
@@ -400,8 +418,12 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
 
     @Test
     public void testLoginPreAuthenticatedWithReadOnlySubject() throws Exception {
-        Authentication authentication = when(mock(Authentication.class).authenticate(any(Credentials.class))).thenReturn(true).getMock();
-        UserAuthenticationFactory uaf = when(mock(UserAuthenticationFactory.class).getAuthentication(any(UserConfiguration.class), any(Root.class), anyString())).thenReturn(authentication).getMock();
+        Authentication authentication = when(
+            mock(Authentication.class).authenticate(any(Credentials.class))).thenReturn(true)
+                                                                            .getMock();
+        UserAuthenticationFactory uaf = when(
+            mock(UserAuthenticationFactory.class).getAuthentication(any(UserConfiguration.class),
+                any(Root.class), anyString())).thenReturn(authentication).getMock();
 
         Map<String, Object> sharedState = Maps.newHashMap();
         sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin("uid"));
@@ -424,13 +446,17 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     @Test(expected = LoginException.class)
     public void testLoginPreAuthenticatedFails() throws Exception {
         LoginException le = new LoginException();
-        Authentication authentication = when(mock(Authentication.class).authenticate(PreAuthenticatedLogin.PRE_AUTHENTICATED)).thenThrow(le).getMock();
-        UserAuthenticationFactory uaf = when(mock(UserAuthenticationFactory.class).getAuthentication(any(UserConfiguration.class), any(Root.class), anyString())).thenReturn(authentication).getMock();
+        Authentication authentication = when(mock(Authentication.class).authenticate(
+            PreAuthenticatedLogin.PRE_AUTHENTICATED)).thenThrow(le).getMock();
+        UserAuthenticationFactory uaf = when(
+            mock(UserAuthenticationFactory.class).getAuthentication(any(UserConfiguration.class),
+                any(Root.class), anyString())).thenReturn(authentication).getMock();
 
         Map<String, Object> sharedState = Maps.newHashMap();
         sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin("uid"));
 
-        LoginModuleImpl lm = createLoginModule(new Subject(), createCallbackHandler(uaf), sharedState);
+        LoginModuleImpl lm = createLoginModule(new Subject(), createCallbackHandler(uaf),
+            sharedState);
         try {
             lm.login();
         } finally {
@@ -445,9 +471,11 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         sharedState.put(SHARED_KEY_CREDENTIALS, getAdminCredentials());
 
         Principal unknownPrincipal = new PrincipalImpl("unknown");
-        Subject subject = new Subject(true, Collections.singleton(unknownPrincipal), Collections.emptySet(), Collections.emptySet());
+        Subject subject = new Subject(true, Collections.singleton(unknownPrincipal),
+            Collections.emptySet(), Collections.emptySet());
 
-        LoginModuleImpl lm = createLoginModule(subject, createCallbackHandler(new UserAuthenticationFactoryImpl()), sharedState);
+        LoginModuleImpl lm = createLoginModule(subject,
+            createCallbackHandler(new UserAuthenticationFactoryImpl()), sharedState);
 
         assertTrue(lm.login());
         assertTrue(lm.commit());
@@ -478,8 +506,11 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
 
     @Test
     public void testMissingUserAuthenticationFactory() throws Exception {
-        UserConfiguration uc = when(mock(UserConfiguration.class).getParameters()).thenReturn(ConfigurationParameters.EMPTY).getMock();
-        SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(UserConfiguration.class)).thenReturn(uc).getMock();
+        UserConfiguration uc = when(mock(UserConfiguration.class).getParameters()).thenReturn(
+            ConfigurationParameters.EMPTY).getMock();
+        SecurityProvider sp = when(
+            mock(SecurityProvider.class).getConfiguration(UserConfiguration.class)).thenReturn(uc)
+                                                                                   .getMock();
         CallbackHandler cbh = createCallbackHandler(getContentRepository(), sp);
 
         LoginModuleImpl loginModule = createLoginModule(new Subject(), cbh, Maps.newHashMap());
@@ -495,7 +526,9 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     public void testMissingSecurityProviderGuestLogin() throws Exception {
         CallbackHandler cbh = createCallbackHandler(getContentRepository(), null);
 
-        LoginModuleImpl loginModule = createLoginModule(new Subject(false, ImmutableSet.of(), ImmutableSet.of(new GuestCredentials()), ImmutableSet.of()), cbh, Maps.newHashMap());
+        LoginModuleImpl loginModule = createLoginModule(
+            new Subject(false, ImmutableSet.of(), ImmutableSet.of(new GuestCredentials()),
+                ImmutableSet.of()), cbh, Maps.newHashMap());
 
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
@@ -588,7 +621,8 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
 
         CallbackHandler cbh = createCallbackHandler(factory);
         SimpleCredentials creds = new SimpleCredentials("loginId", new char[0]);
-        Subject subject = new Subject(false, Sets.newHashSet(), ImmutableSet.of(creds), Sets.newHashSet());
+        Subject subject = new Subject(false, Sets.newHashSet(), ImmutableSet.of(creds),
+            Sets.newHashSet());
 
         LoginModuleImpl loginModule = createLoginModule(subject, cbh, Maps.newHashMap());
         assertTrue(loginModule.login());
@@ -628,7 +662,8 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         };
 
         CallbackHandler cbh = createCallbackHandler(factory);
-        Subject subject = new Subject(false, Sets.newHashSet(), ImmutableSet.of(), Sets.newHashSet());
+        Subject subject = new Subject(false, Sets.newHashSet(), ImmutableSet.of(),
+            Sets.newHashSet());
 
         LoginModuleImpl loginModule = createLoginModule(subject, cbh, Maps.newHashMap());
         assertTrue(loginModule.login());
@@ -649,12 +684,15 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     @Test
     public void testCommitReadOnlySubject() throws Exception {
         Principal principal = new PrincipalImpl("subjetPrincipal");
-        Subject subject = new Subject(true, ImmutableSet.of(principal), ImmutableSet.of(), ImmutableSet.of());
+        Subject subject = new Subject(true, ImmutableSet.of(principal), ImmutableSet.of(),
+            ImmutableSet.of());
 
         Map<String, Object> shared = Maps.newHashMap();
-        shared.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new SimpleCredentials(getTestUser().getID(), getTestUser().getID().toCharArray()));
+        shared.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS,
+            new SimpleCredentials(getTestUser().getID(), getTestUser().getID().toCharArray()));
 
-        LoginModuleImpl loginModule = createLoginModule(subject, createCallbackHandler(new UserAuthenticationFactoryImpl()), shared);
+        LoginModuleImpl loginModule = createLoginModule(subject,
+            createCallbackHandler(new UserAuthenticationFactoryImpl()), shared);
 
         assertTrue(loginModule.login());
         assertTrue(loginModule.commit());
@@ -674,12 +712,13 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     @Test
     public void testLoginLogoutPreexistingReadonlySubject() throws Exception {
         createTestUser();
-        Subject subject = new Subject(true, Collections.singleton(() -> "JMXPrincipal: foo"), Collections.EMPTY_SET, Collections.EMPTY_SET);
+        Subject subject = new Subject(true, Collections.singleton(() -> "JMXPrincipal: foo"),
+            Collections.EMPTY_SET, Collections.EMPTY_SET);
         Subject.doAs(subject, (PrivilegedExceptionAction<Void>) () -> {
             LogCustomizer logCustomizer = LogCustomizer
-                    .forLogger("org.apache.jackrabbit.oak.core.ContentSessionImpl")
-                    .enable(Level.ERROR)
-                    .create();
+                .forLogger("org.apache.jackrabbit.oak.core.ContentSessionImpl")
+                .enable(Level.ERROR)
+                .create();
 
             ContentSession cs = login(new SimpleCredentials(USER_ID, USER_PW.toCharArray()));
             try {

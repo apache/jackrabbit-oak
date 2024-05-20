@@ -35,20 +35,21 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Test implementation of the {@code AggregatedPermissionProvider} with following
- * characteristics:
- *
- * This provider supports all permissions
- * but only grants {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions#NAMESPACE_MANAGEMENT} on repository level
- * and {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions#READ_NODE} on regular items.
- *
- * In this case the provider will always be respected for evaluation and will
- * therefore cause the final result to be always restricted to the permissions
- * granted by this provider.
- *
- * NOTE: this provider implementation doesn't properly filter out access
- * control content for which {@link Permissions#READ_ACCESS_CONTROL} must be
- * enforced. this has been omitted here for the simplicity of the test.
+ * Test implementation of the {@code AggregatedPermissionProvider} with following characteristics:
+ * <p>
+ * This provider supports all permissions but only grants
+ * {@link
+ * org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions#NAMESPACE_MANAGEMENT}
+ * on repository level and
+ * {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions#READ_NODE} on
+ * regular items.
+ * <p>
+ * In this case the provider will always be respected for evaluation and will therefore cause the
+ * final result to be always restricted to the permissions granted by this provider.
+ * <p>
+ * NOTE: this provider implementation doesn't properly filter out access control content for which
+ * {@link Permissions#READ_ACCESS_CONTROL} must be enforced. this has been omitted here for the
+ * simplicity of the test.
  */
 class FullScopeProvider extends AbstractAggrProvider implements PrivilegeConstants {
 
@@ -90,12 +91,14 @@ class FullScopeProvider extends AbstractAggrProvider implements PrivilegeConstan
 
     @NotNull
     @Override
-    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree,
+        @NotNull TreePermission parentPermission) {
         return new TestTreePermission(tree.getPath());
     }
 
     @Override
-    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
+    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property,
+        long permissions) {
         return property == null && permissions == Permissions.READ_NODE;
     }
 
@@ -124,7 +127,8 @@ class FullScopeProvider extends AbstractAggrProvider implements PrivilegeConstan
 
         @NotNull
         @Override
-        public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
+        public TreePermission getChildPermission(@NotNull String childName,
+            @NotNull NodeState childState) {
             return new TestTreePermission(PathUtils.concat(path, childName));
         }
 

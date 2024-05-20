@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.query;
 
 import java.net.URI;
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
@@ -33,12 +32,13 @@ public class ValueConverter {
 
     private static final Logger log = LoggerFactory.getLogger(ValueConverter.class);
 
-    private ValueConverter() {}
+    private ValueConverter() {
+    }
 
     public static boolean canConvert(int sourceType, int targetType) {
         if (sourceType == targetType ||
-                sourceType == PropertyType.UNDEFINED ||
-                targetType == PropertyType.UNDEFINED) {
+            sourceType == PropertyType.UNDEFINED ||
+            targetType == PropertyType.UNDEFINED) {
             return true;
         }
         switch (targetType) {
@@ -70,24 +70,25 @@ public class ValueConverter {
                 break;
         }
         if (sourceType == PropertyType.STRING ||
-                sourceType == PropertyType.BINARY) {
+            sourceType == PropertyType.BINARY) {
             return true;
         }
         return false;
     }
 
     /**
-     * Converts the given value to a value of the specified target type. The
-     * conversion is performed according to the rules described in
-     * "3.6.4 Property Type Conversion" in the JCR 2.0 specification.
+     * Converts the given value to a value of the specified target type. The conversion is performed
+     * according to the rules described in "3.6.4 Property Type Conversion" in the JCR 2.0
+     * specification.
      *
-     * @param value the value to convert
+     * @param value      the value to convert
      * @param targetType the target property type
-     * @param mapper the name mapper or {@code null} if no name/path mapping is required.
+     * @param mapper     the name mapper or {@code null} if no name/path mapping is required.
      * @return the converted value
      * @throws IllegalArgumentException if mapping is illegal
      */
-    public static PropertyValue convert(@NotNull PropertyValue value, int targetType, @Nullable NamePathMapper mapper) {
+    public static PropertyValue convert(@NotNull PropertyValue value, int targetType,
+        @Nullable NamePathMapper mapper) {
         int sourceType = value.getType().tag();
         if (sourceType == targetType) {
             return value;
@@ -123,7 +124,7 @@ public class ValueConverter {
                         if (uri.isAbsolute()) {
                             // uri contains scheme
                             throw new IllegalArgumentException(
-                                    "Failed to convert URI " + v + " to PATH");
+                                "Failed to convert URI " + v + " to PATH");
                         }
                         String p = uri.getPath();
                         if (p.startsWith("./")) {
@@ -145,7 +146,7 @@ public class ValueConverter {
                         if (uri.isAbsolute()) {
                             // uri contains scheme
                             throw new IllegalArgumentException(
-                                    "Failed to convert URI " + v + " to PATH");
+                                "Failed to convert URI " + v + " to PATH");
                         }
                         String p = uri.getPath();
                         if (p.startsWith("./")) {
@@ -184,10 +185,10 @@ public class ValueConverter {
                 }
         }
         throw new IllegalArgumentException(
-                "Unsupported conversion from property type " +
-                        PropertyType.nameFromValue(sourceType) +
-                        " to property type " +
-                        PropertyType.nameFromValue(targetType));
+            "Unsupported conversion from property type " +
+                PropertyType.nameFromValue(sourceType) +
+                " to property type " +
+                PropertyType.nameFromValue(targetType));
     }
 
     private static String getOakPath(@NotNull String jcrPath, @Nullable NamePathMapper mapper) {
@@ -198,7 +199,7 @@ public class ValueConverter {
         String p = mapper.getOakPath(jcrPath);
         if (p == null) {
             throw new IllegalArgumentException("Not a valid JCR path: "
-                    + jcrPath);
+                + jcrPath);
         }
         return p;
     }

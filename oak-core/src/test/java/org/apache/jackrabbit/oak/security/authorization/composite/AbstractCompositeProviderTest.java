@@ -57,7 +57,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest implements NodeTypeConstants, PrivilegeConstants {
+public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest implements
+    NodeTypeConstants, PrivilegeConstants {
 
     static final String ROOT_PATH = PathUtils.ROOT_PATH;
     static final String TEST_PATH = "/test";
@@ -69,26 +70,28 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
 
     static final String TEST_PATH_2 = "/test2";
 
-    static final List<String> NODE_PATHS = ImmutableList.of(ROOT_PATH, TEST_PATH, TEST_PATH_2, TEST_CHILD_PATH, TEST_A_PATH, TEST_A_B_PATH, TEST_A_B_C_PATH, TEST_A_B2_PATH);
-    static final List<String> TP_PATHS = ImmutableList.of(ROOT_PATH, TEST_PATH, TEST_A_PATH, TEST_A_B_PATH, TEST_A_B_C_PATH, TEST_A_B_C_PATH + "/nonexisting");
+    static final List<String> NODE_PATHS = ImmutableList.of(ROOT_PATH, TEST_PATH, TEST_PATH_2,
+        TEST_CHILD_PATH, TEST_A_PATH, TEST_A_B_PATH, TEST_A_B_C_PATH, TEST_A_B2_PATH);
+    static final List<String> TP_PATHS = ImmutableList.of(ROOT_PATH, TEST_PATH, TEST_A_PATH,
+        TEST_A_B_PATH, TEST_A_B_C_PATH, TEST_A_B_C_PATH + "/nonexisting");
 
     static final PropertyState PROPERTY_STATE = PropertyStates.createProperty("propName", "val");
 
-    static final String[] ALL_ACTIONS = new String[] {
-            Session.ACTION_READ,
-            Session.ACTION_ADD_NODE,
-            JackrabbitSession.ACTION_REMOVE_NODE,
-            Session.ACTION_SET_PROPERTY,
-            JackrabbitSession.ACTION_ADD_PROPERTY,
-            JackrabbitSession.ACTION_MODIFY_PROPERTY,
-            JackrabbitSession.ACTION_REMOVE_PROPERTY,
-            Session.ACTION_REMOVE,
-            JackrabbitSession.ACTION_READ_ACCESS_CONTROL,
-            JackrabbitSession.ACTION_MODIFY_ACCESS_CONTROL,
-            JackrabbitSession.ACTION_LOCKING,
-            JackrabbitSession.ACTION_NODE_TYPE_MANAGEMENT,
-            JackrabbitSession.ACTION_VERSIONING,
-            JackrabbitSession.ACTION_USER_MANAGEMENT
+    static final String[] ALL_ACTIONS = new String[]{
+        Session.ACTION_READ,
+        Session.ACTION_ADD_NODE,
+        JackrabbitSession.ACTION_REMOVE_NODE,
+        Session.ACTION_SET_PROPERTY,
+        JackrabbitSession.ACTION_ADD_PROPERTY,
+        JackrabbitSession.ACTION_MODIFY_PROPERTY,
+        JackrabbitSession.ACTION_REMOVE_PROPERTY,
+        Session.ACTION_REMOVE,
+        JackrabbitSession.ACTION_READ_ACCESS_CONTROL,
+        JackrabbitSession.ACTION_MODIFY_ACCESS_CONTROL,
+        JackrabbitSession.ACTION_LOCKING,
+        JackrabbitSession.ACTION_NODE_TYPE_MANAGEMENT,
+        JackrabbitSession.ACTION_VERSIONING,
+        JackrabbitSession.ACTION_USER_MANAGEMENT
     };
 
     Map<String, Long> defPermissions;
@@ -117,59 +120,96 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
         root.commit();
 
         defPermissions = ImmutableMap.<String, Long>builder().
-                put(TEST_PATH, Permissions.READ).
-                put(TEST_CHILD_PATH,
-                        Permissions.READ |
-                        Permissions.READ_ACCESS_CONTROL).
-                put(TEST_A_PATH,
-                        Permissions.READ |
-                        Permissions.SET_PROPERTY |
-                        Permissions.MODIFY_CHILD_NODE_COLLECTION |
-                        Permissions.VERSION_MANAGEMENT).
-                put(TEST_A_B2_PATH,
-                        Permissions.READ |
-                        Permissions.WRITE |
-                        Permissions.MODIFY_CHILD_NODE_COLLECTION |
-                        Permissions.VERSION_MANAGEMENT).
-                put(TEST_A_B_PATH,
-                        Permissions.READ |
-                        Permissions.ADD_NODE |
-                        Permissions.ADD_PROPERTY |
-                        Permissions.MODIFY_PROPERTY |
-                        Permissions.MODIFY_CHILD_NODE_COLLECTION |
-                        Permissions.VERSION_MANAGEMENT).
-                put(TEST_A_B_C_PATH,
-                        Permissions.READ_PROPERTY |
-                        Permissions.ADD_NODE |
-                        Permissions.ADD_PROPERTY |
-                        Permissions.MODIFY_PROPERTY |
-                        Permissions.MODIFY_CHILD_NODE_COLLECTION |
-                        Permissions.VERSION_MANAGEMENT).
-                build();
+                                     put(TEST_PATH, Permissions.READ).
+                                     put(TEST_CHILD_PATH,
+                                         Permissions.READ |
+                                             Permissions.READ_ACCESS_CONTROL).
+                                     put(TEST_A_PATH,
+                                         Permissions.READ |
+                                             Permissions.SET_PROPERTY |
+                                             Permissions.MODIFY_CHILD_NODE_COLLECTION |
+                                             Permissions.VERSION_MANAGEMENT).
+                                     put(TEST_A_B2_PATH,
+                                         Permissions.READ |
+                                             Permissions.WRITE |
+                                             Permissions.MODIFY_CHILD_NODE_COLLECTION |
+                                             Permissions.VERSION_MANAGEMENT).
+                                     put(TEST_A_B_PATH,
+                                         Permissions.READ |
+                                             Permissions.ADD_NODE |
+                                             Permissions.ADD_PROPERTY |
+                                             Permissions.MODIFY_PROPERTY |
+                                             Permissions.MODIFY_CHILD_NODE_COLLECTION |
+                                             Permissions.VERSION_MANAGEMENT).
+                                     put(TEST_A_B_C_PATH,
+                                         Permissions.READ_PROPERTY |
+                                             Permissions.ADD_NODE |
+                                             Permissions.ADD_PROPERTY |
+                                             Permissions.MODIFY_PROPERTY |
+                                             Permissions.MODIFY_CHILD_NODE_COLLECTION |
+                                             Permissions.VERSION_MANAGEMENT).
+                                     build();
         defPrivileges = ImmutableMap.<String, Set<String>>builder().
-                put(ROOT_PATH, ImmutableSet.of()).
-                put(TEST_PATH_2, ImmutableSet.of()).
-                put(TEST_PATH, ImmutableSet.of(JCR_READ)).
-                put(TEST_CHILD_PATH, ImmutableSet.of(JCR_READ, JCR_READ_ACCESS_CONTROL)).
-                put(TEST_A_PATH, ImmutableSet.of(JCR_READ, JCR_WRITE, JCR_VERSION_MANAGEMENT)).
-                put(TEST_A_B2_PATH, ImmutableSet.of(JCR_READ, JCR_WRITE, JCR_VERSION_MANAGEMENT)).
-                put(TEST_A_B_PATH, ImmutableSet.of(JCR_READ, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, JCR_VERSION_MANAGEMENT)).
-                put(TEST_A_B_C_PATH, ImmutableSet.of(REP_READ_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, JCR_VERSION_MANAGEMENT)).
-                build();
+                                    put(ROOT_PATH, ImmutableSet.of()).
+                                    put(TEST_PATH_2, ImmutableSet.of()).
+                                    put(TEST_PATH, ImmutableSet.of(JCR_READ)).
+                                    put(TEST_CHILD_PATH,
+                                        ImmutableSet.of(JCR_READ, JCR_READ_ACCESS_CONTROL)).
+                                    put(TEST_A_PATH, ImmutableSet.of(JCR_READ, JCR_WRITE,
+                                        JCR_VERSION_MANAGEMENT)).
+                                    put(TEST_A_B2_PATH, ImmutableSet.of(JCR_READ, JCR_WRITE,
+                                        JCR_VERSION_MANAGEMENT)).
+                                    put(TEST_A_B_PATH,
+                                        ImmutableSet.of(JCR_READ, JCR_ADD_CHILD_NODES,
+                                            JCR_REMOVE_CHILD_NODES, REP_ADD_PROPERTIES,
+                                            REP_ALTER_PROPERTIES, JCR_VERSION_MANAGEMENT)).
+                                    put(TEST_A_B_C_PATH,
+                                        ImmutableSet.of(REP_READ_PROPERTIES, JCR_ADD_CHILD_NODES,
+                                            JCR_REMOVE_CHILD_NODES, REP_ADD_PROPERTIES,
+                                            REP_ALTER_PROPERTIES, JCR_VERSION_MANAGEMENT)).
+                                    build();
 
         defActionsGranted = ImmutableMap.<String, String[]>builder().
-                put(TEST_PATH, new String[] {Session.ACTION_READ}).
-                put(TEST_CHILD_PATH, new String[] {Session.ACTION_READ, JackrabbitSession.ACTION_READ_ACCESS_CONTROL}).
-                put(TEST_A_PATH, new String[] {Session.ACTION_READ, Session.ACTION_SET_PROPERTY, JackrabbitSession.ACTION_VERSIONING}).
-                put(TEST_A_PATH + "/jcr:primaryType", new String[] {Session.ACTION_SET_PROPERTY, JackrabbitSession.ACTION_VERSIONING}).
-                put(TEST_A_PATH + "/propName", new String[] {JackrabbitSession.ACTION_ADD_PROPERTY, JackrabbitSession.ACTION_MODIFY_PROPERTY, JackrabbitSession.ACTION_REMOVE_PROPERTY, JackrabbitSession.ACTION_VERSIONING}).
-                put(TEST_A_PATH + "/nodeName", new String[] {Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_VERSIONING}).
-                put(TEST_A_B2_PATH, new String[] {Session.ACTION_READ, Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_REMOVE_NODE, Session.ACTION_REMOVE, Session.ACTION_SET_PROPERTY, JackrabbitSession.ACTION_VERSIONING}).
-                put(TEST_A_B_PATH, new String[] {Session.ACTION_READ, Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_ADD_PROPERTY, JackrabbitSession.ACTION_MODIFY_PROPERTY, JackrabbitSession.ACTION_VERSIONING}).
-                put(TEST_A_B_PATH + "/nonExisting", new String[] {Session.ACTION_READ, Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_ADD_PROPERTY, JackrabbitSession.ACTION_MODIFY_PROPERTY, JackrabbitSession.ACTION_VERSIONING}).
-                put(TEST_A_B_C_PATH + "/jcr:primaryType",  new String[] {Session.ACTION_READ, JackrabbitSession.ACTION_VERSIONING}).
-                put(TEST_A_B_C_PATH,  new String[] {Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_ADD_PROPERTY, JackrabbitSession.ACTION_VERSIONING}).
-                build();
+                                        put(TEST_PATH, new String[]{Session.ACTION_READ}).
+                                        put(TEST_CHILD_PATH, new String[]{Session.ACTION_READ,
+                                            JackrabbitSession.ACTION_READ_ACCESS_CONTROL}).
+                                        put(TEST_A_PATH, new String[]{Session.ACTION_READ,
+                                            Session.ACTION_SET_PROPERTY,
+                                            JackrabbitSession.ACTION_VERSIONING}).
+                                        put(TEST_A_PATH + "/jcr:primaryType",
+                                            new String[]{Session.ACTION_SET_PROPERTY,
+                                                JackrabbitSession.ACTION_VERSIONING}).
+                                        put(TEST_A_PATH + "/propName",
+                                            new String[]{JackrabbitSession.ACTION_ADD_PROPERTY,
+                                                JackrabbitSession.ACTION_MODIFY_PROPERTY,
+                                                JackrabbitSession.ACTION_REMOVE_PROPERTY,
+                                                JackrabbitSession.ACTION_VERSIONING}).
+                                        put(TEST_A_PATH + "/nodeName",
+                                            new String[]{Session.ACTION_ADD_NODE,
+                                                JackrabbitSession.ACTION_VERSIONING}).
+                                        put(TEST_A_B2_PATH, new String[]{Session.ACTION_READ,
+                                            Session.ACTION_ADD_NODE,
+                                            JackrabbitSession.ACTION_REMOVE_NODE,
+                                            Session.ACTION_REMOVE, Session.ACTION_SET_PROPERTY,
+                                            JackrabbitSession.ACTION_VERSIONING}).
+                                        put(TEST_A_B_PATH, new String[]{Session.ACTION_READ,
+                                            Session.ACTION_ADD_NODE,
+                                            JackrabbitSession.ACTION_ADD_PROPERTY,
+                                            JackrabbitSession.ACTION_MODIFY_PROPERTY,
+                                            JackrabbitSession.ACTION_VERSIONING}).
+                                        put(TEST_A_B_PATH + "/nonExisting",
+                                            new String[]{Session.ACTION_READ,
+                                                Session.ACTION_ADD_NODE,
+                                                JackrabbitSession.ACTION_ADD_PROPERTY,
+                                                JackrabbitSession.ACTION_MODIFY_PROPERTY,
+                                                JackrabbitSession.ACTION_VERSIONING}).
+                                        put(TEST_A_B_C_PATH + "/jcr:primaryType",
+                                            new String[]{Session.ACTION_READ,
+                                                JackrabbitSession.ACTION_VERSIONING}).
+                                        put(TEST_A_B_C_PATH, new String[]{Session.ACTION_ADD_NODE,
+                                            JackrabbitSession.ACTION_ADD_PROPERTY,
+                                            JackrabbitSession.ACTION_VERSIONING}).
+                                        build();
 
         readOnlyRoot = getRootProvider().createReadOnlyRoot(root);
     }
@@ -184,7 +224,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
             super.after();
         }
     }
-    
+
     static void setupTestContent(@NotNull Root root) throws Exception {
         Tree rootNode = root.getTree("/");
 
@@ -200,20 +240,22 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     }
 
     private static void allow(@NotNull AccessControlManager acMgr,
-                      @NotNull Principal principal,
-                      @Nullable String path,
-                      @NotNull String... privilegeNames) throws Exception {
+        @NotNull Principal principal,
+        @Nullable String path,
+        @NotNull String... privilegeNames) throws Exception {
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
-        acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), true);
+        acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames),
+            true);
         acMgr.setPolicy(acl.getPath(), acl);
     }
 
     private static void deny(@NotNull AccessControlManager acMgr,
-                     @NotNull Principal principal,
-                     @Nullable String path,
-                     @NotNull String... privilegeNames) throws Exception {
+        @NotNull Principal principal,
+        @Nullable String path,
+        @NotNull String... privilegeNames) throws Exception {
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
-        acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), false);
+        acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames),
+            false);
         acMgr.setPolicy(acl.getPath(), acl);
     }
 
@@ -223,7 +265,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     }
 
     static void assertCompositeTreePermission(@NotNull TreePermission tp) {
-        assertTrue(tp.getClass()+ "", tp instanceof CompositeTreePermission);
+        assertTrue(tp.getClass() + "", tp instanceof CompositeTreePermission);
     }
 
     static void assertCompositeTreePermission(boolean expected, @NotNull TreePermission tp) {
@@ -237,11 +279,12 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     }
 
     List<AggregatedPermissionProvider> getAggregatedProviders(@NotNull String workspaceName,
-                                                              @NotNull AuthorizationConfiguration config,
-                                                              @NotNull Set<Principal> principals) {
+        @NotNull AuthorizationConfiguration config,
+        @NotNull Set<Principal> principals) {
         ImmutableList<AggregatedPermissionProvider> l = ImmutableList.of(
-                    (AggregatedPermissionProvider) config.getPermissionProvider(root, workspaceName, principals),
-                    getTestPermissionProvider());
+            (AggregatedPermissionProvider) config.getPermissionProvider(root, workspaceName,
+                principals),
+            getTestPermissionProvider());
         if (reverseOrder()) {
             return l.reverse();
         } else {
@@ -256,8 +299,9 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     CompositePermissionProvider createPermissionProvider(Set<Principal> principals) {
         String workspaceName = root.getContentSession().getWorkspaceName();
         AuthorizationConfiguration config = getConfig(AuthorizationConfiguration.class);
-        return new CompositePermissionProviderAnd(root, getAggregatedProviders(workspaceName, config, principals),
-                config.getContext(), getRootProvider(), getTreeProvider());
+        return new CompositePermissionProviderAnd(root,
+            getAggregatedProviders(workspaceName, config, principals),
+            config.getContext(), getRootProvider(), getTreeProvider());
     }
 
     CompositePermissionProvider createPermissionProviderOR(Principal... principals) {
@@ -267,14 +311,15 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     CompositePermissionProvider createPermissionProviderOR(Set<Principal> principals) {
         String workspaceName = root.getContentSession().getWorkspaceName();
         AuthorizationConfiguration config = getConfig(AuthorizationConfiguration.class);
-        return new CompositePermissionProviderOr(root, getAggregatedProviders(workspaceName, config, principals),
-                config.getContext(), getRootProvider(), getTreeProvider());
+        return new CompositePermissionProviderOr(root,
+            getAggregatedProviders(workspaceName, config, principals),
+            config.getContext(), getRootProvider(), getTreeProvider());
     }
 
     @Test
     public void testRefresh() {
-         createPermissionProvider().refresh();
-         createPermissionProviderOR().refresh();
+        createPermissionProvider().refresh();
+        createPermissionProviderOR().refresh();
     }
 
     @Test
@@ -332,9 +377,11 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
             PropertyState ps = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE);
 
             assertFalse(p, pp.isGranted(tree, null, Permissions.ALL));
-            assertFalse(PathUtils.concat(p, JcrConstants.JCR_PRIMARYTYPE), pp.isGranted(tree, ps, Permissions.ALL));
+            assertFalse(PathUtils.concat(p, JcrConstants.JCR_PRIMARYTYPE),
+                pp.isGranted(tree, ps, Permissions.ALL));
             assertFalse(p, ppo.isGranted(tree, null, Permissions.ALL));
-            assertFalse(PathUtils.concat(p, JcrConstants.JCR_PRIMARYTYPE), ppo.isGranted(tree, ps, Permissions.ALL));
+            assertFalse(PathUtils.concat(p, JcrConstants.JCR_PRIMARYTYPE),
+                ppo.isGranted(tree, ps, Permissions.ALL));
         }
     }
 
@@ -348,9 +395,11 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
             PropertyState ps = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE);
 
             assertFalse(p, pp.isGranted(tree, null, Permissions.NO_PERMISSION));
-            assertFalse(PathUtils.concat(p, JcrConstants.JCR_PRIMARYTYPE), pp.isGranted(tree, ps, Permissions.NO_PERMISSION));
+            assertFalse(PathUtils.concat(p, JcrConstants.JCR_PRIMARYTYPE),
+                pp.isGranted(tree, ps, Permissions.NO_PERMISSION));
             assertFalse(p, ppo.isGranted(tree, null, Permissions.NO_PERMISSION));
-            assertFalse(PathUtils.concat(p, JcrConstants.JCR_PRIMARYTYPE), ppo.isGranted(tree, ps, Permissions.NO_PERMISSION));
+            assertFalse(PathUtils.concat(p, JcrConstants.JCR_PRIMARYTYPE),
+                ppo.isGranted(tree, ps, Permissions.NO_PERMISSION));
         }
     }
 
@@ -364,9 +413,11 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
             PropertyState ps = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE);
 
             assertFalse(p, pp.isGranted(tree, null, Permissions.MODIFY_ACCESS_CONTROL));
-            assertFalse(PathUtils.concat(p, JcrConstants.JCR_PRIMARYTYPE), pp.isGranted(tree, ps, Permissions.MODIFY_ACCESS_CONTROL));
+            assertFalse(PathUtils.concat(p, JcrConstants.JCR_PRIMARYTYPE),
+                pp.isGranted(tree, ps, Permissions.MODIFY_ACCESS_CONTROL));
             assertFalse(p, ppo.isGranted(tree, null, Permissions.MODIFY_ACCESS_CONTROL));
-            assertFalse(PathUtils.concat(p, JcrConstants.JCR_PRIMARYTYPE), ppo.isGranted(tree, ps, Permissions.MODIFY_ACCESS_CONTROL));
+            assertFalse(PathUtils.concat(p, JcrConstants.JCR_PRIMARYTYPE),
+                ppo.isGranted(tree, ps, Permissions.MODIFY_ACCESS_CONTROL));
         }
     }
 
@@ -394,7 +445,8 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     public void testIsNotGrantedAction() throws Exception {
         PermissionProvider pp = createPermissionProvider();
         PermissionProvider ppo = createPermissionProviderOR();
-        String[] actions = new String[]{JackrabbitSession.ACTION_LOCKING, JackrabbitSession.ACTION_MODIFY_ACCESS_CONTROL};
+        String[] actions = new String[]{JackrabbitSession.ACTION_LOCKING,
+            JackrabbitSession.ACTION_MODIFY_ACCESS_CONTROL};
 
         for (String nodePath : NODE_PATHS) {
             String actionStr = getActionString(actions);
@@ -413,17 +465,21 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
 
     @Test
     public void testGetTreePermissionAllParent() {
-        TreePermission tp = createPermissionProvider().getTreePermission(readOnlyRoot.getTree(TEST_PATH), TreePermission.ALL);
+        TreePermission tp = createPermissionProvider().getTreePermission(
+            readOnlyRoot.getTree(TEST_PATH), TreePermission.ALL);
         assertSame(TreePermission.ALL, tp);
-        TreePermission tpo = createPermissionProviderOR().getTreePermission(readOnlyRoot.getTree(TEST_PATH), TreePermission.ALL);
+        TreePermission tpo = createPermissionProviderOR().getTreePermission(
+            readOnlyRoot.getTree(TEST_PATH), TreePermission.ALL);
         assertSame(TreePermission.ALL, tpo);
     }
 
     @Test
     public void testGetTreePermissionEmptyParent() {
-        TreePermission tp = createPermissionProvider().getTreePermission(readOnlyRoot.getTree(TEST_PATH), TreePermission.EMPTY);
+        TreePermission tp = createPermissionProvider().getTreePermission(
+            readOnlyRoot.getTree(TEST_PATH), TreePermission.EMPTY);
         assertSame(TreePermission.EMPTY, tp);
-        TreePermission tpo = createPermissionProviderOR().getTreePermission(readOnlyRoot.getTree(TEST_PATH), TreePermission.EMPTY);
+        TreePermission tpo = createPermissionProviderOR().getTreePermission(
+            readOnlyRoot.getTree(TEST_PATH), TreePermission.EMPTY);
         assertSame(TreePermission.EMPTY, tpo);
     }
 
@@ -515,7 +571,8 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
             assertFalse(tp.canReadAll());
             parentPermission = tp;
 
-            TreePermission tpO = ppO.getTreePermission(readOnlyRoot.getTree(path), parentPermissionO);
+            TreePermission tpO = ppO.getTreePermission(readOnlyRoot.getTree(path),
+                parentPermissionO);
             assertFalse(tpO.canReadAll());
             parentPermissionO = tpO;
         }
@@ -577,7 +634,8 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
 
         Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
         NodeState ns = getTreeProvider().asNodeState(rootTree);
-        TreePermission tp = createPermissionProvider().getTreePermission(rootTree, TreePermission.EMPTY);
+        TreePermission tp = createPermissionProvider().getTreePermission(rootTree,
+            TreePermission.EMPTY);
 
         for (String cName : childNames) {
             ns = ns.getChildNode(cName);
@@ -592,7 +650,8 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
 
         Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
         NodeState ns = getTreeProvider().asNodeState(rootTree);
-        TreePermission tp = createPermissionProviderOR().getTreePermission(rootTree, TreePermission.EMPTY);
+        TreePermission tp = createPermissionProviderOR().getTreePermission(rootTree,
+            TreePermission.EMPTY);
 
         for (String cName : childNames) {
             ns = ns.getChildNode(cName);
@@ -613,7 +672,8 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     public void testRepositoryPermissionIsNotGranted() {
         RepositoryPermission rp = createPermissionProvider().getRepositoryPermission();
         assertFalse(rp.isGranted(Permissions.PRIVILEGE_MANAGEMENT));
-        assertFalse(rp.isGranted(Permissions.NAMESPACE_MANAGEMENT|Permissions.PRIVILEGE_MANAGEMENT));
+        assertFalse(
+            rp.isGranted(Permissions.NAMESPACE_MANAGEMENT | Permissions.PRIVILEGE_MANAGEMENT));
         assertFalse(rp.isGranted(Permissions.WORKSPACE_MANAGEMENT));
         assertFalse(rp.isGranted(Permissions.ALL));
         assertFalse(rp.isGranted(Permissions.NO_PERMISSION));
@@ -623,7 +683,8 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     public void testRepositoryPermissionIsNotGrantedOR() throws Exception {
         RepositoryPermission rp = createPermissionProviderOR().getRepositoryPermission();
         assertFalse(rp.isGranted(Permissions.PRIVILEGE_MANAGEMENT));
-        assertFalse(rp.isGranted(Permissions.NAMESPACE_MANAGEMENT|Permissions.PRIVILEGE_MANAGEMENT));
+        assertFalse(
+            rp.isGranted(Permissions.NAMESPACE_MANAGEMENT | Permissions.PRIVILEGE_MANAGEMENT));
         assertFalse(rp.isGranted(Permissions.WORKSPACE_MANAGEMENT));
         assertFalse(rp.isGranted(Permissions.ALL));
         assertFalse(rp.isGranted(Permissions.NO_PERMISSION));

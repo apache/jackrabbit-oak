@@ -92,9 +92,11 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
     }
 
     public static class Provider implements EditorProvider {
+
         @Override
-        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info)
-                throws CommitFailedException {
+        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder,
+            CommitInfo info)
+            throws CommitFailedException {
             return new VersionablePropertiesEditor(builder);
         }
 
@@ -116,13 +118,15 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
     }
 
     @Override
-    public Editor childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+    public Editor childNodeChanged(String name, NodeState before, NodeState after)
+        throws CommitFailedException {
         return childNodeAdded(name, after);
     }
 
     private static boolean updateFrozenMixins(NodeBuilder builder) {
         if (builder.hasProperty(JCR_FROZENMIXINTYPES)) {
-            final Set<String> mixins = newHashSet(builder.getProperty(JCR_FROZENMIXINTYPES).getValue(NAMES));
+            final Set<String> mixins = newHashSet(
+                builder.getProperty(JCR_FROZENMIXINTYPES).getValue(NAMES));
             if (mixins.remove(MIX_SIMPLE_VERSIONABLE)) {
                 mixins.add(MIX_VERSIONABLE);
                 builder.setProperty(nameProperty(JCR_FROZENMIXINTYPES, mixins));
@@ -133,7 +137,8 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
     }
 
     private void fixProperties(NodeBuilder node) {
-        NodeState versionHistory = getVersionHistoryNodeState(versionStorage.getNodeState(), node.getString(JCR_UUID));
+        NodeState versionHistory = getVersionHistoryNodeState(versionStorage.getNodeState(),
+            node.getString(JCR_UUID));
         if (!versionHistory.exists()) {
             log.warn("No version history for {}", node);
             return;

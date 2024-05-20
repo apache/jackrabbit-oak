@@ -36,11 +36,11 @@ public class ReadOnlyVersionManagerNtTest extends ReadOnlyVersionManagerTest {
 
     @Parameterized.Parameters
     public static Collection<String> oakReferenceableFrozenNode() {
-       return Arrays.asList("false", "true", null);
+        return Arrays.asList("false", "true", null);
     }
-    
+
     private final String oakReferenceableFrozenNode;
-    
+
     public ReadOnlyVersionManagerNtTest(String oakReferenceableFrozenNode) {
         this.oakReferenceableFrozenNode = oakReferenceableFrozenNode;
         if (oakReferenceableFrozenNode != null) {
@@ -49,14 +49,14 @@ public class ReadOnlyVersionManagerNtTest extends ReadOnlyVersionManagerTest {
             System.clearProperty("oak.referenceableFrozenNode");
         }
     }
-    
+
     @Test
     public void testNtFrozenNodeUuid() throws Exception {
         Tree baseVersion = checkNotNull(versionManager.getBaseVersion(versionable));
         Tree frozen = baseVersion.getChild(VersionConstants.JCR_FROZENNODE);
         PropertyState uuid = frozen.getProperty("jcr:uuid");
         if (oakReferenceableFrozenNode == null ||
-                "false".equals(oakReferenceableFrozenNode)) {
+            "false".equals(oakReferenceableFrozenNode)) {
             assertNull(uuid);
         } else if ("true".equals(oakReferenceableFrozenNode)) {
             assertNotNull(uuid);

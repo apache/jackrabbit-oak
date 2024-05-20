@@ -50,7 +50,8 @@ public class VersionStorageTest extends AbstractOakCoreTest {
 
         // make sure the version storage has been setup
         Tree a = root.getTree("/a");
-        TreeUtil.addMixin(a, JcrConstants.MIX_VERSIONABLE, root.getTree(NODE_TYPES_PATH), adminSession.getAuthInfo().getUserID());
+        TreeUtil.addMixin(a, JcrConstants.MIX_VERSIONABLE, root.getTree(NODE_TYPES_PATH),
+            adminSession.getAuthInfo().getUserID());
         root.commit();
 
         Tree vs = root.getTree(VersionConstants.VERSION_STORE_PATH);

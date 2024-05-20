@@ -69,7 +69,8 @@ public class TreePermissionImplTest extends AbstractSecurityTest implements Acce
 
     private TreePermission getTreePermission() throws Exception {
         ContentSession testSession = createTestSession();
-        PermissionProvider pp = config.getPermissionProvider(testSession.getLatestRoot(), testSession.getWorkspaceName(), testSession.getAuthInfo().getPrincipals());
+        PermissionProvider pp = config.getPermissionProvider(testSession.getLatestRoot(),
+            testSession.getWorkspaceName(), testSession.getAuthInfo().getPrincipals());
 
         return pp.getTreePermission(root.getTree(TEST_PATH), TreePermission.EMPTY);
     }
@@ -79,7 +80,8 @@ public class TreePermissionImplTest extends AbstractSecurityTest implements Acce
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, TEST_PATH);
         acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_READ), true);
-        acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.REP_READ_PROPERTIES), false);
+        acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.REP_READ_PROPERTIES),
+            false);
         acMgr.setPolicy(TEST_PATH, acl);
         root.commit();
 
@@ -94,13 +96,15 @@ public class TreePermissionImplTest extends AbstractSecurityTest implements Acce
     public void testCanReadProperties2() throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, TEST_PATH);
-        acl.addEntry(getTestUser().getPrincipal(), privilegesFromNames(PrivilegeConstants.JCR_READ), true);
+        acl.addEntry(getTestUser().getPrincipal(), privilegesFromNames(PrivilegeConstants.JCR_READ),
+            true);
         acMgr.setPolicy(TEST_PATH, acl);
         root.commit();
 
         Tree policyTree = root.getTree("/test/rep:policy");
         Tree ace = TreeUtil.addChild(policyTree, "ace2", NT_REP_DENY_ACE);
-        ace.setProperty(REP_PRIVILEGES, Collections.singleton(PrivilegeConstants.REP_READ_PROPERTIES), Type.NAMES);
+        ace.setProperty(REP_PRIVILEGES,
+            Collections.singleton(PrivilegeConstants.REP_READ_PROPERTIES), Type.NAMES);
         ace.setProperty(REP_PRINCIPAL_NAME, getTestUser().getPrincipal().getName());
         root.commit();
 

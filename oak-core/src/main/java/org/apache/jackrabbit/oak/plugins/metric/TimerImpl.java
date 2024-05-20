@@ -24,7 +24,8 @@ import java.util.concurrent.TimeUnit;
 import com.codahale.metrics.Timer;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 
-final class TimerImpl implements TimerStats{
+final class TimerImpl implements TimerStats {
+
     private final Timer timer;
 
     TimerImpl(Timer timer) {
@@ -47,7 +48,8 @@ final class TimerImpl implements TimerStats{
     }
 
     private static final class ContextImpl implements Context {
-        private final Timer.Context context ;
+
+        private final Timer.Context context;
 
         private ContextImpl(Timer.Context context) {
             this.context = context;
@@ -57,7 +59,9 @@ final class TimerImpl implements TimerStats{
             return context.stop();
         }
 
-        /** Equivalent to calling {@link #stop()}. */
+        /**
+         * Equivalent to calling {@link #stop()}.
+         */
         @Override
         public void close() {
             stop();

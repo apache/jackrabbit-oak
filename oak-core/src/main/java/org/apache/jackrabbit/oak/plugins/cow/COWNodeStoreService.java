@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.cow;
 
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.Map;
 import org.apache.jackrabbit.oak.api.jmx.CopyOnWriteStoreMBean;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -38,15 +43,9 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Dictionary;
-import java.util.Hashtable;
-import java.util.Map;
-
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
-
 @Component(
-        configurationPolicy = ConfigurationPolicy.REQUIRE,
-        service = {})
+    configurationPolicy = ConfigurationPolicy.REQUIRE,
+    service = {})
 public class COWNodeStoreService {
 
     private static final Logger LOG = LoggerFactory.getLogger(COWNodeStoreService.class);
@@ -54,8 +53,8 @@ public class COWNodeStoreService {
     /**
      * NodeStoreProvider role
      * <br>
-     * Property indicating that this component will not register as a
-     * NodeStore but as a NodeStoreProvider with given role
+     * Property indicating that this component will not register as a NodeStore but as a
+     * NodeStoreProvider with given role
      */
     public static final String PROP_ROLE = "role";
 
@@ -108,10 +107,10 @@ public class COWNodeStoreService {
         executor.start(whiteboard);
 
         mbeanReg = registerMBean(whiteboard,
-                CopyOnWriteStoreMBean.class,
-                store.new MBeanImpl(),
-                CopyOnWriteStoreMBean.TYPE,
-                "Copy-on-write: " + nodeStoreDescription);
+            CopyOnWriteStoreMBean.class,
+            store.new MBeanImpl(),
+            CopyOnWriteStoreMBean.TYPE,
+            "Copy-on-write: " + nodeStoreDescription);
 
         Dictionary<String, Object> props = new Hashtable<String, Object>();
         props.put(Constants.SERVICE_PID, COWNodeStore.class.getName());
@@ -124,9 +123,9 @@ public class COWNodeStoreService {
             observerTracker.start(context.getBundleContext());
 
             nsReg = context.getBundleContext().registerService(
-                    new String[]{NodeStore.class.getName()},
-                    store,
-                    props
+                new String[]{NodeStore.class.getName()},
+                store,
+                props
             );
         } else {
             LOG.info("Registering the COW node store provider");
@@ -134,9 +133,9 @@ public class COWNodeStoreService {
             props.put("role", role);
 
             nsReg = context.getBundleContext().registerService(
-                    new String[]{NodeStoreProvider.class.getName()},
-                    (NodeStoreProvider) () -> store,
-                    props
+                new String[]{NodeStoreProvider.class.getName()},
+                (NodeStoreProvider) () -> store,
+                props
             );
         }
     }
@@ -165,13 +164,14 @@ public class COWNodeStoreService {
     }
 
     @Reference(
-            name = "nodeStoreProvider",
-            cardinality = ReferenceCardinality.MANDATORY,
-            policy = ReferencePolicy.DYNAMIC,
-            target = "(role=copy-on-write)")
+        name = "nodeStoreProvider",
+        cardinality = ReferenceCardinality.MANDATORY,
+        policy = ReferencePolicy.DYNAMIC,
+        target = "(role=copy-on-write)")
     protected void bindNodeStoreProvider(NodeStoreProvider ns, Map<String, ?> config) {
         this.nodeStoreProvider = ns;
-        this.nodeStoreDescription = PropertiesUtil.toString(config.get("oak.nodestore.description"), ns.getClass().getName());
+        this.nodeStoreDescription = PropertiesUtil.toString(config.get("oak.nodestore.description"),
+            ns.getClass().getName());
         registerNodeStore();
     }
 

@@ -88,11 +88,13 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
     private UserValidator createUserValidator(@NotNull Tree before, @NotNull Tree after) {
         UserValidatorProvider uvp = createValidatorProvider();
         // force creation of membership provider
-        uvp.getRootValidator(getTreeProvider().asNodeState(before), getTreeProvider().asNodeState(after), new CommitInfo("sid", null));
+        uvp.getRootValidator(getTreeProvider().asNodeState(before),
+            getTreeProvider().asNodeState(after), new CommitInfo("sid", null));
         return new UserValidator(before, after, uvp);
     }
 
-    private void assertRemoveProperty(@NotNull String name, int expectedCode) throws CommitFailedException {
+    private void assertRemoveProperty(@NotNull String name, int expectedCode)
+        throws CommitFailedException {
         try {
             Tree userTree = root.getTree(userPath);
             userTree.removeProperty(name);
@@ -104,7 +106,8 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         }
     }
 
-    private void assertChangeProperty(@NotNull String name, @NotNull String value, int expectedCode) throws CommitFailedException {
+    private void assertChangeProperty(@NotNull String name, @NotNull String value, int expectedCode)
+        throws CommitFailedException {
         try {
             Tree userTree = root.getTree(userPath);
             userTree.setProperty(name, value);
@@ -225,7 +228,8 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
     public void changeUUIDValid() throws Exception {
         Tree userTree = root.getTree(userPath);
         UserValidator validator = createUserValidator(userTree, userTree);
-        validator.propertyChanged(PropertyStates.createProperty(JCR_UUID, "invalidBefore"), userTree.getProperty(JCR_UUID));
+        validator.propertyChanged(PropertyStates.createProperty(JCR_UUID, "invalidBefore"),
+            userTree.getProperty(JCR_UUID));
     }
 
     @Test(expected = CommitFailedException.class)
@@ -245,10 +249,13 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
 
     @Test(expected = CommitFailedException.class)
     public void changePasswordToPlainText2() throws Exception {
-        Tree beforeTree = when(mock(Tree.class).getProperty(JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)).getMock();
+        Tree beforeTree = when(mock(Tree.class).getProperty(JCR_PRIMARYTYPE)).thenReturn(
+            PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)).getMock();
         Tree afterTree = root.getTree(userPath);
 
-        UserValidator uv = new UserValidator(beforeTree, afterTree, new UserValidatorProvider(ConfigurationParameters.EMPTY, getRootProvider(), getTreeProvider()));
+        UserValidator uv = new UserValidator(beforeTree, afterTree,
+            new UserValidatorProvider(ConfigurationParameters.EMPTY, getRootProvider(),
+                getTreeProvider()));
         PropertyState plainTextAfter = PropertyStates.createProperty(REP_PASSWORD, "pw");
         uv.propertyChanged(afterTree.getProperty(REP_PASSWORD), plainTextAfter);
     }
@@ -258,7 +265,8 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         try {
             Tree userTree = root.getTree(userPath);
             UserValidator validator = createUserValidator(userTree, userTree);
-            validator.propertyChanged(userTree.getProperty(JCR_PRIMARYTYPE), PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_REP_GROUP));
+            validator.propertyChanged(userTree.getProperty(JCR_PRIMARYTYPE),
+                PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_REP_GROUP));
         } catch (CommitFailedException e) {
             assertEquals(28, e.getCode());
             throw e;
@@ -269,7 +277,8 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
     public void changePrimaryTypeValid() throws Exception {
         Tree userTree = root.getTree(userPath);
         UserValidator validator = createUserValidator(userTree, userTree);
-        validator.propertyChanged(PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_REP_GROUP), userTree.getProperty(JCR_PRIMARYTYPE));
+        validator.propertyChanged(PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_REP_GROUP),
+            userTree.getProperty(JCR_PRIMARYTYPE));
     }
 
     @Test(expected = CommitFailedException.class)
@@ -359,7 +368,8 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
                         Tree next = parent.getChild(segment);
                         if (!next.exists()) {
                             next = parent.addChild(segment);
-                            next.setProperty(JCR_PRIMARYTYPE, NT_REP_AUTHORIZABLE_FOLDER, Type.NAME);
+                            next.setProperty(JCR_PRIMARYTYPE, NT_REP_AUTHORIZABLE_FOLDER,
+                                Type.NAME);
                             parent = next;
                         }
                     }
@@ -428,13 +438,13 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         NodeBuilder hidden = test.child(":hidden");
 
         Validator validator = provider.getRootValidator(
-                root, builder.getNodeState(), CommitInfo.EMPTY);
+            root, builder.getNodeState(), CommitInfo.EMPTY);
         Validator childValidator = validator.childNodeAdded(
-                "test", test.getNodeState());
+            "test", test.getNodeState());
         assertNotNull(childValidator);
 
         Validator hiddenValidator = childValidator.childNodeAdded(
-                ":hidden", hidden.getNodeState());
+            ":hidden", hidden.getNodeState());
         assertNull(hiddenValidator);
     }
 
@@ -451,13 +461,13 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         hidden.child("added");
 
         Validator validator = provider.getRootValidator(
-                root, builder.getNodeState(), CommitInfo.EMPTY);
+            root, builder.getNodeState(), CommitInfo.EMPTY);
         Validator childValidator = validator.childNodeChanged(
-                "test", root.getChildNode("test"), test.getNodeState());
+            "test", root.getChildNode("test"), test.getNodeState());
         assertNotNull(childValidator);
 
         Validator hiddenValidator = childValidator.childNodeChanged(
-                ":hidden", root.getChildNode("test").getChildNode(":hidden"), hidden.getNodeState());
+            ":hidden", root.getChildNode("test").getChildNode(":hidden"), hidden.getNodeState());
         assertNull(hiddenValidator);
     }
 
@@ -474,13 +484,13 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         test.child(":hidden").remove();
 
         Validator validator = provider.getRootValidator(
-                root, builder.getNodeState(), CommitInfo.EMPTY);
+            root, builder.getNodeState(), CommitInfo.EMPTY);
         Validator childValidator = validator.childNodeChanged(
-                "test", root.getChildNode("test"), test.getNodeState());
+            "test", root.getChildNode("test"), test.getNodeState());
         assertNotNull(childValidator);
 
         Validator hiddenValidator = childValidator.childNodeDeleted(
-                ":hidden", root.getChildNode("test").getChildNode(":hidden"));
+            ":hidden", root.getChildNode("test").getChildNode(":hidden"));
         assertNull(hiddenValidator);
     }
 }

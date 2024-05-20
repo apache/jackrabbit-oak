@@ -22,5 +22,5 @@ package org.apache.jackrabbit.oak.query.plan;
 public interface ExecutionPlan {
 
     double getEstimatedCost();
-    
+
 }

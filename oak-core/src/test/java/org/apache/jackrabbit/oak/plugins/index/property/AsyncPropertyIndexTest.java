@@ -72,14 +72,14 @@ public class AsyncPropertyIndexTest {
 
         //add a property index on 'foo'
         NodeBuilder def = createIndexDefinition(
-                builder.child(INDEX_DEFINITIONS_NAME), "foo", true, false,
-                of("foo"), null);
+            builder.child(INDEX_DEFINITIONS_NAME), "foo", true, false,
+            of("foo"), null);
         def.setProperty(REINDEX_ASYNC_PROPERTY_NAME, true);
 
         // add some content
         builder.child("a").setProperty("foo", "abc");
         builder.child("b").setProperty("foo", Arrays.asList("abc", "def"),
-                STRINGS);
+            STRINGS);
         NodeState head = store.merge(builder, hook, EMPTY);
 
         // query the index, check it doesn't get indexed by the normal PI
@@ -94,17 +94,17 @@ public class AsyncPropertyIndexTest {
 
         // run async first time, there are some changes
         AsyncIndexUpdate async = new AsyncIndexUpdate(ASYNC_REINDEX_VALUE,
-                store, provider, true);
+            store, provider, true);
         async.run();
         assertEquals(ASYNC_REINDEX_VALUE,
-                store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME)
-                        .getChildNode("foo").getString(ASYNC_PROPERTY_NAME));
+            store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME)
+                 .getChildNode("foo").getString(ASYNC_PROPERTY_NAME));
 
         // run async second time, there are no changes, should switch to sync
         async.run();
         async.close();
         assertEquals(null, store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME)
-                .getChildNode("foo").getString(ASYNC_PROPERTY_NAME));
+                                .getChildNode("foo").getString(ASYNC_PROPERTY_NAME));
         assertTrue(Iterables.isEmpty(store.checkpoints()));
 
         // add content, it should be indexed synchronously
@@ -121,13 +121,13 @@ public class AsyncPropertyIndexTest {
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
         return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]",
-                new QueryEngineSettings());
+            new QueryEngineSettings());
     }
 
     private static Set<String> find(PropertyIndexLookup lookup, String name,
-            String value, Filter filter) {
+        String value, Filter filter) {
         return Sets.newHashSet(lookup.query(filter, name, value == null ? null
-                : PropertyValues.newString(value)));
+            : PropertyValues.newString(value)));
     }
 
     @Test
@@ -135,7 +135,7 @@ public class AsyncPropertyIndexTest {
         NodeStore store = new MemoryNodeStore();
         assertTrue(Iterables.isEmpty(store.checkpoints()));
         AsyncIndexUpdate async = new AsyncIndexUpdate(ASYNC_REINDEX_VALUE,
-                store, provider, true);
+            store, provider, true);
         async.run();
         async.run();
         async.close();

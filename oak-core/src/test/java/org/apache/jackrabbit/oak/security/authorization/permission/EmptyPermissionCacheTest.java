@@ -32,8 +32,10 @@ public class EmptyPermissionCacheTest {
 
     @Before
     public void before() {
-        PermissionCacheBuilder builder = new PermissionCacheBuilder(Mockito.mock(PermissionStore.class));
-        builder.init(ImmutableSet.of(), new CacheStrategyImpl(ConfigurationParameters.EMPTY, false));
+        PermissionCacheBuilder builder = new PermissionCacheBuilder(
+            Mockito.mock(PermissionStore.class));
+        builder.init(ImmutableSet.of(),
+            new CacheStrategyImpl(ConfigurationParameters.EMPTY, false));
         empty = builder.build();
     }
 

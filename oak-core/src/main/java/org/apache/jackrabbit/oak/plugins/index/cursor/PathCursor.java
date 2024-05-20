@@ -43,7 +43,7 @@ public class PathCursor extends AbstractCursor {
         Iterator<String> it = paths;
         if (distinct) {
             it = Iterators.filter(it, new Predicate<String>() {
-                
+
                 private final HashSet<String> known = new HashSet<String>();
 
                 @Override
@@ -52,7 +52,7 @@ public class PathCursor extends AbstractCursor {
                     // Set.add returns true for new entries
                     return known.add(input);
                 }
-                
+
             });
         }
         this.iterator = it;
@@ -64,10 +64,10 @@ public class PathCursor extends AbstractCursor {
         String path = iterator.next();
         return new IndexRowImpl(isAbsolute(path) ? path : "/" + path);
     }
-    
+
     @Override
     public boolean hasNext() {
         return iterator.hasNext();
     }
-    
+
 }

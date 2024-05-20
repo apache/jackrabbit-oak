@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.core;
 
 import javax.security.auth.Subject;
-
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -30,8 +29,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- *  Internal extension of the {@link MutableRoot} to be used
- *  when an usage of the system internal subject is needed.
+ * Internal extension of the {@link MutableRoot} to be used when an usage of the system internal
+ * subject is needed.
  */
 public class SystemRoot extends MutableRoot {
 
@@ -40,57 +39,59 @@ public class SystemRoot extends MutableRoot {
         public Subject getSubject() {
             return SystemSubject.INSTANCE;
         }
+
         @Override
         public void login() {
         }
+
         @Override
         public void logout() {
         }
     };
-    
+
     public static SystemRoot create(@NotNull NodeStore store, @NotNull CommitHook hook,
-            @NotNull String workspaceName, @NotNull SecurityProvider securityProvider,
-            @NotNull QueryIndexProvider indexProvider) {
+        @NotNull String workspaceName, @NotNull SecurityProvider securityProvider,
+        @NotNull QueryIndexProvider indexProvider) {
         return create(store, hook, workspaceName, securityProvider, null, indexProvider);
     }
-    
+
     public static SystemRoot create(@NotNull NodeStore store, @NotNull CommitHook hook,
-            @NotNull String workspaceName, @NotNull SecurityProvider securityProvider,
-            @Nullable QueryEngineSettings queryEngineSettings,
-            @NotNull QueryIndexProvider indexProvider) {
+        @NotNull String workspaceName, @NotNull SecurityProvider securityProvider,
+        @Nullable QueryEngineSettings queryEngineSettings,
+        @NotNull QueryIndexProvider indexProvider) {
         if (queryEngineSettings == null) {
             queryEngineSettings = new QueryEngineSettings();
         }
         return new SystemRoot(store, hook, workspaceName, securityProvider,
-                queryEngineSettings, indexProvider);
+            queryEngineSettings, indexProvider);
     }
 
     private SystemRoot(@NotNull final NodeStore store, @NotNull final CommitHook hook,
-                      @NotNull final String workspaceName, @NotNull final SecurityProvider securityProvider,
-                      @NotNull final QueryEngineSettings queryEngineSettings,
-                      @NotNull final QueryIndexProvider indexProvider) {
+        @NotNull final String workspaceName, @NotNull final SecurityProvider securityProvider,
+        @NotNull final QueryEngineSettings queryEngineSettings,
+        @NotNull final QueryIndexProvider indexProvider) {
         this(store, hook, workspaceName, securityProvider, queryEngineSettings, indexProvider,
-                new ContentSessionImpl(
-                        LOGIN_CONTEXT, securityProvider, workspaceName,
-                        store, hook, queryEngineSettings, indexProvider, null) {
-                    @NotNull
-                    @Override
-                    public Root getLatestRoot() {
-                        return new SystemRoot(
-                                store, hook, workspaceName, securityProvider,
-                                queryEngineSettings,
-                                indexProvider, this);
-                    }
-                });
+            new ContentSessionImpl(
+                LOGIN_CONTEXT, securityProvider, workspaceName,
+                store, hook, queryEngineSettings, indexProvider, null) {
+                @NotNull
+                @Override
+                public Root getLatestRoot() {
+                    return new SystemRoot(
+                        store, hook, workspaceName, securityProvider,
+                        queryEngineSettings,
+                        indexProvider, this);
+                }
+            });
     }
-    
+
     private SystemRoot(@NotNull NodeStore store, @NotNull CommitHook hook,
-            @NotNull String workspaceName, @NotNull SecurityProvider securityProvider,
-            @Nullable QueryEngineSettings queryEngineSettings,
-            @NotNull QueryIndexProvider indexProvider,
-            @NotNull ContentSessionImpl session) {
+        @NotNull String workspaceName, @NotNull SecurityProvider securityProvider,
+        @Nullable QueryEngineSettings queryEngineSettings,
+        @NotNull QueryIndexProvider indexProvider,
+        @NotNull ContentSessionImpl session) {
         super(store, hook, workspaceName, SystemSubject.INSTANCE,
-                securityProvider, queryEngineSettings, indexProvider, null, session);
+            securityProvider, queryEngineSettings, indexProvider, null, session);
     }
-    
+
 }

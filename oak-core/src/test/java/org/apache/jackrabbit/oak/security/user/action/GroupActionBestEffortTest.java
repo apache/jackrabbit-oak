@@ -34,7 +34,8 @@ public class GroupActionBestEffortTest extends GroupActionTest {
 
         testGroup.addMembers(nonExisting.toArray(new String[0]));
 
-        verify(groupAction, times(1)).onMembersAdded(testGroup, nonExisting, Collections.emptySet(), root, getNamePathMapper());
+        verify(groupAction, times(1)).onMembersAdded(testGroup, nonExisting, Collections.emptySet(),
+            root, getNamePathMapper());
     }
 
     @Test
@@ -42,7 +43,8 @@ public class GroupActionBestEffortTest extends GroupActionTest {
         Set<String> nonExisting = ImmutableSet.of("blinder", "passagier");
 
         testGroup.removeMembers(nonExisting.toArray(new String[0]));
-        verify(groupAction, times(1)).onMembersRemoved(testGroup, Collections.emptySet(), nonExisting, root, getNamePathMapper());
+        verify(groupAction, times(1)).onMembersRemoved(testGroup, Collections.emptySet(),
+            nonExisting, root, getNamePathMapper());
     }
 
     @Override

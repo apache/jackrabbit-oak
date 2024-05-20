@@ -58,8 +58,8 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
- * {@link ProtectedNodeImporter} implementation that handles access control lists,
- * entries and restrictions.
+ * {@link ProtectedNodeImporter} implementation that handles access control lists, entries and
+ * restrictions.
  */
 public class AccessControlImporter implements ProtectedNodeImporter, AccessControlConstants {
 
@@ -84,9 +84,11 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
     //----------------------------------------------< ProtectedItemImporter >---
 
     @Override
-    public boolean init(@NotNull Session session, @NotNull Root root, @NotNull NamePathMapper namePathMapper,
-            boolean isWorkspaceImport, int uuidBehavior,
-            @NotNull ReferenceChangeTracker referenceTracker, @NotNull SecurityProvider securityProvider) {
+    public boolean init(@NotNull Session session, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper,
+        boolean isWorkspaceImport, int uuidBehavior,
+        @NotNull ReferenceChangeTracker referenceTracker,
+        @NotNull SecurityProvider securityProvider) {
         if (initialized) {
             throw new IllegalStateException("Already initialized");
         }
@@ -94,12 +96,14 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
             return false;
         }
         try {
-            AuthorizationConfiguration config = securityProvider.getConfiguration(AuthorizationConfiguration.class);
+            AuthorizationConfiguration config = securityProvider.getConfiguration(
+                AuthorizationConfiguration.class);
             importBehavior = Util.getImportBehavior(config);
 
             if (isWorkspaceImport) {
                 acMgr = config.getAccessControlManager(root, namePathMapper);
-                PrincipalConfiguration pConfig = securityProvider.getConfiguration(PrincipalConfiguration.class);
+                PrincipalConfiguration pConfig = securityProvider.getConfiguration(
+                    PrincipalConfiguration.class);
                 principalManager = pConfig.getPrincipalManager(root, namePathMapper);
             } else {
                 acMgr = session.getAccessControlManager();
@@ -141,12 +145,14 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
     }
 
     @Override
-    public void startChildInfo(@NotNull NodeInfo childInfo, @NotNull List<PropInfo> propInfos) throws RepositoryException {
+    public void startChildInfo(@NotNull NodeInfo childInfo, @NotNull List<PropInfo> propInfos)
+        throws RepositoryException {
         checkInitialized();
         String ntName = childInfo.getPrimaryTypeName();
         if (NT_REP_GRANT_ACE.equals(ntName) || NT_REP_DENY_ACE.equals(ntName)) {
             if (entry != null) {
-                throw new ConstraintViolationException("Invalid child node sequence: ACEs may not be nested.");
+                throw new ConstraintViolationException(
+                    "Invalid child node sequence: ACEs may not be nested.");
             }
             entry = new MutableEntry(NT_REP_GRANT_ACE.equals(ntName));
             for (PropInfo prop : propInfos) {
@@ -162,7 +168,8 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
             childStatus = CHILD_STATUS_ACE;
         } else if (NT_REP_RESTRICTIONS.equals(ntName)) {
             if (entry == null) {
-                throw new ConstraintViolationException("Invalid child node sequence: Restriction must be associated with an ACE");
+                throw new ConstraintViolationException(
+                    "Invalid child node sequence: Restriction must be associated with an ACE");
             }
             entry.addRestrictions(propInfos);
             childStatus = CHILD_STATUS_RESTRICTION;
@@ -205,19 +212,19 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
         if (!tree.isRoot()) {
             Tree parent = tree.getParent();
             if (AccessControlConstants.REP_POLICY.equals(nodeName)
-                    && ntMgr.isNodeType(tree, AccessControlConstants.NT_REP_ACL)) {
+                && ntMgr.isNodeType(tree, AccessControlConstants.NT_REP_ACL)) {
                 String path = parent.getPath();
                 acList = getACL(path);
             } else if (AccessControlConstants.REP_REPO_POLICY.equals(nodeName)
-                    && ntMgr.isNodeType(tree, AccessControlConstants.NT_REP_ACL)
-                    && parent.isRoot()) {
+                && ntMgr.isNodeType(tree, AccessControlConstants.NT_REP_ACL)
+                && parent.isRoot()) {
                 acList = getACL((String) null);
             }
         }
 
         if (acList != null) {
             // clear all existing entries
-            for (AccessControlEntry ace: acList.getAccessControlEntries()) {
+            for (AccessControlEntry ace : acList.getAccessControlEntries()) {
                 acList.removeAccessControlEntry(ace);
             }
         }
@@ -273,7 +280,8 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
             }
         }
 
-        private void setPrivilegeNames(List<? extends TextValue> txtValues) throws RepositoryException {
+        private void setPrivilegeNames(List<? extends TextValue> txtValues)
+            throws RepositoryException {
             for (TextValue value : txtValues) {
                 Value privilegeName = value.getValue(PropertyType.NAME);
                 privileges.add(acMgr.privilegeFromName(privilegeName.getString()));
@@ -300,9 +308,11 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
         private void applyTo(JackrabbitAccessControlList acl) throws RepositoryException {
             checkNotNull(acl);
             if (!ignore) {
-                acl.addEntry(principal, privileges.toArray(new Privilege[0]), isAllow, restrictions, mvRestrictions);
+                acl.addEntry(principal, privileges.toArray(new Privilege[0]), isAllow, restrictions,
+                    mvRestrictions);
             } else {
-                log.debug("Unknown principal: Ignore ACE based on ImportBehavior.IGNORE configuration.");
+                log.debug(
+                    "Unknown principal: Ignore ACE based on ImportBehavior.IGNORE configuration.");
             }
         }
     }

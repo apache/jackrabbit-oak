@@ -96,16 +96,20 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         NameMapper nameMapper = new GlobalNameMapper(root);
         npMapper = new NamePathMapperImpl(nameMapper);
 
-        Tree testTree = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), TEST_NAME, JcrConstants.NT_UNSTRUCTURED);
+        Tree testTree = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), TEST_NAME,
+            JcrConstants.NT_UNSTRUCTURED);
         testPath = testTree.getPath();
         Tree child = TreeUtil.addChild(testTree, "child", JcrConstants.NT_UNSTRUCTURED);
         childPath = child.getPath();
         root.commit();
 
         testRoot = createTestSession().getLatestRoot();
-        testAcMgr = new AccessControlManagerImpl(testRoot, getNamePathMapper(), getSecurityProvider());
-        testPrivileges = privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_READ);
-        testPrincipal = getTestUser().getPrincipal();    }
+        testAcMgr = new AccessControlManagerImpl(testRoot, getNamePathMapper(),
+            getSecurityProvider());
+        testPrivileges = privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES,
+            PrivilegeConstants.JCR_READ);
+        testPrincipal = getTestUser().getPrincipal();
+    }
 
     @After
     public void after() throws Exception {
@@ -121,16 +125,20 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         return npMapper;
     }
 
-    private void setupPolicy(@Nullable String path, @Nullable Privilege... privileges) throws RepositoryException {
-        Privilege[] privs = (privileges == null || privileges.length == 0) ? testPrivileges : privileges;
-        TestUtility.setupPolicy(getAccessControlManager(root), path, testPrincipal, privs, true, TestUtility.getGlobRestriction("*", getValueFactory(root)), null);
+    private void setupPolicy(@Nullable String path, @Nullable Privilege... privileges)
+        throws RepositoryException {
+        Privilege[] privs =
+            (privileges == null || privileges.length == 0) ? testPrivileges : privileges;
+        TestUtility.setupPolicy(getAccessControlManager(root), path, testPrincipal, privs, true,
+            TestUtility.getGlobRestriction("*", getValueFactory(root)), null);
     }
 
     @NotNull
     private List<String> getAcContentPaths() throws RepositoryException {
         AccessControlManager acMgr = getAccessControlManager(root);
         ACL policy = TestUtility.getApplicablePolicy(acMgr, testPath);
-        policy.addEntry(testPrincipal, testPrivileges, true, TestUtility.getGlobRestriction("*", getValueFactory(root)));
+        policy.addEntry(testPrincipal, testPrivileges, true,
+            TestUtility.getGlobRestriction("*", getValueFactory(root)));
         acMgr.setPolicy(testPath, policy);
 
         String aclPath = testPath + '/' + REP_POLICY;
@@ -153,10 +161,9 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
     }
 
     /**
-     * @since OAK 1.0 As of OAK AccessControlManager#hasPrivilege will throw
-     * PathNotFoundException in case the node associated with a given path is
-     * not readable to the editing session (compatibility with the specification
-     * which was missing in jackrabbit).
+     * @since OAK 1.0 As of OAK AccessControlManager#hasPrivilege will throw PathNotFoundException
+     * in case the node associated with a given path is not readable to the editing session
+     * (compatibility with the specification which was missing in jackrabbit).
      */
     @Test
     public void testHasPrivilegesNotAccessiblePath() throws Exception {
@@ -168,7 +175,8 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         for (String path : notAccessible) {
             try {
                 testAcMgr.hasPrivileges(path, privs);
-                fail("AccessControlManager#hasPrivileges for node that is not accessible should fail.");
+                fail(
+                    "AccessControlManager#hasPrivileges for node that is not accessible should fail.");
             } catch (PathNotFoundException e) {
                 // success
             }
@@ -176,7 +184,8 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         for (String path : notAccessible) {
             try {
                 testAcMgr.hasPrivileges(path, getPrincipals(root.getContentSession()), privs);
-                fail("AccessControlManager#hasPrivileges for node that is not accessible should fail.");
+                fail(
+                    "AccessControlManager#hasPrivileges for node that is not accessible should fail.");
             } catch (PathNotFoundException e) {
                 // success
             }
@@ -184,7 +193,8 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         for (String path : notAccessible) {
             try {
                 testAcMgr.hasPrivileges(path, getPrincipals(testRoot.getContentSession()), privs);
-                fail("AccessControlManager#hasPrivileges for node that is not accessible should fail.");
+                fail(
+                    "AccessControlManager#hasPrivileges for node that is not accessible should fail.");
             } catch (PathNotFoundException e) {
                 // success
             }
@@ -192,7 +202,8 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         for (String path : notAccessible) {
             try {
                 testAcMgr.hasPrivileges(path, ImmutableSet.of(), privs);
-                fail("AccessControlManager#hasPrivileges for node that is not accessible should fail.");
+                fail(
+                    "AccessControlManager#hasPrivileges for node that is not accessible should fail.");
             } catch (PathNotFoundException e) {
                 // success
             }
@@ -202,7 +213,8 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
     @Test
     public void testTestSessionHasRepoPrivileges() throws Exception {
         assertFalse(testAcMgr.hasPrivileges(null, testPrivileges));
-        assertFalse(testAcMgr.hasPrivileges(null, getPrincipals(testRoot.getContentSession()), testPrivileges));
+        assertFalse(testAcMgr.hasPrivileges(null, getPrincipals(testRoot.getContentSession()),
+            testPrivileges));
     }
 
     @Test
@@ -210,7 +222,8 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         // the test-session doesn't have sufficient permissions to read privilege set for admin session.
         try {
             testAcMgr.getPrivileges(null, getPrincipals(adminSession));
-            fail("testSession doesn't have sufficient permission to read access control information");
+            fail(
+                "testSession doesn't have sufficient permission to read access control information");
         } catch (AccessDeniedException e) {
             // success
         }
@@ -239,7 +252,9 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
 
         for (Privilege[] privileges : granted) {
             assertTrue(testAcMgr.hasPrivileges(testPath, privileges));
-            assertTrue(testAcMgr.hasPrivileges(testPath, getPrincipals(testRoot.getContentSession()), privileges));
+            assertTrue(
+                testAcMgr.hasPrivileges(testPath, getPrincipals(testRoot.getContentSession()),
+                    privileges));
         }
 
         // denied privileges
@@ -251,7 +266,9 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
 
         for (Privilege[] privileges : denied) {
             assertFalse(testAcMgr.hasPrivileges(testPath, privileges));
-            assertFalse(testAcMgr.hasPrivileges(testPath, getPrincipals(testRoot.getContentSession()), privileges));
+            assertFalse(
+                testAcMgr.hasPrivileges(testPath, getPrincipals(testRoot.getContentSession()),
+                    privileges));
         }
     }
 
@@ -267,9 +284,8 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
     }
 
     /**
-     * @since OAK 1.0 As of OAK AccessControlManager#hasPrivilege will throw
-     * PathNotFoundException in case the node associated with a given path is
-     * not readable to the editing session.
+     * @since OAK 1.0 As of OAK AccessControlManager#hasPrivilege will throw PathNotFoundException
+     * in case the node associated with a given path is not readable to the editing session.
      */
     @Test
     public void testGetPrivilegesNotAccessiblePath() throws Exception {
@@ -280,7 +296,8 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         for (String path : notAccessible) {
             try {
                 testAcMgr.getPrivileges(path);
-                fail("AccessControlManager#getPrivileges for node that is not accessible should fail.");
+                fail(
+                    "AccessControlManager#getPrivileges for node that is not accessible should fail.");
             } catch (PathNotFoundException e) {
                 // success
             }
@@ -289,7 +306,8 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         for (String path : notAccessible) {
             try {
                 testAcMgr.getPrivileges(path, getPrincipals(adminSession));
-                fail("AccessControlManager#getPrivileges for node that is not accessible should fail.");
+                fail(
+                    "AccessControlManager#getPrivileges for node that is not accessible should fail.");
             } catch (PathNotFoundException e) {
                 // success
             }
@@ -298,7 +316,8 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         for (String path : notAccessible) {
             try {
                 testAcMgr.getPrivileges(path, Collections.singleton(testPrincipal));
-                fail("AccessControlManager#getPrivileges for node that is not accessible should fail.");
+                fail(
+                    "AccessControlManager#getPrivileges for node that is not accessible should fail.");
             } catch (PathNotFoundException e) {
                 // success
             }
@@ -327,7 +346,8 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         // but for 'admin' the test-session doesn't have sufficient privileges
         try {
             testAcMgr.getPrivileges(testPath, getPrincipals(adminSession));
-            fail("testSession doesn't have sufficient permission to read access control information at testPath");
+            fail(
+                "testSession doesn't have sufficient permission to read access control information at testPath");
         } catch (AccessDeniedException e) {
             // success
         }
@@ -339,7 +359,8 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         root.commit();
 
         testRoot.refresh();
-        List<Principal> principals = ImmutableList.of(testPrincipal, EveryonePrincipal.getInstance());
+        List<Principal> principals = ImmutableList.of(testPrincipal,
+            EveryonePrincipal.getInstance());
         for (Principal principal : principals) {
             // testRoot can't read access control content -> doesn't see
             // the existing policies and creates a new applicable policy.
@@ -350,7 +371,6 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
     }
 
 
-
     @Test
     public void testGetPolicies() throws Exception {
         setupPolicy(testPath);
@@ -359,7 +379,8 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         testRoot.refresh();
         PrincipalManager testPrincipalMgr = getPrincipalManager(testRoot);
 
-        List<Principal> principals = ImmutableList.of(testPrincipal, EveryonePrincipal.getInstance());
+        List<Principal> principals = ImmutableList.of(testPrincipal,
+            EveryonePrincipal.getInstance());
         for (Principal principal : principals) {
             if (testPrincipalMgr.hasPrincipal(principal.getName())) {
                 // testRoot can't read access control content -> doesn't see
@@ -379,7 +400,8 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
     @Test
     public void testGetEffectivePolicies() throws Exception {
         // grant 'testUser' READ + READ_AC privileges at 'path'
-        Privilege[] privileges = privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+        Privilege[] privileges = privilegesFromNames(PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
         setupPolicy(testPath, privileges);
         root.commit();
 
@@ -402,7 +424,9 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         root.commit();
 
         testRoot.refresh();
-        assertTrue(testAcMgr.hasPrivileges(childPath, privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL)));
+        assertTrue(testAcMgr.hasPrivileges(childPath,
+            privilegesFromNames(PrivilegeConstants.JCR_READ,
+                PrivilegeConstants.JCR_READ_ACCESS_CONTROL)));
 
         // diff to jr core: getEffectivePolicies will just return the policies
         // accessible for the editing session but not throw an exception.
@@ -421,7 +445,8 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
 
         List<String> paths = ImmutableList.of(testPath, NodeTypeConstants.NODE_TYPES_PATH);
         for (String path : paths) {
-            assertFalse(testAcMgr.hasPrivileges(path, privilegesFromNames(PrivilegeConstants.JCR_READ_ACCESS_CONTROL)));
+            assertFalse(testAcMgr.hasPrivileges(path,
+                privilegesFromNames(PrivilegeConstants.JCR_READ_ACCESS_CONTROL)));
             try {
                 testAcMgr.getEffectivePolicies(path);
                 fail("READ_ACCESS_CONTROL is not granted at " + path);
@@ -433,19 +458,21 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
 
     @Test
     public void testGetEffectivePoliciesByPrincipal() throws Exception {
-        Privilege[] privs = privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+        Privilege[] privs = privilegesFromNames(PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
         setupPolicy(testPath, privs);
         setupPolicy(childPath, privs);
         root.commit();
 
         testRoot.refresh();
-        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(Collections.singleton(testPrincipal));
+        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(
+            Collections.singleton(testPrincipal));
         assertPolicies(effective, 2);
     }
 
     /**
-     * @since OAK 1.0 Policy at testPath not accessible -> getEffectivePolicies
-     * only returns the readable policy but doesn't fail.
+     * @since OAK 1.0 Policy at testPath not accessible -> getEffectivePolicies only returns the
+     * readable policy but doesn't fail.
      */
     @Test
     public void testGetEffectivePoliciesByPrincipal2() throws Exception {
@@ -453,18 +480,20 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         // retrieved from AcMgr as the accesscontrolled node is not visible.
         setupPolicy(testPath, privilegesFromNames(PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
         // policy at childPath: will be found by the getEffectivePolicies
-        setupPolicy(childPath, privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+        setupPolicy(childPath, privilegesFromNames(PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
         root.commit();
 
         testRoot.refresh();
 
-        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(Collections.singleton(testPrincipal));
+        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(
+            Collections.singleton(testPrincipal));
         assertPolicies(effective, 1);
     }
 
     /**
-     * @since OAK 1.0 Policy at testPath not accessible -> getEffectivePolicies
-     * only returns the readable policy but doesn't fail.
+     * @since OAK 1.0 Policy at testPath not accessible -> getEffectivePolicies only returns the
+     * readable policy but doesn't fail.
      */
     @Test
     public void testGetEffectivePoliciesByPrincipal3() throws Exception {
@@ -474,14 +503,17 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
 
         testRoot.refresh();
 
-        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(Collections.singleton(testPrincipal));
+        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(
+            Collections.singleton(testPrincipal));
         assertPolicies(effective, 1);
     }
 
     @Test
     public void testGetEffectivePoliciesByPrincipals() throws Exception {
-        Privilege[] privs = privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
-        setupPolicy(testPath, privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+        Privilege[] privs = privilegesFromNames(PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+        setupPolicy(testPath, privilegesFromNames(PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
 
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = TestUtility.getApplicablePolicy(acMgr, childPath);
@@ -497,12 +529,12 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
     }
 
     /**
-     * @since OAK 1.0 : only accessible policies are returned but not exception
-     * is raised.
+     * @since OAK 1.0 : only accessible policies are returned but not exception is raised.
      */
     @Test
     public void testGetEffectivePoliciesByPrincipals2() throws Exception {
-        Privilege[] privs = privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+        Privilege[] privs = privilegesFromNames(PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
 
         // create policy on testPath -> but deny access to test session
         AccessControlManager acMgr = getAccessControlManager(root);
@@ -529,7 +561,7 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
 
         testRoot.refresh();
 
-        // effective policies must NOT include ReadPolicy 
+        // effective policies must NOT include ReadPolicy
         Set<Principal> principals = ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance());
         AccessControlPolicy[] policies = testAcMgr.getEffectivePolicies(principals);
         assertPolicies(policies, 0, false);
@@ -538,28 +570,30 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
     @Test
     public void testGetEffectivePoliciesByPrincipalsReadPolicy2() throws Exception {
         // grant test-principal READ_ACCESS_CONTROL access at root node (but not READ)
-        setupPolicy(PathUtils.ROOT_PATH, privilegesFromNames(PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+        setupPolicy(PathUtils.ROOT_PATH,
+            privilegesFromNames(PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
         root.commit();
 
         testRoot.refresh();
 
-        // effective policies must include ReadPolicy 
+        // effective policies must include ReadPolicy
         // but no path-not-found must be raised if the readable-path is not accessible
         Set<Principal> principals = ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance());
         AccessControlPolicy[] policies = testAcMgr.getEffectivePolicies(principals);
         // since no other ac-setup exists for 'everyone' principal -> only ReadPolicy is found
         assertPolicies(policies, 1, true);
     }
-    
+
     @Test
     public void testGetEffectivePoliciesByPrincipalsIncludesReadPolicy3() throws Exception {
-        // grant test-principal READ and READ_ACCESS_CONTROL at root node 
-        setupPolicy(PathUtils.ROOT_PATH, privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+        // grant test-principal READ and READ_ACCESS_CONTROL at root node
+        setupPolicy(PathUtils.ROOT_PATH, privilegesFromNames(PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
         root.commit();
 
         testRoot.refresh();
 
-        // effective policies must include ReadPolicy 
+        // effective policies must include ReadPolicy
         Set<Principal> principals = ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance());
         AccessControlPolicy[] policies = testAcMgr.getEffectivePolicies(principals);
         // since no other ac-setup exists for 'everyone' principal -> only ReadPolicy is found

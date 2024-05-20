@@ -54,7 +54,7 @@ public class AuthenticationConfigurationImplTest {
 
     @Test(expected = IllegalStateException.class)
     public void testGetLoginCtxProviderNotInitialized() {
-       authConfiguration.getLoginContextProvider(repo);
+        authConfiguration.getLoginContextProvider(repo);
     }
 
     @Test
@@ -67,7 +67,8 @@ public class AuthenticationConfigurationImplTest {
     @Test
     public void testGetLoginCtxProviderWhiteboard() throws Exception {
         Whiteboard wb = new DefaultWhiteboard();
-        SecurityProvider sp = mock(SecurityProvider.class, Mockito.withSettings().extraInterfaces(WhiteboardAware.class));
+        SecurityProvider sp = mock(SecurityProvider.class,
+            Mockito.withSettings().extraInterfaces(WhiteboardAware.class));
         when(((WhiteboardAware) sp).getWhiteboard()).thenReturn(wb);
         authConfiguration.setSecurityProvider(sp);
 

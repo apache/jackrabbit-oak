@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * TODO document
  */
 public class ConstantFilter implements EventFilter {
+
     public static final ConstantFilter INCLUDE_ALL = new ConstantFilter(true);
     public static final ConstantFilter EXCLUDE_ALL = new ConstantFilter(false);
 

@@ -35,10 +35,14 @@ public class AuthorizationMonitorImpl implements AuthorizationMonitor {
     private final TimerStats permissionAllLoaded;
 
     public AuthorizationMonitorImpl(@NotNull StatisticsProvider statisticsProvider) {
-        accessViolations = statisticsProvider.getMeter("security.authorization.default.access.violation", StatsOptions.DEFAULT);
-        permissionError = statisticsProvider.getMeter("security.authorization.default.permission.error", StatsOptions.DEFAULT);
-        permissionRefresh = statisticsProvider.getMeter("security.authorization.default.permission.refresh", StatsOptions.DEFAULT);
-        permissionAllLoaded = statisticsProvider.getTimer("security.authorization.default.permission.all_loaded", StatsOptions.METRICS_ONLY);
+        accessViolations = statisticsProvider.getMeter(
+            "security.authorization.default.access.violation", StatsOptions.DEFAULT);
+        permissionError = statisticsProvider.getMeter(
+            "security.authorization.default.permission.error", StatsOptions.DEFAULT);
+        permissionRefresh = statisticsProvider.getMeter(
+            "security.authorization.default.permission.refresh", StatsOptions.DEFAULT);
+        permissionAllLoaded = statisticsProvider.getTimer(
+            "security.authorization.default.permission.all_loaded", StatsOptions.METRICS_ONLY);
     }
 
     //-------------------------------------------------------------------------------------< AccessViolationMonitor >---

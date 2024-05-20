@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
  * Writable namespace registry. Mainly for use to implement the full JCR API.
  */
 public abstract class ReadWriteNamespaceRegistry
-        extends ReadOnlyNamespaceRegistry {
+    extends ReadOnlyNamespaceRegistry {
 
     private static final Logger LOG = LoggerFactory.getLogger(ReadWriteNamespaceRegistry.class);
 
@@ -43,19 +43,17 @@ public abstract class ReadWriteNamespaceRegistry
     }
 
     /**
-     * Called by the write methods to acquire a fresh {@link Root} instance
-     * that can be used to persist the requested namespace changes (and
-     * nothing else).
+     * Called by the write methods to acquire a fresh {@link Root} instance that can be used to
+     * persist the requested namespace changes (and nothing else).
      *
      * @return fresh {@link Root} instance
      */
     protected abstract Root getWriteRoot();
 
     /**
-     * Called by the write methods to refresh the state of the possible
-     * session associated with this instance. The default implementation
-     * of this method does nothing, but a subclass can use this callback
-     * to keep a session in sync with the persisted namespace changes.
+     * Called by the write methods to refresh the state of the possible session associated with this
+     * instance. The default implementation of this method does nothing, but a subclass can use this
+     * callback to keep a session in sync with the persisted namespace changes.
      *
      * @throws RepositoryException if the session could not be refreshed
      */
@@ -67,7 +65,7 @@ public abstract class ReadWriteNamespaceRegistry
 
     @Override
     public void registerNamespace(String prefix, String uri)
-            throws RepositoryException {
+        throws RepositoryException {
 
         // sanity check for legal namespace names (excluding the "internal"
         // namespace, see OAK-74)
@@ -75,7 +73,7 @@ public abstract class ReadWriteNamespaceRegistry
             if (!uri.contains(":")) {
                 LOG.error("Registering invalid namespace name '" + uri + "' for prefix '" + prefix
                         + "', please see https://developer.adobe.com/experience-manager/reference-materials/spec/jcr/2.0/3_Repository_Model.html#3.2.1%20Namespaces",
-                        new Exception("call stack"));
+                    new Exception("call stack"));
             }
         }
 
@@ -83,12 +81,12 @@ public abstract class ReadWriteNamespaceRegistry
             return; // the default empty namespace is always registered
         } else if (prefix.isEmpty() || uri.isEmpty()) {
             throw new NamespaceException(
-                    "Cannot remap the default empty namespace");
+                "Cannot remap the default empty namespace");
         }
 
         PropertyState property = namespaces.getProperty(prefix);
         if (property != null && property.getType() == STRING
-                && uri.equals(property.getValue(STRING))) {
+            && uri.equals(property.getValue(STRING))) {
             return; // common case: namespace already registered -> do nothing
         }
 
@@ -99,7 +97,7 @@ public abstract class ReadWriteNamespaceRegistry
             // remove existing mapping to given URI
             for (PropertyState mapping : namespaces.getProperties()) {
                 if (mapping.getType() == STRING
-                        && uri.equals(mapping.getValue(STRING))) {
+                    && uri.equals(mapping.getValue(STRING))) {
                     namespaces.removeProperty(mapping.getName());
                 }
             }
@@ -111,7 +109,7 @@ public abstract class ReadWriteNamespaceRegistry
             refresh();
         } catch (CommitFailedException e) {
             throw e.asRepositoryException(
-                    "Failed to register namespace mapping "
+                "Failed to register namespace mapping "
                     + prefix + " -> " + uri);
         }
     }
@@ -120,15 +118,15 @@ public abstract class ReadWriteNamespaceRegistry
     public void unregisterNamespace(String prefix) throws RepositoryException {
         if (prefix.isEmpty()) {
             throw new NamespaceException(
-                    "Cannot unregister the default empty namespace");
+                "Cannot unregister the default empty namespace");
         }
 
         Root root = getWriteRoot();
         Tree namespaces = root.getTree(NAMESPACES_PATH);
         if (!namespaces.exists() || !namespaces.hasProperty(prefix)) {
             throw new NamespaceException(
-                    "Namespace mapping from " + prefix + " to "
-                            + getURI(prefix) + " can not be unregistered");
+                "Namespace mapping from " + prefix + " to "
+                    + getURI(prefix) + " can not be unregistered");
         }
 
         try {

@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.query.xpath;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.query.SQL2Parser;
 import org.apache.jackrabbit.util.ISO9075;
 
@@ -27,13 +26,13 @@ import org.apache.jackrabbit.util.ISO9075;
  * An expression.
  */
 abstract class Expression {
-    
-    static final int PRECEDENCE_OR = 1, PRECEDENCE_AND = 2, 
-            PRECEDENCE_CONDITION = 3, PRECEDENCE_OPERAND = 4;
-    
+
+    static final int PRECEDENCE_OR = 1, PRECEDENCE_AND = 2,
+        PRECEDENCE_CONDITION = 3, PRECEDENCE_OPERAND = 4;
+
     /**
      * The "and" combination of two conditions.
-     * 
+     *
      * @param old the first expression (may be null)
      * @param add the second expression (may be null)
      * @return the combined expression (may be null)
@@ -46,10 +45,10 @@ abstract class Expression {
         }
         return new Expression.AndCondition(old, add);
     }
-    
+
     /**
      * Get the optimized expression.
-     * 
+     *
      * @return the optimized expression
      */
     Expression optimize() {
@@ -58,44 +57,44 @@ abstract class Expression {
 
     /**
      * Whether this is a condition.
-     * 
-     * @return true if it is 
+     *
+     * @return true if it is
      */
     boolean isCondition() {
         return false;
     }
-    
+
     /**
      * Whether this is a or contains a full-text condition.
-     * 
+     *
      * @return true if it is
      */
     boolean containsFullTextCondition() {
         return false;
     }
-    
+
     /**
-     * Get the left-hand-side expression for equality conditions. 
-     * For example, for x=1, it is x. If it is not equality, return null.
-     * 
+     * Get the left-hand-side expression for equality conditions. For example, for x=1, it is x. If
+     * it is not equality, return null.
+     *
      * @return the left-hand-side expression, or null
-     */        
+     */
     String getCommonLeftPart() {
         return null;
     }
-    
+
     /**
      * Get the left hand side of an expression.
-     * 
+     *
      * @return the left hand side
      */
     Expression getLeft() {
         return null;
     }
-    
+
     /**
      * Get the list of the right hand side of an expression.
-     * 
+     *
      * @return the list
      */
     List<Expression> getRight() {
@@ -104,51 +103,50 @@ abstract class Expression {
 
     /**
      * Pull an OR condition up to the right hand side of an AND condition.
-     * 
+     *
      * @return the (possibly rotated) expression
      */
     Expression pullOrRight() {
         return this;
     }
-    
+
     /**
-     * Get the operator / operation precedence. The JCR specification uses:
-     * 1=OR, 2=AND, 3=condition, 4=operand  
-     * 
-     * @return the precedence (as an example, multiplication needs to return
-     *         a higher number than addition)
+     * Get the operator / operation precedence. The JCR specification uses: 1=OR, 2=AND,
+     * 3=condition, 4=operand
+     *
+     * @return the precedence (as an example, multiplication needs to return a higher number than
+     * addition)
      */
     int getPrecedence() {
         return PRECEDENCE_OPERAND;
     }
-    
+
     /**
-     * Get the column alias name of an expression. For a property, this is the
-     * property name (no matter how many selectors the query contains); for
-     * other expressions it matches the toString() method.
-     * 
+     * Get the column alias name of an expression. For a property, this is the property name (no
+     * matter how many selectors the query contains); for other expressions it matches the
+     * toString() method.
+     *
      * @return the simple column name
      */
     String getColumnAliasName() {
         return toString();
     }
-    
+
     /**
-     * Whether the result of this expression is a name. Names are subject to
-     * ISO9075 encoding.
-     * 
+     * Whether the result of this expression is a name. Names are subject to ISO9075 encoding.
+     *
      * @return whether this expression is a name.
      */
     boolean isName() {
         return false;
     }
-    
+
     /**
-     * Get the most specific nodetype condition, that is a condition of the form
-     * "jcr:primaryType = 'x'". If there are multiple such conditions, only the
-     * most strict one needs to be returned. If there are no, or conflicting
-     * conditions, then null may be returned, meaning no usable condition.
-     * 
+     * Get the most specific nodetype condition, that is a condition of the form "jcr:primaryType =
+     * 'x'". If there are multiple such conditions, only the most strict one needs to be returned.
+     * If there are no, or conflicting conditions, then null may be returned, meaning no usable
+     * condition.
+     *
      * @param selectorName the selector name
      * @return null or the nodetype value
      */
@@ -160,23 +158,23 @@ abstract class Expression {
      * A literal expression.
      */
     static class Literal extends Expression {
-    
+
         final String value;
         final String rawText;
-    
+
         Literal(String value, String rawText) {
             this.value = value;
             this.rawText = rawText;
         }
-    
+
         public static Expression newBoolean(boolean value) {
             return new Literal(String.valueOf(value), String.valueOf(value));
         }
-    
+
         static Literal newNumber(String s) {
             return new Literal(s, s);
         }
-    
+
         static Literal newString(String s) {
             return new Literal(SQL2Parser.escapeStringLiteral(s), s);
         }
@@ -184,30 +182,30 @@ abstract class Expression {
         static Literal newBindVariable(String s) {
             return new Literal("@" + s, s);
         }
-    
+
         @Override
         public String toString() {
             return value;
         }
-    
+
     }
 
     /**
      * A condition.
      */
     static class Condition extends Expression {
-    
+
         final Expression left;
         final String operator;
         Expression right;
         final int precedence;
-    
+
         /**
          * Create a new condition.
-         * 
-         * @param left the left hand side operator, or null
-         * @param operator the operator
-         * @param right the right hand side operator, or null
+         *
+         * @param left       the left hand side operator, or null
+         * @param operator   the operator
+         * @param right      the right hand side operator, or null
          * @param precedence the operator precedence (Expression.PRECEDENCE_...)
          */
         Condition(Expression left, String operator, Expression right, int precedence) {
@@ -216,12 +214,12 @@ abstract class Expression {
             this.right = right;
             this.precedence = precedence;
         }
-        
+
         @Override
         int getPrecedence() {
             return precedence;
         }
-             
+
         @Override
         String getCommonLeftPart() {
             if (!"=".equals(operator)) {
@@ -229,7 +227,7 @@ abstract class Expression {
             }
             return left.toString();
         }
-        
+
         @Override
         public String getMostSpecificNodeType(String selectorName) {
             if (!"=".equals(operator)) {
@@ -250,18 +248,18 @@ abstract class Expression {
                 return null;
             }
             return l.rawText;
-        }   
-        
+        }
+
         @Override
         Expression getLeft() {
             return left;
         }
-        
+
         @Override
         List<Expression> getRight() {
             return Collections.singletonList(right);
         }
-    
+
         @Override
         public String toString() {
             String leftExpr;
@@ -285,7 +283,7 @@ abstract class Expression {
                     // need to de-escape _x0020_ and so on
                     if (!(right instanceof Literal)) {
                         throw new IllegalArgumentException(
-                                "Can only compare a name against a string literal, not " + right);
+                            "Can only compare a name against a string literal, not " + right);
                     }
                     Literal l = (Literal) right;
                     String raw = l.rawText;
@@ -309,19 +307,19 @@ abstract class Expression {
             }
             return (leftExpr + " " + operator + " " + rightExpr).trim();
         }
-    
+
         @Override
         boolean isCondition() {
             return true;
         }
-        
+
         @Override
         Expression optimize() {
             return this;
         }
-    
+
     }
-    
+
     /**
      * An "or" condition.
      */
@@ -332,10 +330,9 @@ abstract class Expression {
         }
 
         /**
-         * Get the left-hand-side expression if it is the same for
-         * both sides. For example, for x=1 or x=2, it is x,
-         * but for x=1 or y=2, it is null
-         * 
+         * Get the left-hand-side expression if it is the same for both sides. For example, for x=1
+         * or x=2, it is x, but for x=1 or y=2, it is null
+         *
          * @return the left-hand-side expression, or null
          */
         @Override
@@ -347,7 +344,7 @@ abstract class Expression {
             }
             return null;
         }
-        
+
         @Override
         Expression optimize() {
             Expression l = left.optimize();
@@ -395,14 +392,14 @@ abstract class Expression {
             InCondition in = new InCondition(le, list);
             return in;
         }
-        
+
         @Override
         boolean containsFullTextCondition() {
             return left.containsFullTextCondition() || right.containsFullTextCondition();
         }
-        
+
     }
-    
+
     /**
      * An "or" condition.
      */
@@ -410,27 +407,27 @@ abstract class Expression {
 
         final Expression left;
         final List<Expression> list;
-        
+
         InCondition(Expression left, List<Expression> list) {
             this.left = left;
             this.list = list;
         }
-        
+
         @Override
         String getCommonLeftPart() {
             return left.toString();
         }
-        
+
         @Override
         Expression getLeft() {
             return left;
         }
-        
+
         @Override
         List<Expression> getRight() {
             return list;
         }
-    
+
         @Override
         public String toString() {
             StringBuilder buff = new StringBuilder();
@@ -443,14 +440,14 @@ abstract class Expression {
             }
             return buff.append(')').toString();
         }
-    
+
         @Override
         boolean isCondition() {
             return true;
-        }        
-        
+        }
+
     }
-    
+
     /**
      * An "and" condition.
      */
@@ -469,7 +466,7 @@ abstract class Expression {
             }
             return this;
         }
-        
+
         @Override
         public String getMostSpecificNodeType(String selectorName) {
             String nt = left.getMostSpecificNodeType(selectorName);
@@ -478,13 +475,13 @@ abstract class Expression {
             }
             return right.getMostSpecificNodeType(selectorName);
         }
-        
+
         @Override
         AndCondition pullOrRight() {
             ArrayList<Expression> list = getAllAndConditions();
             OrCondition or = null;
             Expression result = null;
-            for(Expression e : list) {
+            for (Expression e : list) {
                 if (e instanceof OrCondition && or == null) {
                     or = (OrCondition) e;
                 } else if (result == null) {
@@ -498,7 +495,7 @@ abstract class Expression {
             }
             return (AndCondition) result;
         }
-        
+
         private ArrayList<Expression> getAllAndConditions() {
             ArrayList<Expression> list = new ArrayList<Expression>();
             if (left instanceof AndCondition) {
@@ -513,26 +510,26 @@ abstract class Expression {
             }
             return list;
         }
-        
+
         @Override
         boolean containsFullTextCondition() {
             return left.containsFullTextCondition() || right.containsFullTextCondition();
         }
-        
+
     }
-    
+
     /**
      * A contains call.
      */
     static class Contains extends Expression {
-        
+
         final Expression left, right;
-    
+
         Contains(Expression left, Expression right) {
             this.left = left;
             this.right = right;
         }
-    
+
         @Override
         public String toString() {
             StringBuilder buff = new StringBuilder("contains(");
@@ -547,46 +544,7 @@ abstract class Expression {
             buff.append(", ").append(right).append(')');
             return buff.toString();
         }
-    
-        @Override
-        boolean isCondition() {
-            return true;
-        }
-        
-        @Override
-        boolean containsFullTextCondition() {
-            return true;
-        }
-        
-        @Override
-        boolean isName() {
-            return left.isName();
-        }
-    
-    }    
-    
-    /**
-     * A native call.
-     */
-    static class NativeFunction extends Expression {
-        
-        final String selector;
-        final Expression language, expression;
-    
-        NativeFunction(String selector, Expression language, Expression expression) {
-            this.selector = selector;
-            this.language = language;
-            this.expression = expression;
-        }
-    
-        @Override
-        public String toString() {
-            StringBuilder buff = new StringBuilder("native(");
-            buff.append(selector);
-            buff.append(", ").append(language).append(", ").append(expression).append(')');
-            return buff.toString();
-        }
-    
+
         @Override
         boolean isCondition() {
             return true;
@@ -596,26 +554,65 @@ abstract class Expression {
         boolean containsFullTextCondition() {
             return true;
         }
-        
+
+        @Override
+        boolean isName() {
+            return left.isName();
+        }
+
+    }
+
+    /**
+     * A native call.
+     */
+    static class NativeFunction extends Expression {
+
+        final String selector;
+        final Expression language, expression;
+
+        NativeFunction(String selector, Expression language, Expression expression) {
+            this.selector = selector;
+            this.language = language;
+            this.expression = expression;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder buff = new StringBuilder("native(");
+            buff.append(selector);
+            buff.append(", ").append(language).append(", ").append(expression).append(')');
+            return buff.toString();
+        }
+
+        @Override
+        boolean isCondition() {
+            return true;
+        }
+
+        @Override
+        boolean containsFullTextCondition() {
+            return true;
+        }
+
         @Override
         boolean isName() {
             return false;
         }
-    
-    } 
-    
+
+    }
+
     /**
      * A rep:similar condition.
      */
     static class Similar extends Expression {
-        
+
         final Expression property, path;
-    
+
         Similar(Expression property, Expression path) {
             this.property = property;
             this.path = path;
         }
-    
+
         @Override
         public String toString() {
             StringBuilder buff = new StringBuilder("similar(");
@@ -623,17 +620,17 @@ abstract class Expression {
             buff.append(", ").append(path).append(')');
             return buff.toString();
         }
-    
+
         @Override
         boolean isCondition() {
             return true;
         }
-        
+
         @Override
         boolean isName() {
             return false;
         }
-    
+
     }
 
     /**
@@ -702,14 +699,14 @@ abstract class Expression {
      * A function call.
      */
     static class Function extends Expression {
-    
+
         final String name;
         final ArrayList<Expression> params = new ArrayList<Expression>();
-    
+
         Function(String name) {
             this.name = name;
         }
-    
+
         @Override
         public String toString() {
             StringBuilder buff = new StringBuilder(name);
@@ -723,12 +720,12 @@ abstract class Expression {
             buff.append(')');
             return buff.toString();
         }
-    
+
         @Override
         boolean isCondition() {
             return name.equals("contains") || name.equals("not");
         }
-        
+
         @Override
         boolean isName() {
             if ("upper".equals(name) || "lower".equals(name)) {
@@ -736,22 +733,22 @@ abstract class Expression {
             }
             return "name".equals(name);
         }
-    
+
     }
 
     /**
      * A cast operation.
      */
     static class Cast extends Expression {
-    
+
         final Expression expr;
         final String type;
-    
+
         Cast(Expression expr, String type) {
             this.expr = expr;
             this.type = type;
         }
-    
+
         @Override
         public String toString() {
             StringBuilder buff = new StringBuilder("cast(");
@@ -759,55 +756,55 @@ abstract class Expression {
             buff.append(" as ").append(type).append(')');
             return buff.toString();
         }
-    
+
         @Override
         boolean isCondition() {
             return false;
         }
-    
+
     }
 
     /**
      * A selector parameter.
      */
     static class SelectorExpr extends Expression {
-    
+
         private final Selector selector;
-    
+
         SelectorExpr(Selector selector) {
             this.selector = selector;
         }
-    
+
         @Override
         public String toString() {
             return selector.name;
         }
-    
+
     }
 
     /**
      * A property expression.
      */
     static class Property extends Expression {
-    
+
         final Selector selector;
         final String name;
         private String cacheString;
         private boolean cacheOnlySelector;
-        
+
         /**
-         * If there was no "@" character in front of the property name. If that
-         * was the case, then it is still considered a property, except for
-         * "contains(x, 'y')", where "x" is considered to be a node.
+         * If there was no "@" character in front of the property name. If that was the case, then
+         * it is still considered a property, except for "contains(x, 'y')", where "x" is considered
+         * to be a node.
          */
         final boolean thereWasNoAt;
-    
+
         Property(Selector selector, String name, boolean thereWasNoAt) {
             this.selector = selector;
             this.name = name;
             this.thereWasNoAt = thereWasNoAt;
         }
-    
+
         @Override
         public String toString() {
             if (cacheString != null) {
@@ -828,12 +825,12 @@ abstract class Expression {
             cacheOnlySelector = selector.onlySelector;
             return cacheString;
         }
-        
+
         @Override
         public String getColumnAliasName() {
             return name;
         }
-    
+
     }
 
 }

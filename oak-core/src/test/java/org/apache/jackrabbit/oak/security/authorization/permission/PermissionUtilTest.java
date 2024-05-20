@@ -52,13 +52,13 @@ public class PermissionUtilTest {
 
     @Test
     public void testParentPathOrNull() {
-        for (String path : new String[] {"", PathUtils.ROOT_PATH, "a"}) {
+        for (String path : new String[]{"", PathUtils.ROOT_PATH, "a"}) {
             assertNull(PermissionUtil.getParentPathOrNull(path));
         }
 
         assertEquals(PathUtils.ROOT_PATH, PermissionUtil.getParentPathOrNull("/single"));
 
-        for (String path : new String[] {"/a/path", "/a/longer/path"}) {
+        for (String path : new String[]{"/a/path", "/a/longer/path"}) {
             assertEquals(PathUtils.getParentPath(path), PermissionUtil.getParentPathOrNull(path));
         }
     }
@@ -71,7 +71,8 @@ public class PermissionUtilTest {
         when(tree.getProperty(REP_ACCESS_CONTROLLED_PATH)).thenReturn(null);
         assertFalse(PermissionUtil.checkACLPath(tree, path));
 
-        PropertyState nonMatching = PropertyStates.createProperty(REP_ACCESS_CONTROLLED_PATH, "/another");
+        PropertyState nonMatching = PropertyStates.createProperty(REP_ACCESS_CONTROLLED_PATH,
+            "/another");
         when(tree.getProperty(REP_ACCESS_CONTROLLED_PATH)).thenReturn(nonMatching);
         assertFalse(PermissionUtil.checkACLPath(tree, path));
 
@@ -88,7 +89,8 @@ public class PermissionUtilTest {
         when(nb.getProperty(REP_ACCESS_CONTROLLED_PATH)).thenReturn(null);
         assertFalse(PermissionUtil.checkACLPath(nb, path));
 
-        PropertyState nonMatching = PropertyStates.createProperty(REP_ACCESS_CONTROLLED_PATH, "/another");
+        PropertyState nonMatching = PropertyStates.createProperty(REP_ACCESS_CONTROLLED_PATH,
+            "/another");
         when(nb.getProperty(REP_ACCESS_CONTROLLED_PATH)).thenReturn(nonMatching);
         assertFalse(PermissionUtil.checkACLPath(nb, path));
 
@@ -99,23 +101,31 @@ public class PermissionUtilTest {
 
     @Test
     public void testIsAdminOrSystem() {
-        ConfigurationParameters params = ConfigurationParameters.of(PARAM_ADMINISTRATIVE_PRINCIPALS, ImmutableSet.of("administrative"));
+        ConfigurationParameters params = ConfigurationParameters.of(PARAM_ADMINISTRATIVE_PRINCIPALS,
+            ImmutableSet.of("administrative"));
 
-        Set<Principal> principals = ImmutableSet.of(new PrincipalImpl("name"), new PrincipalImpl("administrative"));
+        Set<Principal> principals = ImmutableSet.of(new PrincipalImpl("name"),
+            new PrincipalImpl("administrative"));
         assertTrue(PermissionUtil.isAdminOrSystem(principals, params));
         assertFalse(PermissionUtil.isAdminOrSystem(principals, ConfigurationParameters.EMPTY));
     }
 
     @Test
     public void testIsAdminOrSystemForAdminPrincipal() {
-        assertTrue(PermissionUtil.isAdminOrSystem(ImmutableSet.of(mock(AdminPrincipal.class)), ConfigurationParameters.EMPTY));
-        assertTrue(PermissionUtil.isAdminOrSystem(ImmutableSet.of(new PrincipalImpl("name"), mock(AdminPrincipal.class)), ConfigurationParameters.EMPTY));
+        assertTrue(PermissionUtil.isAdminOrSystem(ImmutableSet.of(mock(AdminPrincipal.class)),
+            ConfigurationParameters.EMPTY));
+        assertTrue(PermissionUtil.isAdminOrSystem(
+            ImmutableSet.of(new PrincipalImpl("name"), mock(AdminPrincipal.class)),
+            ConfigurationParameters.EMPTY));
     }
 
     @Test
     public void testIsAdminOrSystemForSystemPrincial() {
-        assertTrue(PermissionUtil.isAdminOrSystem(ImmutableSet.of(SystemPrincipal.INSTANCE), ConfigurationParameters.EMPTY));
-        assertTrue(PermissionUtil.isAdminOrSystem(ImmutableSet.of(new PrincipalImpl("name"), SystemPrincipal.INSTANCE), ConfigurationParameters.EMPTY));
+        assertTrue(PermissionUtil.isAdminOrSystem(ImmutableSet.of(SystemPrincipal.INSTANCE),
+            ConfigurationParameters.EMPTY));
+        assertTrue(PermissionUtil.isAdminOrSystem(
+            ImmutableSet.of(new PrincipalImpl("name"), SystemPrincipal.INSTANCE),
+            ConfigurationParameters.EMPTY));
     }
 
     @Test

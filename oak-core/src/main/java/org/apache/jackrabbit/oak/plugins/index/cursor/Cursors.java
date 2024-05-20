@@ -29,21 +29,20 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgumen
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
- * This utility class provides factory methods to create commonly used types of
- * {@link Cursor}s.
+ * This utility class provides factory methods to create commonly used types of {@link Cursor}s.
  */
 public class Cursors {
 
     private Cursors() {
     }
-    
+
     public static void checkMemoryLimit(long count, QueryLimits settings) {
         FilterIterators.checkMemoryLimit(count, settings);
-    }    
+    }
 
     public static void checkReadLimit(long count, QueryLimits settings) {
         FilterIterators.checkReadLimit(count, settings);
-    }    
+    }
 
     public static Cursor newIntersectionCursor(Cursor a, Cursor b, QueryLimits settings) {
         return new IntersectionCursor(a, b, settings);
@@ -53,8 +52,9 @@ public class Cursors {
         return new ConcatCursor(cursors, settings);
     }
 
-    public static Cursor newPrefetchCursor(Cursor cursor, PrefetchNodeStore store, int prefetchCount,
-            NodeState rootState, List<String> prefetchRelative) {
+    public static Cursor newPrefetchCursor(Cursor cursor, PrefetchNodeStore store,
+        int prefetchCount,
+        NodeState rootState, List<String> prefetchRelative) {
         return new PrefetchCursor(cursor, store, prefetchCount, rootState, prefetchRelative);
     }
 
@@ -69,9 +69,9 @@ public class Cursors {
     }
 
     /**
-     * Creates a {@link Cursor} over paths, and make the result distinct.
-     * The iterator might return duplicate paths
-     * 
+     * Creates a {@link Cursor} over paths, and make the result distinct. The iterator might return
+     * duplicate paths
+     *
      * @param paths the paths to iterate over (might contain duplicate entries)
      * @return the Cursor.
      */
@@ -80,15 +80,14 @@ public class Cursors {
     }
 
     /**
-     * Returns a traversing cursor based on the path restriction in the given
-     * {@link Filter}.
-     * 
-     * @param filter the filter.
+     * Returns a traversing cursor based on the path restriction in the given {@link Filter}.
+     *
+     * @param filter    the filter.
      * @param rootState the root {@link NodeState}.
      * @return the {@link Cursor}.
      */
     public static Cursor newTraversingCursor(Filter filter,
-                                             NodeState rootState) {
+        NodeState rootState) {
         return new TraversingCursor(filter, rootState);
     }
 
@@ -96,10 +95,10 @@ public class Cursors {
      * Returns a cursor wrapper, which returns the ancestor rows at the given
      * <code>level</code> of the wrapped cursor <code>c</code>. With
      * <code>level</code> e.g. set to <code>1</code>, the returned cursor
-     * iterates over the parent rows of the passed cursor <code>c</code>. The
-     * returned cursor guarantees distinct rows.
+     * iterates over the parent rows of the passed cursor <code>c</code>. The returned cursor
+     * guarantees distinct rows.
      *
-     * @param c the cursor to wrap.
+     * @param c     the cursor to wrap.
      * @param level the ancestor level. Must be {@code >= 1}.
      * @return cursor over the ancestors of <code>c</code> at <code>level</code>.
      */

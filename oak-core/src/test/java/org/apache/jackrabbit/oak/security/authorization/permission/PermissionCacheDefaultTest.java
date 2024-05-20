@@ -51,13 +51,16 @@ public class PermissionCacheDefaultTest extends AbstractCacheTest {
     public void before() {
         super.before();
 
-        when(store.load("a", "/path1")).thenReturn(createPermissionEntryCollection("/path1", false, REP_READ_NODES));
-        when(store.load("b", "/path2")).thenReturn(createPermissionEntryCollection("/path2", true, JCR_MODIFY_ACCESS_CONTROL));
+        when(store.load("a", "/path1")).thenReturn(
+            createPermissionEntryCollection("/path1", false, REP_READ_NODES));
+        when(store.load("b", "/path2")).thenReturn(
+            createPermissionEntryCollection("/path2", true, JCR_MODIFY_ACCESS_CONTROL));
         when(store.load("a", "/path2")).thenReturn(null);
         when(store.load("b", "/path1")).thenReturn(null);
         when(store.load("a", "/another/path")).thenReturn(null);
         when(store.load("b", "/another/path")).thenReturn(null);
-        when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(1, isExact()));
+        when(store.getNumEntries(anyString(), anyLong())).thenReturn(
+            NumEntries.valueOf(1, isExact()));
 
         Set<String> principalNames = Sets.newHashSet("a", "b");
         assertFalse(permissionCacheBuilder.init(principalNames, createStrategy(1, 0, true)));
@@ -89,8 +92,11 @@ public class PermissionCacheDefaultTest extends AbstractCacheTest {
         verify(store, never()).load("b", "/any/other/path");
     }
 
-    private static Collection<PermissionEntry> createPermissionEntryCollection(@NotNull String path, boolean isAllow, @NotNull String privilegeName) {
-        return Collections.singleton(new PermissionEntry(path, isAllow, 0, PrivilegeBits.BUILT_IN.get(privilegeName), RestrictionPattern.EMPTY));
+    private static Collection<PermissionEntry> createPermissionEntryCollection(@NotNull String path,
+        boolean isAllow, @NotNull String privilegeName) {
+        return Collections.singleton(
+            new PermissionEntry(path, isAllow, 0, PrivilegeBits.BUILT_IN.get(privilegeName),
+                RestrictionPattern.EMPTY));
     }
 
     @Test
@@ -126,7 +132,8 @@ public class PermissionCacheDefaultTest extends AbstractCacheTest {
     @Test
     public void testGetEntriesByAccessControlledTree() {
 
-        Tree t = when(mock(Tree.class).getPath()).thenReturn("/path1", "/path2", "/any/other/path", "/path1", "/path2", "/any/other/path").getMock();
+        Tree t = when(mock(Tree.class).getPath()).thenReturn("/path1", "/path2", "/any/other/path",
+            "/path1", "/path2", "/any/other/path").getMock();
         when(t.hasChild(AccessControlConstants.REP_POLICY)).thenReturn(true);
 
         assertEquals(1, cache.getEntries(t).size());

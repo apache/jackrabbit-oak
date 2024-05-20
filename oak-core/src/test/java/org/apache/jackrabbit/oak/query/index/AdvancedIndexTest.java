@@ -41,13 +41,14 @@ public class AdvancedIndexTest {
     }
 
     @Test
-    public void copy() throws Exception{
+    public void copy() throws Exception {
         Filter f = new FilterImpl(null, "SELECT * FROM [nt:file]", new QueryEngineSettings());
         IndexPlan.Builder b = new IndexPlan.Builder();
         IndexPlan plan1 = b.setEstimatedEntryCount(10).setFilter(f).setDelayed(true).build();
 
         IndexPlan plan2 = plan1.copy();
-        plan2.setFilter(new FilterImpl(null, "SELECT * FROM [oak:Unstructured]", new QueryEngineSettings()));
+        plan2.setFilter(
+            new FilterImpl(null, "SELECT * FROM [oak:Unstructured]", new QueryEngineSettings()));
 
         assertEquals(plan1.getEstimatedEntryCount(), 10);
         assertEquals(plan2.getEstimatedEntryCount(), 10);
@@ -58,9 +59,9 @@ public class AdvancedIndexTest {
     }
 
     @Test
-    public void attribute() throws Exception{
+    public void attribute() throws Exception {
         IndexPlan plan = new IndexPlan.Builder().setAttribute("foo", "bar").build();
         assertEquals("bar", plan.getAttribute("foo"));
     }
-    
+
 }

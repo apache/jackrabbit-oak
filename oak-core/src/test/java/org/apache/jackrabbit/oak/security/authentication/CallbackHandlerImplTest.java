@@ -53,14 +53,15 @@ public class CallbackHandlerImplTest extends AbstractSecurityTest {
     }
 
     private CallbackHandlerImpl create(@NotNull Credentials creds) {
-        return new CallbackHandlerImpl(creds, root.getContentSession().getWorkspaceName(), getContentRepository(), getSecurityProvider(), whiteboard, LoginModuleMonitor.NOOP);
+        return new CallbackHandlerImpl(creds, root.getContentSession().getWorkspaceName(),
+            getContentRepository(), getSecurityProvider(), whiteboard, LoginModuleMonitor.NOOP);
     }
 
     @Test
     public void testCredentialsCallback() throws Exception {
         CredentialsCallback cb = new CredentialsCallback();
 
-        callbackHandler.handle(new Callback[] {cb});
+        callbackHandler.handle(new Callback[]{cb});
         assertSame(simpleCreds, cb.getCredentials());
     }
 
@@ -68,7 +69,7 @@ public class CallbackHandlerImplTest extends AbstractSecurityTest {
     public void handlePasswordCallback() throws Exception {
         PasswordCallback cb = new PasswordCallback("prompt", false);
 
-        callbackHandler.handle(new Callback[] {cb});
+        callbackHandler.handle(new Callback[]{cb});
         assertArrayEquals(simpleCreds.getPassword(), cb.getPassword());
     }
 
@@ -76,7 +77,8 @@ public class CallbackHandlerImplTest extends AbstractSecurityTest {
     public void handlePasswordCallback2() throws Exception {
         PasswordCallback cb = new PasswordCallback("prompt", false);
 
-        create(new Credentials() {}).handle(new Callback[]{cb});
+        create(new Credentials() {
+        }).handle(new Callback[]{cb});
         assertNull(cb.getPassword());
     }
 
@@ -84,7 +86,7 @@ public class CallbackHandlerImplTest extends AbstractSecurityTest {
     public void handleNameCallback() throws Exception {
         NameCallback cb = new NameCallback("prompt");
 
-        callbackHandler.handle(new Callback[] {cb});
+        callbackHandler.handle(new Callback[]{cb});
         assertEquals("id", cb.getName());
     }
 
@@ -92,7 +94,8 @@ public class CallbackHandlerImplTest extends AbstractSecurityTest {
     public void handleNameCallback2() throws Exception {
         NameCallback cb = new NameCallback("prompt");
 
-        create(new Credentials() {}).handle(new Callback[]{cb});
+        create(new Credentials() {
+        }).handle(new Callback[]{cb});
         assertNull(cb.getName());
     }
 
@@ -100,7 +103,7 @@ public class CallbackHandlerImplTest extends AbstractSecurityTest {
     public void handleWhiteboardCallback() throws Exception {
         WhiteboardCallback cb = new WhiteboardCallback();
 
-        callbackHandler.handle(new Callback[] {cb});
+        callbackHandler.handle(new Callback[]{cb});
         assertSame(whiteboard, cb.getWhiteboard());
     }
 
@@ -108,7 +111,7 @@ public class CallbackHandlerImplTest extends AbstractSecurityTest {
     public void handleRepositoryCallback() throws Exception {
         RepositoryCallback cb = new RepositoryCallback();
 
-        callbackHandler.handle(new Callback[] {cb});
+        callbackHandler.handle(new Callback[]{cb});
         assertSame(getContentRepository(), cb.getContentRepository());
         assertSame(getSecurityProvider(), cb.getSecurityProvider());
         assertEquals(root.getContentSession().getWorkspaceName(), cb.getWorkspaceName());
@@ -116,7 +119,8 @@ public class CallbackHandlerImplTest extends AbstractSecurityTest {
 
     @Test(expected = UnsupportedCallbackException.class)
     public void handleUnknownCallback() throws Exception {
-        callbackHandler.handle(new Callback[] {new Callback() {}});
+        callbackHandler.handle(new Callback[]{new Callback() {
+        }});
     }
 
 }

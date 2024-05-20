@@ -54,19 +54,19 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
     @Override
     protected ContentRepository createRepository() {
         return new Oak().with(new InitialContent())
-                .with(new RepositoryInitializer() {
-                    @Override
-                    public void initialize(@NotNull NodeBuilder builder) {
-                        NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
-                        IndexUtils.createIndexDefinition(
-                                index, "xyz", true, false,
-                                ImmutableList.of("x", "y", "z", "w"), null);
-                    }
-                })
-                .with(new OpenSecurityProvider())
-                .with(new PropertyIndexProvider())
-                .with(new PropertyIndexEditorProvider())
-                .createContentRepository();
+                        .with(new RepositoryInitializer() {
+                            @Override
+                            public void initialize(@NotNull NodeBuilder builder) {
+                                NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
+                                IndexUtils.createIndexDefinition(
+                                    index, "xyz", true, false,
+                                    ImmutableList.of("x", "y", "z", "w"), null);
+                            }
+                        })
+                        .with(new OpenSecurityProvider())
+                        .with(new PropertyIndexProvider())
+                        .with(new PropertyIndexEditorProvider())
+                        .createContentRepository();
     }
 
     @Test
@@ -78,39 +78,39 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
         root.commit();
         setTraversalEnabled(false);
         assertQuery("select [jcr:path] from [nt:base] where [x] is not null",
-                ImmutableList.of("/a"));
+            ImmutableList.of("/a"));
 
         List<String> lines = executeQuery(
-                "explain select [jcr:path] from [nt:base] where [x] is not null",
-                Query.JCR_SQL2);
+            "explain select [jcr:path] from [nt:base] where [x] is not null",
+            Query.JCR_SQL2);
         assertEquals(1, lines.size());
         // make sure it used the property index
         assertTrue(lines.toString(), lines.get(0).contains("all values in the index"));
 
         lines = executeQuery(
-                "explain select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'foo'",
-                Query.JCR_SQL2);
+            "explain select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'foo'",
+            Query.JCR_SQL2);
         assertEquals(1, lines.size());
         // make sure it used the property index
         assertTrue(lines.toString(), lines.get(0).contains("values: 'foo'"));
 
         lines = executeQuery(
-                "explain select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'bar'",
-                Query.JCR_SQL2);
+            "explain select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'bar'",
+            Query.JCR_SQL2);
         assertEquals(1, lines.size());
         // make sure it used the property index
         assertTrue(lines.get(0), lines.get(0).contains("values: 'foo'"));
         assertTrue(lines.get(0), lines.get(0).contains("values: 'bar'"));
 
         assertQuery(
-                "select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'foo'",
-                ImmutableList.of("/a"));
+            "select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'foo'",
+            ImmutableList.of("/a"));
         assertQuery(
-                "select [jcr:path] from [nt:base] where [x] = 'foo' OR [z] = 'foo'",
-                ImmutableList.of("/a", "/c"));
+            "select [jcr:path] from [nt:base] where [x] = 'foo' OR [z] = 'foo'",
+            ImmutableList.of("/a", "/c"));
         assertQuery(
-                "select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'bar'",
-                ImmutableList.of("/a", "/b"));
+            "select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'bar'",
+            ImmutableList.of("/a", "/b"));
         setTraversalEnabled(false);
     }
 
@@ -133,7 +133,7 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
             Tree a = test.addChild("b" + i);
             a.setProperty("y", "foob");
             int num = 100 + r.nextInt(100);
-            a.setProperty("z",  num);
+            a.setProperty("z", num);
             nodes.add(num);
         }
         root.commit();

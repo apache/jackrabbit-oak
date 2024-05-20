@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * An approximate counter algorithm.
  */
 public class ApproximateCounter {
-    
+
     public static final String COUNT_PROPERTY_PREFIX = ":count_";
     public static final int COUNT_RESOLUTION = 100;
     public static final int COUNT_MAX = 10000000;
@@ -41,13 +41,12 @@ public class ApproximateCounter {
     }
 
     /**
-     * Calculate the approximate offset from a given offset. The offset is the
-     * number of added or removed entries. The result is 0 in most of the cases,
-     * but sometimes it is a (positive or negative) multiple of the resolution,
-     * such that on average, the sum of the returned value matches the sum of
-     * the passed offsets.
-     * 
-     * @param offset the high-resolution input offset
+     * Calculate the approximate offset from a given offset. The offset is the number of added or
+     * removed entries. The result is 0 in most of the cases, but sometimes it is a (positive or
+     * negative) multiple of the resolution, such that on average, the sum of the returned value
+     * matches the sum of the passed offsets.
+     *
+     * @param offset     the high-resolution input offset
      * @param resolution the resolution
      * @return the low-resolution offset (most of the time 0)
      */
@@ -70,20 +69,19 @@ public class ApproximateCounter {
     }
 
     /**
-     * This method ensures that the new approximate count (the old count plus
-     * the calculated offset) does not go below 0.
-     * 
-     * Also, for large counts and resolutions larger than 10, it reduces the
-     * resolution by a factor of 10 (further reducing the number of updates
-     * needed by a factor of 10).
-     * 
-     * @param oldCount the old count
+     * This method ensures that the new approximate count (the old count plus the calculated offset)
+     * does not go below 0.
+     * <p>
+     * Also, for large counts and resolutions larger than 10, it reduces the resolution by a factor
+     * of 10 (further reducing the number of updates needed by a factor of 10).
+     *
+     * @param oldCount         the old count
      * @param calculatedOffset the calculated offset (may not be 0)
-     * @param resolution the new (lower) resolution
+     * @param resolution       the new (lower) resolution
      * @return the new offset
      */
     public static long adjustOffset(long oldCount, long calculatedOffset,
-            int resolution) {
+        int resolution) {
         if (oldCount + calculatedOffset < 0) {
             return -oldCount;
         }
@@ -92,23 +90,23 @@ public class ApproximateCounter {
         }
         return RANDOM.nextInt(10) == 0 ? calculatedOffset * 10 : 0;
     }
-    
+
     /**
      * Set the seed of the random number generator (used for testing).
-     * 
+     *
      * @param seed the new seed
      */
     static void setSeed(int seed) {
         RANDOM.setSeed(seed);
     }
-    
+
     /**
-     * Adjust a counter in the given node. This method supports concurrent
-     * changes. It uses multiple properties, and is less accurate, but can be
-     * used in a multi-threaded environment, as it uses unique property names.
-     * 
+     * Adjust a counter in the given node. This method supports concurrent changes. It uses multiple
+     * properties, and is less accurate, but can be used in a multi-threaded environment, as it uses
+     * unique property names.
+     *
      * @param builder the node builder
-     * @param offset the offset
+     * @param offset  the offset
      */
     public static void adjustCountSync(NodeBuilder builder, long offset) {
         if (offset == 0) {
@@ -119,7 +117,7 @@ public class ApproximateCounter {
             adjustCountSync(builder, added);
         }
     }
-    
+
     private static void adjustCountSync(NodeBuilder builder, boolean added) {
         if (RANDOM.nextInt(COUNT_RESOLUTION) != 0) {
             return;
@@ -137,7 +135,7 @@ public class ApproximateCounter {
         String propertyName = COUNT_PROPERTY_PREFIX + UUID.randomUUID();
         builder.setProperty(propertyName, added ? value : -value);
     }
-    
+
     private static int getMaxCount(NodeBuilder node, boolean added) {
         long max = 0;
         for (PropertyState p : node.getProperties()) {
@@ -152,7 +150,7 @@ public class ApproximateCounter {
         max = Math.min(Integer.MAX_VALUE, max);
         return (int) max;
     }
-    
+
     /**
      * Get the count estimation.
      *

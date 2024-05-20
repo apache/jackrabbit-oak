@@ -44,13 +44,13 @@ public final class QueryUtil {
 
     private static final Logger log = LoggerFactory.getLogger(QueryUtil.class);
 
-    private QueryUtil() {}
+    private QueryUtil() {
+    }
 
     /**
-     * Determine the search root for the given authorizable type based on the
-     * configured root path.
+     * Determine the search root for the given authorizable type based on the configured root path.
      *
-     * @param type The authorizable type.
+     * @param type   The authorizable type.
      * @param config The configuration parameters.
      * @return The path of search root for the specified authorizable type.
      */
@@ -107,12 +107,15 @@ public final class QueryUtil {
                 return "xs:dateTime('" + value.getString() + "')";
 
             default:
-                throw new RepositoryException("Property of type " + PropertyType.nameFromValue(value.getType()) + " not supported");
+                throw new RepositoryException(
+                    "Property of type " + PropertyType.nameFromValue(value.getType())
+                        + " not supported");
         }
     }
 
     @NotNull
-    public static String escapeForQuery(@NotNull String oakName, @NotNull NamePathMapper namePathMapper) {
+    public static String escapeForQuery(@NotNull String oakName,
+        @NotNull NamePathMapper namePathMapper) {
         return escapeForQuery(namePathMapper.getJcrName(oakName));
     }
 
@@ -125,7 +128,7 @@ public final class QueryUtil {
     public static RelationOp getCollation(@NotNull QueryBuilder.Direction direction) {
         if (direction == ASCENDING) {
             return RelationOp.GT;
-        }else {
+        } else {
             // DESCENDING
             return RelationOp.LT;
         }

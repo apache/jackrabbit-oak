@@ -103,32 +103,32 @@ import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 
 public class AsyncIndexUpdate implements Runnable, Closeable {
+
     /**
      * Name of service property which determines the name of Async task
      */
     public static final String PROP_ASYNC_NAME = "oak.async";
-    private static final String CONCURRENT_EXCEPTION_MSG ="Another copy of the index update is already running; skipping this update. ";
+    private static final String CONCURRENT_EXCEPTION_MSG = "Another copy of the index update is already running; skipping this update. ";
     private static final Logger log = LoggerFactory
-            .getLogger(AsyncIndexUpdate.class);
+        .getLogger(AsyncIndexUpdate.class);
 
     /**
-     * Name of the hidden node under which information about the checkpoints
-     * seen and indexed by each async indexer is kept.
+     * Name of the hidden node under which information about the checkpoints seen and indexed by
+     * each async indexer is kept.
      */
     static final String ASYNC = ":async";
 
     private static final long DEFAULT_LIFETIME = TimeUnit.DAYS.toMillis(1000);
 
     private static final CommitFailedException INTERRUPTED = new CommitFailedException(
-            "Async", 1, "Indexing stopped forcefully");
+        "Async", 1, "Indexing stopped forcefully");
 
     /**
-     * Timeout in milliseconds after which an async job would be considered as
-     * timed out. Another node in cluster would wait for timeout before
-     * taking over a running job
+     * Timeout in milliseconds after which an async job would be considered as timed out. Another
+     * node in cluster would wait for timeout before taking over a running job
      */
     private static final long DEFAULT_ASYNC_TIMEOUT = TimeUnit.MINUTES.toMillis(
-            Integer.getInteger("oak.async.lease.timeout", 15));
+        Integer.getInteger("oak.async.lease.timeout", 15));
 
     private final String name;
 
@@ -137,8 +137,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     private final IndexEditorProvider provider;
 
     /**
-     * Property name which stores the timestamp upto which the repository is
-     * indexed
+     * Property name which stores the timestamp upto which the repository is indexed
      */
     private final String lastIndexedTo;
 
@@ -146,14 +145,15 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     private final AsyncIndexStats indexStats;
 
-    /** Flag to switch to synchronous updates once the index caught up to the repo */
+    /**
+     * Flag to switch to synchronous updates once the index caught up to the repo
+     */
     private final boolean switchOnSync;
 
     /**
-     * Set of reindexed definitions updated between runs because a single diff
-     * can report fewer definitions than there really are. Used in coordination
-     * with the switchOnSync flag, so we know which def need to be updated after
-     * a run with no changes.
+     * Set of reindexed definitions updated between runs because a single diff can report fewer
+     * definitions than there really are. Used in coordination with the switchOnSync flag, so we
+     * know which def need to be updated after a run with no changes.
      */
     private final Set<String> reindexedDefinitions = new HashSet<String>();
 
@@ -164,9 +164,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     private final Semaphore runPermit = new Semaphore(1);
 
     /**
-     * Flag which would be set to true if the close operation is not
-     * able to close within specific time. The flag would be an
-     * indication to indexing thread to return straightway say by
+     * Flag which would be set to true if the close operation is not able to close within specific
+     * time. The flag would be an indication to indexing thread to return straightway say by
      * throwing an exception
      */
     private final AtomicBoolean forcedStopFlag = new AtomicBoolean();
@@ -176,34 +175,33 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     private long leaseTimeOut;
 
     /**
-     * Controls the length of the interval (in minutes) at which an indexing
-     * error is logged as 'warning'. for the rest of the indexing cycles errors
-     * will be logged at 'debug' level
+     * Controls the length of the interval (in minutes) at which an indexing error is logged as
+     * 'warning'. for the rest of the indexing cycles errors will be logged at 'debug' level
      */
     private static long ERROR_WARN_INTERVAL = TimeUnit.MINUTES.toMillis(Integer
-            .getInteger("oak.async.warn.interval", 30));
+        .getInteger("oak.async.warn.interval", 30));
 
     /**
-     * Timeout in seconds for which close call would wait before forcefully
-     * stopping the indexing thread
+     * Timeout in seconds for which close call would wait before forcefully stopping the indexing
+     * thread
      */
     private int softTimeOutSecs = Integer.getInteger("oak.async.softTimeOutSecs", 2 * 60);
 
     private boolean closed;
 
     /**
-     * The checkpoint cleanup interval in minutes. Defaults to 5 minutes.
-     * Setting it to a negative value disables automatic cleanup. See OAK-4826.
+     * The checkpoint cleanup interval in minutes. Defaults to 5 minutes. Setting it to a negative
+     * value disables automatic cleanup. See OAK-4826.
      */
     private final int cleanupIntervalMinutes
-            = Integer.getInteger("oak.async.checkpointCleanupIntervalMinutes", 5);
+        = Integer.getInteger("oak.async.checkpointCleanupIntervalMinutes", 5);
 
     /**
-     * Setting this to true lead to lane execution (node traversal) even if there
-     * is no index assigned to this lane under /oak:index. (Default value is true).
+     * Setting this to true lead to lane execution (node traversal) even if there is no index
+     * assigned to this lane under /oak:index. (Default value is true).
      */
     private final boolean traverseNodesIfLaneNotPresentInIndex
-            = !Boolean.getBoolean("oak.async.traverseNodesIfLanePresentInIndex");
+        = !Boolean.getBoolean("oak.async.traverseNodesIfLanePresentInIndex");
 
     /**
      * The time in minutes since the epoch when the last checkpoint cleanup ran.
@@ -217,12 +215,13 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     private final StatisticsProvider statisticsProvider;
 
     public AsyncIndexUpdate(@NotNull String name, @NotNull NodeStore store,
-                            @NotNull IndexEditorProvider provider, boolean switchOnSync) {
+        @NotNull IndexEditorProvider provider, boolean switchOnSync) {
         this(name, store, provider, StatisticsProvider.NOOP, switchOnSync);
     }
 
     public AsyncIndexUpdate(@NotNull String name, @NotNull NodeStore store,
-                            @NotNull IndexEditorProvider provider, StatisticsProvider statsProvider, boolean switchOnSync) {
+        @NotNull IndexEditorProvider provider, StatisticsProvider statsProvider,
+        boolean switchOnSync) {
         this.name = checkValidName(name);
         this.lastIndexedTo = lastIndexedTo(name);
         this.store = checkNotNull(store);
@@ -231,47 +230,54 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         this.leaseTimeOut = DEFAULT_ASYNC_TIMEOUT;
         this.statisticsProvider = statsProvider;
         this.indexStats = new AsyncIndexStats(name, statsProvider);
-        this.corruptIndexHandler.setMeterStats(statsProvider.getMeter(TrackingCorruptIndexHandler.CORRUPT_INDEX_METER_NAME, StatsOptions.METRICS_ONLY));
+        this.corruptIndexHandler.setMeterStats(
+            statsProvider.getMeter(TrackingCorruptIndexHandler.CORRUPT_INDEX_METER_NAME,
+                StatsOptions.METRICS_ONLY));
     }
 
     public AsyncIndexUpdate(@NotNull String name, @NotNull NodeStore store,
-                            @NotNull IndexEditorProvider provider) {
+        @NotNull IndexEditorProvider provider) {
         this(name, store, provider, false);
     }
 
-    public static String checkValidName(String asyncName){
+    public static String checkValidName(String asyncName) {
         checkNotNull(asyncName, "async name should not be null");
-        if (IndexConstants.ASYNC_REINDEX_VALUE.equals(asyncName)){
+        if (IndexConstants.ASYNC_REINDEX_VALUE.equals(asyncName)) {
             return asyncName;
         }
         checkArgument(asyncName.endsWith("async"), "async name [%s] does not confirm to " +
-                "naming pattern of ending with 'async'", asyncName);
+            "naming pattern of ending with 'async'", asyncName);
         return asyncName;
     }
 
-    public static boolean isAsyncLaneName(String asyncName){
+    public static boolean isAsyncLaneName(String asyncName) {
         return IndexConstants.ASYNC_REINDEX_VALUE.equals(asyncName) || asyncName.endsWith("async");
     }
 
     /**
-     * Index update callback that tries to raise the async status flag when
-     * the first index change is detected.
+     * Index update callback that tries to raise the async status flag when the first index change
+     * is detected.
      *
      * @see <a href="https://issues.apache.org/jira/browse/OAK-1292">OAK-1292</a>
      */
-    protected static class AsyncUpdateCallback implements IndexUpdateCallback, NodeTraversalCallback {
+    protected static class AsyncUpdateCallback implements IndexUpdateCallback,
+        NodeTraversalCallback {
+
         /**
-         * Interval in terms of number of nodes traversed after which
-         * time would be checked for lease expiry
+         * Interval in terms of number of nodes traversed after which time would be checked for
+         * lease expiry
          */
         public static final int LEASE_CHECK_INTERVAL = 10;
         private final NodeStore store;
 
-        /** The base checkpoint */
+        /**
+         * The base checkpoint
+         */
         private String checkpoint;
 
         /**
-         * Property name which stores the temporary checkpoint that need to be released on the next run
+         * Property name which stores the temporary checkpoint that need to be released on the next
+         * run
          */
         private final String tempCpName;
 
@@ -288,16 +294,15 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         private List<ValidatorProvider> validatorProviders = Collections.emptyList();
 
         /**
-         * Expiration time of the last lease we committed, null if lease is
-         * disabled
+         * Expiration time of the last lease we committed, null if lease is disabled
          */
         private Long lease = null;
 
         private boolean hasLease = false;
 
         public AsyncUpdateCallback(NodeStore store, String name,
-                                   long leaseTimeOut, String checkpoint,
-                                   AsyncIndexStats indexStats, AtomicBoolean forcedStop) {
+            long leaseTimeOut, String checkpoint,
+            AsyncIndexStats indexStats, AtomicBoolean forcedStop) {
             this.store = store;
             this.name = name;
             this.forcedStop = forcedStop;
@@ -314,7 +319,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             }
             NodeState root = store.getRoot();
             NodeState async = root.getChildNode(ASYNC);
-            if(isLeaseCheckEnabled(leaseTimeOut)) {
+            if (isLeaseCheckEnabled(leaseTimeOut)) {
                 long now = getTime();
                 this.lease = now + 2 * leaseTimeOut;
                 long beforeLease = async.getLong(leaseName);
@@ -324,7 +329,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
                 NodeBuilder builder = root.builder();
                 builder.child(ASYNC).setProperty(leaseName, lease);
-                mergeWithConcurrencyCheck(store, validatorProviders, builder, checkpoint, beforeLease, name);
+                mergeWithConcurrencyCheck(store, validatorProviders, builder, checkpoint,
+                    beforeLease, name);
             } else {
                 lease = null;
                 // remove stale lease info if needed
@@ -332,14 +338,14 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                     NodeBuilder builder = root.builder();
                     builder.child(ASYNC).removeProperty(leaseName);
                     mergeWithConcurrencyCheck(store, validatorProviders,
-                            builder, checkpoint, null, name);
+                        builder, checkpoint, null, name);
                 }
             }
             hasLease = true;
         }
 
         protected void prepare(String afterCheckpoint)
-                throws CommitFailedException {
+            throws CommitFailedException {
             if (!hasLease) {
                 initLease();
             }
@@ -355,7 +361,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         private void updateTempCheckpoints(NodeBuilder async,
-                                           String checkpoint, String afterCheckpoint) {
+            String checkpoint, String afterCheckpoint) {
 
             indexStats.setReferenceCheckpoint(checkpoint);
             indexStats.setProcessedCheckpoint(afterCheckpoint);
@@ -388,7 +394,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 NodeBuilder async = builder.child(ASYNC);
                 async.removeProperty(leaseName);
                 mergeWithConcurrencyCheck(store, validatorProviders, builder,
-                        async.getString(name), lease, name);
+                    async.getString(name), lease, name);
             }
         }
 
@@ -399,16 +405,18 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         @Override
-        public void traversedNode(PathSource pathSource) throws CommitFailedException{
+        public void traversedNode(PathSource pathSource) throws CommitFailedException {
             checkIfStopped();
 
-            if (indexStats.incTraversal() % LEASE_CHECK_INTERVAL == 0 && isLeaseCheckEnabled(leaseTimeOut)) {
+            if (indexStats.incTraversal() % LEASE_CHECK_INTERVAL == 0 && isLeaseCheckEnabled(
+                leaseTimeOut)) {
                 long now = getTime();
                 if (now + leaseTimeOut > lease) {
                     long newLease = now + 2 * leaseTimeOut;
                     NodeBuilder builder = store.getRoot().builder();
                     builder.child(ASYNC).setProperty(leaseName, newLease);
-                    mergeWithConcurrencyCheck(store, validatorProviders, builder, checkpoint, lease, name);
+                    mergeWithConcurrencyCheck(store, validatorProviders, builder, checkpoint, lease,
+                        name);
                     lease = newLease;
                 }
             }
@@ -427,7 +435,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         private void checkIfStopped() throws CommitFailedException {
-            if (forcedStop.get()){
+            if (forcedStop.get()) {
                 forcedStop.set(false);
                 throw INTERRUPTED;
             }
@@ -436,19 +444,21 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     @Override
     public synchronized void run() {
-        if (!shouldProceed()){
+        if (!shouldProceed()) {
             return;
         }
         boolean permitAcquired = false;
-        try{
-            if (runPermit.tryAcquire()){
+        try {
+            if (runPermit.tryAcquire()) {
                 permitAcquired = true;
                 runWhenPermitted();
             } else {
-                log.warn("[{}] Could not acquire run permit. Stop flag set to [{}] Skipping the run", name, forcedStopFlag);
+                log.warn(
+                    "[{}] Could not acquire run permit. Stop flag set to [{}] Skipping the run",
+                    name, forcedStopFlag);
             }
         } finally {
-            if (permitAcquired){
+            if (permitAcquired) {
                 runPermit.release();
             }
         }
@@ -460,19 +470,25 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             return;
         }
         int hardTimeOut = 5 * softTimeOutSecs;
-        if(!runPermit.tryAcquire()){
+        if (!runPermit.tryAcquire()) {
             //First let current run complete without bothering it
-            log.debug("[{}] [WAITING] Indexing in progress. Would wait for {} secs for it to finish", name, softTimeOutSecs);
+            log.debug(
+                "[{}] [WAITING] Indexing in progress. Would wait for {} secs for it to finish",
+                name, softTimeOutSecs);
             try {
-                if(!runPermit.tryAcquire(softTimeOutSecs, TimeUnit.SECONDS)){
+                if (!runPermit.tryAcquire(softTimeOutSecs, TimeUnit.SECONDS)) {
                     //We have now waited enough. So signal the indexer that it should return right away
                     //as soon as it sees the forcedStopFlag
-                    log.debug("[{}] [SOFT LIMIT HIT] Indexing found to be in progress for more than [{}]s. Would " +
+                    log.debug(
+                        "[{}] [SOFT LIMIT HIT] Indexing found to be in progress for more than [{}]s. Would "
+                            +
                             "signal it to now force stop", name, softTimeOutSecs);
                     forcedStopFlag.set(true);
-                    if(!runPermit.tryAcquire(hardTimeOut, TimeUnit.SECONDS)){
+                    if (!runPermit.tryAcquire(hardTimeOut, TimeUnit.SECONDS)) {
                         //Index thread did not listened to our advice. So give up now and warn about it
-                        log.warn("[{}] Indexing still not found to be complete. Giving up after [{}]s", name, hardTimeOut);
+                        log.warn(
+                            "[{}] Indexing still not found to be complete. Giving up after [{}]s",
+                            name, hardTimeOut);
                     }
                 } else {
                     log.info("[{}] [CLOSED OK] Async indexing run completed. Closing it now", name);
@@ -488,7 +504,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     private void runWhenPermitted() {
         if (indexStats.isPaused()) {
-            if (indexStats.forcedLeaseRelease){
+            if (indexStats.forcedLeaseRelease) {
                 try {
                     clearLease();
                 } catch (CommitFailedException e) {
@@ -511,7 +527,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             if (leaseEndTime > currentTime) {
                 long leaseExpMsg = (leaseEndTime - currentTime) / 1000;
                 String err = String.format(CONCURRENT_EXCEPTION_MSG +
-                        "Time left for lease to expire %d s. Indexing can resume by %tT", leaseExpMsg, leaseEndTime);
+                        "Time left for lease to expire %d s. Indexing can resume by %tT", leaseExpMsg,
+                    leaseEndTime);
                 indexStats.failed(new Exception(err, newConcurrentUpdateException()));
                 return;
             }
@@ -524,8 +541,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         NodeState before;
         String beforeCheckpoint = async.getString(name);
         AsyncUpdateCallback callback = newAsyncUpdateCallback(store,
-                name, leaseTimeOut, beforeCheckpoint, indexStats,
-                forcedStopFlag);
+            name, leaseTimeOut, beforeCheckpoint, indexStats,
+            forcedStopFlag);
         if (beforeCheckpoint != null) {
             NodeState state = store.retrieve(beforeCheckpoint);
             if (state == null) {
@@ -547,15 +564,15 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
             if (state == null) {
                 log.warn(
-                        "[{}] Failed to retrieve previously indexed checkpoint {}; re-running the initial index update",
-                        name, beforeCheckpoint);
+                    "[{}] Failed to retrieve previously indexed checkpoint {}; re-running the initial index update",
+                    name, beforeCheckpoint);
                 beforeCheckpoint = null;
                 callback.setCheckpoint(beforeCheckpoint);
                 before = MISSING_NODE;
             } else if (noVisibleChanges(state, root) && !switchOnSync) {
                 log.debug(
-                        "[{}] No changes since last checkpoint; skipping the index update",
-                        name);
+                    "[{}] No changes since last checkpoint; skipping the index update",
+                    name);
                 postAsyncRunStatsStatus(indexStats);
                 return;
             } else {
@@ -571,15 +588,15 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         String oldThreadName = Thread.currentThread().getName();
         boolean threadNameChanged = false;
         String afterCheckpoint = store.checkpoint(lifetime, ImmutableMap.of(
-                "creator", AsyncIndexUpdate.class.getSimpleName(),
-                "created", afterTime,
-                "thread", oldThreadName,
-                "name", name));
+            "creator", AsyncIndexUpdate.class.getSimpleName(),
+            "created", afterTime,
+            "thread", oldThreadName,
+            "name", name));
         NodeState after = store.retrieve(afterCheckpoint);
         if (after == null) {
             log.debug(
-                    "[{}] Unable to retrieve newly created checkpoint {}, skipping the index update",
-                    name, afterCheckpoint);
+                "[{}] Unable to retrieve newly created checkpoint {}, skipping the index update",
+                name, afterCheckpoint);
             //Do not update the status as technically the run is not complete
             return;
         }
@@ -592,7 +609,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             threadNameChanged = true;
             Thread.currentThread().setName(newThreadName);
             updatePostRunStatus = updateIndex(before, beforeCheckpoint, after,
-                    afterCheckpoint, afterTime, callback, checkpointToReleaseRef);
+                afterCheckpoint, afterTime, callback, checkpointToReleaseRef);
 
             // the update succeeded, i.e. it no longer fails
             if (indexStats.didLastIndexingCycleFailed()) {
@@ -619,11 +636,11 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             // and skip release if this cp was used in a split operation
             String checkpointToRelease = checkpointToReleaseRef.get();
             if (checkpointToRelease != null
-                    && !checkpointToRelease.equals(taskSplitter
-                    .getLastReferencedCp())) {
+                && !checkpointToRelease.equals(taskSplitter
+                .getLastReferencedCp())) {
                 if (!store.release(checkpointToRelease)) {
                     log.debug("[{}] Unable to release checkpoint {}", name,
-                            checkpointToRelease);
+                        checkpointToRelease);
                 }
             }
             maybeCleanUpCheckpoints();
@@ -638,12 +655,12 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         NodeState root = store.getRoot();
         NodeState async = root.getChildNode(ASYNC);
         String beforeCheckpoint = async.getString(name);
-        String leaseName= leasify(name);
+        String leaseName = leasify(name);
         if (async.hasProperty(leaseName)) {
             NodeBuilder builder = root.builder();
             builder.child(ASYNC).removeProperty(leaseName);
             mergeWithConcurrencyCheck(store, validatorProviders,
-                    builder, beforeCheckpoint, null, name);
+                builder, beforeCheckpoint, null, name);
             log.info("Lease property removed for lane: {}", name);
         } else {
             log.info("No Lease property present for lane: {}", name);
@@ -665,8 +682,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     }
 
     /**
-     *
-     * @return true if there is at least one index present under /oak:index with indexingLane in action.
+     * @return true if there is at least one index present under /oak:index with indexingLane in
+     * action.
      */
     private boolean isIndexWithLanePresent() {
         NodeState oakIndexNode = store.getRoot().getChildNode("oak:index");
@@ -689,17 +706,21 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     }
 
     private void markFailingIndexesAsCorrupt(NodeBuilder builder) {
-        for (Map.Entry<String, CorruptIndexInfo> index : corruptIndexHandler.getCorruptIndexData(name).entrySet()){
+        for (Map.Entry<String, CorruptIndexInfo> index : corruptIndexHandler.getCorruptIndexData(
+            name).entrySet()) {
             NodeBuilder indexBuilder = childBuilder(builder, index.getKey());
             CorruptIndexInfo info = index.getValue();
-            if (!indexBuilder.hasProperty(IndexConstants.CORRUPT_PROPERTY_NAME)){
+            if (!indexBuilder.hasProperty(IndexConstants.CORRUPT_PROPERTY_NAME)) {
                 String corruptSince = ISO8601.format(info.getCorruptSinceAsCal());
                 indexBuilder.setProperty(
-                        PropertyStates.createProperty(IndexConstants.CORRUPT_PROPERTY_NAME, corruptSince, Type.DATE));
-                log.info("Marking [{}] as corrupt. The index is failing {}", info.getPath(), info.getStats());
+                    PropertyStates.createProperty(IndexConstants.CORRUPT_PROPERTY_NAME,
+                        corruptSince, Type.DATE));
+                log.info("Marking [{}] as corrupt. The index is failing {}", info.getPath(),
+                    info.getStats());
             } else {
-                log.debug("Failing index at [{}] is already marked as corrupt. The index is failing {}",
-                        info.getPath(), info.getStats());
+                log.debug(
+                    "Failing index at [{}] is already marked as corrupt. The index is failing {}",
+                    info.getPath(), info.getStats());
             }
         }
     }
@@ -713,13 +734,15 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     private void maybeCleanUpCheckpoints() {
         if (cleanupIntervalMinutes < 0) {
-            log.debug("checkpoint cleanup skipped because cleanupIntervalMinutes set to: " + cleanupIntervalMinutes);
+            log.debug("checkpoint cleanup skipped because cleanupIntervalMinutes set to: "
+                + cleanupIntervalMinutes);
         } else if (indexStats.isFailing()) {
             log.debug("checkpoint cleanup skipped because index stats are failing: " + indexStats);
         } else {
             // clean up every five minutes by default
             long currentMinutes = TimeUnit.MILLISECONDS.toMinutes(System.currentTimeMillis());
-            long scheduledInMinutes = (lastCheckpointCleanUpTime + cleanupIntervalMinutes) - currentMinutes;
+            long scheduledInMinutes =
+                (lastCheckpointCleanUpTime + cleanupIntervalMinutes) - currentMinutes;
 
             if (scheduledInMinutes > 0) {
                 log.debug("checkpoint cleanup scheduled in " + scheduledInMinutes + " minutes");
@@ -760,12 +783,13 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 String created = info.get("created");
                 String name = info.get("name");
                 if (!keep.contains(checkpoint)
-                        && this.name.equals(name)
-                        && AsyncIndexUpdate.class.getSimpleName().equals(creator)
-                        && (created == null || ISO8601.parse(created).getTimeInMillis() + leaseTimeOut < current)) {
+                    && this.name.equals(name)
+                    && AsyncIndexUpdate.class.getSimpleName().equals(creator)
+                    && (created == null
+                    || ISO8601.parse(created).getTimeInMillis() + leaseTimeOut < current)) {
                     if (store.release(checkpoint)) {
                         log.info("[{}] Removed orphaned checkpoint '{}' {}",
-                                name, checkpoint, info);
+                            name, checkpoint, info);
                     }
                 }
             }
@@ -775,19 +799,19 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     }
 
     protected AsyncUpdateCallback newAsyncUpdateCallback(NodeStore store,
-                                                         String name, long leaseTimeOut, String beforeCheckpoint,
-                                                         AsyncIndexStats indexStats,
-                                                         AtomicBoolean stopFlag) {
+        String name, long leaseTimeOut, String beforeCheckpoint,
+        AsyncIndexStats indexStats,
+        AtomicBoolean stopFlag) {
         AsyncUpdateCallback callback = new AsyncUpdateCallback(store, name, leaseTimeOut,
-                beforeCheckpoint, indexStats, stopFlag);
+            beforeCheckpoint, indexStats, stopFlag);
         callback.setValidatorProviders(validatorProviders);
         return callback;
     }
 
     protected boolean updateIndex(NodeState before, String beforeCheckpoint,
-                                  NodeState after, String afterCheckpoint, String afterTime,
-                                  AsyncUpdateCallback callback,
-                                  AtomicReference<String> checkpointToReleaseRef) throws CommitFailedException {
+        NodeState after, String afterCheckpoint, String afterTime,
+        AsyncUpdateCallback callback,
+        AtomicReference<String> checkpointToReleaseRef) throws CommitFailedException {
         Stopwatch watch = Stopwatch.createStarted();
         boolean updatePostRunStatus = true;
         boolean progressLogged = false;
@@ -807,23 +831,25 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             markFailingIndexesAsCorrupt(builder);
 
             CommitInfo info = new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN,
-                    ImmutableMap.of(IndexConstants.CHECKPOINT_CREATION_TIME, afterTime));
+                ImmutableMap.of(IndexConstants.CHECKPOINT_CREATION_TIME, afterTime));
             indexUpdate =
-                    new IndexUpdate(provider, name, after, builder, callback, callback, info, corruptIndexHandler)
-                            .withMissingProviderStrategy(missingStrategy);
+                new IndexUpdate(provider, name, after, builder, callback, callback, info,
+                    corruptIndexHandler)
+                    .withMissingProviderStrategy(missingStrategy);
             configureRateEstimator(indexUpdate);
             CommitFailedException exception =
-                    EditorDiff.process(VisibleEditor.wrap(indexUpdate), before, after);
+                EditorDiff.process(VisibleEditor.wrap(indexUpdate), before, after);
             if (exception != null) {
                 throw exception;
             }
 
             builder.child(ASYNC).setProperty(name, afterCheckpoint);
-            builder.child(ASYNC).setProperty(PropertyStates.createProperty(lastIndexedTo, afterTime, Type.DATE));
+            builder.child(ASYNC)
+                   .setProperty(PropertyStates.createProperty(lastIndexedTo, afterTime, Type.DATE));
             if (callback.isDirty() || before == MISSING_NODE) {
                 if (switchOnSync) {
                     reindexedDefinitions.addAll(indexUpdate
-                            .getReindexedDefinitions());
+                        .getReindexedDefinitions());
                     updatePostRunStatus = false;
                 } else {
                     updatePostRunStatus = true;
@@ -831,8 +857,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             } else {
                 if (switchOnSync) {
                     log.debug(
-                            "[{}] No changes detected after diff; will try to switch to synchronous updates on {}",
-                            name, reindexedDefinitions);
+                        "[{}] No changes detected after diff; will try to switch to synchronous updates on {}",
+                        name, reindexedDefinitions);
 
                     // no changes after diff, switch to sync on the async defs
                     for (String path : reindexedDefinitions) {
@@ -855,7 +881,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 updatePostRunStatus = true;
             }
             mergeWithConcurrencyCheck(store, validatorProviders, builder, beforeCheckpoint,
-                    callback.lease, name);
+                callback.lease, name);
             // we successfully merged the change that updated the lane to the
             // afterCheckpoint - so we need to release the beforeCheckpoint now
             checkpointToReleaseRef.set(beforeCheckpoint);
@@ -863,15 +889,15 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
             if (indexUpdate.isReindexingPerformed()) {
                 log.info("[{}] Reindexing completed for indexes: {} in {} ({} ms)",
-                        name, indexUpdate.getReindexStats(),
-                        watch, watch.elapsed(TimeUnit.MILLISECONDS));
+                    name, indexUpdate.getReindexStats(),
+                    watch, watch.elapsed(TimeUnit.MILLISECONDS));
                 progressLogged = true;
             }
 
             corruptIndexHandler.markWorkingIndexes(indexUpdate.getUpdatedIndexPaths());
         } finally {
             if (indexUpdate != null) {
-                if ( !indexingFailed ) {
+                if (!indexingFailed) {
                     indexUpdate.commitProgress(IndexCommitCallback.IndexProgress.COMMIT_SUCCEDED);
                 } else {
                     indexUpdate.commitProgress(IndexCommitCallback.IndexProgress.COMMIT_FAILED);
@@ -886,7 +912,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             if (watch.elapsed(TimeUnit.MINUTES) >= 5) {
                 log.info(msg, name, watch, indexStats.getUpdates(), indexUpdate.getIndexingStats());
             } else {
-                log.debug(msg, name, watch, indexStats.getUpdates(), indexUpdate.getIndexingStats());
+                log.debug(msg, name, watch, indexStats.getUpdates(),
+                    indexUpdate.getIndexingStats());
             }
         }
 
@@ -895,7 +922,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     private void configureRateEstimator(IndexUpdate indexUpdate) {
         //As metrics is an optional library guard the access with the check
-        if (statisticsProvider.getClass().getSimpleName().equals("MetricStatisticsProvider")){
+        if (statisticsProvider.getClass().getSimpleName().equals("MetricStatisticsProvider")) {
             MetricRegistry registry = ((MetricStatisticsProvider) statisticsProvider).getRegistry();
             indexUpdate.setTraversalRateEstimator(new MetricRateEstimator(name, registry));
         }
@@ -920,19 +947,21 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         return leaseTimeOut > 0;
     }
 
-    private static void mergeWithConcurrencyCheck(final NodeStore store, List<ValidatorProvider> validatorProviders,
-                                                  NodeBuilder builder, final String checkpoint, final Long lease,
-                                                  final String name) throws CommitFailedException {
+    private static void mergeWithConcurrencyCheck(final NodeStore store,
+        List<ValidatorProvider> validatorProviders,
+        NodeBuilder builder, final String checkpoint, final Long lease,
+        final String name) throws CommitFailedException {
         CommitHook concurrentUpdateCheck = new CommitHook() {
-            @Override @NotNull
+            @Override
+            @NotNull
             public NodeState processCommit(
-                    NodeState before, NodeState after, CommitInfo info)
-                    throws CommitFailedException {
+                NodeState before, NodeState after, CommitInfo info)
+                throws CommitFailedException {
                 // check for concurrent updates by this async task
                 NodeState async = before.getChildNode(ASYNC);
                 if ((checkpoint == null || Objects.equal(checkpoint, async.getString(name)))
-                        &&
-                        (lease == null      || lease == async.getLong(leasify(name)))) {
+                    &&
+                    (lease == null || lease == async.getLong(leasify(name)))) {
                     return after;
                 } else {
                     throw newConcurrentUpdateException();
@@ -943,10 +972,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         editorProviders.add(new ConflictValidatorProvider());
         editorProviders.addAll(validatorProviders);
         CompositeHook hooks = new CompositeHook(
-                ResetCommitAttributeHook.INSTANCE,
-                ConflictHook.of(new AnnotatingConflictHandler()),
-                new EditorHook(CompositeEditorProvider.compose(editorProviders)),
-                concurrentUpdateCheck);
+            ResetCommitAttributeHook.INSTANCE,
+            ConflictHook.of(new AnnotatingConflictHandler()),
+            new EditorHook(CompositeEditorProvider.compose(editorProviders)),
+            concurrentUpdateCheck);
         try {
             store.merge(builder, hooks, createCommitInfo());
         } catch (CommitFailedException ex) {
@@ -960,7 +989,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     }
 
     private static CommitInfo createCommitInfo() {
-        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext());
+        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME,
+            new SimpleCommitContext());
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info);
     }
 
@@ -993,11 +1023,11 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         return corruptIndexHandler;
     }
 
-    public boolean isClosed(){
+    public boolean isClosed() {
         return closed || forcedStopFlag.get();
     }
 
-    boolean isClosing(){
+    boolean isClosing() {
         return runPermit.hasQueuedThreads();
     }
 
@@ -1021,7 +1051,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         return indexStats.getStatus() == STATUS_DONE;
     }
 
-    final class AsyncIndexStats extends AnnotatedStandardMBean implements  IndexStatsMBean {
+    final class AsyncIndexStats extends AnnotatedStandardMBean implements IndexStatsMBean {
 
         protected AsyncIndexStats(String name, StatisticsProvider statsProvider) {
             super(IndexStatsMBean.class);
@@ -1042,7 +1072,9 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         private final Stopwatch watch = Stopwatch.createUnstarted();
         private final ExecutionStats execStats;
 
-        /** Flag to avoid repeatedly logging failure warnings */
+        /**
+         * Flag to avoid repeatedly logging failure warnings
+         */
         private volatile boolean failing = false;
         private long latestErrorWarn = 0;
 
@@ -1063,7 +1095,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         public void done(String now) {
-            if (corruptIndexHandler.isFailing(name)){
+            if (corruptIndexHandler.isFailing(name)) {
                 status = STATUS_FAILING;
             } else {
                 status = STATUS_DONE;
@@ -1078,8 +1110,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
         public void failed(Exception e) {
             boolean isConcurrentUpdateException = (e.getMessage() != null)
-                    && (e.getMessage().startsWith(CONCURRENT_EXCEPTION_MSG));
-            if (e == INTERRUPTED){
+                && (e.getMessage().startsWith(CONCURRENT_EXCEPTION_MSG));
+            if (e == INTERRUPTED) {
                 status = STATUS_INTERRUPTED;
                 log.info("[{}] The index update interrupted", name);
                 log.debug("[{}] The index update interrupted", name, e);
@@ -1096,7 +1128,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 failingSince = latestErrorTime;
                 latestErrorWarn = System.currentTimeMillis();
                 if (isConcurrentUpdateException) {
-                    log.info("[{}] The index update failed : {}", name,  e.getMessage());
+                    log.info("[{}] The index update failed : {}", name, e.getMessage());
                 } else {
                     log.warn("[{}] The index update failed", name, e);
                 }
@@ -1106,7 +1138,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 if (warn) {
                     latestErrorWarn = System.currentTimeMillis();
                     if (isConcurrentUpdateException) {
-                        log.info("[{}] The index update is still failing : {}", name,  e.getMessage());
+                        log.info("[{}] The index update is still failing : {}", name,
+                            e.getMessage());
                     } else {
                         log.warn("[{}] The index update is still failing", name, e);
                     }
@@ -1117,9 +1150,11 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         public void fixed() {
-            if (corruptIndexHandler.isFailing(name)){
-                log.info("[{}] Index update no longer fails but some corrupt indexes have been skipped {}", name,
-                        corruptIndexHandler.getCorruptIndexData(name).keySet());
+            if (corruptIndexHandler.isFailing(name)) {
+                log.info(
+                    "[{}] Index update no longer fails but some corrupt indexes have been skipped {}",
+                    name,
+                    corruptIndexHandler.getCorruptIndexData(name).keySet());
             } else {
                 log.info("[{}] Index update no longer fails", name);
             }
@@ -1136,7 +1171,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             return failing || corruptIndexHandler.isFailing(name);
         }
 
-        public boolean didLastIndexingCycleFailed(){
+        public boolean didLastIndexingCycleFailed() {
             return failing;
         }
 
@@ -1180,7 +1215,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             forcedStopFlag.set(true);
             String msg = "";
             //Abort if any indexing run is in progress
-            if (runPermit.availablePermits() == 0){
+            if (runPermit.availablePermits() == 0) {
                 msg = "Abort request placed for current run. ";
             }
             return msg + "Indexing is paused now. Invoke 'resume' to resume indexing";
@@ -1188,7 +1223,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
         @Override
         public String releaseLeaseForPausedLane() {
-            if (this.isPaused()){
+            if (this.isPaused()) {
                 this.forcedLeaseRelease = true;
                 return "LeaseRelease flag set";
             }
@@ -1229,7 +1264,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         @Override
-        public long getNodesReadCount(){
+        public long getNodesReadCount() {
             return nodesRead;
         }
 
@@ -1298,13 +1333,13 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         @Override
         public String toString() {
             return "AsyncIndexStats [start=" + start + ", done=" + done
-                    + ", status=" + status + ", paused=" + isPaused
-                    + ", failing=" + failing + ", failingSince=" + failingSince
-                    + ", consecutiveFailures=" + consecutiveFailures
-                    + ", updates=" + updates + ", referenceCheckpoint="
-                    + referenceCp + ", processedCheckpoint=" + processedCp
-                    + " ,tempCheckpoints=" + tempCps + ", latestErrorTime="
-                    + latestErrorTime + ", latestError=" + latestError + " ]";
+                + ", status=" + status + ", paused=" + isPaused
+                + ", failing=" + failing + ", failingSince=" + failingSince
+                + ", consecutiveFailures=" + consecutiveFailures
+                + ", updates=" + updates + ", referenceCheckpoint="
+                + referenceCp + ", processedCheckpoint=" + processedCp
+                + " ,tempCheckpoints=" + tempCps + ", latestErrorTime="
+                + latestErrorTime + ", latestError=" + latestError + " ]";
         }
 
         ExecutionStats getExecutionStats() {
@@ -1312,6 +1347,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         class ExecutionStats {
+
             public static final String INDEXER_COUNT = "INDEXER_COUNT";
             public static final String INDEXER_NODE_COUNT = "INDEXER_NODE_COUNT";
             private final MeterStats indexerExecutionCountMeter;
@@ -1328,23 +1364,29 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             public ExecutionStats(String name, StatisticsProvider statsProvider) {
                 this.name = name;
                 this.statisticsProvider = statsProvider;
-                indexerExecutionCountMeter = statsProvider.getMeter(stats(INDEXER_COUNT), StatsOptions.DEFAULT);
-                indexedNodeCountMeter = statsProvider.getMeter(stats(INDEXER_NODE_COUNT), StatsOptions.DEFAULT);
-                indexerTimer = statsProvider.getTimer(stats("INDEXER_TIME"), StatsOptions.METRICS_ONLY);
-                indexedNodePerCycleHisto = statsProvider.getHistogram(stats("INDEXER_NODE_COUNT_HISTO"), StatsOptions
+                indexerExecutionCountMeter = statsProvider.getMeter(stats(INDEXER_COUNT),
+                    StatsOptions.DEFAULT);
+                indexedNodeCountMeter = statsProvider.getMeter(stats(INDEXER_NODE_COUNT),
+                    StatsOptions.DEFAULT);
+                indexerTimer = statsProvider.getTimer(stats("INDEXER_TIME"),
+                    StatsOptions.METRICS_ONLY);
+                indexedNodePerCycleHisto = statsProvider.getHistogram(
+                    stats("INDEXER_NODE_COUNT_HISTO"), StatsOptions
                         .METRICS_ONLY);
-                lastIndexedTime = statsProvider.getCounterStats(stats("LAST_INDEXED_TIME"), StatsOptions.DEFAULT);
+                lastIndexedTime = statsProvider.getCounterStats(stats("LAST_INDEXED_TIME"),
+                    StatsOptions.DEFAULT);
                 try {
                     consolidatedType = new CompositeType("ConsolidatedStats",
-                            "Consolidated stats", names,
-                            names,
-                            new OpenType[] {SimpleType.LONG, SimpleType.LONG});
+                        "Consolidated stats", names,
+                        names,
+                        new OpenType[]{SimpleType.LONG, SimpleType.LONG});
                 } catch (OpenDataException e) {
-                    log.warn("[{}] Error in creating CompositeType for consolidated stats", AsyncIndexUpdate.this.name, e);
+                    log.warn("[{}] Error in creating CompositeType for consolidated stats",
+                        AsyncIndexUpdate.this.name, e);
                 }
             }
 
-            public void doneOneCycle(long timeInMillis, long updates){
+            public void doneOneCycle(long timeInMillis, long updates) {
                 indexerExecutionCountMeter.mark();
                 indexedNodeCountMeter.mark(updates);
                 indexerTimer.update(timeInMillis, TimeUnit.MILLISECONDS);
@@ -1363,18 +1405,18 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
             private CompositeData getExecutionCount() {
                 return TimeSeriesStatsUtil.asCompositeData(getTimeSeries(stats(INDEXER_COUNT)),
-                        "Indexer Execution Count");
+                    "Indexer Execution Count");
             }
 
             private CompositeData getIndexedNodesCount() {
                 return TimeSeriesStatsUtil.asCompositeData(getTimeSeries(stats(INDEXER_NODE_COUNT)),
-                        "Indexer Node Count");
+                    "Indexer Node Count");
             }
 
             private CompositeData getConsolidatedStats() {
                 try {
                     Long[] values = new Long[]{indexerExecutionCountMeter.getCount(),
-                            indexedNodeCountMeter.getCount()};
+                        indexedNodeCountMeter.getCount()};
                     return new CompositeDataSupport(consolidatedType, names, values);
                 } catch (Exception e) {
                     log.error("[{}] Error retrieving consolidated stats", name, e);
@@ -1382,7 +1424,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 }
             }
 
-            private String stats(String suffix){
+            private String stats(String suffix) {
                 return name + "." + suffix;
             }
 
@@ -1394,11 +1436,12 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         @Override
         public void splitIndexingTask(String paths, String newIndexTaskName) {
             splitIndexingTask(newHashSet(Splitter.on(",").trimResults()
-                    .omitEmptyStrings().split(paths)), newIndexTaskName);
+                                                 .omitEmptyStrings().split(paths)),
+                newIndexTaskName);
         }
 
         private void splitIndexingTask(Set<String> paths,
-                                       String newIndexTaskName) {
+            String newIndexTaskName) {
             taskSplitter.registerSplit(paths, newIndexTaskName);
         }
 
@@ -1442,25 +1485,30 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             public boolean propertyAdded(PropertyState after) {
                 return isHidden(after.getName());
             }
+
             @Override
             public boolean propertyChanged(
-                    PropertyState before, PropertyState after) {
+                PropertyState before, PropertyState after) {
                 return isHidden(after.getName());
             }
+
             @Override
             public boolean propertyDeleted(PropertyState before) {
                 return isHidden(before.getName());
             }
+
             @Override
             public boolean childNodeAdded(String name, NodeState after) {
                 return isHidden(name);
             }
+
             @Override
             public boolean childNodeChanged(
-                    String name, NodeState before, NodeState after) {
+                String name, NodeState before, NodeState after) {
                 return isHidden(name)
-                        || after.compareAgainstBaseState(before, this);
+                    || after.compareAgainstBaseState(before, this);
             }
+
             @Override
             public boolean childNodeDeleted(String name, NodeState before) {
                 return isHidden(name);
@@ -1473,17 +1521,17 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     }
 
     static class DefaultMissingIndexProviderStrategy extends
-            MissingIndexProviderStrategy {
+        MissingIndexProviderStrategy {
 
         @Override
         public void onMissingIndex(String type, NodeBuilder definition, String path)
-                throws CommitFailedException {
+            throws CommitFailedException {
             if (isDisabled(type)) {
                 return;
             }
             throw new CommitFailedException("Async", 2,
-                    "Missing index provider detected for type [" + type
-                            + "] on index [" + path + "]");
+                "Missing index provider detected for type [" + type
+                    + "] on index [" + path + "]");
         }
     }
 
@@ -1501,21 +1549,22 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
         void registerSplit(Set<String> paths, String newIndexTaskName) {
             log.info(
-                    "[{}] Registered split of following index definitions {} to new async task {}.",
-                    name, paths, newIndexTaskName);
+                "[{}] Registered split of following index definitions {} to new async task {}.",
+                name, paths, newIndexTaskName);
             this.paths = newHashSet(paths);
             this.newIndexTaskName = newIndexTaskName;
         }
 
         void maybeSplit(@Nullable String refCheckpoint, Long lease)
-                throws CommitFailedException {
+            throws CommitFailedException {
             if (paths == null) {
                 return;
             }
             split(refCheckpoint, lease);
         }
 
-        private void split(@Nullable String refCheckpoint, Long lease) throws CommitFailedException {
+        private void split(@Nullable String refCheckpoint, Long lease)
+            throws CommitFailedException {
             NodeBuilder builder = store.getRoot().builder();
             if (refCheckpoint != null) {
                 String tempCpName = getTempCpName(name);
@@ -1549,10 +1598,11 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             }
 
             if (!updated.isEmpty()) {
-                mergeWithConcurrencyCheck(store, validatorProviders, builder, refCheckpoint, lease, name);
+                mergeWithConcurrencyCheck(store, validatorProviders, builder, refCheckpoint, lease,
+                    name);
                 log.info(
-                        "[{}] Successfully split index definitions {} to async task named {} with referenced checkpoint {}.",
-                        name, updated, newIndexTaskName, refCheckpoint);
+                    "[{}] Successfully split index definitions {} to async task named {} with referenced checkpoint {}.",
+                    name, updated, newIndexTaskName, refCheckpoint);
                 lastReferencedCp = refCheckpoint;
             }
             paths = null;
@@ -1571,10 +1621,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             }
             if (mbeanRegistration != null) {
                 log.info(
-                        "[{}] Registering a new indexing task {} running each {} seconds.",
-                        name, newTask, delayInSeconds);
+                    "[{}] Registering a new indexing task {} running each {} seconds.",
+                    name, newTask, delayInSeconds);
                 AsyncIndexUpdate task = new AsyncIndexUpdate(newTask, store,
-                        provider);
+                    provider);
                 mbeanRegistration.registerAsyncIndexer(task, delayInSeconds);
                 registeredTasks.add(newTask);
             }

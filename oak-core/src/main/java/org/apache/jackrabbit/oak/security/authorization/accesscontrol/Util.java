@@ -39,12 +39,14 @@ import org.jetbrains.annotations.Nullable;
 final class Util implements AccessControlConstants {
 
     /**
-     *  Private constructor to avoid instantiation
+     * Private constructor to avoid instantiation
      */
-    private Util() {}
+    private Util() {
+    }
 
     @NotNull
-    static Principal checkValidPrincipal(@Nullable Principal principal) throws AccessControlException {
+    static Principal checkValidPrincipal(@Nullable Principal principal)
+        throws AccessControlException {
         String name = (principal == null) ? null : principal.getName();
         if (name == null || name.isEmpty()) {
             throw new AccessControlException("Invalid principal " + name);
@@ -53,8 +55,8 @@ final class Util implements AccessControlConstants {
     }
 
     static boolean checkValidPrincipal(@NotNull Principal principal,
-                                       @NotNull PrincipalManager principalManager,
-                                       int importBehavior) throws AccessControlException {
+        @NotNull PrincipalManager principalManager,
+        int importBehavior) throws AccessControlException {
         String name = checkValidPrincipal(principal).getName();
         if (importBehavior == ImportBehavior.BESTEFFORT) {
             return true;
@@ -66,7 +68,8 @@ final class Util implements AccessControlConstants {
                     case ImportBehavior.IGNORE:
                         return false;
                     default:
-                        throw new IllegalArgumentException("Invalid import behavior " + importBehavior);
+                        throw new IllegalArgumentException(
+                            "Invalid import behavior " + importBehavior);
                 }
             }
             return true;
@@ -74,8 +77,8 @@ final class Util implements AccessControlConstants {
     }
 
     static boolean checkValidPrincipals(@Nullable Set<Principal> principals,
-                                        @NotNull PrincipalManager principalManager,
-                                        int importBehavior) throws AccessControlException {
+        @NotNull PrincipalManager principalManager,
+        int importBehavior) throws AccessControlException {
         if (principals == null) {
             throw new AccessControlException("Valid principals expected. Found null.");
         }
@@ -97,14 +100,15 @@ final class Util implements AccessControlConstants {
         return false;
     }
 
-    static void checkValidPolicy(@Nullable String oakPath, @NotNull AccessControlPolicy policy) throws AccessControlException {
+    static void checkValidPolicy(@Nullable String oakPath, @NotNull AccessControlPolicy policy)
+        throws AccessControlException {
         if (!isValidPolicy(oakPath, policy)) {
             throw new AccessControlException("Invalid access control policy " + policy);
         }
     }
 
     static boolean isAccessControlled(@Nullable String oakPath, @NotNull Tree tree,
-                                      @NotNull ReadOnlyNodeTypeManager ntMgr) {
+        @NotNull ReadOnlyNodeTypeManager ntMgr) {
         String mixinName = getMixinName(oakPath);
         return ntMgr.isNodeType(tree, mixinName);
     }
@@ -126,7 +130,7 @@ final class Util implements AccessControlConstants {
     /**
      * Create a valid name for the ACE node based on the entry and it's index.
      *
-     * @param ace The access control entry.
+     * @param ace   The access control entry.
      * @param index The index of the entry in the list
      * @return the name of the ACE node.
      */
@@ -141,7 +145,8 @@ final class Util implements AccessControlConstants {
     }
 
     static int getImportBehavior(AuthorizationConfiguration config) {
-        String importBehaviorStr = config.getParameters().getConfigValue(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT);
+        String importBehaviorStr = config.getParameters().getConfigValue(
+            ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT);
         return ImportBehavior.valueFromString(importBehaviorStr);
     }
 }

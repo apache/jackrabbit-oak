@@ -21,9 +21,8 @@ package org.apache.jackrabbit.oak.plugins.migration.report;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * A {@code Reporter} receives callbacks for every NodeState
- * and PropertyState that was accessed via a {ReportingNodeState}
- * instance.
+ * A {@code Reporter} receives callbacks for every NodeState and PropertyState that was accessed via
+ * a {ReportingNodeState} instance.
  */
 public interface Reporter {
 
@@ -35,11 +34,12 @@ public interface Reporter {
     void reportNode(@NotNull final ReportingNodeState nodeState);
 
     /**
-     * Callback reporting that the property named {@code propertyName}
-     * was accessed on the {@code parent} node.
+     * Callback reporting that the property named {@code propertyName} was accessed on the
+     * {@code parent} node.
      *
-     * @param parent The parent node state of the reported property.
+     * @param parent       The parent node state of the reported property.
      * @param propertyName The name of the reported property.
      */
-    void reportProperty(@NotNull final ReportingNodeState parent, @NotNull final String propertyName);
+    void reportProperty(@NotNull final ReportingNodeState parent,
+        @NotNull final String propertyName);
 }

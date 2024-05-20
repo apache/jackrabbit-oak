@@ -45,22 +45,25 @@ import static java.util.Collections.singletonList;
 
 final class NodeStoreUtils {
 
-    static void mergeWithConcurrentCheck(NodeStore nodeStore, NodeBuilder builder) throws CommitFailedException {
+    static void mergeWithConcurrentCheck(NodeStore nodeStore, NodeBuilder builder)
+        throws CommitFailedException {
         CompositeHook hooks = new CompositeHook(
-                ResetCommitAttributeHook.INSTANCE,
-                new ConflictHook(new AnnotatingConflictHandler()),
-                new EditorHook(CompositeEditorProvider.compose(singletonList(new ConflictValidatorProvider())))
+            ResetCommitAttributeHook.INSTANCE,
+            new ConflictHook(new AnnotatingConflictHandler()),
+            new EditorHook(
+                CompositeEditorProvider.compose(singletonList(new ConflictValidatorProvider())))
         );
         nodeStore.merge(builder, hooks, createCommitInfo());
     }
 
     static void mergeWithConcurrentCheck(NodeStore nodeStore, NodeBuilder builder,
-                                         IndexEditorProvider indexEditorProvider) throws CommitFailedException {
+        IndexEditorProvider indexEditorProvider) throws CommitFailedException {
         CompositeHook hooks = new CompositeHook(
-                ResetCommitAttributeHook.INSTANCE,
-                new EditorHook(new IndexUpdateProvider(indexEditorProvider, null, true)),
-                new ConflictHook(new AnnotatingConflictHandler()),
-                new EditorHook(CompositeEditorProvider.compose(singletonList(new ConflictValidatorProvider())))
+            ResetCommitAttributeHook.INSTANCE,
+            new EditorHook(new IndexUpdateProvider(indexEditorProvider, null, true)),
+            new ConflictHook(new AnnotatingConflictHandler()),
+            new EditorHook(
+                CompositeEditorProvider.compose(singletonList(new ConflictValidatorProvider())))
         );
         nodeStore.merge(builder, hooks, createCommitInfo());
     }
@@ -73,7 +76,8 @@ final class NodeStoreUtils {
     }
 
     private static CommitInfo createCommitInfo() {
-        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext());
+        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME,
+            new SimpleCommitContext());
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info);
     }
 }

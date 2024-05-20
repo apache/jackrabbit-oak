@@ -56,55 +56,59 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  * Default implementation for the {@code TokenConfiguration} interface.
  */
 @Component(
-        service = {TokenConfiguration.class, SecurityConfiguration.class},
-        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.security.authentication.token.TokenConfigurationImpl")
+    service = {TokenConfiguration.class, SecurityConfiguration.class},
+    property = OAK_SECURITY_NAME
+        + "=org.apache.jackrabbit.oak.security.authentication.token.TokenConfigurationImpl")
 @Designate(ocd = TokenConfigurationImpl.Configuration.class)
 public class TokenConfigurationImpl extends ConfigurationBase implements TokenConfiguration {
 
     @ObjectClassDefinition(
-            name = "Apache Jackrabbit Oak TokenConfiguration"
+        name = "Apache Jackrabbit Oak TokenConfiguration"
     )
     @interface Configuration {
+
         @AttributeDefinition(
-                 name = "Token Expiration",
-                 description = "Expiration time of login tokens in ms.")
+            name = "Token Expiration",
+            description = "Expiration time of login tokens in ms.")
         String tokenExpiration();
 
         @AttributeDefinition(
-                name = "Token Length",
-                description = "Length of the generated token.")
+            name = "Token Length",
+            description = "Length of the generated token.")
         String tokenLength();
-        
+
         @AttributeDefinition(
-                name = "Token Refresh",
-                description = "Enable/disable refresh of login tokens (i.e. resetting the expiration time).")
+            name = "Token Refresh",
+            description = "Enable/disable refresh of login tokens (i.e. resetting the expiration time).")
         boolean tokenRefresh() default true;
 
         @AttributeDefinition(
-                name = "Token Cleanup Threshold",
-                description = "Setting this option to a value > 0 will trigger a cleanup upon token creation: " +
-                        "if the number of existing token matches/exceeds the " +
-                        "configured value an attempt is made to removed expired tokens.")
+            name = "Token Cleanup Threshold",
+            description =
+                "Setting this option to a value > 0 will trigger a cleanup upon token creation: " +
+                    "if the number of existing token matches/exceeds the " +
+                    "configured value an attempt is made to removed expired tokens.")
         long tokenCleanupThreshold() default TokenProviderImpl.NO_TOKEN_CLEANUP;
 
         @AttributeDefinition(
-                name = "Hash Algorithm",
-                description = "Name of the algorithm to hash the token.")
+            name = "Hash Algorithm",
+            description = "Name of the algorithm to hash the token.")
         String passwordHashAlgorithm() default PasswordUtil.DEFAULT_ALGORITHM;
 
         @AttributeDefinition(
-                name = "Hash Iterations",
-                description = "Number of iterations used to hash the token.")
+            name = "Hash Iterations",
+            description = "Number of iterations used to hash the token.")
         int passwordHashIterations() default PasswordUtil.DEFAULT_ITERATIONS;
 
         @AttributeDefinition(
-                name = "Hash Salt Size",
-                description = "Size of the salt used to generate the hash.")
+            name = "Hash Salt Size",
+            description = "Size of the salt used to generate the hash.")
         int passwordSaltSize() default PasswordUtil.DEFAULT_SALT_SIZE;
     }
 
     private final Map<String, CredentialsSupport> credentialsSupport = new ConcurrentHashMap<>(
-            ImmutableMap.of(SimpleCredentialsSupport.class.getName(), SimpleCredentialsSupport.getInstance()));
+        ImmutableMap.of(SimpleCredentialsSupport.class.getName(),
+            SimpleCredentialsSupport.getInstance()));
 
     @SuppressWarnings("UnusedDeclaration")
     public TokenConfigurationImpl() {
@@ -124,8 +128,8 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
     }
 
     @Reference(name = "credentialsSupport",
-            cardinality = ReferenceCardinality.MULTIPLE,
-            policy = ReferencePolicy.DYNAMIC)
+        cardinality = ReferenceCardinality.MULTIPLE,
+        policy = ReferencePolicy.DYNAMIC)
     @SuppressWarnings("UnusedDeclaration")
     public void bindCredentialsSupport(CredentialsSupport credentialsSupport) {
         this.credentialsSupport.put(credentialsSupport.getClass().getName(), credentialsSupport);
@@ -145,8 +149,10 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
 
     @NotNull
     @Override
-    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-        ValidatorProvider vp = new TokenValidatorProvider(getSecurityProvider().getParameters(UserConfiguration.NAME), getTreeProvider());
+    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName,
+        @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
+        ValidatorProvider vp = new TokenValidatorProvider(
+            getSecurityProvider().getParameters(UserConfiguration.NAME), getTreeProvider());
         return ImmutableList.of(vp);
     }
 
@@ -156,11 +162,14 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
     }
 
     //-------------------------------------------------< TokenConfiguration >---
+
     /**
-     * Returns a new instance of {@link org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider}.
+     * Returns a new instance of
+     * {@link org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider}.
      *
      * @param root The target root.
-     * @return A new instance of {@link org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider}.
+     * @return A new instance of
+     * {@link org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider}.
      */
     @NotNull
     @Override
@@ -177,7 +186,8 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
         } else if (size == 1) {
             return credentialsSupport.values().iterator().next();
         } else {
-            return CompositeCredentialsSupport.newInstance(() -> ImmutableSet.copyOf(credentialsSupport.values()));
+            return CompositeCredentialsSupport.newInstance(
+                () -> ImmutableSet.copyOf(credentialsSupport.values()));
         }
     }
 }

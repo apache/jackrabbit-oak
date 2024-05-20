@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 public class SelectorTest {
+
     public static final Predicate<NodeState> ALL = x -> true;
 
     private final NodeState root = createRoot();

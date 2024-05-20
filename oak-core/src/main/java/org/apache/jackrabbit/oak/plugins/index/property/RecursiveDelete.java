@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RecursiveDelete {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final NodeStore nodeStore;
     private final CommitHook commitHook;
@@ -48,7 +49,7 @@ public class RecursiveDelete {
     private NodeBuilder builder;
 
     public RecursiveDelete(NodeStore nodeStore, CommitHook commitHook,
-                           Supplier<CommitInfo> commitInfo) {
+        Supplier<CommitInfo> commitInfo) {
         this.nodeStore = nodeStore;
         this.commitHook = commitHook;
         this.commitInfo = commitInfo;
@@ -68,7 +69,7 @@ public class RecursiveDelete {
         String pathDetails = Iterables.toString(paths);
         save(pathDetails, currentSize, true);
         log.debug("Removed subtree under [{}] with {} child nodes " +
-                "in {} ({} saves)", pathDetails, numRemoved, w, mergeCount);
+            "in {} ({} saves)", pathDetails, numRemoved, w, mergeCount);
     }
 
     public void run(String path) throws CommitFailedException {
@@ -81,7 +82,7 @@ public class RecursiveDelete {
         save(path, currentSize, true);
 
         log.debug("Removed subtree under [{}] with {} child nodes " +
-                "in {} ({} saves)", path, numRemoved, w, mergeCount);
+            "in {} ({} saves)", path, numRemoved, w, mergeCount);
     }
 
     public int getNumRemoved() {
@@ -123,9 +124,11 @@ public class RecursiveDelete {
         return currentSize;
     }
 
-    private boolean save(String pathDetails, int currentSize, boolean force) throws CommitFailedException {
+    private boolean save(String pathDetails, int currentSize, boolean force)
+        throws CommitFailedException {
         if (currentSize >= batchSize || force) {
-            log.debug("Deleting {} nodes under {} ({} removed so far)", currentSize, pathDetails, numRemoved);
+            log.debug("Deleting {} nodes under {} ({} removed so far)", currentSize, pathDetails,
+                numRemoved);
             nodeStore.merge(builder, commitHook, commitInfo.get());
             builder = nodeStore.getRoot().builder();
             mergeCount++;

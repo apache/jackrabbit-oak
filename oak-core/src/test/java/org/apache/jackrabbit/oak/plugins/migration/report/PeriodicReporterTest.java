@@ -33,7 +33,7 @@ public class PeriodicReporterTest {
     public void callbackEveryTenNodes() {
         final AssertingPeriodicReporter reporter = new AssertingPeriodicReporter(10, -1);
         final NodeState counter = ReportingNodeState.wrap(EmptyNodeState.EMPTY_NODE, reporter)
-                .getChildNode("counter");
+                                                    .getChildNode("counter");
 
         reporter.reset();
         for (int i = 1; i < 40; i++) {
@@ -54,7 +54,7 @@ public class PeriodicReporterTest {
 
         final AssertingPeriodicReporter reporter = new AssertingPeriodicReporter(-1, 10);
         final NodeState counter = ReportingNodeState.wrap(builder.getNodeState(), reporter)
-                .getChildNode("counter");
+                                                    .getChildNode("counter");
 
         reporter.reset();
         for (int i = 1; i < 40; i++) {

@@ -37,21 +37,25 @@ class EveryoneMembershipProvider implements DynamicMembershipProvider {
 
     private final UserManager userManager;
     private final String repPrincipalName;
-    
-    EveryoneMembershipProvider(@NotNull UserManager userManager, @NotNull NamePathMapper namePathMapper)  {
+
+    EveryoneMembershipProvider(@NotNull UserManager userManager,
+        @NotNull NamePathMapper namePathMapper) {
         this.userManager = userManager;
         this.repPrincipalName = namePathMapper.getJcrName(REP_PRINCIPAL_NAME);
     }
-    
+
     @Override
     public boolean coversAllMembers(@NotNull Group group) {
         return Utils.isEveryone(group);
     }
 
     @Override
-    public @NotNull Iterator<Authorizable> getMembers(@NotNull Group group, boolean includeInherited) throws RepositoryException {
+    public @NotNull Iterator<Authorizable> getMembers(@NotNull Group group,
+        boolean includeInherited) throws RepositoryException {
         if (Utils.isEveryone(group)) {
-            Iterator<Authorizable> result = Iterators.filter(userManager.findAuthorizables(repPrincipalName, null, UserManager.SEARCH_TYPE_AUTHORIZABLE), Predicates.notNull());
+            Iterator<Authorizable> result = Iterators.filter(
+                userManager.findAuthorizables(repPrincipalName, null,
+                    UserManager.SEARCH_TYPE_AUTHORIZABLE), Predicates.notNull());
             return Iterators.filter(result, authorizable -> !Utils.isEveryone(authorizable));
         } else {
             return RangeIteratorAdapter.EMPTY;
@@ -59,12 +63,14 @@ class EveryoneMembershipProvider implements DynamicMembershipProvider {
     }
 
     @Override
-    public boolean isMember(@NotNull Group group, @NotNull Authorizable authorizable, boolean includeInherited) throws RepositoryException {
+    public boolean isMember(@NotNull Group group, @NotNull Authorizable authorizable,
+        boolean includeInherited) throws RepositoryException {
         return Utils.isEveryone(group);
     }
 
     @Override
-    public @NotNull Iterator<Group> getMembership(@NotNull Authorizable authorizable, boolean includeInherited) throws RepositoryException {
+    public @NotNull Iterator<Group> getMembership(@NotNull Authorizable authorizable,
+        boolean includeInherited) throws RepositoryException {
         Authorizable everyoneGroup = userManager.getAuthorizable(EveryonePrincipal.getInstance());
         if (everyoneGroup instanceof Group) {
             return new RangeIteratorAdapter(Collections.singleton((Group) everyoneGroup));

@@ -38,60 +38,74 @@ public class ResultIteratorTest {
     @Test
     public void testCreateWithoutLimitation() {
         Iterator<String> it = ImmutableList.of("str").iterator();
-        assertSame(it, ResultIterator.create(ResultIterator.OFFSET_NONE, ResultIterator.MAX_ALL, it));
+        assertSame(it,
+            ResultIterator.create(ResultIterator.OFFSET_NONE, ResultIterator.MAX_ALL, it));
     }
 
     @Test
     public void testCreateMaxZero() {
-        assertFalse(ResultIterator.create(ResultIterator.OFFSET_NONE, 0, Iterators.singletonIterator("str")).hasNext());
+        assertFalse(
+            ResultIterator.create(ResultIterator.OFFSET_NONE, 0, Iterators.singletonIterator("str"))
+                          .hasNext());
     }
 
     @Test
     public void testCreateOffsetEqualsSize() {
-        assertFalse(ResultIterator.create(1, ResultIterator.MAX_ALL,  Iterators.singletonIterator("str")).hasNext());
+        assertFalse(
+            ResultIterator.create(1, ResultIterator.MAX_ALL, Iterators.singletonIterator("str"))
+                          .hasNext());
     }
 
     @Test
     public void testCreateOffsetGtSize() {
-        assertFalse(ResultIterator.create(2, ResultIterator.MAX_ALL,  Iterators.singletonIterator("str")).hasNext());
+        assertFalse(
+            ResultIterator.create(2, ResultIterator.MAX_ALL, Iterators.singletonIterator("str"))
+                          .hasNext());
     }
 
     @Test
     public void testCreateOffsetLtSize() {
-        assertEquals(1, Iterators.size(ResultIterator.create(1, ResultIterator.MAX_ALL,  ImmutableList.of("str", "str").iterator())));
+        assertEquals(1, Iterators.size(ResultIterator.create(1, ResultIterator.MAX_ALL,
+            ImmutableList.of("str", "str").iterator())));
     }
 
     @Test
     public void testCreateOffsetEqualsMax() {
-        assertEquals(1, Iterators.size(ResultIterator.create(1, 1,  ImmutableList.of("str", "str").iterator())));
+        assertEquals(1,
+            Iterators.size(ResultIterator.create(1, 1, ImmutableList.of("str", "str").iterator())));
     }
 
     @Test
     public void testCreateOffsetGtMax() {
-        assertEquals(1, Iterators.size(ResultIterator.create(2, 1,  ImmutableList.of("str", "str", "str").iterator())));
+        assertEquals(1, Iterators.size(
+            ResultIterator.create(2, 1, ImmutableList.of("str", "str", "str").iterator())));
     }
 
     @Test
     public void testCreateOffsetLtMax() {
-        Iterator resultIt = ResultIterator.create(1, 3,  ImmutableList.of("str", "str", "str", "str").iterator());
+        Iterator resultIt = ResultIterator.create(1, 3,
+            ImmutableList.of("str", "str", "str", "str").iterator());
         assertEquals(3, Iterators.size(resultIt));
     }
 
     @Test(expected = NoSuchElementException.class)
     public void testNextNoElements() {
-        Iterator<String> it = ResultIterator.create(1, ResultIterator.MAX_ALL,  Iterators.singletonIterator("str"));
+        Iterator<String> it = ResultIterator.create(1, ResultIterator.MAX_ALL,
+            Iterators.singletonIterator("str"));
         it.next();
     }
 
     @Test
     public void testNextWithOffset() {
-        Iterator<String> it = ResultIterator.create(1, ResultIterator.MAX_ALL, ImmutableList.of("str", "str2").iterator());
+        Iterator<String> it = ResultIterator.create(1, ResultIterator.MAX_ALL,
+            ImmutableList.of("str", "str2").iterator());
         assertEquals("str2", it.next());
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void testRemove() {
-        Iterator<String> it = ResultIterator.create(ResultIterator.OFFSET_NONE, 1, Iterators.singletonIterator("value"));
+        Iterator<String> it = ResultIterator.create(ResultIterator.OFFSET_NONE, 1,
+            Iterators.singletonIterator("value"));
         it.remove();
     }
 }

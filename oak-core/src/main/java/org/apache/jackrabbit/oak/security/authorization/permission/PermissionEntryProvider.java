@@ -23,8 +23,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * {@code PermissionEntryProvider} provides permission entries for a given set of principals.
- * It may internally hold a cache to improve performance and usually operates on the permission store.
+ * {@code PermissionEntryProvider} provides permission entries for a given set of principals. It may
+ * internally hold a cache to improve performance and usually operates on the permission store.
  */
 interface PermissionEntryProvider {
 

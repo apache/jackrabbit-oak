@@ -56,7 +56,8 @@ public class ImmutableTreeTest extends AbstractSecurityTest {
     public void setUp() throws Exception {
         Tree tree = root.getTree("/");
         NodeUtil node = new NodeUtil(tree);
-        node.addChild("x", JcrConstants.NT_UNSTRUCTURED).addChild("y", JcrConstants.NT_UNSTRUCTURED).addChild("z", JcrConstants.NT_UNSTRUCTURED);
+        node.addChild("x", JcrConstants.NT_UNSTRUCTURED).addChild("y", JcrConstants.NT_UNSTRUCTURED)
+            .addChild("z", JcrConstants.NT_UNSTRUCTURED);
 
         Tree orderable = node.addChild("orderable", JcrConstants.NT_UNSTRUCTURED).getTree();
         orderable.setOrderableChildren(true);
@@ -114,7 +115,8 @@ public class ImmutableTreeTest extends AbstractSecurityTest {
     @Test(expected = UnsupportedOperationException.class)
     public void testGetParentDisconnected() {
         ImmutableTree child = immutable.getChild("x");
-        ImmutableTree disconnected = new ImmutableTree(ImmutableTree.ParentProvider.UNSUPPORTED, child.getName(), child.getNodeState());
+        ImmutableTree disconnected = new ImmutableTree(ImmutableTree.ParentProvider.UNSUPPORTED,
+            child.getName(), child.getNodeState());
         disconnected.getParent();
     }
 
@@ -183,7 +185,8 @@ public class ImmutableTreeTest extends AbstractSecurityTest {
 
     @Test
     public void testHasHiddenChild() {
-        ImmutableTree parent = (ImmutableTree) TreeUtil.getTree(immutable, Text.getRelativeParent(HIDDEN_PATH, 1));
+        ImmutableTree parent = (ImmutableTree) TreeUtil.getTree(immutable,
+            Text.getRelativeParent(HIDDEN_PATH, 1));
         assertNotNull(parent);
         assertTrue(parent.hasChild(Text.getName(HIDDEN_PATH)));
     }
@@ -210,13 +213,15 @@ public class ImmutableTreeTest extends AbstractSecurityTest {
     @Test
     public void testGetPropertyStatus() {
         ImmutableTree orderable = immutable.getChild("orderable");
-        assertSame(Tree.Status.UNCHANGED, orderable.getPropertyStatus(TreeConstants.OAK_CHILD_ORDER));
+        assertSame(Tree.Status.UNCHANGED,
+            orderable.getPropertyStatus(TreeConstants.OAK_CHILD_ORDER));
     }
 
     @Test
     public void testGetProperties() {
         ImmutableTree orderable = immutable.getChild("orderable");
-        List<String> propNames = Lists.newArrayList(TreeConstants.OAK_CHILD_ORDER, JcrConstants.JCR_PRIMARYTYPE);
+        List<String> propNames = Lists.newArrayList(TreeConstants.OAK_CHILD_ORDER,
+            JcrConstants.JCR_PRIMARYTYPE);
 
         for (PropertyState ps : orderable.getProperties()) {
             assertTrue(propNames.remove(ps.getName()));
@@ -264,13 +269,14 @@ public class ImmutableTreeTest extends AbstractSecurityTest {
     }
 
     private static void assertSequence(Iterable<Tree> trees, String... names) {
-        List<String> actual = Lists.newArrayList(Iterables.transform(trees, new Function<Tree, String>() {
-            @Nullable
-            @Override
-            public String apply(Tree input) {
-                return input.getName();
-            }
-        }));
+        List<String> actual = Lists.newArrayList(
+            Iterables.transform(trees, new Function<Tree, String>() {
+                @Nullable
+                @Override
+                public String apply(Tree input) {
+                    return input.getName();
+                }
+            }));
         assertEquals(Lists.newArrayList(names), actual);
     }
 
@@ -287,8 +293,9 @@ public class ImmutableTreeTest extends AbstractSecurityTest {
 
     @Test
     public void testGetTypeForImmutableTree() {
-        TreeTypeProvider typeProvider = new TreeTypeProvider(getConfig(AuthorizationConfiguration.class).getContext());
-        for (String path : new String[] {"/", "/testPath"}) {
+        TreeTypeProvider typeProvider = new TreeTypeProvider(
+            getConfig(AuthorizationConfiguration.class).getContext());
+        for (String path : new String[]{"/", "/testPath"}) {
             Tree t = getRootProvider().createReadOnlyRoot(root).getTree(path);
             assertEquals(TreeType.DEFAULT, typeProvider.getType(t));
             // also for repeated calls
@@ -302,7 +309,8 @@ public class ImmutableTreeTest extends AbstractSecurityTest {
 
     @Test
     public void testGetTypeForImmutableTreeWithParent() {
-        TreeTypeProvider typeProvider = new TreeTypeProvider(getConfig(AuthorizationConfiguration.class).getContext());
+        TreeTypeProvider typeProvider = new TreeTypeProvider(
+            getConfig(AuthorizationConfiguration.class).getContext());
 
         Tree t = getRootProvider().createReadOnlyRoot(root).getTree("/:hidden/testPath");
         assertEquals(TreeType.HIDDEN, typeProvider.getType(t, TreeType.HIDDEN));

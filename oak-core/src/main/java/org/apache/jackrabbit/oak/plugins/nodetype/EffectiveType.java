@@ -62,13 +62,12 @@ class EffectiveType {
      * Checks whether this effective type contains the named type.
      *
      * @param name node type name
-     * @return {@code true} if the named type is included,
-     *         {@code false} otherwise
+     * @return {@code true} if the named type is included, {@code false} otherwise
      */
     boolean isNodeType(@NotNull String name) {
         for (NodeState type : types) {
             if (name.equals(type.getName(JCR_NODETYPENAME))
-                    || contains(type.getNames(REP_SUPERTYPES), name)) {
+                || contains(type.getNames(REP_SUPERTYPES), name)) {
                 return true;
             }
         }
@@ -126,8 +125,8 @@ class EffectiveType {
         // Find matching named property definition
         for (NodeState type : types) {
             NodeState definitions = type
-                    .getChildNode(REP_NAMED_PROPERTY_DEFINITIONS)
-                    .getChildNode(escapedName);
+                .getChildNode(REP_NAMED_PROPERTY_DEFINITIONS)
+                .getChildNode(escapedName);
 
             NodeState definition = definitions.getChildNode(definedType);
             if (definition.exists()) {
@@ -156,7 +155,7 @@ class EffectiveType {
         // Find matching residual property definition
         for (NodeState type : types) {
             NodeState residual =
-                    type.getChildNode(REP_RESIDUAL_PROPERTY_DEFINITIONS);
+                type.getChildNode(REP_RESIDUAL_PROPERTY_DEFINITIONS);
             NodeState definition = residual.getChildNode(definedType);
             if (!definition.exists()) {
                 definition = residual.getChildNode(undefinedType);
@@ -170,13 +169,11 @@ class EffectiveType {
     }
 
     /**
-     * Finds a matching definition for a child node with the given name and
-     * types.
+     * Finds a matching definition for a child node with the given name and types.
      *
      * @param nameWithIndex child node name, possibly with an SNS index
-     * @param effective effective types of the child node
-     * @return {@code true} if there's a matching child node definition,
-     *         {@code false} otherwise
+     * @param effective     effective types of the child node
+     * @return {@code true} if there's a matching child node definition, {@code false} otherwise
      */
     boolean isValidChildNode(@NotNull String nameWithIndex, @NotNull EffectiveType effective) {
         String name = dropIndexFromName(nameWithIndex);
@@ -186,8 +183,8 @@ class EffectiveType {
         // Find matching named child node definition
         for (NodeState type : types) {
             NodeState definitions = type
-                    .getChildNode(REP_NAMED_CHILD_NODE_DEFINITIONS)
-                    .getChildNode(name);
+                .getChildNode(REP_NAMED_CHILD_NODE_DEFINITIONS)
+                .getChildNode(name);
 
             for (String typeName : typeNames) {
                 NodeState definition = definitions.getChildNode(typeName);
@@ -213,7 +210,7 @@ class EffectiveType {
         // Find matching residual child node definition
         for (NodeState type : types) {
             NodeState residual =
-                    type.getChildNode(REP_RESIDUAL_CHILD_NODE_DEFINITIONS);
+                type.getChildNode(REP_RESIDUAL_CHILD_NODE_DEFINITIONS);
             for (String typeName : typeNames) {
                 NodeState definition = residual.getChildNode(typeName);
                 if (definition.exists() && snsMatch(sns, definition)) {
@@ -238,14 +235,14 @@ class EffectiveType {
 
         for (NodeState type : types) {
             NodeState named = type
-                    .getChildNode(REP_NAMED_CHILD_NODE_DEFINITIONS)
-                    .getChildNode(name);
+                .getChildNode(REP_NAMED_CHILD_NODE_DEFINITIONS)
+                .getChildNode(name);
             NodeState residual = type
-                    .getChildNode(REP_RESIDUAL_CHILD_NODE_DEFINITIONS);
+                .getChildNode(REP_RESIDUAL_CHILD_NODE_DEFINITIONS);
 
             for (ChildNodeEntry entry : concat(
-                    named.getChildNodeEntries(),
-                    residual.getChildNodeEntries())) {
+                named.getChildNodeEntries(),
+                residual.getChildNodeEntries())) {
                 NodeState definition = entry.getNodeState();
                 String defaultType = definition.getName(JCR_DEFAULTPRIMARYTYPE);
                 if (defaultType != null && snsMatch(sns, definition)) {
@@ -266,7 +263,7 @@ class EffectiveType {
         }
         return names;
     }
-    
+
     List<String> getDirectTypeNames() {
         List<String> names = newArrayListWithCapacity(types.size());
         for (NodeState type : types) {
@@ -285,10 +282,10 @@ class EffectiveType {
     //-----------------------------------------------------------< private >--
 
     /**
-     * Depending on the given SNS flag, checks whether the given child node
-     * definition allows same-name-siblings.
+     * Depending on the given SNS flag, checks whether the given child node definition allows
+     * same-name-siblings.
      *
-     * @param sns SNS flag, {@code true} if processing an SNS node
+     * @param sns        SNS flag, {@code true} if processing an SNS node
      * @param definition child node definition
      */
     private boolean snsMatch(boolean sns, @NotNull NodeState definition) {

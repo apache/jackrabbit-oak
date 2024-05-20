@@ -23,6 +23,7 @@ import com.codahale.metrics.Histogram;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 
 final class HistogramImpl implements HistogramStats {
+
     private final Histogram histogram;
 
     HistogramImpl(Histogram histogram) {

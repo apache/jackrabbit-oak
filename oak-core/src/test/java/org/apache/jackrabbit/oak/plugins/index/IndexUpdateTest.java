@@ -91,7 +91,7 @@ import org.apache.jackrabbit.guava.common.collect.Sets;
 public class IndexUpdateTest {
 
     private static final EditorHook HOOK = new EditorHook(
-            new IndexUpdateProvider(new PropertyIndexEditorProvider()));
+        new IndexUpdateProvider(new PropertyIndexEditorProvider()));
 
     private NodeState root = INITIAL_CONTENT;
 
@@ -104,23 +104,22 @@ public class IndexUpdateTest {
      * <li>Add some content</li>
      * <li>Search & verify</li>
      * </ul>
-     *
      */
     @Test
     public void test() throws Exception {
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+            "rootIndex", true, false, ImmutableSet.of("foo"), null);
         createIndexDefinition(
-                builder.child("newchild").child("other")
-                        .child(INDEX_DEFINITIONS_NAME), "subIndex", true,
-                false, ImmutableSet.of("foo"), null);
+            builder.child("newchild").child("other")
+                   .child(INDEX_DEFINITIONS_NAME), "subIndex", true,
+            false, ImmutableSet.of("foo"), null);
 
         NodeState before = builder.getNodeState();
 
         // Add nodes
         builder.child("testRoot").setProperty("foo", "abc");
         builder.child("newchild").child("other").child("testChild")
-                .setProperty("foo", "xyz");
+               .setProperty("foo", "xyz");
 
         NodeState after = builder.getNodeState();
 
@@ -128,17 +127,17 @@ public class IndexUpdateTest {
 
         // first check that the index content nodes exist
         checkPathExists(indexed, INDEX_DEFINITIONS_NAME, "rootIndex",
-                INDEX_CONTENT_NODE_NAME);
+            INDEX_CONTENT_NODE_NAME);
         checkPathExists(indexed, "newchild", "other", INDEX_DEFINITIONS_NAME,
-                "subIndex", INDEX_CONTENT_NODE_NAME);
+            "subIndex", INDEX_CONTENT_NODE_NAME);
 
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
 
         PropertyIndexLookup lookupChild = new PropertyIndexLookup(indexed
-                .getChildNode("newchild").getChildNode("other"));
+            .getChildNode("newchild").getChildNode("other"));
         assertEquals(ImmutableSet.of("testChild"),
-                find(lookupChild, "foo", "xyz"));
+            find(lookupChild, "foo", "xyz"));
         assertEquals(ImmutableSet.of(), find(lookupChild, "foo", "abc"));
 
     }
@@ -156,7 +155,7 @@ public class IndexUpdateTest {
         builder.child("testRoot").setProperty("foo", "abc");
         NodeState before = builder.getNodeState();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+            "rootIndex", true, false, ImmutableSet.of("foo"), null);
 
         NodeState after = builder.getNodeState();
 
@@ -164,7 +163,7 @@ public class IndexUpdateTest {
 
         // first check that the index content nodes exist
         NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
-                "rootIndex");
+            "rootIndex");
         checkPathExists(ns, INDEX_CONTENT_NODE_NAME);
         PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
         assertNotNull(ps);
@@ -188,19 +187,19 @@ public class IndexUpdateTest {
         builder.child("testRoot").setProperty("foo", "abc");
 
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null)
-                .removeProperty("reindex");
+            "rootIndex", true, false, ImmutableSet.of("foo"), null)
+            .removeProperty("reindex");
 
         NodeState before = builder.getNodeState();
         builder.child(INDEX_DEFINITIONS_NAME).child("rootIndex")
-                .setProperty(REINDEX_PROPERTY_NAME, true);
+               .setProperty(REINDEX_PROPERTY_NAME, true);
         NodeState after = builder.getNodeState();
 
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         // first check that the index content nodes exist
         NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
-                "rootIndex");
+            "rootIndex");
         checkPathExists(ns, INDEX_CONTENT_NODE_NAME);
         PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
         assertNotNull(ps);
@@ -225,7 +224,7 @@ public class IndexUpdateTest {
         NodeState before = builder.getNodeState();
 
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", false, false, ImmutableSet.of("foo"), null);
+            "rootIndex", false, false, ImmutableSet.of("foo"), null);
 
         NodeState after = builder.getNodeState();
 
@@ -233,7 +232,7 @@ public class IndexUpdateTest {
 
         // first check that the index content nodes exist
         NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
-                "rootIndex");
+            "rootIndex");
         checkPathExists(ns, INDEX_CONTENT_NODE_NAME);
         PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
         assertNotNull(ps);
@@ -245,18 +244,18 @@ public class IndexUpdateTest {
     }
 
     @Test
-    public void testReindexAuto_ImportCase() throws Exception{
+    public void testReindexAuto_ImportCase() throws Exception {
         NodeState before = builder.getNodeState();
 
         NodeBuilder idx = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", false, false, ImmutableSet.of("foo"), null);
+            "rootIndex", false, false, ImmutableSet.of("foo"), null);
         idx.child(":index");
 
         NodeState after = builder.getNodeState();
 
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
         NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
-                "rootIndex");
+            "rootIndex");
 
         assertEquals(0, ns.getLong("reindexCount"));
         PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
@@ -270,13 +269,13 @@ public class IndexUpdateTest {
         NodeBuilder builder = before.builder();
         builder.child(":testRoot").setProperty("foo", "abc");
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", false, false, ImmutableSet.of("foo"), null);
+            "rootIndex", false, false, ImmutableSet.of("foo"), null);
         NodeState after = builder.getNodeState();
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         // first check that the index content nodes exist
         NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
-                "rootIndex");
+            "rootIndex");
         NodeState index = checkPathExists(ns, INDEX_CONTENT_NODE_NAME);
         PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
         assertNotNull(ps);
@@ -286,7 +285,7 @@ public class IndexUpdateTest {
         before = indexed;
         builder = before.builder();
         builder.child(INDEX_DEFINITIONS_NAME).child("rootIndex")
-                .setProperty("reindex", true);
+               .setProperty("reindex", true);
         after = builder.getNodeState();
         indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
         index = checkPathExists(ns, INDEX_CONTENT_NODE_NAME);
@@ -299,34 +298,34 @@ public class IndexUpdateTest {
     @Test
     public void testIndexDefinitions() throws Exception {
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "existing", true, false, ImmutableSet.of("foo"), null);
+            "existing", true, false, ImmutableSet.of("foo"), null);
 
         NodeState before = builder.getNodeState();
         NodeBuilder other = builder.child("test").child("other");
         // Add index definition
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+            true, false, ImmutableSet.of("foo"), null);
         createIndexDefinition(
-                other.child(INDEX_DEFINITIONS_NAME), "index2", true, false,
-                ImmutableSet.of("foo"), null);
+            other.child(INDEX_DEFINITIONS_NAME), "index2", true, false,
+            ImmutableSet.of("foo"), null);
         NodeState after = builder.getNodeState();
 
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         // check that the index content nodes exist
         checkPathExists(indexed, INDEX_DEFINITIONS_NAME, "existing",
-                INDEX_CONTENT_NODE_NAME);
+            INDEX_CONTENT_NODE_NAME);
         checkPathExists(indexed, "test", "other", INDEX_DEFINITIONS_NAME,
-                "index2", INDEX_CONTENT_NODE_NAME);
+            "index2", INDEX_CONTENT_NODE_NAME);
     }
 
     @Test
-    public void reindexAndIndexDefnChildRemoval_OAK_2117() throws Exception{
+    public void reindexAndIndexDefnChildRemoval_OAK_2117() throws Exception {
         builder.child("testRoot").setProperty("foo", "abc");
         NodeState before = builder.getNodeState();
 
         NodeBuilder nb = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", false, false, ImmutableSet.of("foo"), null);
+            "rootIndex", false, false, ImmutableSet.of("foo"), null);
         nb.child("prop1").setProperty("foo", "bar");
 
         NodeState after = builder.getNodeState();
@@ -335,7 +334,7 @@ public class IndexUpdateTest {
 
         // first check that the index content nodes exist
         NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
-                "rootIndex");
+            "rootIndex");
 
         //Check index defn child node exist
         checkPathExists(ns, "prop1");
@@ -348,16 +347,16 @@ public class IndexUpdateTest {
     }
 
     /**
-     * Tests that with explicit reindex i.e. reindex=true those hidden nodes
-     * which have IndexConstants.REINDEX_RETAIN set to true are not removed
+     * Tests that with explicit reindex i.e. reindex=true those hidden nodes which have
+     * IndexConstants.REINDEX_RETAIN set to true are not removed
      */
     @Test
-    public void reindexSkipRemovalOfRetainedNodes() throws Exception{
+    public void reindexSkipRemovalOfRetainedNodes() throws Exception {
         builder.child("testRoot").setProperty("foo", "abc");
         NodeState before = builder.getNodeState();
 
         NodeBuilder nb = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+            "rootIndex", true, false, ImmutableSet.of("foo"), null);
         nb.child(":hidden-node-1").setProperty("foo", "bar");
         nb.child(":hidden-node-2").setProperty(IndexConstants.REINDEX_RETAIN, true);
         nb.child("visible-node");
@@ -375,17 +374,17 @@ public class IndexUpdateTest {
     }
 
     /**
-     * Test that an index is still reindexed if it has hidden nodes but with all such
-     * hidden nodes having IndexConstants.REINDEX_RETAIN set to true i.e. this index
-     * does not yet have any hidden nodes corresponding to persisted index like lucene
+     * Test that an index is still reindexed if it has hidden nodes but with all such hidden nodes
+     * having IndexConstants.REINDEX_RETAIN set to true i.e. this index does not yet have any hidden
+     * nodes corresponding to persisted index like lucene
      */
     @Test
-    public void reindexSkipRemovalOfRetainedNodes_FreshIndex() throws Exception{
+    public void reindexSkipRemovalOfRetainedNodes_FreshIndex() throws Exception {
         builder.child("testRoot").setProperty("foo", "abc");
         NodeState before = builder.getNodeState();
 
         NodeBuilder nb = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", false, false, ImmutableSet.of("foo"), null);
+            "rootIndex", false, false, ImmutableSet.of("foo"), null);
         nb.child(":hidden-node-2").setProperty(IndexConstants.REINDEX_RETAIN, true);
         nb.child("visible-node");
 
@@ -419,8 +418,8 @@ public class IndexUpdateTest {
         NodeBuilder builder = store.getRoot().builder();
 
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null)
-                .setProperty(REINDEX_ASYNC_PROPERTY_NAME, true);
+            "rootIndex", true, false, ImmutableSet.of("foo"), null)
+            .setProperty(REINDEX_ASYNC_PROPERTY_NAME, true);
         builder.child("testRoot").setProperty("foo", "abc");
 
         // merge it back in
@@ -428,15 +427,15 @@ public class IndexUpdateTest {
 
         // first check that the async flag exist
         NodeState ns1 = checkPathExists(store.getRoot(),
-                INDEX_DEFINITIONS_NAME, "rootIndex");
+            INDEX_DEFINITIONS_NAME, "rootIndex");
         assertTrue(ns1.getProperty(REINDEX_PROPERTY_NAME)
-                .getValue(Type.BOOLEAN));
+                      .getValue(Type.BOOLEAN));
         assertTrue(ns1.getProperty(REINDEX_ASYNC_PROPERTY_NAME).getValue(
-                Type.BOOLEAN));
+            Type.BOOLEAN));
         assertEquals(ASYNC_REINDEX_VALUE, ns1.getString(ASYNC_PROPERTY_NAME));
 
         AsyncIndexUpdate async = new AsyncIndexUpdate(ASYNC_REINDEX_VALUE,
-                store, provider, true);
+            store, provider, true);
         int max = 5;
         // same behaviour as PropertyIndexAsyncReindex mbean
         boolean done = false;
@@ -449,50 +448,50 @@ public class IndexUpdateTest {
 
         // first check that the index content nodes exist
         NodeState ns = checkPathExists(store.getRoot(), INDEX_DEFINITIONS_NAME,
-                "rootIndex");
+            "rootIndex");
         checkPathExists(ns, INDEX_CONTENT_NODE_NAME);
         assertFalse(ns.getProperty(REINDEX_PROPERTY_NAME)
-                .getValue(Type.BOOLEAN));
+                      .getValue(Type.BOOLEAN));
         assertNull(ns.getProperty(ASYNC_PROPERTY_NAME));
 
         // next, lookup
         PropertyIndexLookup lookup = new PropertyIndexLookup(store.getRoot());
         assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo",
-        "abc"));
+            "abc"));
     }
 
     /**
-     * OAK-2203 Test reindex behavior on a sync index when the index provider is missing
-     * for a given type
+     * OAK-2203 Test reindex behavior on a sync index when the index provider is missing for a given
+     * type
      */
     @Test
     public void testReindexSyncMissingProvider() throws Exception {
         EditorHook hook = new EditorHook(new IndexUpdateProvider(
-                emptyProvider()));
+            emptyProvider()));
         NodeState before = builder.getNodeState();
 
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+            "rootIndex", true, false, ImmutableSet.of("foo"), null);
         builder.child(INDEX_DEFINITIONS_NAME).child("azerty");
         builder.child("testRoot").setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
 
         NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
         NodeState rootIndex = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
-                "rootIndex");
+            "rootIndex");
         PropertyState ps = rootIndex.getProperty(REINDEX_PROPERTY_NAME);
         assertNotNull(ps);
         assertTrue(ps.getValue(Type.BOOLEAN));
 
         NodeState azerty = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
-                "azerty");
+            "azerty");
         assertNull("Node should be ignored by reindexer",
-                azerty.getProperty(REINDEX_PROPERTY_NAME));
+            azerty.getProperty(REINDEX_PROPERTY_NAME));
     }
 
     /**
-     * OAK-3505 Provide an optionally stricter policy for missing synchronous
-     * index editor providers
+     * OAK-3505 Provide an optionally stricter policy for missing synchronous index editor
+     * providers
      */
     @Test
     public void testMissingProviderFailsCommit() throws Exception {
@@ -508,17 +507,17 @@ public class IndexUpdateTest {
         EditorHook hook = new EditorHook(new EditorProvider() {
             @Override
             public Editor getRootEditor(NodeState before, NodeState after,
-                    NodeBuilder builder, CommitInfo info)
-                    throws CommitFailedException {
+                NodeBuilder builder, CommitInfo info)
+                throws CommitFailedException {
                 return new IndexUpdate(emptyProvider(), null, after, builder,
-                        noop).withMissingProviderStrategy(mips);
+                    noop).withMissingProviderStrategy(mips);
             }
         });
 
         NodeState before = builder.getNodeState();
 
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+            "rootIndex", true, false, ImmutableSet.of("foo"), null);
         builder.child(INDEX_DEFINITIONS_NAME).child("azerty");
         builder.child("testRoot").setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
@@ -542,30 +541,30 @@ public class IndexUpdateTest {
 
         // prepare different hooks for different types indexing cycles
         EditorHook syncHook = new EditorHook((before, after, builder, info) ->
-                new IndexUpdate(emptyProvider(), null, after, builder, NOOP)
-                        .withMissingProviderStrategy(mips));
+            new IndexUpdate(emptyProvider(), null, after, builder, NOOP)
+                .withMissingProviderStrategy(mips));
         EditorHook asyncHook = new EditorHook((before, after, builder, info) ->
-                new IndexUpdate(emptyProvider(), "async-run", after, builder, NOOP)
-                        .withMissingProviderStrategy(mips));
+            new IndexUpdate(emptyProvider(), "async-run", after, builder, NOOP)
+                .withMissingProviderStrategy(mips));
         EditorHook otherAsyncHook = new EditorHook((before, after, builder, info) ->
-                new IndexUpdate(emptyProvider(), "other-async-run", after, builder, NOOP)
-                        .withMissingProviderStrategy(mips));
+            new IndexUpdate(emptyProvider(), "other-async-run", after, builder, NOOP)
+                .withMissingProviderStrategy(mips));
 
         builder = EmptyNodeState.EMPTY_NODE.builder();
 
         // create async defs with nrt and sync mixed in
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "asyncIndex", true, false, ImmutableSet.of("foo"), null)
-                .setProperty(ASYNC_PROPERTY_NAME, ImmutableList.of("async-run"), Type.STRINGS)
-                .setProperty(REINDEX_PROPERTY_NAME, false);
+            "asyncIndex", true, false, ImmutableSet.of("foo"), null)
+            .setProperty(ASYNC_PROPERTY_NAME, ImmutableList.of("async-run"), Type.STRINGS)
+            .setProperty(REINDEX_PROPERTY_NAME, false);
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "nrtIndex", true, false, ImmutableSet.of("foo"), null)
-                .setProperty(ASYNC_PROPERTY_NAME, ImmutableList.of("async-run", "nrt"), Type.STRINGS)
-                .setProperty(REINDEX_PROPERTY_NAME, false);
+            "nrtIndex", true, false, ImmutableSet.of("foo"), null)
+            .setProperty(ASYNC_PROPERTY_NAME, ImmutableList.of("async-run", "nrt"), Type.STRINGS)
+            .setProperty(REINDEX_PROPERTY_NAME, false);
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "asyncSyncIndex", true, false, ImmutableSet.of("foo"), null)
-                .setProperty(ASYNC_PROPERTY_NAME, ImmutableList.of("async-run", "sync"), Type.STRINGS)
-                .setProperty(REINDEX_PROPERTY_NAME, false);
+            "asyncSyncIndex", true, false, ImmutableSet.of("foo"), null)
+            .setProperty(ASYNC_PROPERTY_NAME, ImmutableList.of("async-run", "sync"), Type.STRINGS)
+            .setProperty(REINDEX_PROPERTY_NAME, false);
 
         // node states to run hook on
         NodeState before = builder.getNodeState();
@@ -588,12 +587,12 @@ public class IndexUpdateTest {
     }
 
     @Test
-    public void testReindexCount() throws Exception{
+    public void testReindexCount() throws Exception {
         builder.child("testRoot").setProperty("foo", "abc");
         NodeState before = builder.getNodeState();
 
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", false, false, ImmutableSet.of("foo"), null);
+            "rootIndex", false, false, ImmutableSet.of("foo"), null);
 
         NodeState after = builder.getNodeState();
 
@@ -601,7 +600,8 @@ public class IndexUpdateTest {
         long t1 = getReindexCount(indexed);
 
         NodeBuilder b2 = indexed.builder();
-        b2.child(INDEX_DEFINITIONS_NAME).child("rootIndex").setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        b2.child(INDEX_DEFINITIONS_NAME).child("rootIndex")
+          .setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
         indexed = HOOK.processCommit(indexed, b2.getNodeState(), CommitInfo.EMPTY);
         long t2 = getReindexCount(indexed);
 
@@ -609,10 +609,10 @@ public class IndexUpdateTest {
     }
 
     @Test
-    public void contextAwareCallback() throws Exception{
+    public void contextAwareCallback() throws Exception {
         NodeState before = builder.getNodeState();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+            "rootIndex", true, false, ImmutableSet.of("foo"), null);
 
         NodeState after = builder.getNodeState();
 
@@ -639,14 +639,14 @@ public class IndexUpdateTest {
         after = builder.getNodeState();
 
         hook.processCommit(before, after, info);
-        assertFalse(((ContextAwareCallback)provider.callback).getIndexingContext().isReindexing());
+        assertFalse(((ContextAwareCallback) provider.callback).getIndexingContext().isReindexing());
     }
 
     @Test
-    public void contextAwareCallback_async() throws Exception{
+    public void contextAwareCallback_async() throws Exception {
         NodeState before = builder.getNodeState();
         NodeBuilder idx = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+            "rootIndex", true, false, ImmutableSet.of("foo"), null);
         idx.setProperty("async", asList("sync", "async"), Type.STRINGS);
 
         NodeState after = builder.getNodeState();
@@ -656,20 +656,21 @@ public class IndexUpdateTest {
 
         hook.processCommit(before, after, CommitInfo.EMPTY);
 
-        assertTrue(((ContextAwareCallback)provider.callback).getIndexingContext().isAsync());
+        assertTrue(((ContextAwareCallback) provider.callback).getIndexingContext().isAsync());
     }
 
     private static class CallbackCapturingProvider extends PropertyIndexEditorProvider {
+
         private Map<String, IndexingContext> callbacks = Maps.newHashMap();
         IndexUpdateCallback callback;
 
         @Override
         public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
-                                     @NotNull NodeState root, @NotNull IndexUpdateCallback callback) {
+            @NotNull NodeState root, @NotNull IndexUpdateCallback callback) {
             Editor editor = super.getIndexEditor(type, definition, root, callback);
-            if (editor != null){
+            if (editor != null) {
                 this.callback = callback;
-                if (callback instanceof ContextAwareCallback){
+                if (callback instanceof ContextAwareCallback) {
                     IndexingContext context = ((ContextAwareCallback) callback).getIndexingContext();
                     callbacks.put(context.getIndexPath(), context);
                 }
@@ -677,12 +678,12 @@ public class IndexUpdateTest {
             return editor;
         }
 
-        public void reset(){
+        public void reset() {
             callback = null;
             callbacks.clear();
         }
 
-        public IndexingContext getContext(String indexPath){
+        public IndexingContext getContext(String indexPath) {
             return callbacks.get(indexPath);
         }
     }
@@ -690,29 +691,30 @@ public class IndexUpdateTest {
 
     long getReindexCount(NodeState indexed) {
         return indexed.getChildNode(INDEX_DEFINITIONS_NAME)
-                .getChildNode("rootIndex")
-                .getProperty(IndexConstants.REINDEX_COUNT).getValue(Type.LONG);
+                      .getChildNode("rootIndex")
+                      .getProperty(IndexConstants.REINDEX_COUNT).getValue(Type.LONG);
     }
 
     private static IndexEditorProvider emptyProvider() {
         return new IndexEditorProvider() {
             @Override
             public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
-                    @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
-                    throws CommitFailedException {
+                @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
+                throws CommitFailedException {
                 return null;
             }
         };
     }
 
     private Set<String> find(PropertyIndexLookup lookup, String name,
-            String value) {
+        String value) {
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
-        NodeTypeInfo type = nodeTypes.getNodeTypeInfo(NT_BASE);        
+        NodeTypeInfo type = nodeTypes.getNodeTypeInfo(NT_BASE);
         SelectorImpl selector = new SelectorImpl(type, NT_BASE);
-        Filter filter = new FilterImpl(selector, "SELECT * FROM [nt:base]", new QueryEngineSettings());
+        Filter filter = new FilterImpl(selector, "SELECT * FROM [nt:base]",
+            new QueryEngineSettings());
         return Sets.newHashSet(lookup.query(filter, name,
-                PropertyValues.newString(value)));
+            PropertyValues.newString(value)));
     }
 
     static NodeState checkPathExists(NodeState state, String... verify) {
@@ -735,40 +737,41 @@ public class IndexUpdateTest {
 
         // async single value
         base = EmptyNodeState.EMPTY_NODE.builder().setProperty(
-                ASYNC_PROPERTY_NAME, "async");
+            ASYNC_PROPERTY_NAME, "async");
         assertFalse(IndexUpdate.isIncluded(null, base));
         assertTrue(IndexUpdate.isIncluded("async", base));
 
         // async multiple values: "" for sync
         base = EmptyNodeState.EMPTY_NODE.builder()
-                .setProperty(ASYNC_PROPERTY_NAME, Sets.newHashSet(INDEXING_MODE_NRT, "async"),
-                        Type.STRINGS);
+                                        .setProperty(ASYNC_PROPERTY_NAME,
+                                            Sets.newHashSet(INDEXING_MODE_NRT, "async"),
+                                            Type.STRINGS);
         assertTrue(IndexUpdate.isIncluded(null, base));
         assertTrue(IndexUpdate.isIncluded("async", base));
         assertFalse(IndexUpdate.isIncluded("async-other", base));
 
         // async multiple values: "sync" for sync
         base = EmptyNodeState.EMPTY_NODE.builder().setProperty(
-                ASYNC_PROPERTY_NAME, Sets.newHashSet("sync", "async"),
-                Type.STRINGS);
+            ASYNC_PROPERTY_NAME, Sets.newHashSet("sync", "async"),
+            Type.STRINGS);
         assertTrue(IndexUpdate.isIncluded(null, base));
         assertTrue(IndexUpdate.isIncluded("async", base));
         assertFalse(IndexUpdate.isIncluded("async-other", base));
 
         // async multiple values: no sync present
         base = EmptyNodeState.EMPTY_NODE.builder().setProperty(
-                ASYNC_PROPERTY_NAME, Sets.newHashSet("async", "async-other"),
-                Type.STRINGS);
+            ASYNC_PROPERTY_NAME, Sets.newHashSet("async", "async-other"),
+            Type.STRINGS);
         assertFalse(IndexUpdate.isIncluded(null, base));
         assertTrue(IndexUpdate.isIncluded("async", base));
         assertTrue(IndexUpdate.isIncluded("async-other", base));
     }
 
     @Test
-    public void corruptIndexSkipped() throws Exception{
+    public void corruptIndexSkipped() throws Exception {
         NodeState before = builder.getNodeState();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+            "rootIndex", true, false, ImmutableSet.of("foo"), null);
 
         NodeState after = builder.getNodeState();
 
@@ -779,7 +782,6 @@ public class IndexUpdateTest {
         NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
         String indexPath = "/oak:index/rootIndex";
         assertNotNull(provider.getContext(indexPath));
-
 
         //2. Mark as corrupt and assert that editor is not invoked
         builder = indexed.builder();
@@ -800,12 +802,13 @@ public class IndexUpdateTest {
         provider.reset();
         indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
 
-        assertFalse(NodeStateUtils.getNode(indexed, indexPath).hasProperty(IndexConstants.CORRUPT_PROPERTY_NAME));
+        assertFalse(NodeStateUtils.getNode(indexed, indexPath)
+                                  .hasProperty(IndexConstants.CORRUPT_PROPERTY_NAME));
         assertNotNull(provider.getContext(indexPath));
     }
 
     @Test
-    public void ignoreReindexingFlag() throws Exception{
+    public void ignoreReindexingFlag() throws Exception {
         String indexPath = "/oak:index/rootIndex";
         CallbackCapturingProvider provider = new CallbackCapturingProvider();
 
@@ -814,7 +817,7 @@ public class IndexUpdateTest {
 
         NodeState before = builder.getNodeState();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+            "rootIndex", true, false, ImmutableSet.of("foo"), null);
 
         builder.child("a").setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
@@ -844,7 +847,7 @@ public class IndexUpdateTest {
     }
 
     @Test
-    public void shouldNotReindexAsyncIndexInSyncMode() throws Exception{
+    public void shouldNotReindexAsyncIndexInSyncMode() throws Exception {
         String indexPath = "/oak:index/rootIndex";
         CallbackCapturingProvider provider = new CallbackCapturingProvider();
 
@@ -853,7 +856,7 @@ public class IndexUpdateTest {
 
         NodeState before = builder.getNodeState();
         NodeBuilder idx = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+            "rootIndex", true, false, ImmutableSet.of("foo"), null);
         idx.setProperty("async", asList("async", "sync"), Type.STRINGS);
 
         builder.child("a").setProperty("foo", "abc");
@@ -873,12 +876,12 @@ public class IndexUpdateTest {
 
         NodeState before = builder.getNodeState();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+            "rootIndex", true, false, ImmutableSet.of("foo"), null);
         NodeState after = builder.getNodeState();
 
         CallbackCapturingProvider provider = new CallbackCapturingProvider();
         IndexUpdate indexUpdate = new IndexUpdate(provider, null, after, builder,
-                noop);
+            noop);
         indexUpdate.enter(before, after);
 
         ContextAwareCallback contextualCallback = (ContextAwareCallback) provider.callback;
@@ -904,12 +907,12 @@ public class IndexUpdateTest {
 
         NodeState before = builder.getNodeState();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+            "rootIndex", true, false, ImmutableSet.of("foo"), null);
         NodeState after = builder.getNodeState();
 
         CallbackCapturingProvider provider = new CallbackCapturingProvider();
         IndexUpdate indexUpdate = new IndexUpdate(provider, null, after, builder,
-                noop);
+            noop);
         indexUpdate.enter(before, after);
 
         ContextAwareCallback contextualCallback = (ContextAwareCallback) provider.callback;
@@ -936,18 +939,20 @@ public class IndexUpdateTest {
         for (IndexCommitCallback.IndexProgress progress : IndexCommitCallback.IndexProgress.values()) {
             numCallbacks.set(0);
             indexUpdate.commitProgress(IndexCommitCallback.IndexProgress.COMMIT_SUCCEDED);
-            assertEquals("Either not all callbacks are called OR same callback got called twice for " + progress,
-                    2, numCallbacks.get());
+            assertEquals(
+                "Either not all callbacks are called OR same callback got called twice for "
+                    + progress,
+                2, numCallbacks.get());
         }
     }
 
     @Test
-    public void indexesDisabled() throws Exception{
+    public void indexesDisabled() throws Exception {
         NodeState before = builder.getNodeState();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, false, ImmutableSet.of("foo"), null);
+            "fooIndex", true, false, ImmutableSet.of("foo"), null);
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "barIndex", true, false, ImmutableSet.of("bar"), null);
+            "barIndex", true, false, ImmutableSet.of("bar"), null);
         builder.child("testRoot").setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
 
@@ -956,15 +961,18 @@ public class IndexUpdateTest {
         before = indexed;
         builder = indexed.builder();
         NodeBuilder newIndex = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "newIndex", true, false, ImmutableSet.of("bar"), null);
-        newIndex.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS, asList("/oak:index/fooIndex"), Type.STRINGS);
+            "newIndex", true, false, ImmutableSet.of("bar"), null);
+        newIndex.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS, asList("/oak:index/fooIndex"),
+            Type.STRINGS);
 
         after = builder.getNodeState();
         indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         //Post reindex also index should not be disabled
-        assertEquals("property", indexed.getChildNode("oak:index").getChildNode("fooIndex").getString(TYPE_PROPERTY_NAME));
-        assertTrue(indexed.getChildNode("oak:index").getChildNode("newIndex").getBoolean(IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE));
+        assertEquals("property", indexed.getChildNode("oak:index").getChildNode("fooIndex")
+                                        .getString(TYPE_PROPERTY_NAME));
+        assertTrue(indexed.getChildNode("oak:index").getChildNode("newIndex")
+                          .getBoolean(IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE));
 
         before = indexed;
         builder = indexed.builder();
@@ -973,21 +981,24 @@ public class IndexUpdateTest {
         indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         //Index only disabled after next cycle
-        assertEquals(IndexConstants.TYPE_DISABLED, indexed.getChildNode("oak:index").getChildNode("fooIndex").getString(TYPE_PROPERTY_NAME));
-        assertFalse(indexed.getChildNode("oak:index").getChildNode("newIndex").getBoolean(IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE));
+        assertEquals(IndexConstants.TYPE_DISABLED,
+            indexed.getChildNode("oak:index").getChildNode("fooIndex")
+                   .getString(TYPE_PROPERTY_NAME));
+        assertFalse(indexed.getChildNode("oak:index").getChildNode("newIndex")
+                           .getBoolean(IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE));
     }
 
     @Test
-    public void reindexForDisabledIndexes() throws Exception{
+    public void reindexForDisabledIndexes() throws Exception {
         EditorHook hook = new EditorHook(
-                new IndexUpdateProvider(new CompositeIndexEditorProvider(
-                        new PropertyIndexEditorProvider(),
-                        new ReferenceEditorProvider()
-                )));
+            new IndexUpdateProvider(new CompositeIndexEditorProvider(
+                new PropertyIndexEditorProvider(),
+                new ReferenceEditorProvider()
+            )));
 
         NodeState before = builder.getNodeState();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, false, ImmutableSet.of("foo"), null);
+            "fooIndex", true, false, ImmutableSet.of("foo"), null);
         builder.child("testRoot").setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
 
@@ -995,11 +1006,14 @@ public class IndexUpdateTest {
 
         before = indexed;
         builder = before.builder();
-        builder.getChildNode("oak:index").getChildNode("fooIndex").setProperty(TYPE_PROPERTY_NAME, TYPE_DISABLED);
-        builder.getChildNode("oak:index").getChildNode("fooIndex").setProperty(REINDEX_PROPERTY_NAME, true);
+        builder.getChildNode("oak:index").getChildNode("fooIndex")
+               .setProperty(TYPE_PROPERTY_NAME, TYPE_DISABLED);
+        builder.getChildNode("oak:index").getChildNode("fooIndex")
+               .setProperty(REINDEX_PROPERTY_NAME, true);
         after = builder.getNodeState();
 
-        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName()).filter(Level.INFO).create();
+        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName())
+                                                .filter(Level.INFO).create();
         customLogs.starting();
 
         before = after;
@@ -1012,78 +1026,82 @@ public class IndexUpdateTest {
         customLogs.finished();
 
     }
-    
-     /*
-     Given 2 index defintions - one with a config error and another ok , the content under second should get indexed
-     while the first with error gets ignored with an error message logged.
-      */
-     @Test
-     public void testConfigErrorInIndexDefintion() throws Exception{
-         LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName()).enable(Level.ERROR).create();
-         builder.child("testRoot").setProperty("foo", "abc");
-         //Create 2 index def - one with config related error and one without
- 
-         NodeBuilder index1 = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                 "rootIndex1", true, false, ImmutableSet.of("foo"), null);
- 
-         index1.setProperty(PropertyStates.createProperty(
-                 PathFilter.PROP_INCLUDED_PATHS, ImmutableSet.of("/test/a/b"), Type.STRINGS));
-         index1.setProperty(PropertyStates.createProperty(
-                 PathFilter.PROP_EXCLUDED_PATHS, ImmutableSet.of("/test/a"), Type.STRINGS));
- 
-         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                 "rootIndex2", true, false, ImmutableSet.of("foo2"), null);
- 
-         NodeState before = builder.getNodeState();
- 
-         // Add some content and process it through the property index hook (for index1)
-         builder.child("test").child("a").setProperty("foo", "abc");
-         builder.child("test").child("a").child("b").setProperty("foo", "abc");
-         //Now for  for index2
-         builder.child("test").child("b").setProperty("foo2","abc");
-         builder.child("test").child("a").child("b").setProperty("foo2", "abc");
- 
-         NodeState after = builder.getNodeState();
-         NodeState indexed;
-         try{
-             customLogs.starting();
-             String expectedLogMessage = "Unable to get Index Editor for index at /oak:index/rootIndex1 . " +
-                     "Please correct the index definition and reindex after correction. " +
-                     "Additional Info : No valid include provided. Includes [/test/a/b], Excludes [/test/a]";
-             indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
-             Assert.assertThat(customLogs.getLogs(), IsCollectionContaining.hasItems(expectedLogMessage));
-         } finally {
-             customLogs.finished();
-         }
- 
-         // Now check that the index content nodes doesn't exists and the reindex flag is still set(Since it got skipped)
-         NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
-                 "rootIndex1");
-         assertFalse(ns.getChildNode(INDEX_CONTENT_NODE_NAME).exists());
-         PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
-         assertNotNull(ps);
-         assertTrue(ps.getValue(Type.BOOLEAN));
- 
-         //Now check everything is fine with index2 - indexed data node exists and reindex flag is false
-         NodeState ns2 = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
-                 "rootIndex2");
-         checkPathExists(ns2,INDEX_CONTENT_NODE_NAME);
-         PropertyState ps2 = ns2.getProperty(REINDEX_PROPERTY_NAME);
-         assertNotNull(ps2);
-         assertFalse(ps2.getValue(Type.BOOLEAN));
- 
-         // next, lookup should work for the index def  2 which did not have any config errors
-         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
-         assertEquals(ImmutableSet.of("test/b","test/a/b"), find(lookup, "foo2", "abc"));
- 
-    }    
+
+    /*
+    Given 2 index defintions - one with a config error and another ok , the content under second should get indexed
+    while the first with error gets ignored with an error message logged.
+     */
+    @Test
+    public void testConfigErrorInIndexDefintion() throws Exception {
+        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName())
+                                                .enable(Level.ERROR).create();
+        builder.child("testRoot").setProperty("foo", "abc");
+        //Create 2 index def - one with config related error and one without
+
+        NodeBuilder index1 = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+            "rootIndex1", true, false, ImmutableSet.of("foo"), null);
+
+        index1.setProperty(PropertyStates.createProperty(
+            PathFilter.PROP_INCLUDED_PATHS, ImmutableSet.of("/test/a/b"), Type.STRINGS));
+        index1.setProperty(PropertyStates.createProperty(
+            PathFilter.PROP_EXCLUDED_PATHS, ImmutableSet.of("/test/a"), Type.STRINGS));
+
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+            "rootIndex2", true, false, ImmutableSet.of("foo2"), null);
+
+        NodeState before = builder.getNodeState();
+
+        // Add some content and process it through the property index hook (for index1)
+        builder.child("test").child("a").setProperty("foo", "abc");
+        builder.child("test").child("a").child("b").setProperty("foo", "abc");
+        //Now for  for index2
+        builder.child("test").child("b").setProperty("foo2", "abc");
+        builder.child("test").child("a").child("b").setProperty("foo2", "abc");
+
+        NodeState after = builder.getNodeState();
+        NodeState indexed;
+        try {
+            customLogs.starting();
+            String expectedLogMessage =
+                "Unable to get Index Editor for index at /oak:index/rootIndex1 . " +
+                    "Please correct the index definition and reindex after correction. " +
+                    "Additional Info : No valid include provided. Includes [/test/a/b], Excludes [/test/a]";
+            indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+            Assert.assertThat(customLogs.getLogs(),
+                IsCollectionContaining.hasItems(expectedLogMessage));
+        } finally {
+            customLogs.finished();
+        }
+
+        // Now check that the index content nodes doesn't exists and the reindex flag is still set(Since it got skipped)
+        NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
+            "rootIndex1");
+        assertFalse(ns.getChildNode(INDEX_CONTENT_NODE_NAME).exists());
+        PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
+        assertNotNull(ps);
+        assertTrue(ps.getValue(Type.BOOLEAN));
+
+        //Now check everything is fine with index2 - indexed data node exists and reindex flag is false
+        NodeState ns2 = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
+            "rootIndex2");
+        checkPathExists(ns2, INDEX_CONTENT_NODE_NAME);
+        PropertyState ps2 = ns2.getProperty(REINDEX_PROPERTY_NAME);
+        assertNotNull(ps2);
+        assertFalse(ps2.getValue(Type.BOOLEAN));
+
+        // next, lookup should work for the index def  2 which did not have any config errors
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        assertEquals(ImmutableSet.of("test/b", "test/a/b"), find(lookup, "foo2", "abc"));
+
+    }
 
     private static void markCorrupt(NodeBuilder builder, String indexName) {
         builder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(indexName)
-                .setProperty(IndexConstants.CORRUPT_PROPERTY_NAME, ISO8601.format(Calendar.getInstance()));
+               .setProperty(IndexConstants.CORRUPT_PROPERTY_NAME,
+                   ISO8601.format(Calendar.getInstance()));
     }
 
-    private static NodeBuilder child(NodeBuilder nb, String path){
+    private static NodeBuilder child(NodeBuilder nb, String path) {
         for (String name : PathUtils.elements(checkNotNull(path))) {
             nb = nb.child(name);
         }

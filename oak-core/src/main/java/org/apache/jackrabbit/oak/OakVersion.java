@@ -30,14 +30,14 @@ public final class OakVersion {
 
     /**
      * Returns the version of oak-core.
-     * 
+     *
      * @return the version (or "SNAPSHOT" when unknown)
      */
     @NotNull
     public synchronized static String getVersion() {
         if (version == null) {
             version = org.apache.jackrabbit.oak.commons.OakVersion.getVersion(
-                    "oak-core", OakVersion.class);
+                "oak-core", OakVersion.class);
         }
         return version;
     }

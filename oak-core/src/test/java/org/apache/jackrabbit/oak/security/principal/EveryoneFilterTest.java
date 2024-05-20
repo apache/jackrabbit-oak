@@ -37,36 +37,40 @@ public class EveryoneFilterTest {
     @Parameterized.Parameters(name = "searchType={1}")
     public static Collection<Object[]> parameters() {
         return Lists.newArrayList(
-                new Object[] { PrincipalManager.SEARCH_TYPE_GROUP , "Group"},
-                new Object[] { PrincipalManager.SEARCH_TYPE_ALL , "All"},
-                new Object[] { PrincipalManager.SEARCH_TYPE_NOT_GROUP , "Not_Group"}
-                );
+            new Object[]{PrincipalManager.SEARCH_TYPE_GROUP, "Group"},
+            new Object[]{PrincipalManager.SEARCH_TYPE_ALL, "All"},
+            new Object[]{PrincipalManager.SEARCH_TYPE_NOT_GROUP, "Not_Group"}
+        );
     }
-    
+
     private final int searchType;
     private final Principal anotherPrincipal = new PrincipalImpl("another");
-    
+
     public EveryoneFilterTest(int searchType, String name) {
         this.searchType = searchType;
     }
-    
-    private static int adjustExpectedSize (int searchType, int expectedSize) {
+
+    private static int adjustExpectedSize(int searchType, int expectedSize) {
         // for search-type 'users only' everyone will not get injected if missing
-        return (searchType != PrincipalManager.SEARCH_TYPE_NOT_GROUP) ? expectedSize+1 : expectedSize;
+        return (searchType != PrincipalManager.SEARCH_TYPE_NOT_GROUP) ? expectedSize + 1
+            : expectedSize;
     }
 
     @Test
     public void testEveryoneAlreadyIncluded() {
-        Iterator<Principal> principals = Iterators.forArray(EveryonePrincipal.getInstance(), anotherPrincipal);
-        Iterator<Principal> result = EveryoneFilter.filter(principals, EveryonePrincipal.NAME, searchType, 0, Long.MAX_VALUE);
-        
+        Iterator<Principal> principals = Iterators.forArray(EveryonePrincipal.getInstance(),
+            anotherPrincipal);
+        Iterator<Principal> result = EveryoneFilter.filter(principals, EveryonePrincipal.NAME,
+            searchType, 0, Long.MAX_VALUE);
+
         assertEquals(2, Iterators.size(result));
     }
 
     @Test
     public void testMissingEveryoneNoRange() {
         Iterator<Principal> principals = Iterators.singletonIterator(anotherPrincipal);
-        Iterator<Principal> result = EveryoneFilter.filter(principals, EveryonePrincipal.NAME, searchType, 0, Long.MAX_VALUE);
+        Iterator<Principal> result = EveryoneFilter.filter(principals, EveryonePrincipal.NAME,
+            searchType, 0, Long.MAX_VALUE);
 
         int expectedSize = adjustExpectedSize(searchType, 1);
         assertEquals(expectedSize, Iterators.size(result));
@@ -75,7 +79,8 @@ public class EveryoneFilterTest {
     @Test
     public void testMissingEveryoneNullHint() {
         Iterator<Principal> principals = Iterators.forArray(anotherPrincipal);
-        Iterator<Principal> result = EveryoneFilter.filter(principals, null, searchType, 0, Long.MAX_VALUE);
+        Iterator<Principal> result = EveryoneFilter.filter(principals, null, searchType, 0,
+            Long.MAX_VALUE);
 
         int expectedSize = adjustExpectedSize(searchType, 1);
         assertEquals(expectedSize, Iterators.size(result));
@@ -84,7 +89,8 @@ public class EveryoneFilterTest {
     @Test
     public void testMissingEveryoneOffset() {
         Iterator<Principal> principals = Iterators.forArray(anotherPrincipal);
-        Iterator<Principal> result = EveryoneFilter.filter(principals, EveryonePrincipal.NAME, searchType, 1, Long.MAX_VALUE);
+        Iterator<Principal> result = EveryoneFilter.filter(principals, EveryonePrincipal.NAME,
+            searchType, 1, Long.MAX_VALUE);
 
         assertEquals(1, Iterators.size(result));
     }
@@ -92,15 +98,18 @@ public class EveryoneFilterTest {
     @Test
     public void testMissingEveryoneLimit() {
         Iterator<Principal> principals = Iterators.forArray();
-        Iterator<Principal> result = EveryoneFilter.filter(principals, EveryonePrincipal.NAME, searchType, 0, 10);
+        Iterator<Principal> result = EveryoneFilter.filter(principals, EveryonePrincipal.NAME,
+            searchType, 0, 10);
 
         assertEquals(0, Iterators.size(result));
     }
-    
+
     @Test
     public void testResultContainsNull() {
-        Iterator<Principal> principals = Iterators.forArray(anotherPrincipal, null, EveryonePrincipal.getInstance());
-        Iterator<Principal> result = EveryoneFilter.filter(principals, EveryonePrincipal.NAME, searchType, 0, Long.MAX_VALUE);
+        Iterator<Principal> principals = Iterators.forArray(anotherPrincipal, null,
+            EveryonePrincipal.getInstance());
+        Iterator<Principal> result = EveryoneFilter.filter(principals, EveryonePrincipal.NAME,
+            searchType, 0, Long.MAX_VALUE);
 
         assertEquals(3, Iterators.size(result));
     }

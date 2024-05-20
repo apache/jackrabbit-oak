@@ -28,8 +28,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * This conflict handler instance takes care of properly merging conflicts
- * occurring by concurrent reorder operations.
+ * This conflict handler instance takes care of properly merging conflicts occurring by concurrent
+ * reorder operations.
  *
  * @see TreeConstants#OAK_CHILD_ORDER
  */
@@ -37,8 +37,8 @@ public class ChildOrderConflictHandler implements PartialConflictHandler {
 
     @Override
     public Resolution addExistingProperty(NodeBuilder parent,
-            PropertyState ours,
-            PropertyState theirs) {
+        PropertyState ours,
+        PropertyState theirs) {
         if (isChildOrderProperty(ours)) {
             // two sessions concurrently called orderBefore() on a Tree
             // that was previously unordered.
@@ -51,7 +51,7 @@ public class ChildOrderConflictHandler implements PartialConflictHandler {
 
     @Override
     public Resolution changeDeletedProperty(NodeBuilder parent,
-            PropertyState ours) {
+        PropertyState ours) {
         if (isChildOrderProperty(ours)) {
             // orderBefore() on trees that were deleted
             return Resolution.THEIRS;
@@ -62,8 +62,8 @@ public class ChildOrderConflictHandler implements PartialConflictHandler {
 
     @Override
     public Resolution changeChangedProperty(NodeBuilder parent,
-            PropertyState ours,
-            PropertyState theirs) {
+        PropertyState ours,
+        PropertyState theirs) {
         if (isChildOrderProperty(ours)) {
             merge(parent, ours, theirs);
             return Resolution.MERGED;
@@ -95,7 +95,7 @@ public class ChildOrderConflictHandler implements PartialConflictHandler {
 
     @Override
     public Resolution deleteDeletedProperty(NodeBuilder parent,
-            PropertyState ours) {
+        PropertyState ours) {
         if (isChildOrderProperty(ours)) {
             // concurrent remove of ordered trees
             return Resolution.THEIRS;
@@ -106,7 +106,7 @@ public class ChildOrderConflictHandler implements PartialConflictHandler {
 
     @Override
     public Resolution deleteChangedProperty(NodeBuilder parent,
-            PropertyState theirs) {
+        PropertyState theirs) {
         if (isChildOrderProperty(theirs)) {
             // remove trees that were reordered by another session
             return Resolution.THEIRS;
@@ -116,7 +116,8 @@ public class ChildOrderConflictHandler implements PartialConflictHandler {
     }
 
     @Override
-    public Resolution addExistingNode(NodeBuilder parent, String name, NodeState ours, NodeState theirs) {
+    public Resolution addExistingNode(NodeBuilder parent, String name, NodeState ours,
+        NodeState theirs) {
         return null;
     }
 

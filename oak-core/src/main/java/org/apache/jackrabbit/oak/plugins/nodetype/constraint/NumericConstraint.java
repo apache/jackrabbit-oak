@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class NumericConstraint<T> implements Predicate<Value> {
+
     private static final Logger log = LoggerFactory.getLogger(NumericConstraint.class);
 
     private boolean invalid;
@@ -51,12 +52,10 @@ public abstract class NumericConstraint<T> implements Predicate<Value> {
 
                 // group 4 is upper bound inclusive/exclusive
                 upperInclusive = "]".equals(matcher.group(4));
-            }
-            catch (NumberFormatException e) {
+            } catch (NumberFormatException e) {
                 invalid(definition);
             }
-        }
-        else {
+        } else {
             invalid(definition);
         }
     }
@@ -99,14 +98,14 @@ public abstract class NumericConstraint<T> implements Predicate<Value> {
                 }
             }
             return true;
-        }
-        catch (RepositoryException e) {
+        } catch (RepositoryException e) {
             log.warn("Error checking numeric constraint " + this, e);
             return false;
         }
     }
 
     protected abstract T getValue(Value value) throws RepositoryException;
+
     protected abstract boolean less(T val, T bound);
 
     protected boolean greater(T val, T bound) {
@@ -128,7 +127,8 @@ public abstract class NumericConstraint<T> implements Predicate<Value> {
     @Override
     public String toString() {
         return (lowerInclusive ? "[" : "(") +
-                (lowerBound == null ? "" : lowerBound) + ", " +
-                (upperBound == null ? "" : upperBound) +
-                (upperInclusive ? "]" : ")");
-    }}
+            (lowerBound == null ? "" : lowerBound) + ", " +
+            (upperBound == null ? "" : upperBound) +
+            (upperInclusive ? "]" : ")");
+    }
+}

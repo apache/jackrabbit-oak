@@ -38,8 +38,8 @@ import org.jetbrains.annotations.NotNull;
 import static java.util.Arrays.asList;
 
 /**
- * PrivilegeDefinitionWriter is responsible for writing privilege definitions
- * to the repository without applying any validation checks.
+ * PrivilegeDefinitionWriter is responsible for writing privilege definitions to the repository
+ * without applying any validation checks.
  */
 class PrivilegeDefinitionWriter implements PrivilegeConstants {
 
@@ -93,9 +93,11 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
 
     /**
      * @param definitions The privilege definitions to write to the repository.
-     * @throws RepositoryException If the privilege store is missing or if there is a privilege registered with the same name.
+     * @throws RepositoryException If the privilege store is missing or if there is a privilege
+     *                             registered with the same name.
      */
-    private void writeDefinitions(@NotNull Iterable<PrivilegeDefinition> definitions) throws RepositoryException {
+    private void writeDefinitions(@NotNull Iterable<PrivilegeDefinition> definitions)
+        throws RepositoryException {
         try {
             // make sure the privileges path is defined
             Tree privilegesTree = root.getTree(PRIVILEGES_PATH);
@@ -104,7 +106,9 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
             }
             for (PrivilegeDefinition definition : definitions) {
                 if (privilegesTree.hasChild(definition.getName())) {
-                    throw new RepositoryException("Privilege definition with name '" + definition.getName() + "' already exists.");
+                    throw new RepositoryException(
+                        "Privilege definition with name '" + definition.getName()
+                            + "' already exists.");
                 }
                 writePrivilegeNode(privilegesTree, definition);
             }
@@ -123,7 +127,8 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
         }
     }
 
-    private void writePrivilegeNode(@NotNull Tree privilegesTree, @NotNull PrivilegeDefinition definition) throws RepositoryException {
+    private void writePrivilegeNode(@NotNull Tree privilegesTree,
+        @NotNull PrivilegeDefinition definition) throws RepositoryException {
         String name = definition.getName();
         Tree privilegeNode = TreeUtil.addChild(privilegesTree, name, NT_REP_PRIVILEGE);
         if (definition.isAbstract()) {
@@ -141,7 +146,8 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
         } else if (isAggregate) {
             bits = bitsMgr.getBits(declAggrNames);
             if (bits.isEmpty()) {
-                throw new RepositoryException("Illegal aggregation of non-existing privileges on '" + name + "'.");
+                throw new RepositoryException(
+                    "Illegal aggregation of non-existing privileges on '" + name + "'.");
             }
         } else {
             bits = next();
@@ -157,10 +163,12 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
             definitions.put(privilegeName, def);
         });
         AGGREGATE_PRIVILEGES.forEach((privilegeName, aggregatedNames) -> {
-            PrivilegeDefinition def = new ImmutablePrivilegeDefinition(privilegeName, false, asList(aggregatedNames));
+            PrivilegeDefinition def = new ImmutablePrivilegeDefinition(privilegeName, false,
+                asList(aggregatedNames));
             definitions.put(privilegeName, def);
         });
-        PrivilegeDefinition all = new ImmutablePrivilegeDefinition(JCR_ALL, false, definitions.keySet());
+        PrivilegeDefinition all = new ImmutablePrivilegeDefinition(JCR_ALL, false,
+            definitions.keySet());
         definitions.put(JCR_ALL, all);
         return definitions.values();
     }

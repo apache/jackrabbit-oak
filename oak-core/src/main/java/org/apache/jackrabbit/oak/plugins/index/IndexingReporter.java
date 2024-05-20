@@ -21,9 +21,11 @@ package org.apache.jackrabbit.oak.plugins.index;
 import java.util.List;
 
 /**
- * Stores diagnostic and performance information about indexing operations for reporting at the end of the indexing job.
+ * Stores diagnostic and performance information about indexing operations for reporting at the end
+ * of the indexing job.
  */
 public interface IndexingReporter {
+
     IndexingReporter NOOP = new IndexingReporter() {
         @Override
         public void setIndexNames(List<String> indexes) {
@@ -60,8 +62,8 @@ public interface IndexingReporter {
     void addMetric(String name, long value);
 
     /**
-     * Similar to {@link #addMetric(String, long)} but size should be logged in a human-friendly format, that is,
-     * something like
+     * Similar to {@link #addMetric(String, long)} but size should be logged in a human-friendly
+     * format, that is, something like
      * <pre>
      *    foo.bar    123456789 (123 MiB)
      *  </<pre>

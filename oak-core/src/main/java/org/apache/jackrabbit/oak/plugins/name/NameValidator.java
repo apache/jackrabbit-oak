@@ -21,7 +21,6 @@ import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NSD
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_PREFIXES;
 
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -45,10 +44,10 @@ class NameValidator extends DefaultValidator {
     private final Set<String> prefixes;
 
     /**
-     * Flag controlling the strictness of the namespace checks. if {@code true}
-     * namespaces existence will not be checked, otherwise referencing a
-     * non-existent namespace will cause a {@link CommitFailedException}.
-     * 
+     * Flag controlling the strictness of the namespace checks. if {@code true} namespaces existence
+     * will not be checked, otherwise referencing a non-existent namespace will cause a
+     * {@link CommitFailedException}.
+     * <p>
      * Used only for the case where lucene index definitions are registered via
      * {@link RepositoryInitializer}s.
      */
@@ -103,7 +102,8 @@ class NameValidator extends DefaultValidator {
             }
             if (local.charAt(i) != '[') {
                 throw new CommitFailedException(
-                        CommitFailedException.NAME, 2, "Invalid name index in: " + getPrintableName(name));
+                    CommitFailedException.NAME, 2,
+                    "Invalid name index in: " + getPrintableName(name));
             } else {
                 local = local.substring(0, i);
             }
@@ -111,7 +111,7 @@ class NameValidator extends DefaultValidator {
 
         if (!Namespaces.isValidLocalName(local)) {
             throw new CommitFailedException(
-                    CommitFailedException.NAME, 3, "Invalid name: " + getPrintableName(name));
+                CommitFailedException.NAME, 3, "Invalid name: " + getPrintableName(name));
         }
     }
 
@@ -127,18 +127,19 @@ class NameValidator extends DefaultValidator {
     }
 
     private static boolean contains(Set<String> prefixes, NodeState namespaces, String prefix) {
-        return prefixes.contains(prefix) || Namespaces.collectNamespaces(namespaces.getProperties()).containsKey(prefix);
+        return prefixes.contains(prefix) || Namespaces.collectNamespaces(namespaces.getProperties())
+                                                      .containsKey(prefix);
     }
 
     protected void checkValidValue(PropertyState property)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (Type.NAME.equals(property.getType()) || Type.NAMES.equals(property.getType())) {
             for (String value : property.getValue(Type.NAMES)) {
                 checkValidValue(value);
             }
         } else if (Type.PATH.equals(property.getType()) || Type.PATHS.equals(property.getType())) {
             for (String value : property.getValue(Type.PATHS)) {
-                for (String name: PathUtils.elements(value)) {
+                for (String name : PathUtils.elements(value)) {
                     checkValidValue(name);
                 }
             }
@@ -146,7 +147,7 @@ class NameValidator extends DefaultValidator {
     }
 
     protected void checkValidValue(String value)
-            throws CommitFailedException {
+        throws CommitFailedException {
         checkValidName(value);
     }
 
@@ -154,14 +155,14 @@ class NameValidator extends DefaultValidator {
 
     @Override
     public void propertyAdded(PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         checkValidName(after.getName());
         checkValidValue(after);
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         checkValidValue(after);
     }
 
@@ -172,7 +173,7 @@ class NameValidator extends DefaultValidator {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (!NodeStateUtils.isHidden(name)) {
             checkValidName(name);
         }
@@ -181,7 +182,7 @@ class NameValidator extends DefaultValidator {
 
     @Override
     public Validator childNodeChanged(
-            String name, NodeState before, NodeState after) {
+        String name, NodeState before, NodeState after) {
         return this;
     }
 

@@ -104,10 +104,10 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     private static final Logger log = LoggerFactory.getLogger(NodeTypeImpl.class);
 
     private static final PropertyDefinition[] NO_PROPERTY_DEFINITIONS =
-            new PropertyDefinition[0];
+        new PropertyDefinition[0];
 
     private static final NodeDefinition[] NO_NODE_DEFINITIONS =
-            new NodeDefinition[0];
+        new NodeDefinition[0];
 
     private static final NodeType[] NO_NODE_TYPES = new NodeType[0];
 
@@ -185,10 +185,12 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
      *
      * @return declared property definitions
      */
-    @Override @NotNull
+    @Override
+    @NotNull
     public PropertyDefinition[] getDeclaredPropertyDefinitions() {
         Map<Integer, PropertyDefinition> definitions = newTreeMap();
-        for (Tree child : Iterables.filter(definition.getChildren(), PrimaryTypePredicate.PROPERTY_DEF_PREDICATE)) {
+        for (Tree child : Iterables.filter(definition.getChildren(),
+            PrimaryTypePredicate.PROPERTY_DEF_PREDICATE)) {
             definitions.put(getIndex(child), new PropertyDefinitionImpl(child, this, mapper));
         }
         return definitions.values().toArray(NO_PROPERTY_DEFINITIONS);
@@ -199,10 +201,12 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
      *
      * @return declared child node definitions
      */
-    @Override @NotNull
+    @Override
+    @NotNull
     public NodeDefinition[] getDeclaredChildNodeDefinitions() {
         Map<Integer, NodeDefinition> definitions = newTreeMap();
-        for (Tree child : Iterables.filter(definition.getChildren(), PrimaryTypePredicate.CHILDNODE_DEF_PREDICATE)) {
+        for (Tree child : Iterables.filter(definition.getChildren(),
+            PrimaryTypePredicate.CHILDNODE_DEF_PREDICATE)) {
             definitions.put(getIndex(child), new NodeDefinitionImpl(child, this, mapper));
         }
         return definitions.values().toArray(NO_NODE_DEFINITIONS);
@@ -224,7 +228,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
                     Tree supertype = root.getChild(oakName);
                     checkState(supertype.exists());
                     supertypes.put(
-                            oakName, new NodeTypeImpl(supertype, mapper));
+                        oakName, new NodeTypeImpl(supertype, mapper));
                     addSupertypes(supertype, supertypes);
                 }
             }
@@ -250,7 +254,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     @Override
     public NodeTypeIterator getSubtypes() {
         Map<String, Set<String>> inheritance = Maps.newHashMap();
-        
+
         Tree root = definition.getParent();
         for (Tree child : root.getChildren()) {
             String oakName = getOakName(child);
@@ -273,8 +277,8 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     }
 
     private void addSubtypes(
-            String typeName, Map<String, NodeType> subtypes,
-            Tree root, Map<String, Set<String>> inheritance) {
+        String typeName, Map<String, NodeType> subtypes,
+        Tree root, Map<String, Set<String>> inheritance) {
         Set<String> subnames = inheritance.get(typeName);
         if (subnames != null) {
             for (String subname : subnames) {
@@ -333,13 +337,14 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
         try {
             EffectiveNodeTypeImpl effective =
-                    new EffectiveNodeTypeImpl(this, getManager());
+                new EffectiveNodeTypeImpl(this, getManager());
             PropertyDefinition def = effective.getPropertyDefinition(
-                    propertyName, false, value.getType(), false);
+                propertyName, false, value.getType(), false);
             return !def.isProtected() &&
-                    meetsTypeConstraints(value, def.getRequiredType()) &&
-                    meetsValueConstraints(value, def.getValueConstraints());
-        } catch (RepositoryException e) {  // TODO don't use exceptions for flow control. Use internal method in ReadOnlyNodeTypeManager instead.
+                meetsTypeConstraints(value, def.getRequiredType()) &&
+                meetsValueConstraints(value, def.getValueConstraints());
+        } catch (
+            RepositoryException e) {  // TODO don't use exceptions for flow control. Use internal method in ReadOnlyNodeTypeManager instead.
             log.debug(e.getMessage());
             return false;
         }
@@ -354,19 +359,20 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         try {
             int type = (values.length == 0) ? PropertyType.STRING : values[0].getType();
             EffectiveNodeTypeImpl effective =
-                    new EffectiveNodeTypeImpl(this, getManager());
+                new EffectiveNodeTypeImpl(this, getManager());
             PropertyDefinition def = effective.getPropertyDefinition(
-                    propertyName, true, type, false);
+                propertyName, true, type, false);
             return !def.isProtected() &&
-                    meetsTypeConstraints(values, def.getRequiredType()) &&
-                    meetsValueConstraints(values, def.getValueConstraints());
-        } catch (RepositoryException e) {  // TODO don't use exceptions for flow control. Use internal method in ReadOnlyNodeTypeManager instead.
+                meetsTypeConstraints(values, def.getRequiredType()) &&
+                meetsValueConstraints(values, def.getValueConstraints());
+        } catch (
+            RepositoryException e) {  // TODO don't use exceptions for flow control. Use internal method in ReadOnlyNodeTypeManager instead.
             log.debug(e.getMessage());
             return false;
         }
     }
 
-        @Override
+    @Override
     public boolean canAddChildNode(String childNodeName) {
         // FIXME: properly calculate matching definition
         for (NodeDefinition definition : getChildNodeDefinitions()) {
@@ -429,17 +435,19 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
     /**
      * Returns the namespace neutral CND of the given node type definition.
+     *
      * @param def the node type definition
      * @return the CND
      */
     private static String getCnd(NodeTypeDefinition def) {
         StringWriter out = new StringWriter();
-        CompactNodeTypeDefWriter cndWriter = new CompactNodeTypeDefWriter(out, new CompactNodeTypeDefWriter.NamespaceMapping(){
-            @Override
-            public String getNamespaceURI(String s) {
-                return s;
-            }
-        }, false);
+        CompactNodeTypeDefWriter cndWriter = new CompactNodeTypeDefWriter(out,
+            new CompactNodeTypeDefWriter.NamespaceMapping() {
+                @Override
+                public String getNamespaceURI(String s) {
+                    return s;
+                }
+            }, false);
         try {
             cndWriter.write(def);
         } catch (IOException e) {
@@ -469,7 +477,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 //-----------------------------------------------------------< internal >---
 
     private boolean internalCanRemoveItem(String itemName,
-                                          Iterable<? extends ItemDefinition> definitions) {
+        Iterable<? extends ItemDefinition> definitions) {
         // FIXME: should properly calculate matching definition taking residual definitions into account.
         for (ItemDefinition definition : definitions) {
             String name = definition.getName();
@@ -535,24 +543,24 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
             escapedName = REP_UUID;
         }
         return getDeclaredPropertyDefs(definition
-                .getChild(REP_NAMED_PROPERTY_DEFINITIONS)
-                .getChild(escapedName));
+            .getChild(REP_NAMED_PROPERTY_DEFINITIONS)
+            .getChild(escapedName));
     }
 
     List<PropertyDefinition> getDeclaredResidualPropertyDefinitions() {
         return getDeclaredPropertyDefs(definition
-                .getChild(REP_RESIDUAL_PROPERTY_DEFINITIONS));
+            .getChild(REP_RESIDUAL_PROPERTY_DEFINITIONS));
     }
 
     List<NodeDefinition> getDeclaredNamedNodeDefinitions(String oakName) {
         return getDeclaredNodeDefs(definition
-                .getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)
-                .getChild(oakName));
+            .getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)
+            .getChild(oakName));
     }
 
     List<NodeDefinition> getDeclaredResidualNodeDefinitions() {
         return getDeclaredNodeDefs(definition
-                .getChild(REP_RESIDUAL_CHILD_NODE_DEFINITIONS));
+            .getChild(REP_RESIDUAL_CHILD_NODE_DEFINITIONS));
     }
 
     private List<PropertyDefinition> getDeclaredPropertyDefs(Tree definitions) {
@@ -561,7 +569,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
             String typeName = getOakName();
             for (Tree def : definitions.getChildren()) {
                 String declaringTypeName =
-                        TreeUtil.getName(def, REP_DECLARING_NODE_TYPE);
+                    TreeUtil.getName(def, REP_DECLARING_NODE_TYPE);
                 if (typeName.equals(declaringTypeName)) {
                     list.add(new PropertyDefinitionImpl(def, this, mapper));
                 }
@@ -578,7 +586,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
             String typeName = getOakName();
             for (Tree def : defs.getChildren()) {
                 String declaringTypeName =
-                        TreeUtil.getName(def, REP_DECLARING_NODE_TYPE);
+                    TreeUtil.getName(def, REP_DECLARING_NODE_TYPE);
                 if (typeName.equals(declaringTypeName)) {
                     list.add(new NodeDefinitionImpl(def, this, mapper));
                 }
@@ -614,16 +622,16 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
                 case PropertyType.NAME: {
                     int type = value.getType();
                     return type != PropertyType.DOUBLE &&
-                            type != PropertyType.LONG &&
-                            type != PropertyType.BOOLEAN &&
-                            JcrNameParser.validate(value.getString());
+                        type != PropertyType.LONG &&
+                        type != PropertyType.BOOLEAN &&
+                        JcrNameParser.validate(value.getString());
                 }
                 case PropertyType.PATH: {
                     int type = value.getType();
                     return type != PropertyType.DOUBLE &&
-                            type != PropertyType.LONG &&
-                            type != PropertyType.BOOLEAN &&
-                            JcrPathParser.validate(value.getString());
+                        type != PropertyType.LONG &&
+                        type != PropertyType.BOOLEAN &&
+                        JcrPathParser.validate(value.getString());
                 }
                 case PropertyType.REFERENCE:
                 case PropertyType.WEAKREFERENCE:
@@ -691,7 +699,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     private static int getIndex(@NotNull Tree tree) {
         String name = tree.getName();
         int i = name.lastIndexOf('[');
-        return (i == -1) ? 1 : Integer.parseInt(name.substring(i+1, name.lastIndexOf(']')));
+        return (i == -1) ? 1 : Integer.parseInt(name.substring(i + 1, name.lastIndexOf(']')));
     }
 
     private boolean matches(String childNodeName, String name) {
@@ -703,8 +711,10 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
     private static final class PrimaryTypePredicate implements Predicate<Tree> {
 
-        private static final PrimaryTypePredicate PROPERTY_DEF_PREDICATE = new PrimaryTypePredicate(NT_PROPERTYDEFINITION);
-        private static final PrimaryTypePredicate CHILDNODE_DEF_PREDICATE = new PrimaryTypePredicate(NT_CHILDNODEDEFINITION);
+        private static final PrimaryTypePredicate PROPERTY_DEF_PREDICATE = new PrimaryTypePredicate(
+            NT_PROPERTYDEFINITION);
+        private static final PrimaryTypePredicate CHILDNODE_DEF_PREDICATE = new PrimaryTypePredicate(
+            NT_CHILDNODEDEFINITION);
 
         private final String primaryTypeName;
 

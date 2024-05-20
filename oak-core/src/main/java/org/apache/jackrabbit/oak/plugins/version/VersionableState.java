@@ -77,13 +77,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@code VersionableState} provides methods to create a versionable state
- * for a version based on a versionable node.
+ * {@code VersionableState} provides methods to create a versionable state for a version based on a
+ * versionable node.
  * <p>
- * The restore implementation of this class does not handle the removeExisting
- * flag. It is expected that this is handled on a higher level. If this is not
- * done the uniqueness constraint on the jcr:uuid will kick in and fail the
- * commit.
+ * The restore implementation of this class does not handle the removeExisting flag. It is expected
+ * that this is handled on a higher level. If this is not done the uniqueness constraint on the
+ * jcr:uuid will kick in and fail the commit.
  * </p>
  */
 class VersionableState {
@@ -110,14 +109,14 @@ class VersionableState {
     private final NodeBuilder versionable;
     private final ReadWriteVersionManager vMgr;
     private final ReadOnlyNodeTypeManager ntMgr;
-    
+
     private final boolean isFrozenNodeReferenceable;
 
     private VersionableState(@NotNull NodeBuilder version,
-                             @NotNull NodeBuilder history,
-                             @NotNull NodeBuilder versionable,
-                             @NotNull ReadWriteVersionManager vMgr,
-                             @NotNull ReadOnlyNodeTypeManager ntMgr) {
+        @NotNull NodeBuilder history,
+        @NotNull NodeBuilder versionable,
+        @NotNull ReadWriteVersionManager vMgr,
+        @NotNull ReadOnlyNodeTypeManager ntMgr) {
         this.version = checkNotNull(version);
         this.history = checkNotNull(history);
         this.frozenNode = version.child(JCR_FROZENNODE);
@@ -128,57 +127,56 @@ class VersionableState {
     }
 
     /**
-     * Creates a frozen node under the version and initializes it with the basic
-     * frozen properties (jcr:frozenPrimaryType, jcr:frozenMixinTypes and
-     * jcr:frozenUuid) from the given versionable node.
+     * Creates a frozen node under the version and initializes it with the basic frozen properties
+     * (jcr:frozenPrimaryType, jcr:frozenMixinTypes and jcr:frozenUuid) from the given versionable
+     * node.
      *
-     * @param version the parent node of the frozen node.
-     * @param history the history node of the version.
+     * @param version     the parent node of the frozen node.
+     * @param history     the history node of the version.
      * @param versionable the versionable node.
-     * @param vMgr the version manager.
-     * @param ntMgr the node type manager.
+     * @param vMgr        the version manager.
+     * @param ntMgr       the node type manager.
      * @return a versionable state
      */
     @NotNull
     static VersionableState fromVersion(@NotNull NodeBuilder version,
-                                        @NotNull NodeBuilder history,
-                                        @NotNull NodeBuilder versionable,
-                                        @NotNull ReadWriteVersionManager vMgr,
-                                        @NotNull ReadOnlyNodeTypeManager ntMgr) {
+        @NotNull NodeBuilder history,
+        @NotNull NodeBuilder versionable,
+        @NotNull ReadWriteVersionManager vMgr,
+        @NotNull ReadOnlyNodeTypeManager ntMgr) {
         VersionableState state = new VersionableState(
-                version, history, versionable, vMgr, ntMgr);
+            version, history, versionable, vMgr, ntMgr);
         return state.initFrozen(version.child(JCR_FROZENNODE),
-                versionable, uuidFromNode(versionable));
+            versionable, uuidFromNode(versionable));
     }
 
     /**
      * Creates a versionable state for a restore.
      *
-     * @param version the version to restore.
-     * @param history the history node of the version.
+     * @param version     the version to restore.
+     * @param history     the history node of the version.
      * @param versionable the versionable node.
-     * @param vMgr the version manager.
-     * @param ntMgr the node type manager.
+     * @param vMgr        the version manager.
+     * @param ntMgr       the node type manager.
      * @return a versionable state.
      */
     static VersionableState forRestore(@NotNull NodeBuilder version,
-                                       @NotNull NodeBuilder history,
-                                       @NotNull NodeBuilder versionable,
-                                       @NotNull ReadWriteVersionManager vMgr,
-                                       @NotNull ReadOnlyNodeTypeManager ntMgr) {
+        @NotNull NodeBuilder history,
+        @NotNull NodeBuilder versionable,
+        @NotNull ReadWriteVersionManager vMgr,
+        @NotNull ReadOnlyNodeTypeManager ntMgr) {
         return new VersionableState(version, history, versionable, vMgr, ntMgr);
     }
 
     /**
-     * Creates a frozen node and initializes it with the basic
-     * frozen properties (jcr:frozenPrimaryType, jcr:frozenMixinTypes and
-     * jcr:frozenUuid) from the given node.
+     * Creates a frozen node and initializes it with the basic frozen properties
+     * (jcr:frozenPrimaryType, jcr:frozenMixinTypes and jcr:frozenUuid) from the given node.
      *
      * @return this versionable state.
      */
     private VersionableState initFrozen(NodeBuilder frozen,
-                                        NodeBuilder node,
-                                        String nodeId) {
+        NodeBuilder node,
+        String nodeId) {
         // initialize jcr:frozenNode
         if (isFrozenNodeReferenceable) {
             // OAK-9134: add uuid in older repositories with mix:referenceable in nt:frozenNode
@@ -205,8 +203,8 @@ class VersionableState {
      * Creates the versionable state under the version.
      *
      * @return the frozen node.
-     * @throws CommitFailedException if the operation fails. E.g. because the
-     *              versionable node has a property with OPV ABORT.
+     * @throws CommitFailedException if the operation fails. E.g. because the versionable node has a
+     *                               property with OPV ABORT.
      */
     NodeBuilder create() throws CommitFailedException {
         try {
@@ -214,21 +212,21 @@ class VersionableState {
             return frozenNode;
         } catch (RepositoryException e) {
             throw new CommitFailedException(CommitFailedException.VERSION,
-                    VersionExceptionCode.UNEXPECTED_REPOSITORY_EXCEPTION.ordinal(),
-                    "Unexpected RepositoryException", e);
+                VersionExceptionCode.UNEXPECTED_REPOSITORY_EXCEPTION.ordinal(),
+                "Unexpected RepositoryException", e);
         }
     }
 
     /**
      * Restore the versionable node to the given version.
      *
-     * @param selector an optional version selector. If none is passed, this
-     *                 method will use a date based version selector.
+     * @param selector an optional version selector. If none is passed, this method will use a date
+     *                 based version selector.
      * @return the versionable node.
      * @throws CommitFailedException if the operation fails.
      */
     public NodeBuilder restore(@Nullable VersionSelector selector)
-            throws CommitFailedException {
+        throws CommitFailedException {
         try {
             if (selector == null) {
                 String created = version.getProperty(JCR_CREATED).getValue(Type.DATE);
@@ -239,27 +237,27 @@ class VersionableState {
             return versionable;
         } catch (RepositoryException e) {
             throw new CommitFailedException(CommitFailedException.VERSION,
-                    VersionExceptionCode.UNEXPECTED_REPOSITORY_EXCEPTION.ordinal(),
-                    "Unexpected RepositoryException", e);
+                VersionExceptionCode.UNEXPECTED_REPOSITORY_EXCEPTION.ordinal(),
+                "Unexpected RepositoryException", e);
         }
     }
 
     //--------------------------< internal >------------------------------------
 
     /**
-     * Restores the state from {@code src} to a child node of
-     * {@code destParent} with the same name as {@code src}.
+     * Restores the state from {@code src} to a child node of {@code destParent} with the same name
+     * as {@code src}.
      *
-     * @param src the source node.
+     * @param src        the source node.
      * @param destParent the parent of the destination node.
-     * @param name the name of the source node.
-     * @param selector the version selector.
+     * @param name       the name of the source node.
+     * @param selector   the version selector.
      */
     private void restoreState(@NotNull NodeBuilder src,
-                              @NotNull NodeBuilder destParent,
-                              @NotNull String name,
-                              @NotNull VersionSelector selector)
-            throws RepositoryException, CommitFailedException {
+        @NotNull NodeBuilder destParent,
+        @NotNull String name,
+        @NotNull VersionSelector selector)
+        throws RepositoryException, CommitFailedException {
         checkNotNull(name);
         checkNotNull(destParent);
         String primaryType = primaryTypeOf(src);
@@ -284,9 +282,9 @@ class VersionableState {
      * Restore a nt:frozenNode.
      */
     private void restoreFrozen(@NotNull NodeBuilder frozen,
-                               @NotNull NodeBuilder dest,
-                               @NotNull VersionSelector selector)
-            throws RepositoryException, CommitFailedException {
+        @NotNull NodeBuilder dest,
+        @NotNull VersionSelector selector)
+        throws RepositoryException, CommitFailedException {
 
         // OAK-9459: if the NodeState is not empty, retrieve OPVs before restoring types to avoid constraint violations
         boolean frozenTypeRestored = false;
@@ -350,13 +348,12 @@ class VersionableState {
     }
 
     /**
-     * Restores the basic frozen properties (jcr:primaryType, jcr:mixinTypes
-     * and jcr:uuid).
+     * Restores the basic frozen properties (jcr:primaryType, jcr:mixinTypes and jcr:uuid).
      */
     private void restoreFrozenTypeAndUUID(@NotNull NodeBuilder frozen,
-                                          @NotNull NodeBuilder dest) {
+        @NotNull NodeBuilder dest) {
         dest.setProperty(JCR_PRIMARYTYPE,
-                frozen.getName(JCR_FROZENPRIMARYTYPE), Type.NAME);
+            frozen.getName(JCR_FROZENPRIMARYTYPE), Type.NAME);
         String id = frozen.getProperty(JCR_FROZENUUID).getValue(Type.STRING);
         if (id.indexOf('/') == -1) {
             // only restore jcr:uuid if id is in fact a uuid
@@ -364,7 +361,7 @@ class VersionableState {
         }
         if (frozen.hasProperty(JCR_FROZENMIXINTYPES)) {
             dest.setProperty(JCR_MIXINTYPES,
-                    frozen.getNames(JCR_FROZENMIXINTYPES), Type.NAMES);
+                frozen.getNames(JCR_FROZENMIXINTYPES), Type.NAMES);
         }
     }
 
@@ -372,17 +369,17 @@ class VersionableState {
      * Restore a copied node.
      */
     private void restoreCopiedNode(NodeBuilder src,
-                                   NodeBuilder dest,
-                                   VersionSelector selector)
-            throws RepositoryException, CommitFailedException {
+        NodeBuilder dest,
+        VersionSelector selector)
+        throws RepositoryException, CommitFailedException {
         if (primaryTypeOf(src).equals(NT_FROZENNODE)) {
             restoreFrozenTypeAndUUID(src, dest);
             copyProperties(src, dest, new OPVProvider() {
                 @Override
                 public int getAction(NodeBuilder src,
-                                     NodeBuilder dest,
-                                     PropertyState prop)
-                        throws RepositoryException {
+                    NodeBuilder dest,
+                    PropertyState prop)
+                    throws RepositoryException {
                     // copy back, except for basic frozen props
                     if (BASIC_FROZEN_PROPERTIES.contains(prop.getName())) {
                         return IGNORE;
@@ -401,14 +398,14 @@ class VersionableState {
      * Restore an nt:versionedChild node.
      */
     private void restoreVersionedChild(NodeBuilder versionedChild,
-                                       NodeBuilder dest,
-                                       VersionSelector selector)
-            throws RepositoryException, CommitFailedException {
+        NodeBuilder dest,
+        VersionSelector selector)
+        throws RepositoryException, CommitFailedException {
         // 15.7.5 Chained Versions on Restore
         PropertyState id = versionedChild.getProperty(JCR_CHILDVERSIONHISTORY);
         if (id == null) {
             throw new RepositoryException("Mandatory property " +
-                    JCR_CHILDVERSIONHISTORY + " is missing.");
+                JCR_CHILDVERSIONHISTORY + " is missing.");
         }
         vMgr.restore(id.getValue(Type.REFERENCE), selector, dest);
     }
@@ -417,9 +414,9 @@ class VersionableState {
      * Restores children of a {@code src}.
      */
     private void restoreChildren(NodeBuilder src,
-                                 NodeBuilder dest,
-                                 VersionSelector selector)
-            throws RepositoryException, CommitFailedException {
+        NodeBuilder dest,
+        VersionSelector selector)
+        throws RepositoryException, CommitFailedException {
         // 15.7.6 Restoring Child Nodes
         for (String name : src.getChildNodeNames()) {
             NodeBuilder srcChild = src.getChildNode(name);
@@ -456,19 +453,19 @@ class VersionableState {
      * 15.7.7 Simple vs. Full Versioning after Restore
      */
     private void restoreVersionable(@NotNull NodeBuilder versionable,
-                                    @NotNull NodeBuilder version) {
+        @NotNull NodeBuilder version) {
         checkNotNull(versionable).setProperty(JCR_ISCHECKEDOUT,
-                false, Type.BOOLEAN);
+            false, Type.BOOLEAN);
         versionable.setProperty(JCR_VERSIONHISTORY,
-                uuidFromNode(history), Type.REFERENCE);
+            uuidFromNode(history), Type.REFERENCE);
         versionable.setProperty(JCR_BASEVERSION,
-                uuidFromNode(version), Type.REFERENCE);
+            uuidFromNode(version), Type.REFERENCE);
         versionable.setProperty(JCR_PREDECESSORS,
-                Collections.<String>emptyList(), Type.REFERENCES);
+            Collections.<String>emptyList(), Type.REFERENCES);
     }
 
     private void resetToDefaultValue(NodeBuilder dest, PropertyState p)
-            throws RepositoryException {
+        throws RepositoryException {
         Tree tree = TreeFactory.createReadOnlyTree(dest.getNodeState());
         PropertyDefinition def = ntMgr.getDefinition(tree, p, true);
         Value[] values = def.getDefaultValues();
@@ -484,7 +481,7 @@ class VersionableState {
     }
 
     private void createFrozen(NodeBuilder src, String srcId, NodeBuilder dest, int opva)
-            throws CommitFailedException, RepositoryException {
+        throws CommitFailedException, RepositoryException {
         initFrozen(dest, src, srcId);
         OPVProvider opvProvider;
         if (opva == OnParentVersionAction.COPY) {
@@ -505,11 +502,12 @@ class VersionableState {
 
             if (opv == OnParentVersionAction.ABORT) {
                 throw new CommitFailedException(CommitFailedException.VERSION,
-                        VersionExceptionCode.OPV_ABORT_ITEM_PRESENT.ordinal(),
-                        "Checkin aborted due to OPV abort in " + name);
+                    VersionExceptionCode.OPV_ABORT_ITEM_PRESENT.ordinal(),
+                    "Checkin aborted due to OPV abort in " + name);
             }
             if (opv == OnParentVersionAction.VERSION) {
-                if (ntMgr.isNodeType(TreeFactory.createReadOnlyTree(child.getNodeState()), MIX_VERSIONABLE)) {
+                if (ntMgr.isNodeType(TreeFactory.createReadOnlyTree(child.getNodeState()),
+                    MIX_VERSIONABLE)) {
                     // create frozen versionable child
                     versionedChild(child, dest.child(name));
                 } else {
@@ -529,13 +527,13 @@ class VersionableState {
     }
 
     /**
-     * Returns the id of the {@code child} node. The id is the value of the
-     * jcr:uuid property of the child node if present, or the concatenation of
-     * the {@code parentId} and the {@code name} of the child node.
+     * Returns the id of the {@code child} node. The id is the value of the jcr:uuid property of the
+     * child node if present, or the concatenation of the {@code parentId} and the {@code name} of
+     * the child node.
      *
      * @param parentId the parentId.
-     * @param child the child node.
-     * @param name the name of the child node.
+     * @param child    the child node.
+     * @param name     the name of the child node.
      * @return the identifier of the child node.
      */
     private String getChildId(String parentId, NodeBuilder child, String name) {
@@ -547,10 +545,10 @@ class VersionableState {
     }
 
     private void copyProperties(NodeBuilder src,
-                                NodeBuilder dest,
-                                OPVProvider opvProvider,
-                                boolean ignoreTypeAndUUID)
-            throws RepositoryException, CommitFailedException {
+        NodeBuilder dest,
+        OPVProvider opvProvider,
+        boolean ignoreTypeAndUUID)
+        throws RepositoryException, CommitFailedException {
         // add the properties
         for (PropertyState prop : src.getProperties()) {
             int opv = opvProvider.getAction(src, dest, prop);
@@ -558,8 +556,8 @@ class VersionableState {
             String propName = prop.getName();
             if (opv == OnParentVersionAction.ABORT) {
                 throw new CommitFailedException(CommitFailedException.VERSION,
-                        VersionExceptionCode.OPV_ABORT_ITEM_PRESENT.ordinal(),
-                        "Checkin aborted due to OPV abort in " + propName);
+                    VersionExceptionCode.OPV_ABORT_ITEM_PRESENT.ordinal(),
+                    "Checkin aborted due to OPV abort in " + propName);
             }
             if (ignoreTypeAndUUID && BASIC_PROPERTIES.contains(propName)) {
                 continue;
@@ -568,7 +566,7 @@ class VersionableState {
                 continue;
             }
             if (opv == OnParentVersionAction.VERSION
-                    || opv == COPY) {
+                || opv == COPY) {
                 dest.setProperty(prop);
             }
         }
@@ -579,7 +577,7 @@ class VersionableState {
     }
 
     private int getOPV(NodeBuilder parent, NodeBuilder child, String childName)
-            throws RepositoryException {
+        throws RepositoryException {
         // ignore hidden tree
         if (childName.startsWith(":")) {
             return IGNORE;
@@ -600,22 +598,22 @@ class VersionableState {
     }
 
     private int getOPV(NodeBuilder node, PropertyState property)
-            throws RepositoryException {
+        throws RepositoryException {
         if (property.getName().charAt(0) == ':') {
             // FIXME: handle child order properly
             return OnParentVersionAction.COPY;
         } else {
             return ntMgr.getDefinition(TreeFactory.createReadOnlyTree(node.getNodeState()),
-                    property, false).getOnParentVersion();
+                property, false).getOnParentVersion();
         }
     }
 
     private interface OPVProvider {
 
         int getAction(NodeBuilder src,
-                NodeBuilder dest,
-                PropertyState prop)
-                throws RepositoryException;
+            NodeBuilder dest,
+            PropertyState prop)
+            throws RepositoryException;
     }
 
     private static final class OPVForceCopy implements OPVProvider {
@@ -624,8 +622,8 @@ class VersionableState {
 
         @Override
         public int getAction(NodeBuilder src,
-                             NodeBuilder dest,
-                             PropertyState prop) {
+            NodeBuilder dest,
+            PropertyState prop) {
             return COPY;
         }
     }
@@ -634,9 +632,9 @@ class VersionableState {
 
         @Override
         public int getAction(NodeBuilder src,
-                             NodeBuilder dest,
-                             PropertyState prop)
-                throws RepositoryException {
+            NodeBuilder dest,
+            PropertyState prop)
+            throws RepositoryException {
             String propName = prop.getName();
             if (BASIC_FROZEN_PROPERTIES.contains(propName)) {
                 // OAK-940: do not overwrite basic frozen properties

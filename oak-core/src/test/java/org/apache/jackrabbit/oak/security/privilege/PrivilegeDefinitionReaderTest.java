@@ -32,7 +32,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-public class PrivilegeDefinitionReaderTest extends AbstractSecurityTest implements PrivilegeConstants {
+public class PrivilegeDefinitionReaderTest extends AbstractSecurityTest implements
+    PrivilegeConstants {
 
     private PrivilegeDefinitionReader reader;
 
@@ -68,7 +69,8 @@ public class PrivilegeDefinitionReaderTest extends AbstractSecurityTest implemen
 
     @Test
     public void testMissingPermissionRoot() throws Exception {
-        ContentRepository repo = new Oak().with(new OpenSecurityProvider()).createContentRepository();
+        ContentRepository repo = new Oak().with(new OpenSecurityProvider())
+                                          .createContentRepository();
         Root tmpRoot = repo.login(null, null).getLatestRoot();
         try {
             PrivilegeDefinitionReader reader = new PrivilegeDefinitionReader(tmpRoot);

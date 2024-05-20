@@ -42,7 +42,8 @@ import org.jetbrains.annotations.Nullable;
 import java.security.Principal;
 import java.util.Set;
 
-public class PermissionProviderImpl implements PermissionProvider, AccessControlConstants, PermissionConstants, AggregatedPermissionProvider {
+public class PermissionProviderImpl implements PermissionProvider, AccessControlConstants,
+    PermissionConstants, AggregatedPermissionProvider {
 
     private final Root root;
 
@@ -63,12 +64,12 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     private Root immutableRoot;
 
     public PermissionProviderImpl(@NotNull Root root,
-                                  @NotNull String workspaceName,
-                                  @NotNull Set<Principal> principals,
-                                  @NotNull RestrictionProvider restrictionProvider,
-                                  @NotNull ConfigurationParameters options,
-                                  @NotNull Context ctx,
-                                  @NotNull ProviderCtx providerCtx) {
+        @NotNull String workspaceName,
+        @NotNull Set<Principal> principals,
+        @NotNull RestrictionProvider restrictionProvider,
+        @NotNull ConfigurationParameters options,
+        @NotNull Context ctx,
+        @NotNull ProviderCtx providerCtx) {
         this.root = root;
         this.workspaceName = workspaceName;
         this.principals = principals;
@@ -90,12 +91,14 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     @NotNull
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
-        return getCompiledPermissions().getPrivileges(PermissionUtil.getReadOnlyTreeOrNull(tree, immutableRoot));
+        return getCompiledPermissions().getPrivileges(
+            PermissionUtil.getReadOnlyTreeOrNull(tree, immutableRoot));
     }
 
     @Override
     public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
-        return getCompiledPermissions().hasPrivileges(PermissionUtil.getReadOnlyTreeOrNull(tree, immutableRoot), privilegeNames);
+        return getCompiledPermissions().hasPrivileges(
+            PermissionUtil.getReadOnlyTreeOrNull(tree, immutableRoot), privilegeNames);
     }
 
     @NotNull
@@ -106,13 +109,17 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @NotNull
     @Override
-    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
-        return getCompiledPermissions().getTreePermission(PermissionUtil.getReadOnlyTree(tree, immutableRoot), parentPermission);
+    public TreePermission getTreePermission(@NotNull Tree tree,
+        @NotNull TreePermission parentPermission) {
+        return getCompiledPermissions().getTreePermission(
+            PermissionUtil.getReadOnlyTree(tree, immutableRoot), parentPermission);
     }
 
     @Override
-    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
-        return getCompiledPermissions().isGranted(PermissionUtil.getReadOnlyTree(tree, immutableRoot), property, permissions);
+    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property,
+        long permissions) {
+        return getCompiledPermissions().isGranted(
+            PermissionUtil.getReadOnlyTree(tree, immutableRoot), property, permissions);
     }
 
     @Override
@@ -127,12 +134,15 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     //---------------------------------------< AggregatedPermissionProvider >---
     @NotNull
     @Override
-    public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
-        return (privilegeBits != null) ? privilegeBits : new PrivilegeBitsProvider(immutableRoot).getBits(PrivilegeConstants.JCR_ALL);
+    public PrivilegeBits supportedPrivileges(@Nullable Tree tree,
+        @Nullable PrivilegeBits privilegeBits) {
+        return (privilegeBits != null) ? privilegeBits
+            : new PrivilegeBitsProvider(immutableRoot).getBits(PrivilegeConstants.JCR_ALL);
     }
 
     @Override
-    public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
+    public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property,
+        long permissions) {
         return permissions;
     }
 
@@ -142,7 +152,8 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     }
 
     @Override
-    public long supportedPermissions(@NotNull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
+    public long supportedPermissions(@NotNull TreePermission treePermission,
+        @Nullable PropertyState property, long permissions) {
         return permissions;
     }
 
@@ -153,8 +164,10 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @NotNull
     @Override
-    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission) {
-        return getCompiledPermissions().getTreePermission(PermissionUtil.getReadOnlyTree(tree, immutableRoot), type, parentPermission);
+    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type,
+        @NotNull TreePermission parentPermission) {
+        return getCompiledPermissions().getTreePermission(
+            PermissionUtil.getReadOnlyTree(tree, immutableRoot), type, parentPermission);
     }
 
     //--------------------------------------------------------------------------
@@ -166,8 +179,9 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
                 cp = AllPermissions.getInstance();
             } else {
                 cp = CompiledPermissionImpl.create(immutableRoot, workspaceName,
-                        getPermissionStore(immutableRoot, workspaceName, restrictionProvider), principals,
-                        options, ctx, providerCtx);
+                    getPermissionStore(immutableRoot, workspaceName, restrictionProvider),
+                    principals,
+                    options, ctx, providerCtx);
             }
             compiledPermissions = cp;
         }
@@ -175,15 +189,18 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     }
 
     @NotNull
-    protected PermissionStore getPermissionStore(@NotNull Root root, @NotNull String workspaceName, @NotNull RestrictionProvider restrictionProvider) {
-        return new PermissionStoreImpl(root, workspaceName, restrictionProvider, providerCtx.getMonitor());
+    protected PermissionStore getPermissionStore(@NotNull Root root, @NotNull String workspaceName,
+        @NotNull RestrictionProvider restrictionProvider) {
+        return new PermissionStoreImpl(root, workspaceName, restrictionProvider,
+            providerCtx.getMonitor());
     }
 
     private static boolean isVersionStorePath(@NotNull String oakPath) {
         return oakPath.startsWith(VersionConstants.VERSION_STORE_PATH);
     }
 
-    private boolean isGranted(@NotNull TreeLocation location, @NotNull String oakPath, long permissions) {
+    private boolean isGranted(@NotNull TreeLocation location, @NotNull String oakPath,
+        long permissions) {
         boolean isGranted = false;
         PropertyState property = location.getProperty();
         Tree tree = (property == null) ? location.getTree() : location.getParent().getTree();

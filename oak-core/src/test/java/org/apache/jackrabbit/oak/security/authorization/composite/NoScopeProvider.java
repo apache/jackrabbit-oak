@@ -29,8 +29,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * {@code AggregatedPermissionProvider} that doesn't supported anything anywhere
- * and which consequently must be completely ignored from the permission evaluation.
+ * {@code AggregatedPermissionProvider} that doesn't supported anything anywhere and which
+ * consequently must be completely ignored from the permission evaluation.
  */
 final class NoScopeProvider extends AbstractAggrProvider {
 
@@ -40,12 +40,14 @@ final class NoScopeProvider extends AbstractAggrProvider {
 
     @NotNull
     @Override
-    public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
+    public PrivilegeBits supportedPrivileges(@Nullable Tree tree,
+        @Nullable PrivilegeBits privilegeBits) {
         return PrivilegeBits.EMPTY;
     }
 
     @Override
-    public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
+    public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property,
+        long permissions) {
         return Permissions.NO_PERMISSION;
     }
 
@@ -55,7 +57,8 @@ final class NoScopeProvider extends AbstractAggrProvider {
     }
 
     @Override
-    public long supportedPermissions(@NotNull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
+    public long supportedPermissions(@NotNull TreePermission treePermission,
+        @Nullable PropertyState property, long permissions) {
         return Permissions.NO_PERMISSION;
     }
 
@@ -83,7 +86,8 @@ final class NoScopeProvider extends AbstractAggrProvider {
 
     @NotNull
     @Override
-    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree,
+        @NotNull TreePermission parentPermission) {
         if (tree.isRoot()) {
             return TreePermission.NO_RECOURSE;
         } else {
@@ -92,7 +96,8 @@ final class NoScopeProvider extends AbstractAggrProvider {
     }
 
     @Override
-    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
+    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property,
+        long permissions) {
         throw new UnsupportedOperationException("should never get here");
     }
 

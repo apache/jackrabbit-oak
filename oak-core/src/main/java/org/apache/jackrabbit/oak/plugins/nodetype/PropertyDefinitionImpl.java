@@ -59,10 +59,10 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl implements PropertyDefin
 
     /**
      * Returns the numeric constant value of the type with the specified name.
-     *
-     * In contrast to {@link javax.jcr.PropertyType#valueFromName(String)} this method
-     * requires all type names to be all upper case.
-     * See also: OAK-294 and http://java.net/jira/browse/JSR_283-811
+     * <p>
+     * In contrast to {@link javax.jcr.PropertyType#valueFromName(String)} this method requires all
+     * type names to be all upper case. See also: OAK-294 and
+     * http://java.net/jira/browse/JSR_283-811
      *
      * @param name the name of the property type.
      * @return the numeric constant value.
@@ -102,7 +102,7 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl implements PropertyDefin
     @Override
     public Value[] getDefaultValues() {
         PropertyState property =
-                definition.getProperty(JcrConstants.JCR_DEFAULTVALUES);
+            definition.getProperty(JcrConstants.JCR_DEFAULTVALUES);
         if (property == null) {
             return null;
         } else if (property.isArray()) {
@@ -110,7 +110,7 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl implements PropertyDefin
             return values.toArray(NO_VALUES);
         } else {
             Value value = new PartialValueFactory(mapper).createValue(property);
-            return new Value[] { value };
+            return new Value[]{value};
         }
     }
 
@@ -122,16 +122,16 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl implements PropertyDefin
     @Override
     public String[] getAvailableQueryOperators() {
         String[] operators =
-                getStrings(NodeTypeConstants.JCR_AVAILABLE_QUERY_OPERATORS);
+            getStrings(NodeTypeConstants.JCR_AVAILABLE_QUERY_OPERATORS);
         if (operators == null) {
-            operators = new String[] {
-                    QueryObjectModelConstants.JCR_OPERATOR_EQUAL_TO,
-                    QueryObjectModelConstants.JCR_OPERATOR_NOT_EQUAL_TO,
-                    QueryObjectModelConstants.JCR_OPERATOR_GREATER_THAN,
-                    QueryObjectModelConstants.JCR_OPERATOR_GREATER_THAN_OR_EQUAL_TO,
-                    QueryObjectModelConstants.JCR_OPERATOR_LESS_THAN,
-                    QueryObjectModelConstants.JCR_OPERATOR_LESS_THAN_OR_EQUAL_TO,
-                    QueryObjectModelConstants.JCR_OPERATOR_LIKE };
+            operators = new String[]{
+                QueryObjectModelConstants.JCR_OPERATOR_EQUAL_TO,
+                QueryObjectModelConstants.JCR_OPERATOR_NOT_EQUAL_TO,
+                QueryObjectModelConstants.JCR_OPERATOR_GREATER_THAN,
+                QueryObjectModelConstants.JCR_OPERATOR_GREATER_THAN_OR_EQUAL_TO,
+                QueryObjectModelConstants.JCR_OPERATOR_LESS_THAN,
+                QueryObjectModelConstants.JCR_OPERATOR_LESS_THAN_OR_EQUAL_TO,
+                QueryObjectModelConstants.JCR_OPERATOR_LIKE};
         }
         return operators;
     }

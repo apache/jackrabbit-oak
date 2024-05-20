@@ -68,7 +68,8 @@ public class NodeCounterEditor implements Editor {
     private SipHash hash;
 
 
-    NodeCounterEditor(NodeCounterRoot root, MountInfoProvider mountInfoProvider, StatisticsProvider statisticsProvider) {
+    NodeCounterEditor(NodeCounterRoot root, MountInfoProvider mountInfoProvider,
+        StatisticsProvider statisticsProvider) {
         this.root = root;
         this.name = "/";
         this.parent = null;
@@ -78,13 +79,14 @@ public class NodeCounterEditor implements Editor {
         this.countOffsets = new HashMap<>();
         this.statisticsProvider = statisticsProvider;
         this.nodeCounterMetric = initNodeCounterMetric(
-                statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT),
-                root.root,
-                "/"
+            statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT),
+            root.root,
+            "/"
         );
     }
 
-    private NodeCounterEditor(NodeCounterRoot root, NodeCounterEditor parent, String name, SipHash hash, MountInfoProvider mountInfoProvider, StatisticsProvider statisticsProvider) {
+    private NodeCounterEditor(NodeCounterRoot root, NodeCounterEditor parent, String name,
+        SipHash hash, MountInfoProvider mountInfoProvider, StatisticsProvider statisticsProvider) {
         this.parent = parent;
         this.root = root;
         this.name = name;
@@ -102,9 +104,9 @@ public class NodeCounterEditor implements Editor {
 
         this.statisticsProvider = statisticsProvider;
         this.nodeCounterMetric = initNodeCounterMetric(
-                statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT),
-                root.root,
-                "/"
+            statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT),
+            root.root,
+            "/"
         );
     }
 
@@ -123,17 +125,20 @@ public class NodeCounterEditor implements Editor {
     }
 
     /**
-     * If an instance is restarted, the nodeCounterMetric might be 0 when we retrieve it as its value isn't persisted.
-     * But by then, the node counter _index_ will usually exist, why we try we read from it. To account for a potential
-     * discrepancy, we increment the metric with the difference between the node counter index and the metric, using the
-     * index as the ground truth.
+     * If an instance is restarted, the nodeCounterMetric might be 0 when we retrieve it as its
+     * value isn't persisted. But by then, the node counter _index_ will usually exist, why we try
+     * we read from it. To account for a potential discrepancy, we increment the metric with the
+     * difference between the node counter index and the metric, using the index as the ground
+     * truth.
      *
-     * @param nodeCounterMetric the counter object that is updated with the counter index information
-     * @param root the root of the repository
-     * @param path the path of which
+     * @param nodeCounterMetric the counter object that is updated with the counter index
+     *                          information
+     * @param root              the root of the repository
+     * @param path              the path of which
      * @return the CounterStats object that has the same value as the node counter index.
      */
-    static CounterStats initNodeCounterMetric(CounterStats nodeCounterMetric, NodeState root, String path) {
+    static CounterStats initNodeCounterMetric(CounterStats nodeCounterMetric, NodeState root,
+        String path) {
         long nodeCountFromIndex = NodeCounter.getEstimatedNodeCount(root, path, false);
         long delta = nodeCountFromIndex - nodeCounterMetric.getCount();
         nodeCounterMetric.inc(delta);
@@ -142,13 +147,13 @@ public class NodeCounterEditor implements Editor {
 
     @Override
     public void enter(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         // nothing to do
     }
 
     @Override
     public void leave(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (NodeCounter.COUNT_HASH) {
             leaveNew();
             return;
@@ -157,7 +162,7 @@ public class NodeCounterEditor implements Editor {
     }
 
     private void leaveOld(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (countOffsets.isEmpty()) {
             return;
         }
@@ -251,27 +256,27 @@ public class NodeCounterEditor implements Editor {
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         // nothing to do
     }
 
     @Override
     public void propertyDeleted(PropertyState before)
-            throws CommitFailedException {
+        throws CommitFailedException {
         // nothing to do
     }
 
     @Override
     @Nullable
     public Editor childNodeChanged(String name, NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         return getChildIndexEditor(name, null);
     }
 
     @Override
     @Nullable
     public Editor childNodeAdded(String name, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (NodeCounter.COUNT_HASH) {
             SipHash h = new SipHash(getHash(), name.hashCode());
             // with bitMask=1024: with a probability of 1:1024,
@@ -288,7 +293,7 @@ public class NodeCounterEditor implements Editor {
     @Override
     @Nullable
     public Editor childNodeDeleted(String name, NodeState before)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (NodeCounter.COUNT_HASH) {
             SipHash h = new SipHash(getHash(), name.hashCode());
             // with bitMask=1024: with a probability of 1:1024,
@@ -315,12 +320,13 @@ public class NodeCounterEditor implements Editor {
 
     private boolean supportMounts(String path) {
         return mountInfoProvider
-                .getNonDefaultMounts()
-                .stream()
-                .anyMatch(m -> m.isSupportFragmentUnder(path) || m.isUnder(path));
+            .getNonDefaultMounts()
+            .stream()
+            .anyMatch(m -> m.isSupportFragmentUnder(path) || m.isUnder(path));
     }
 
     public static class NodeCounterRoot {
+
         final int resolution;
         final long seed;
         final int bitMask;
@@ -328,7 +334,8 @@ public class NodeCounterEditor implements Editor {
         final NodeState root;
         final IndexUpdateCallback callback;
 
-        NodeCounterRoot(int resolution, long seed, NodeBuilder definition, NodeState root, IndexUpdateCallback callback) {
+        NodeCounterRoot(int resolution, long seed, NodeBuilder definition, NodeState root,
+            IndexUpdateCallback callback) {
             this.resolution = resolution;
             this.seed = seed;
             // if resolution is 1000, then the bitMask is 1023 (bits 0..9 set)

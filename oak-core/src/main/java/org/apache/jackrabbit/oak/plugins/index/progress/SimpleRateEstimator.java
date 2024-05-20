@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 public class SimpleRateEstimator implements TraversalRateEstimator {
+
     private final Stopwatch w = Stopwatch.createStarted();
     private long count;
 

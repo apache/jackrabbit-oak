@@ -42,10 +42,10 @@ import static org.junit.Assert.assertEquals;
 public class NodeStateCopierTest {
 
     private final PropertyState primaryType =
-            createProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        createProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
 
     private final PropertyState ntFrozenNode =
-            createProperty("jcr:primaryType", "nt:frozenNode", Type.NAME);
+        createProperty("jcr:primaryType", "nt:frozenNode", Type.NAME);
 
     @Test
     public void shouldCreateMissingAncestors() throws CommitFailedException, IOException {
@@ -53,14 +53,14 @@ public class NodeStateCopierTest {
         final NodeStore target = createNodeStoreWithContent();
 
         builder()
-                .include("/a/b/c")
-                .copy(source, target);
+            .include("/a/b/c")
+            .copy(source, target);
 
         expectDifference()
-                .childNodeChanged("/a", "/a/b")
-                .childNodeDeleted("/excluded", "/a/b/excluded")
-                .strict()
-                .verify(source.getRoot(), target.getRoot());
+            .childNodeChanged("/a", "/a/b")
+            .childNodeDeleted("/excluded", "/a/b/excluded")
+            .strict()
+            .verify(source.getRoot(), target.getRoot());
     }
 
     @Test
@@ -69,15 +69,15 @@ public class NodeStateCopierTest {
         final NodeStore target = createNodeStoreWithContent();
 
         builder()
-                .include("/a/b/c/d", "/a/b/c/e")
-                .copy(source, target);
+            .include("/a/b/c/d", "/a/b/c/e")
+            .copy(source, target);
 
         expectDifference()
-                .propertyDeleted("/a/b/c/f/jcr:primaryType")
-                .childNodeChanged("/a", "/a/b", "/a/b/c")
-                .childNodeDeleted("/excluded", "/a/b/excluded", "/a/b/c/f")
-                .strict()
-                .verify(source.getRoot(), target.getRoot());
+            .propertyDeleted("/a/b/c/f/jcr:primaryType")
+            .childNodeChanged("/a", "/a/b", "/a/b/c")
+            .childNodeDeleted("/excluded", "/a/b/excluded", "/a/b/c/f")
+            .strict()
+            .verify(source.getRoot(), target.getRoot());
     }
 
     @Test
@@ -119,43 +119,43 @@ public class NodeStateCopierTest {
 
         final NodeStore target = createNodeStoreWithContent();
         builder()
-                .include("/a", "/z")
-                .copy(source, target);
+            .include("/a", "/z")
+            .copy(source, target);
 
         expectDifference()
-                .strict()
-                .verify(source.getRoot(), target.getRoot());
+            .strict()
+            .verify(source.getRoot(), target.getRoot());
     }
 
     @Test
     public void shouldCopyFromMultipleSources() throws CommitFailedException, IOException {
         final NodeStore source1 = createNodeStoreWithContent(
-                "/content/foo/en", "/content/foo/de");
+            "/content/foo/en", "/content/foo/de");
         final NodeStore source2 = createNodeStoreWithContent(
-                "/content/bar/en", "/content/bar/de", "/content/baz/en");
+            "/content/bar/en", "/content/bar/de", "/content/baz/en");
         final NodeStore target = createNodeStoreWithContent();
 
         final NodeState before = target.getRoot();
         builder()
-                .include("/content/foo")
-                .copy(source1, target);
+            .include("/content/foo")
+            .copy(source1, target);
         builder()
-                .include("/content/bar")
-                .exclude("/content/bar/de")
-                .copy(source2, target);
+            .include("/content/bar")
+            .exclude("/content/bar/de")
+            .copy(source2, target);
         final NodeState after = target.getRoot();
 
         expectDifference()
-                .strict()
-                .childNodeAdded(
-                        "/content",
-                        "/content/foo",
-                        "/content/foo/en",
-                        "/content/foo/de",
-                        "/content/bar",
-                        "/content/bar/en"
-                )
-                .verify(before, after);
+            .strict()
+            .childNodeAdded(
+                "/content",
+                "/content/foo",
+                "/content/foo/en",
+                "/content/foo/de",
+                "/content/bar",
+                "/content/bar/en"
+            )
+            .verify(before, after);
     }
 
     @Test
@@ -164,15 +164,15 @@ public class NodeStateCopierTest {
         final NodeStore target = createNodeStoreWithContent("/content/foo/de");
 
         builder()
-                .merge("/content")
-                .copy(source, target);
+            .merge("/content")
+            .copy(source, target);
         final NodeState after = target.getRoot();
 
         expectDifference()
-                .strict()
-                .childNodeAdded("/content/foo/de")
-                .childNodeChanged("/content", "/content/foo")
-                .verify(source.getRoot(), after);
+            .strict()
+            .childNodeAdded("/content/foo/de")
+            .childNodeChanged("/content", "/content/foo")
+            .verify(source.getRoot(), after);
     }
 
     @Test
@@ -182,15 +182,15 @@ public class NodeStateCopierTest {
 
         final NodeState before = target.getRoot();
         builder()
-                .merge("/jcr:system")
-                .exclude("/jcr:system")
-                .copy(source, target);
+            .merge("/jcr:system")
+            .exclude("/jcr:system")
+            .copy(source, target);
         final NodeState after = target.getRoot();
 
         expectDifference()
-                .strict()
-                .childNodeAdded("/content", "/content/foo", "/content/foo/en")
-                .verify(before, after);
+            .strict()
+            .childNodeAdded("/content", "/content/foo", "/content/foo/en")
+            .verify(before, after);
     }
 
     @Test
@@ -203,15 +203,16 @@ public class NodeStateCopierTest {
         final NodeState after = target.getRoot();
 
         expectDifference()
-                .strict()
-                .childNodeAdded("/content/foo")
-                .childNodeChanged("/content")
-                .childNodeDeleted("/content/bar")
-                .verify(before, after);
+            .strict()
+            .childNodeAdded("/content/foo")
+            .childNodeChanged("/content")
+            .childNodeDeleted("/content/bar")
+            .verify(before, after);
     }
 
     @Test
-    public void shouldDeleteExistingPropertyIfMissingInSource() throws CommitFailedException, IOException {
+    public void shouldDeleteExistingPropertyIfMissingInSource()
+        throws CommitFailedException, IOException {
         final NodeStore source = createNodeStoreWithContent("/a");
         final NodeStore target = createNodeStoreWithContent();
         final NodeBuilder builder = target.getRoot().builder();
@@ -223,10 +224,10 @@ public class NodeStateCopierTest {
         final NodeState after = target.getRoot();
 
         expectDifference()
-                .strict()
-                .propertyDeleted("/a/jcr:primaryType")
-                .childNodeChanged("/a")
-                .verify(before, after);
+            .strict()
+            .propertyDeleted("/a/jcr:primaryType")
+            .childNodeChanged("/a")
+            .verify(before, after);
     }
 
     @Test
@@ -236,37 +237,39 @@ public class NodeStateCopierTest {
 
         final NodeState before = target.getRoot();
         builder()
-                .merge("/content/bar")
-                .copy(source, target);
+            .merge("/content/bar")
+            .copy(source, target);
         final NodeState after = target.getRoot();
 
         expectDifference()
-                .strict()
-                .childNodeAdded("/content/foo")
-                .childNodeChanged("/content")
-                .verify(before, after);
+            .strict()
+            .childNodeAdded("/content/foo")
+            .childNodeChanged("/content")
+            .verify(before, after);
     }
 
     @Test
-    public void shouldNotDeleteExistingNodesIfDescendantsOfMerged() throws CommitFailedException, IOException {
+    public void shouldNotDeleteExistingNodesIfDescendantsOfMerged()
+        throws CommitFailedException, IOException {
         final NodeStore source = createNodeStoreWithContent("/content/foo");
         final NodeStore target = createNodeStoreWithContent("/content/bar");
 
         final NodeState before = target.getRoot();
         builder()
-                .merge("/content")
-                .copy(source, target);
+            .merge("/content")
+            .copy(source, target);
         final NodeState after = target.getRoot();
 
         expectDifference()
-                .strict()
-                .childNodeAdded("/content/foo")
-                .childNodeChanged("/content")
-                .verify(before, after);
+            .strict()
+            .childNodeAdded("/content/foo")
+            .childNodeChanged("/content")
+            .verify(before, after);
     }
 
     @Test
-    public void shouldNotDeleteExistingNodesIfPreserveOnTarget() throws CommitFailedException, IOException {
+    public void shouldNotDeleteExistingNodesIfPreserveOnTarget()
+        throws CommitFailedException, IOException {
         final NodeStore source = createNodeStoreWithContent("/content/foo");
         final NodeStore target = createNodeStoreWithContent("/content/bar");
 
@@ -282,7 +285,7 @@ public class NodeStateCopierTest {
             .childNodeChanged("/content")
             .verify(before, after);
     }
-    
+
     @Test
     public void shouldIgnoreNonMatchingMergePaths() throws CommitFailedException, IOException {
         final NodeStore source = createNodeStoreWithContent("/content/foo");
@@ -290,16 +293,16 @@ public class NodeStateCopierTest {
 
         final NodeState before = target.getRoot();
         builder()
-                .merge("/con")
-                .copy(source, target);
+            .merge("/con")
+            .copy(source, target);
         final NodeState after = target.getRoot();
 
         expectDifference()
-                .strict()
-                .childNodeAdded("/content/foo")
-                .childNodeChanged("/content")
-                .childNodeDeleted("/content/bar")
-                .verify(before, after);
+            .strict()
+            .childNodeAdded("/content/foo")
+            .childNodeChanged("/content")
+            .childNodeDeleted("/content/bar")
+            .verify(before, after);
     }
 
     @Test
@@ -308,23 +311,24 @@ public class NodeStateCopierTest {
         final NodeStore target = createNodeStoreWithContent("/jcr:system/jcr:versionStorage");
 
         final NodeBuilder builder = source.getRoot().builder();
-        final PropertyState uuid = createProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
+        final PropertyState uuid = createProperty(JcrConstants.JCR_UUID,
+            UUID.randomUUID().toString());
         create(builder, "/jcr:system/jcr:versionStorage/frozen", ntFrozenNode, uuid);
         commit(source, builder);
 
         final NodeState before = target.getRoot();
         builder()
-                .withReferenceableFrozenNodes(false)
-                .copy(source, target);
+            .withReferenceableFrozenNodes(false)
+            .copy(source, target);
         final NodeState after = target.getRoot();
 
         expectDifference()
-                .strict()
-                .childNodeChanged("/jcr:system")
-                .childNodeChanged("/jcr:system/jcr:versionStorage")
-                .childNodeAdded("/jcr:system/jcr:versionStorage/frozen")
-                .propertyAdded("/jcr:system/jcr:versionStorage/frozen/jcr:primaryType")
-                .verify(before, after);
+            .strict()
+            .childNodeChanged("/jcr:system")
+            .childNodeChanged("/jcr:system/jcr:versionStorage")
+            .childNodeAdded("/jcr:system/jcr:versionStorage/frozen")
+            .propertyAdded("/jcr:system/jcr:versionStorage/frozen/jcr:primaryType")
+            .verify(before, after);
     }
 
     @Test
@@ -333,24 +337,25 @@ public class NodeStateCopierTest {
         final NodeStore target = createNodeStoreWithContent("/jcr:system/jcr:versionStorage");
 
         final NodeBuilder builder = source.getRoot().builder();
-        final PropertyState uuid = createProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
+        final PropertyState uuid = createProperty(JcrConstants.JCR_UUID,
+            UUID.randomUUID().toString());
         create(builder, "/jcr:system/jcr:versionStorage/frozen", ntFrozenNode, uuid);
         commit(source, builder);
 
         final NodeState before = target.getRoot();
         builder()
-                .withReferenceableFrozenNodes(true)
-                .copy(source, target);
+            .withReferenceableFrozenNodes(true)
+            .copy(source, target);
         final NodeState after = target.getRoot();
 
         expectDifference()
-                .strict()
-                .childNodeChanged("/jcr:system")
-                .childNodeChanged("/jcr:system/jcr:versionStorage")
-                .childNodeAdded("/jcr:system/jcr:versionStorage/frozen")
-                .propertyAdded("/jcr:system/jcr:versionStorage/frozen/jcr:uuid")
-                .propertyAdded("/jcr:system/jcr:versionStorage/frozen/jcr:primaryType")
-                .verify(before, after);
+            .strict()
+            .childNodeChanged("/jcr:system")
+            .childNodeChanged("/jcr:system/jcr:versionStorage")
+            .childNodeAdded("/jcr:system/jcr:versionStorage/frozen")
+            .propertyAdded("/jcr:system/jcr:versionStorage/frozen/jcr:uuid")
+            .propertyAdded("/jcr:system/jcr:versionStorage/frozen/jcr:primaryType")
+            .verify(before, after);
     }
 
     @Test

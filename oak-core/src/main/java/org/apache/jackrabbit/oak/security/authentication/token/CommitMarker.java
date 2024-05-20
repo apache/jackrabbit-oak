@@ -23,11 +23,13 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Marker object to help the {@link org.apache.jackrabbit.oak.security.authentication.token.TokenValidatorProvider.TokenValidator}
+ * Marker object to help the
+ * {@link
+ * org.apache.jackrabbit.oak.security.authentication.token.TokenValidatorProvider.TokenValidator}
  * identifying if login tokens have been issued and updated by the {@code TokenProvider}
- * implementation provided by this package and not through regular write
- * operations on the Oak API which doesn't enforce the protected status
- * of the login tokens as defined by this implementation.
+ * implementation provided by this package and not through regular write operations on the Oak API
+ * which doesn't enforce the protected status of the login tokens as defined by this
+ * implementation.
  */
 final class CommitMarker {
 
@@ -44,5 +46,6 @@ final class CommitMarker {
         return CommitMarker.INSTANCE == commitInfo.getInfo().get(CommitMarker.KEY);
     }
 
-    private CommitMarker() {}
+    private CommitMarker() {
+    }
 }

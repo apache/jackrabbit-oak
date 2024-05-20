@@ -52,47 +52,47 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * {@code AbstractTree} provides default implementations for most
- * read methods of {@code Tree}. Furthermore it handles hides hidden
- * items.
+ * {@code AbstractTree} provides default implementations for most read methods of {@code Tree}.
+ * Furthermore it handles hides hidden items.
  */
 public abstract class AbstractTree implements Tree {
 
     // TODO: make this configurable
     private static final String[] INTERNAL_NODE_NAMES = {
-            IndexConstants.INDEX_CONTENT_NODE_NAME,
-            NodeReferenceConstants.REF_NAME,
-            NodeReferenceConstants.WEAK_REF_NAME,
-            ConflictAnnotatingRebaseDiff.CONFLICT};
+        IndexConstants.INDEX_CONTENT_NODE_NAME,
+        NodeReferenceConstants.REF_NAME,
+        NodeReferenceConstants.WEAK_REF_NAME,
+        ConflictAnnotatingRebaseDiff.CONFLICT};
 
     /**
      * Factory method for creating child trees
-     * @param name  name of the child tree
+     *
+     * @param name name of the child tree
      * @return child tree of this tree with the given {@code name}
-     * @throws IllegalArgumentException if the given name string is empty
-     *                                  or contains the forward slash character
+     * @throws IllegalArgumentException if the given name string is empty or contains the forward
+     *                                  slash character
      */
     @NotNull
-    protected abstract AbstractTree createChild(@NotNull String name) throws IllegalArgumentException;
+    protected abstract AbstractTree createChild(@NotNull String name)
+        throws IllegalArgumentException;
 
     /**
-     * @return  the parent of this tree or {@code null} for the root
+     * @return the parent of this tree or {@code null} for the root
      */
     @Nullable
     protected abstract AbstractTree getParentOrNull();
 
     /**
-     * @return  The {@code NodeBuilder} for the underlying node state
+     * @return The {@code NodeBuilder} for the underlying node state
      */
     @NotNull
     protected abstract NodeBuilder getNodeBuilder();
 
     /**
-     * Determine whether an item should be hidden. I.e. not exposed through this
-     * tree.
+     * Determine whether an item should be hidden. I.e. not exposed through this tree.
      *
-     * @param name  name of an item
-     * @return  {@code true} if the item is hidden, {@code false} otherwise.
+     * @param name name of an item
+     * @return {@code true} if the item is hidden, {@code false} otherwise.
      */
     protected boolean isHidden(@NotNull String name) {
         return NodeStateUtils.isHidden(name);
@@ -104,7 +104,7 @@ public abstract class AbstractTree implements Tree {
     }
 
     /**
-     * @return  the underlying {@code NodeState} of this tree
+     * @return the underlying {@code NodeState} of this tree
      */
     @NotNull
     public NodeState getNodeState() {
@@ -112,16 +112,15 @@ public abstract class AbstractTree implements Tree {
     }
 
     /**
-     * @return {@code true} if this tree has orderable children;
-     *         {@code false} otherwise.
+     * @return {@code true} if this tree has orderable children; {@code false} otherwise.
      */
     protected boolean hasOrderableChildren() {
         return getNodeBuilder().hasProperty(OAK_CHILD_ORDER);
     }
 
     /**
-     * Returns the list of child names considering its ordering
-     * when the {@link TreeConstants#OAK_CHILD_ORDER} property is set.
+     * Returns the list of child names considering its ordering when the
+     * {@link TreeConstants#OAK_CHILD_ORDER} property is set.
      *
      * @return the list of child names.
      */

@@ -50,19 +50,19 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 public class EffectivePoliciesByPrincipalsAndPathsTest extends AbstractAccessControlTest {
-    
+
     private static final String EXISTING_CHILD_PATH = TEST_PATH + "/child";
     private static final String NON_EXISTING_CHILD_PATH = TEST_PATH + "/child2";
-    
+
     private AccessControlManagerImpl acMgr;
-    
+
     @Override
     @Before
     public void before() throws Exception {
         super.before();
 
         acMgr = new AccessControlManagerImpl(root, NamePathMapper.DEFAULT, getSecurityProvider());
-        
+
         testPrivileges = privilegesFromNames(JCR_READ);
         testPrincipal = getTestUser().getPrincipal();
 
@@ -70,16 +70,19 @@ public class EffectivePoliciesByPrincipalsAndPathsTest extends AbstractAccessCon
         Tree child = TreeUtil.addChild(t, "child", JcrConstants.NT_UNSTRUCTURED);
 
         ValueFactory vf = getValueFactory(root);
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, t.getPath());
-        acl.addEntry(testPrincipal, testPrivileges, true, Collections.emptyMap(), 
-                Collections.singletonMap(AccessControlConstants.REP_SUBTREES, new Value[] {vf.createValue("child"), vf.createValue("child2")}));
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr,
+            t.getPath());
+        acl.addEntry(testPrincipal, testPrivileges, true, Collections.emptyMap(),
+            Collections.singletonMap(AccessControlConstants.REP_SUBTREES,
+                new Value[]{vf.createValue("child"), vf.createValue("child2")}));
         acl.addEntry(EveryonePrincipal.getInstance(), testPrivileges, false);
         acMgr.setPolicy(acl.getPath(), acl);
 
         acl = AccessControlUtils.getAccessControlList(acMgr, null);
-        acl.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT), false);
+        acl.addEntry(EveryonePrincipal.getInstance(),
+            privilegesFromNames(PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT), false);
         acMgr.setPolicy(acl.getPath(), acl);
-        
+
         root.commit();
     }
 
@@ -103,56 +106,68 @@ public class EffectivePoliciesByPrincipalsAndPathsTest extends AbstractAccessCon
     public void testGetPoliciesInvalidPrincipal() throws Exception {
         acMgr.getEffectivePolicies(Collections.singleton(() -> "non-existing"), TEST_PATH);
     }
-    
+
     @Test
     public void testMissingPaths() throws Exception {
-        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(Collections.singleton(testPrincipal), new String[0]);
-        AccessControlPolicy[] expected = acMgr.getEffectivePolicies(Collections.singleton(testPrincipal));
-        
+        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(
+            Collections.singleton(testPrincipal), new String[0]);
+        AccessControlPolicy[] expected = acMgr.getEffectivePolicies(
+            Collections.singleton(testPrincipal));
+
         assertArrayEquals(expected, Iterators.toArray(effective, AccessControlPolicy.class));
     }
-    
+
     @Test
     public void testNullPath() throws Exception {
-        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(Collections.singleton(testPrincipal), new String[] {null});
+        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(
+            Collections.singleton(testPrincipal), new String[]{null});
         assertFalse(effective.hasNext());
 
-        effective = acMgr.getEffectivePolicies(Collections.singleton(EveryonePrincipal.getInstance()), new String[] {null});
+        effective = acMgr.getEffectivePolicies(
+            Collections.singleton(EveryonePrincipal.getInstance()), new String[]{null});
         assertEquals(1, Iterators.size(effective));
     }
 
     @Test
     public void testIncludingNullPath() throws Exception {
-        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(Collections.singleton(EveryonePrincipal.getInstance()), null, TEST_PATH);
+        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(
+            Collections.singleton(EveryonePrincipal.getInstance()), null, TEST_PATH);
         assertEquals(2, Iterators.size(effective));
     }
-    
+
     @Test
     public void testNonExistingMatchingNodePath() throws Exception {
-        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(Collections.singleton(testPrincipal), NON_EXISTING_CHILD_PATH);
+        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(
+            Collections.singleton(testPrincipal), NON_EXISTING_CHILD_PATH);
         assertEquals(1, Iterators.size(effective));
 
-        effective = acMgr.getEffectivePolicies(Collections.singleton(EveryonePrincipal.getInstance()), NON_EXISTING_CHILD_PATH);
+        effective = acMgr.getEffectivePolicies(
+            Collections.singleton(EveryonePrincipal.getInstance()), NON_EXISTING_CHILD_PATH);
         assertEquals(1, Iterators.size(effective));
 
         // AC setup for both principals is on the same node -> only one effective policy expected
-        effective = acMgr.getEffectivePolicies(ImmutableSet.of(EveryonePrincipal.getInstance(), testPrincipal), NON_EXISTING_CHILD_PATH);
+        effective = acMgr.getEffectivePolicies(
+            ImmutableSet.of(EveryonePrincipal.getInstance(), testPrincipal),
+            NON_EXISTING_CHILD_PATH);
         assertEquals(1, Iterators.size(effective));
     }
 
     @Test
     public void testNonExistingNotMatchingNodePath() throws Exception {
         String nonMatchingPath = "/any/path";
-        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(Collections.singleton(testPrincipal), nonMatchingPath);
+        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(
+            Collections.singleton(testPrincipal), nonMatchingPath);
         assertFalse(effective.hasNext());
 
-        effective = acMgr.getEffectivePolicies(Collections.singleton(EveryonePrincipal.getInstance()), nonMatchingPath);
+        effective = acMgr.getEffectivePolicies(
+            Collections.singleton(EveryonePrincipal.getInstance()), nonMatchingPath);
         assertFalse(effective.hasNext());
     }
-    
+
     @Test
     public void testNodePaths() throws Exception {
-        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(Collections.singleton(EveryonePrincipal.getInstance()), TEST_PATH);
+        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(
+            Collections.singleton(EveryonePrincipal.getInstance()), TEST_PATH);
         assertEquals(1, Iterators.size(effective));
     }
 
@@ -160,20 +175,23 @@ public class EffectivePoliciesByPrincipalsAndPathsTest extends AbstractAccessCon
     public void testPropertyPath() throws Exception {
         // prop path matching policy
         String propPath = PathUtils.concat(TEST_PATH, JCR_PRIMARYTYPE);
-        
-        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(Collections.singleton(EveryonePrincipal.getInstance()), propPath);
+
+        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(
+            Collections.singleton(EveryonePrincipal.getInstance()), propPath);
         assertEquals(1, Iterators.size(effective));
-        
-        // no matching policy 
-        effective = acMgr.getEffectivePolicies(Collections.singleton(testPrincipal), PathUtils.concat(TEST_PATH, JCR_PRIMARYTYPE));
-        
+
+        // no matching policy
+        effective = acMgr.getEffectivePolicies(Collections.singleton(testPrincipal),
+            PathUtils.concat(TEST_PATH, JCR_PRIMARYTYPE));
+
     }
-    
+
     @Test
     public void testRestrictions() throws Exception {
         Set<Principal> principalSet = Collections.singleton(testPrincipal);
         // ace for test-principal only takes effect in subtree
-        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(principalSet, TEST_PATH);
+        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(principalSet,
+            TEST_PATH);
         assertFalse(effective.hasNext());
 
         // node paths
@@ -192,14 +210,15 @@ public class EffectivePoliciesByPrincipalsAndPathsTest extends AbstractAccessCon
         effective = acMgr.getEffectivePolicies(principalSet, TEST_PATH + "/non-matching");
         assertFalse(effective.hasNext());
     }
-    
+
     @Test
     public void testReadablePaths() throws Exception {
-        Set<Principal> principalSet = ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance());
+        Set<Principal> principalSet = ImmutableSet.of(testPrincipal,
+            EveryonePrincipal.getInstance());
 
-        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(principalSet, 
-                NodeTypeConstants.NODE_TYPES_PATH, 
-                NamespaceConstants.NAMESPACES_PATH);
+        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(principalSet,
+            NodeTypeConstants.NODE_TYPES_PATH,
+            NamespaceConstants.NAMESPACES_PATH);
         assertEquals(1, Iterators.size(effective));
     }
 }

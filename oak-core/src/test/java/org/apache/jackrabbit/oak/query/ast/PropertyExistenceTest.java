@@ -26,27 +26,27 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.junit.Test;
 
 public class PropertyExistenceTest {
-    
+
     @Test
     public void coalesce() {
         CoalesceImpl c1 = new CoalesceImpl(
-                new PropertyValueImpl("a", "x"), 
-                new PropertyValueImpl("b", "y"));
+            new PropertyValueImpl("a", "x"),
+            new PropertyValueImpl("b", "y"));
         assertNull(c1.getPropertyExistence());
     }
 
     @Test
     public void orCoalesce() {
         CoalesceImpl c1 = new CoalesceImpl(
-                new PropertyValueImpl("a", "x"), 
-                new PropertyValueImpl("b", "y"));
+            new PropertyValueImpl("a", "x"),
+            new PropertyValueImpl("b", "y"));
         ComparisonImpl comp1 = new ComparisonImpl(c1, Operator.EQUAL,
-                new LiteralImpl(PropertyValues.newString("hello")));        
+            new LiteralImpl(PropertyValues.newString("hello")));
         CoalesceImpl c2 = new CoalesceImpl(
-                new PropertyValueImpl("a", "x"), 
-                new PropertyValueImpl("b", "y"));
+            new PropertyValueImpl("a", "x"),
+            new PropertyValueImpl("b", "y"));
         ComparisonImpl comp2 = new ComparisonImpl(c2, Operator.EQUAL,
-                new LiteralImpl(PropertyValues.newString("world")));
+            new LiteralImpl(PropertyValues.newString("world")));
         OrImpl or = new OrImpl(comp1, comp2);
         assertTrue(or.getPropertyExistenceConditions().isEmpty());
     }
@@ -55,33 +55,33 @@ public class PropertyExistenceTest {
     public void orX() {
         PropertyValueImpl p1 = new PropertyValueImpl("a", "x");
         ComparisonImpl comp1 = new ComparisonImpl(p1, Operator.EQUAL,
-                new LiteralImpl(PropertyValues.newString("hello")));        
+            new LiteralImpl(PropertyValues.newString("hello")));
         PropertyValueImpl p2 = new PropertyValueImpl("a", "x");
         ComparisonImpl comp2 = new ComparisonImpl(p2, Operator.EQUAL,
-                new LiteralImpl(PropertyValues.newString("world")));
+            new LiteralImpl(PropertyValues.newString("world")));
         OrImpl or = new OrImpl(comp1, comp2);
-        assertEquals("[[a].[x] is not null]", 
-                or.getPropertyExistenceConditions().toString());
+        assertEquals("[[a].[x] is not null]",
+            or.getPropertyExistenceConditions().toString());
     }
-    
+
     @Test
     public void in() {
         PropertyValueImpl p1 = new PropertyValueImpl("a", "x");
         InImpl in = new InImpl(p1, Arrays.asList(
-                new LiteralImpl(PropertyValues.newString("hello")),
-                new LiteralImpl(PropertyValues.newString("hello"))));
-        assertEquals("[[a].[x] is not null]", 
-                in.getPropertyExistenceConditions().toString());
-    }    
-    
+            new LiteralImpl(PropertyValues.newString("hello")),
+            new LiteralImpl(PropertyValues.newString("hello"))));
+        assertEquals("[[a].[x] is not null]",
+            in.getPropertyExistenceConditions().toString());
+    }
+
     @Test
     public void orXY() {
         PropertyValueImpl p1 = new PropertyValueImpl("a", "x");
         ComparisonImpl comp1 = new ComparisonImpl(p1, Operator.EQUAL,
-                new LiteralImpl(PropertyValues.newString("hello")));        
+            new LiteralImpl(PropertyValues.newString("hello")));
         PropertyValueImpl p2 = new PropertyValueImpl("b", "y");
         ComparisonImpl comp2 = new ComparisonImpl(p2, Operator.EQUAL,
-                new LiteralImpl(PropertyValues.newString("world")));
+            new LiteralImpl(PropertyValues.newString("world")));
         OrImpl or = new OrImpl(comp1, comp2);
         assertEquals("[]", or.getPropertyExistenceConditions().toString());
     }
@@ -90,13 +90,13 @@ public class PropertyExistenceTest {
     public void andXY() {
         PropertyValueImpl p1 = new PropertyValueImpl("a", "x");
         ComparisonImpl comp1 = new ComparisonImpl(p1, Operator.EQUAL,
-                new LiteralImpl(PropertyValues.newString("hello")));        
+            new LiteralImpl(PropertyValues.newString("hello")));
         PropertyValueImpl p2 = new PropertyValueImpl("b", "y");
         ComparisonImpl comp2 = new ComparisonImpl(p2, Operator.EQUAL,
-                new LiteralImpl(PropertyValues.newString("world")));
+            new LiteralImpl(PropertyValues.newString("world")));
         AndImpl or = new AndImpl(comp1, comp2);
-        assertEquals("[[a].[x] is not null, [b].[y] is not null]", 
-                or.getPropertyExistenceConditions().toString());
+        assertEquals("[[a].[x] is not null, [b].[y] is not null]",
+            or.getPropertyExistenceConditions().toString());
     }
 
 }

@@ -49,8 +49,10 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
 
     private final TreeProvider treeProvider;
 
-    TokenValidatorProvider(@NotNull ConfigurationParameters userConfig, @NotNull TreeProvider treeProvider) {
-        userRootPath = userConfig.getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
+    TokenValidatorProvider(@NotNull ConfigurationParameters userConfig,
+        @NotNull TreeProvider treeProvider) {
+        userRootPath = userConfig.getConfigValue(UserConstants.PARAM_USER_PATH,
+            UserConstants.DEFAULT_USER_PATH);
         this.treeProvider = treeProvider;
     }
 
@@ -76,11 +78,14 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
         private final Tree parentAfter;
         private final CommitInfo commitInfo;
 
-        TokenValidator(@NotNull NodeState parentBefore, @NotNull NodeState parentAfter, @NotNull CommitInfo commitInfo) {
-            this(treeProvider.createReadOnlyTree(parentBefore), treeProvider.createReadOnlyTree(parentAfter), commitInfo);
+        TokenValidator(@NotNull NodeState parentBefore, @NotNull NodeState parentAfter,
+            @NotNull CommitInfo commitInfo) {
+            this(treeProvider.createReadOnlyTree(parentBefore),
+                treeProvider.createReadOnlyTree(parentAfter), commitInfo);
         }
 
-        private TokenValidator(@NotNull Tree parentBefore, @NotNull Tree parentAfter, @NotNull CommitInfo commitInfo) {
+        private TokenValidator(@NotNull Tree parentBefore, @NotNull Tree parentAfter,
+            @NotNull CommitInfo commitInfo) {
             this.parentBefore = parentBefore;
             this.parentAfter = parentAfter;
             this.commitInfo = commitInfo;
@@ -109,7 +114,8 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
         }
 
         @Override
-        public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
+        public void propertyChanged(PropertyState before, PropertyState after)
+            throws CommitFailedException {
             String propertyName = after.getName();
             if (TOKEN_ATTRIBUTE_KEY.equals(propertyName)) {
                 String msg = "Attempt to change reserved token property " + propertyName;
@@ -118,16 +124,20 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
                 verifyCommitInfo();
             } else if (JcrConstants.JCR_PRIMARYTYPE.equals(propertyName)) {
                 if (TOKEN_NT_NAME.equals(after.getValue(Type.STRING))) {
-                    throw constraintViolation(62, "Changing primary type of existing node to the reserved token node type.");
+                    throw constraintViolation(62,
+                        "Changing primary type of existing node to the reserved token node type.");
                 }
-                if (isTokensParent(parentAfter) && TOKENS_NT_NAME.equals(before.getValue(Type.STRING))) {
-                    throw constraintViolation(69, "Cannot change the primary type of an existing .tokens node.");
+                if (isTokensParent(parentAfter) && TOKENS_NT_NAME.equals(
+                    before.getValue(Type.STRING))) {
+                    throw constraintViolation(69,
+                        "Cannot change the primary type of an existing .tokens node.");
                 }
             }
         }
 
         @Override
-        public @Nullable Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
+        public @Nullable Validator childNodeAdded(String name, NodeState after)
+            throws CommitFailedException {
             Tree tree = parentAfter.getChild(name);
             if (isTokenTree(tree)) {
                 validateTokenTree(tree);
@@ -140,7 +150,8 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
         }
 
         @Override
-        public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+        public Validator childNodeChanged(String name, NodeState before, NodeState after)
+            throws CommitFailedException {
             Tree beforeTree = verifyNotNull(parentBefore).getChild(name);
             Tree afterTree = parentAfter.getChild(name);
 
@@ -150,20 +161,24 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
                 validateTokensParent(afterTree);
             }
 
-            return new VisibleValidator(new TokenValidator(beforeTree, afterTree, commitInfo), true, true);
+            return new VisibleValidator(new TokenValidator(beforeTree, afterTree, commitInfo), true,
+                true);
         }
 
         //--------------------------------------------------------< private >---
 
         private void verifyCommitInfo() throws CommitFailedException {
             if (!CommitMarker.isValidCommitInfo(commitInfo)) {
-                throw constraintViolation(63, "Attempt to manually create or change a token node or it's parent.");
+                throw constraintViolation(63,
+                    "Attempt to manually create or change a token node or it's parent.");
             }
         }
 
         private void verifyHierarchy(@NotNull String path) throws CommitFailedException {
             if (!Text.isDescendant(userRootPath, path)) {
-                String msg = "Attempt to create a token (or it's parent) outside of configured scope " + path;
+                String msg =
+                    "Attempt to create a token (or it's parent) outside of configured scope "
+                        + path;
                 throw constraintViolation(64, msg);
             }
         }
@@ -179,7 +194,8 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
             verifyHierarchy(tokenTree.getPath());
 
             Tree parent = tokenTree.getParent();
-            if (!isTokensParent(parent) || !UserConstants.NT_REP_USER.equals(TreeUtil.getPrimaryTypeName(parent.getParent()))) {
+            if (!isTokensParent(parent) || !UserConstants.NT_REP_USER.equals(
+                TreeUtil.getPrimaryTypeName(parent.getParent()))) {
                 throw constraintViolation(65, "Invalid location of token node.");
             }
 

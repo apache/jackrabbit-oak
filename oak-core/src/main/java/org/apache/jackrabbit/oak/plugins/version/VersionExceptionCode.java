@@ -19,8 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.version;
 
 /**
- * {@code VersionExceptionCode} contains the codes for version related
- * commit failures.
+ * {@code VersionExceptionCode} contains the codes for version related commit failures.
  */
 enum VersionExceptionCode {
 

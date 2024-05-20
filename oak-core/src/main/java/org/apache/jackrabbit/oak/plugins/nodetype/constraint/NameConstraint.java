@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class NameConstraint implements Predicate<Value> {
+
     private static final Logger log = LoggerFactory.getLogger(NameConstraint.class);
 
     private final String requiredValue;
@@ -37,9 +38,9 @@ public class NameConstraint implements Predicate<Value> {
     @Override
     public boolean test(@Nullable Value value) {
         try {
-            return value != null && requiredValue != null && requiredValue.equals(value.getString());
-        }
-        catch (RepositoryException e) {
+            return value != null && requiredValue != null && requiredValue.equals(
+                value.getString());
+        } catch (RepositoryException e) {
             log.warn("Error checking name constraint " + this, e);
             return false;
         }

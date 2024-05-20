@@ -31,10 +31,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * {@code AccessControlValidatorProvider} aimed to provide a root validator
- * that makes sure access control related content modifications (adding, modifying
- * and removing access control policies) are valid according to the
- * constraints defined by this access control implementation.
+ * {@code AccessControlValidatorProvider} aimed to provide a root validator that makes sure access
+ * control related content modifications (adding, modifying and removing access control policies)
+ * are valid according to the constraints defined by this access control implementation.
  */
 public class AccessControlValidatorProvider extends ValidatorProvider {
 
@@ -49,13 +48,16 @@ public class AccessControlValidatorProvider extends ValidatorProvider {
     @Override
     public Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
 
-        RestrictionProvider restrictionProvider = getConfig(AuthorizationConfiguration.class).getRestrictionProvider();
+        RestrictionProvider restrictionProvider = getConfig(
+            AuthorizationConfiguration.class).getRestrictionProvider();
 
         Root root = providerCtx.getRootProvider().createReadOnlyRoot(before);
-        PrivilegeManager privilegeManager = getConfig(PrivilegeConfiguration.class).getPrivilegeManager(root, NamePathMapper.DEFAULT);
+        PrivilegeManager privilegeManager = getConfig(
+            PrivilegeConfiguration.class).getPrivilegeManager(root, NamePathMapper.DEFAULT);
         PrivilegeBitsProvider privilegeBitsProvider = new PrivilegeBitsProvider(root);
 
-        return new AccessControlValidator(after, privilegeManager, privilegeBitsProvider, restrictionProvider, providerCtx);
+        return new AccessControlValidator(after, privilegeManager, privilegeBitsProvider,
+            restrictionProvider, providerCtx);
     }
 
     private <T> T getConfig(Class<T> configClass) {

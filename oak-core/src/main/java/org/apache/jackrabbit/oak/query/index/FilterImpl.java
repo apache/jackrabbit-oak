@@ -26,21 +26,19 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
-
 import javax.jcr.PropertyType;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.query.ast.JoinConditionImpl;
 import org.apache.jackrabbit.oak.query.ast.NativeFunctionImpl;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -54,9 +52,9 @@ public class FilterImpl implements Filter {
      * The selector this filter applies to.
      */
     private final SelectorImpl selector;
-    
+
     private final String queryStatement;
-    
+
     private final QueryLimits settings;
 
     /**
@@ -65,21 +63,20 @@ public class FilterImpl implements Filter {
     private boolean alwaysFalse;
 
     /**
-     * inherited from the selector, duplicated here so it can be over-written by
-     * other filters
+     * inherited from the selector, duplicated here so it can be over-written by other filters
      */
     private boolean matchesAllTypes;
 
     /**
-     *  The path, or "/" (the root node, meaning no filter) if not set.
+     * The path, or "/" (the root node, meaning no filter) if not set.
      */
     private String path = "/";
-    
+
     private PathRestriction pathRestriction = PathRestriction.NO_RESTRICTION;
 
     /**
-     * Additional path restrictions whose values are known only at runtime,
-     * for example paths set by other (join-) selectors.
+     * Additional path restrictions whose values are known only at runtime, for example paths set by
+     * other (join-) selectors.
      */
     private String pathPlan;
 
@@ -87,24 +84,24 @@ public class FilterImpl implements Filter {
      * The fulltext search conditions, if any.
      */
     private final ArrayList<String> fulltextConditions = new ArrayList<String>();
-    
+
     private FullTextExpression fullTextConstraint;
 
     /**
      * The list of restrictions for each property. A restriction may be x=1.
      * <p>
-     * Each property may have multiple restrictions, which means all
-     * restrictions must apply, for example x=1 and x=2. For this case, only
-     * multi-valued properties match if it contains both the values 1 and 2.
+     * Each property may have multiple restrictions, which means all restrictions must apply, for
+     * example x=1 and x=2. For this case, only multi-valued properties match if it contains both
+     * the values 1 and 2.
      */
     private final ListMultimap<String, PropertyRestriction> propertyRestrictions =
-            ArrayListMultimap.create();
+        ArrayListMultimap.create();
 
     /**
      * Only return distinct values.
      */
     private boolean distinct;
-    
+
     /**
      * Set during the prepare phase of a query.
      */
@@ -113,17 +110,16 @@ public class FilterImpl implements Filter {
     // TODO support "order by"
 
     /**
-     * Create a new filter instance that is used for unit testing. This method
-     * is relatively slow, because it creates a new query engine setting object.
-     * Therefore, it is only to be used for testing. At runtime, the
-     * public constructor should be used instead.
-     * 
+     * Create a new filter instance that is used for unit testing. This method is relatively slow,
+     * because it creates a new query engine setting object. Therefore, it is only to be used for
+     * testing. At runtime, the public constructor should be used instead.
+     *
      * @return the filter
      */
     public static FilterImpl newTestInstance() {
         return new FilterImpl();
     }
-    
+
     private FilterImpl() {
         this(null, null, new QueryLimits() {
 
@@ -146,21 +142,21 @@ public class FilterImpl implements Filter {
             public boolean getFailTraversal() {
                 return false;
             }
-            
+
         });
     }
 
     /**
      * Create a filter.
-     * 
-     * @param selector the selector for the given filter
+     *
+     * @param selector       the selector for the given filter
      * @param queryStatement the query statement
      */
     public FilterImpl(SelectorImpl selector, String queryStatement, QueryLimits settings) {
         this.selector = selector;
         this.queryStatement = queryStatement;
         this.matchesAllTypes = selector != null ? selector.matchesAllTypes()
-                : false;
+            : false;
         this.settings = settings;
     }
 
@@ -176,23 +172,22 @@ public class FilterImpl implements Filter {
         this.queryStatement = impl.queryStatement;
         this.selector = impl.selector;
         this.matchesAllTypes = selector != null ? selector.matchesAllTypes()
-                : false;
+            : false;
         this.settings = filter.getQueryLimits();
     }
 
     public void setPreparing(boolean preparing) {
         this.preparing = preparing;
     }
-    
+
     public boolean isPreparing() {
         return preparing;
     }
-    
+
     /**
-     * Whether the given selector is already prepared during the prepare phase
-     * of a join. That means, check whether the passed selector can already
-     * provide data.
-     * 
+     * Whether the given selector is already prepared during the prepare phase of a join. That
+     * means, check whether the passed selector can already provide data.
+     *
      * @param selector the selector to test
      * @return true if it is already prepared
      */
@@ -214,7 +209,7 @@ public class FilterImpl implements Filter {
     public PathRestriction getPathRestriction() {
         return pathRestriction;
     }
-    
+
     @Override
     public String getPathPlan() {
         StringBuilder buff = new StringBuilder();
@@ -257,7 +252,8 @@ public class FilterImpl implements Filter {
         return selector;
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public String getNodeType() {
         if (selector == null) {
             return null;
@@ -270,7 +266,8 @@ public class FilterImpl implements Filter {
         return matchesAllTypes;
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Set<String> getSupertypes() {
         if (selector == null) {
             return Collections.emptySet();
@@ -278,19 +275,21 @@ public class FilterImpl implements Filter {
         return selector.getSupertypes();
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Set<String> getPrimaryTypes() {
         if (selector == null) {
             return Collections.emptySet();
-        }        
+        }
         return selector.getPrimaryTypes();
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Set<String> getMixinTypes() {
         if (selector == null) {
             return Collections.emptySet();
-        }             
+        }
         return selector.getMixinTypes();
     }
 
@@ -324,18 +323,18 @@ public class FilterImpl implements Filter {
             return false;
         }
         switch (pathRestriction) {
-        case NO_RESTRICTION:
-            return true;
-        case EXACT:
-            return path.matches(this.path);
-        case PARENT:
-            return PathUtils.getParentPath(this.path).equals(path);
-        case DIRECT_CHILDREN:
-            return PathUtils.getParentPath(path).equals(this.path);
-        case ALL_CHILDREN:
-            return PathUtils.isAncestor(this.path, path);
-        default:
-            throw new IllegalArgumentException("Unknown path restriction: " + pathRestriction);
+            case NO_RESTRICTION:
+                return true;
+            case EXACT:
+                return path.matches(this.path);
+            case PARENT:
+                return PathUtils.getParentPath(this.path).equals(path);
+            case DIRECT_CHILDREN:
+                return PathUtils.getParentPath(path).equals(this.path);
+            case ALL_CHILDREN:
+                return PathUtils.isAncestor(this.path, path);
+            default:
+                throw new IllegalArgumentException("Unknown path restriction: " + pathRestriction);
         }
     }
 
@@ -345,57 +344,57 @@ public class FilterImpl implements Filter {
         x.list = list;
         addRestriction(x);
     }
-    
+
     public void restrictProperty(String propertyName, Operator op, PropertyValue v) {
         restrictProperty(propertyName, op, v, PropertyType.UNDEFINED);
     }
 
-    public void restrictProperty(String propertyName, Operator op, PropertyValue v, int propertyType) {
+    public void restrictProperty(String propertyName, Operator op, PropertyValue v,
+        int propertyType) {
         PropertyRestriction x = new PropertyRestriction();
         x.propertyName = propertyName;
         x.propertyType = propertyType;
         switch (op) {
-        case EQUAL:
-            x.first = x.last = v;
-            x.firstIncluding = x.lastIncluding = true;
-            break;
-        case NOT_EQUAL:
-            if (v != null) {
-                // This will be used to add the MUST_NOT clause while creating the final lucene query which will make the query as
-                // - prop:value instead of +prop:value
-                x.isNot = true;
-                x.not = v;
-            }
-            break;
-        case GREATER_THAN:
-            x.first = v;
-            x.firstIncluding = false;
-            break;
-        case GREATER_OR_EQUAL:
-            x.first = v;
-            x.firstIncluding = true;
-            break;
-        case LESS_THAN:
-            x.last = v;
-            x.lastIncluding = false;
-            break;
-        case LESS_OR_EQUAL:
-            x.last = v;
-            x.lastIncluding = true;
-            break;
-        case LIKE:
-            // LIKE is handled in the fulltext index
-            x.isLike = true;
-            x.first = v;
-            break;
+            case EQUAL:
+                x.first = x.last = v;
+                x.firstIncluding = x.lastIncluding = true;
+                break;
+            case NOT_EQUAL:
+                if (v != null) {
+                    // This will be used to add the MUST_NOT clause while creating the final lucene query which will make the query as
+                    // - prop:value instead of +prop:value
+                    x.isNot = true;
+                    x.not = v;
+                }
+                break;
+            case GREATER_THAN:
+                x.first = v;
+                x.firstIncluding = false;
+                break;
+            case GREATER_OR_EQUAL:
+                x.first = v;
+                x.firstIncluding = true;
+                break;
+            case LESS_THAN:
+                x.last = v;
+                x.lastIncluding = false;
+                break;
+            case LESS_OR_EQUAL:
+                x.last = v;
+                x.lastIncluding = true;
+                break;
+            case LIKE:
+                // LIKE is handled in the fulltext index
+                x.isLike = true;
+                x.first = v;
+                break;
         }
         addRestriction(x);
     }
-    
+
     /**
-     * Add a restriction for the given property, unless the exact same
-     * restriction is already set.
-     * 
+     * Add a restriction for the given property, unless the exact same restriction is already set.
+     *
      * @param restriction the restriction to add
      */
     private void addRestriction(PropertyRestriction restriction) {
@@ -407,7 +406,7 @@ public class FilterImpl implements Filter {
         }
         list.add(restriction);
     }
-    
+
     @Override
     public List<PropertyRestriction> getPropertyRestrictions(String propertyName) {
         return propertyRestrictions.get(propertyName);
@@ -443,8 +442,8 @@ public class FilterImpl implements Filter {
         buff.append(", path=").append(getPathPlan());
         if (!propertyRestrictions.isEmpty()) {
             buff.append(", property=[");
-            Iterator<Entry<String, Collection<PropertyRestriction>>> iterator = 
-                    new TreeMap<String, Collection<PropertyRestriction>>(propertyRestrictions
+            Iterator<Entry<String, Collection<PropertyRestriction>>> iterator =
+                new TreeMap<String, Collection<PropertyRestriction>>(propertyRestrictions
                     .asMap()).entrySet().iterator();
             while (iterator.hasNext()) {
                 Entry<String, Collection<PropertyRestriction>> p = iterator.next();
@@ -465,7 +464,7 @@ public class FilterImpl implements Filter {
             addedPath = "/";
         }
         if (addedPath.startsWith(JoinConditionImpl.SPECIAL_PATH_PREFIX)) {
-            // not a real path, that means we only adapt the plan 
+            // not a real path, that means we only adapt the plan
             // and that's it
             if (pathPlan == null) {
                 pathPlan = "";
@@ -475,116 +474,117 @@ public class FilterImpl implements Filter {
             pathPlan += addedPath + addedPathRestriction;
             return;
         }
-        
+
         // calculating the intersection of path restrictions
         // this is ugly code, but I don't currently see a radically simpler method
         switch (addedPathRestriction) {
-        case NO_RESTRICTION:
-            break;
-        case PARENT:
-            switch (pathRestriction) {
             case NO_RESTRICTION:
                 break;
             case PARENT:
-                // ignore as it's fast anyway
-                // (would need to loop to find a common ancestor)
-                break;
-            case EXACT:
-            case ALL_CHILDREN:
-            case DIRECT_CHILDREN:
-                if (!PathUtils.isAncestor(path, addedPath)) {
-                    setAlwaysFalse();
+                switch (pathRestriction) {
+                    case NO_RESTRICTION:
+                        break;
+                    case PARENT:
+                        // ignore as it's fast anyway
+                        // (would need to loop to find a common ancestor)
+                        break;
+                    case EXACT:
+                    case ALL_CHILDREN:
+                    case DIRECT_CHILDREN:
+                        if (!PathUtils.isAncestor(path, addedPath)) {
+                            setAlwaysFalse();
+                        }
+                        break;
                 }
-                break;
-            }
-            pathRestriction = PathRestriction.PARENT;
-            path = addedPath;
-            break;
-        case EXACT:
-            switch (pathRestriction) {
-            case NO_RESTRICTION:
-                break;
-            case PARENT:
-                if (!PathUtils.isAncestor(addedPath, path)) {
-                    setAlwaysFalse();
-                }
-                break;
-            case EXACT:
-                if (!addedPath.equals(path)) {
-                    setAlwaysFalse();
-                }
-                break;
-            case ALL_CHILDREN:
-                if (!PathUtils.isAncestor(path, addedPath)) {
-                    setAlwaysFalse();
-                }
-                break;
-            case DIRECT_CHILDREN:
-                if (!PathUtils.getParentPath(addedPath).equals(path)) {
-                    setAlwaysFalse();
-                }
-                break;
-            }
-            path = addedPath;
-            pathRestriction = PathRestriction.EXACT;
-            break;
-        case ALL_CHILDREN:
-            switch (pathRestriction) {
-            case NO_RESTRICTION:
+                pathRestriction = PathRestriction.PARENT;
                 path = addedPath;
-                pathRestriction = PathRestriction.ALL_CHILDREN;
                 break;
-            case PARENT:
             case EXACT:
-                if (!PathUtils.isAncestor(addedPath, path)) {
-                    setAlwaysFalse();
+                switch (pathRestriction) {
+                    case NO_RESTRICTION:
+                        break;
+                    case PARENT:
+                        if (!PathUtils.isAncestor(addedPath, path)) {
+                            setAlwaysFalse();
+                        }
+                        break;
+                    case EXACT:
+                        if (!addedPath.equals(path)) {
+                            setAlwaysFalse();
+                        }
+                        break;
+                    case ALL_CHILDREN:
+                        if (!PathUtils.isAncestor(path, addedPath)) {
+                            setAlwaysFalse();
+                        }
+                        break;
+                    case DIRECT_CHILDREN:
+                        if (!PathUtils.getParentPath(addedPath).equals(path)) {
+                            setAlwaysFalse();
+                        }
+                        break;
                 }
-                break;
-            case ALL_CHILDREN:
-                if (PathUtils.isAncestor(path, addedPath)) {
-                    path = addedPath;
-                } else if (!path.equals(addedPath) && !PathUtils.isAncestor(addedPath, path)) {
-                    setAlwaysFalse();
-                }
-                break;
-            case DIRECT_CHILDREN:
-                if (!path.equals(addedPath) && !PathUtils.isAncestor(addedPath, path)) {
-                    setAlwaysFalse();
-                }
-                break;
-            }
-            break;
-        case DIRECT_CHILDREN:
-            switch (pathRestriction) {
-            case NO_RESTRICTION:
                 path = addedPath;
-                pathRestriction = PathRestriction.DIRECT_CHILDREN;
-                break;
-            case PARENT:
-                if (!PathUtils.isAncestor(addedPath, path)) {
-                    setAlwaysFalse();
-                }
-                break;
-            case EXACT:
-                if (!PathUtils.getParentPath(path).equals(addedPath)) {
-                    setAlwaysFalse();
-                }
+                pathRestriction = PathRestriction.EXACT;
                 break;
             case ALL_CHILDREN:
-                if (!path.equals(addedPath) && !PathUtils.isAncestor(path, addedPath)) {
-                    setAlwaysFalse();
-                } else {
-                    path = addedPath;
-                    pathRestriction = PathRestriction.DIRECT_CHILDREN;
+                switch (pathRestriction) {
+                    case NO_RESTRICTION:
+                        path = addedPath;
+                        pathRestriction = PathRestriction.ALL_CHILDREN;
+                        break;
+                    case PARENT:
+                    case EXACT:
+                        if (!PathUtils.isAncestor(addedPath, path)) {
+                            setAlwaysFalse();
+                        }
+                        break;
+                    case ALL_CHILDREN:
+                        if (PathUtils.isAncestor(path, addedPath)) {
+                            path = addedPath;
+                        } else if (!path.equals(addedPath) && !PathUtils.isAncestor(addedPath,
+                            path)) {
+                            setAlwaysFalse();
+                        }
+                        break;
+                    case DIRECT_CHILDREN:
+                        if (!path.equals(addedPath) && !PathUtils.isAncestor(addedPath, path)) {
+                            setAlwaysFalse();
+                        }
+                        break;
                 }
                 break;
             case DIRECT_CHILDREN:
-                if (!path.equals(addedPath)) {
-                    setAlwaysFalse();
+                switch (pathRestriction) {
+                    case NO_RESTRICTION:
+                        path = addedPath;
+                        pathRestriction = PathRestriction.DIRECT_CHILDREN;
+                        break;
+                    case PARENT:
+                        if (!PathUtils.isAncestor(addedPath, path)) {
+                            setAlwaysFalse();
+                        }
+                        break;
+                    case EXACT:
+                        if (!PathUtils.getParentPath(path).equals(addedPath)) {
+                            setAlwaysFalse();
+                        }
+                        break;
+                    case ALL_CHILDREN:
+                        if (!path.equals(addedPath) && !PathUtils.isAncestor(path, addedPath)) {
+                            setAlwaysFalse();
+                        } else {
+                            path = addedPath;
+                            pathRestriction = PathRestriction.DIRECT_CHILDREN;
+                        }
+                        break;
+                    case DIRECT_CHILDREN:
+                        if (!path.equals(addedPath)) {
+                            setAlwaysFalse();
+                        }
+                        break;
                 }
                 break;
-            }
-            break;
         }
     }
 
@@ -593,20 +593,20 @@ public class FilterImpl implements Filter {
         // TODO support fulltext conditions on certain properties
         return fulltextConditions;
     }
-    
+
     public void restrictFulltextCondition(String condition) {
         fulltextConditions.add(condition);
     }
-    
+
     public void setFullTextConstraint(FullTextExpression constraint) {
         this.fullTextConstraint = constraint;
     }
-    
+
     @Override
     public FullTextExpression getFullTextConstraint() {
         return fullTextConstraint;
     }
-    
+
     @Override
     public boolean containsNativeConstraint() {
         for (String p : propertyRestrictions.keySet()) {
@@ -634,8 +634,10 @@ public class FilterImpl implements Filter {
 
     @Override
     public boolean isAccessible(String path) {
-        PermissionProvider permissionProvider = selector.getQuery().getExecutionContext().getPermissionProvider();
-        return permissionProvider != null && permissionProvider.isGranted(path, Session.ACTION_READ);
+        PermissionProvider permissionProvider = selector.getQuery().getExecutionContext()
+                                                        .getPermissionProvider();
+        return permissionProvider != null && permissionProvider.isGranted(path,
+            Session.ACTION_READ);
     }
 
 }

@@ -33,11 +33,10 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Default implementation of {@link PropertyIndexAsyncReindexMBean} based on a
- * {@code Runnable}.
+ * Default implementation of {@link PropertyIndexAsyncReindexMBean} based on a {@code Runnable}.
  */
 public class PropertyIndexAsyncReindex implements
-        PropertyIndexAsyncReindexMBean {
+    PropertyIndexAsyncReindexMBean {
 
     public static final String OP_NAME = "Property index asynchronous reindex";
 
@@ -48,11 +47,10 @@ public class PropertyIndexAsyncReindex implements
 
     /**
      * @param async
-     * @param executor
-     *            executor for running the garbage collection task
+     * @param executor executor for running the garbage collection task
      */
     public PropertyIndexAsyncReindex(@NotNull AsyncIndexUpdate async,
-            @NotNull Executor executor) {
+        @NotNull Executor executor) {
         this.async = checkNotNull(async);
         this.executor = checkNotNull(executor);
     }

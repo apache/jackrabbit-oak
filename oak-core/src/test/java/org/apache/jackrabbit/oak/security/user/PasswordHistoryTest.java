@@ -48,10 +48,11 @@ import static org.junit.Assert.fail;
 public class PasswordHistoryTest extends AbstractSecurityTest implements UserConstants {
 
     private static final String[] PASSWORDS = {
-            "abc", "def", "ghi", "jkl", "mno", "pqr", "stu", "vwx", "yz0", "123", "456", "789"
+        "abc", "def", "ghi", "jkl", "mno", "pqr", "stu", "vwx", "yz0", "123", "456", "789"
     };
 
-    private static final ConfigurationParameters CONFIG = ConfigurationParameters.of(PARAM_PASSWORD_HISTORY_SIZE, 10);
+    private static final ConfigurationParameters CONFIG = ConfigurationParameters.of(
+        PARAM_PASSWORD_HISTORY_SIZE, 10);
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
@@ -60,8 +61,10 @@ public class PasswordHistoryTest extends AbstractSecurityTest implements UserCon
 
     @NotNull
     private List<String> getHistory(@NotNull User user) throws RepositoryException {
-        Iterable<String> history = TreeUtil.getStrings(root.getTree(user.getPath()).getChild(REP_PWD), REP_PWD_HISTORY);
-        return (history == null) ? Collections.emptyList() : ImmutableList.copyOf(history).reverse();
+        Iterable<String> history = TreeUtil.getStrings(
+            root.getTree(user.getPath()).getChild(REP_PWD), REP_PWD_HISTORY);
+        return (history == null) ? Collections.emptyList()
+            : ImmutableList.copyOf(history).reverse();
     }
 
     /**
@@ -188,7 +191,7 @@ public class PasswordHistoryTest extends AbstractSecurityTest implements UserCon
             user.changePassword("abc");
             fail("history violation not detected");
         } catch (ConstraintViolationException e) {
-            String[] expected = new String[] {user.getID(), "abc"};
+            String[] expected = new String[]{user.getID(), "abc"};
             int i = 0;
             for (String pwHash : getHistory(user)) {
                 assertTrue(PasswordUtil.isSame(pwHash, expected[i++]));
@@ -205,7 +208,8 @@ public class PasswordHistoryTest extends AbstractSecurityTest implements UserCon
 
     @Test
     public void testHistoryUpperLimit() throws Exception {
-        PasswordHistory history = new PasswordHistory(ConfigurationParameters.of(PARAM_PASSWORD_HISTORY_SIZE, Integer.MAX_VALUE));
+        PasswordHistory history = new PasswordHistory(
+            ConfigurationParameters.of(PARAM_PASSWORD_HISTORY_SIZE, Integer.MAX_VALUE));
 
         assertTrue(isEnabled(history));
         assertEquals(1000, getMaxSize(history).longValue());
@@ -217,10 +221,10 @@ public class PasswordHistoryTest extends AbstractSecurityTest implements UserCon
         Tree userTree = root.getTree(user.getPath());
 
         List<ConfigurationParameters> configs = ImmutableList.of(
-                ConfigurationParameters.EMPTY,
-                ConfigurationParameters.of(PARAM_PASSWORD_HISTORY_SIZE, PASSWORD_HISTORY_DISABLED_SIZE),
-                ConfigurationParameters.of(PARAM_PASSWORD_HISTORY_SIZE, -1),
-                ConfigurationParameters.of(PARAM_PASSWORD_HISTORY_SIZE, Integer.MIN_VALUE)
+            ConfigurationParameters.EMPTY,
+            ConfigurationParameters.of(PARAM_PASSWORD_HISTORY_SIZE, PASSWORD_HISTORY_DISABLED_SIZE),
+            ConfigurationParameters.of(PARAM_PASSWORD_HISTORY_SIZE, -1),
+            ConfigurationParameters.of(PARAM_PASSWORD_HISTORY_SIZE, Integer.MIN_VALUE)
         );
 
         for (ConfigurationParameters config : configs) {
@@ -310,7 +314,9 @@ public class PasswordHistoryTest extends AbstractSecurityTest implements UserCon
     @Test
     public void testUpdateMissingPwHash() throws Exception {
         User u = getUserManager(root).createUser("uid", null);
-        PasswordHistory ph = new PasswordHistory(ConfigurationParameters.of(UserConstants.PARAM_PASSWORD_HISTORY_SIZE, UserConstants.PASSWORD_HISTORY_DISABLED_SIZE+1));
+        PasswordHistory ph = new PasswordHistory(
+            ConfigurationParameters.of(UserConstants.PARAM_PASSWORD_HISTORY_SIZE,
+                UserConstants.PASSWORD_HISTORY_DISABLED_SIZE + 1));
         assertFalse(ph.updatePasswordHistory(root.getTree(u.getPath()), "pw"));
     }
 }

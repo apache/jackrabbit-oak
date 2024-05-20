@@ -32,11 +32,13 @@ class TreeBasedPrincipal extends PrincipalImpl implements ItemBasedPrincipal {
     private final String path;
     private final NamePathMapper pathMapper;
 
-    TreeBasedPrincipal(@NotNull String principalName, @NotNull Tree tree, @NotNull NamePathMapper pathMapper) {
+    TreeBasedPrincipal(@NotNull String principalName, @NotNull Tree tree,
+        @NotNull NamePathMapper pathMapper) {
         this(principalName, tree.getPath(), pathMapper);
     }
 
-    TreeBasedPrincipal(@NotNull String principalName, @NotNull String oakPath, @NotNull NamePathMapper pathMapper) {
+    TreeBasedPrincipal(@NotNull String principalName, @NotNull String oakPath,
+        @NotNull NamePathMapper pathMapper) {
         super(principalName);
         this.pathMapper = pathMapper;
         this.path = oakPath;

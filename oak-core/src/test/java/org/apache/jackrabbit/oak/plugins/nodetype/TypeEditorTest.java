@@ -177,7 +177,8 @@ public class TypeEditorTest {
         NodeBuilder ace = acl.child("first");
         ace.setProperty(JCR_PRIMARYTYPE, AccessControlConstants.NT_REP_GRANT_ACE, Type.NAME);
         ace.setProperty(AccessControlConstants.REP_PRINCIPAL_NAME, EveryonePrincipal.NAME);
-        ace.setProperty(AccessControlConstants.REP_PRIVILEGES, ImmutableList.of(PrivilegeConstants.JCR_READ), Type.STRINGS);
+        ace.setProperty(AccessControlConstants.REP_PRIVILEGES,
+            ImmutableList.of(PrivilegeConstants.JCR_READ), Type.STRINGS);
 
         try {
             hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
@@ -199,12 +200,14 @@ public class TypeEditorTest {
         NodeBuilder ace = acl.child("first");
         ace.setProperty(JCR_PRIMARYTYPE, AccessControlConstants.NT_REP_GRANT_ACE, Type.NAME);
         ace.setProperty(AccessControlConstants.REP_PRINCIPAL_NAME, EveryonePrincipal.NAME);
-        ace.setProperty(AccessControlConstants.REP_PRIVILEGES, ImmutableList.of(PrivilegeConstants.JCR_READ), Type.NAMES);
+        ace.setProperty(AccessControlConstants.REP_PRIVILEGES,
+            ImmutableList.of(PrivilegeConstants.JCR_READ), Type.NAMES);
 
         NodeState before = builder.getNodeState();
 
         // change to invalid type
-        ace.setProperty(AccessControlConstants.REP_PRIVILEGES, ImmutableList.of(PrivilegeConstants.JCR_READ), Type.STRINGS);
+        ace.setProperty(AccessControlConstants.REP_PRIVILEGES,
+            ImmutableList.of(PrivilegeConstants.JCR_READ), Type.STRINGS);
 
         try {
             hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
@@ -241,8 +244,9 @@ public class TypeEditorTest {
         NodeState before = builder.getNodeState();
 
         builder.child("testcontent").setProperty(JCR_PRIMARYTYPE, "nt:unstructured", Type.NAME);
-        builder.child("testcontent").child("unstructured_child").setProperty(JCR_PRIMARYTYPE, "nt:unstructured",
-                Type.NAME);
+        builder.child("testcontent").child("unstructured_child")
+               .setProperty(JCR_PRIMARYTYPE, "nt:unstructured",
+                   Type.NAME);
         NodeState after = builder.getNodeState();
         root = hook.processCommit(before, after, CommitInfo.EMPTY);
 
@@ -316,7 +320,8 @@ public class TypeEditorTest {
 
         builder = root.builder();
         before = builder.getNodeState();
-        builder.child("testcontent").setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REFERENCEABLE), Type.NAMES);
+        builder.child("testcontent")
+               .setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REFERENCEABLE), Type.NAMES);
         try {
             hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
             fail("should not be able to change mixin due to illegal uuid format");

@@ -72,14 +72,16 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
         super.before();
 
         User user = getTestUser();
-        emptyProperties = new AuthorizablePropertiesImpl((AuthorizableImpl) user, getPartialValueFactory());
+        emptyProperties = new AuthorizablePropertiesImpl((AuthorizableImpl) user,
+            getPartialValueFactory());
 
         String id2 = "user2" + UUID.randomUUID().toString();
-        user2 = getUserManager(root).createUser(id2, null, new PrincipalImpl(id2), PathUtils.getAncestorPath(user.getPath(), 1));
+        user2 = getUserManager(root).createUser(id2, null, new PrincipalImpl(id2),
+            PathUtils.getAncestorPath(user.getPath(), 1));
 
         vf = getValueFactory(root);
         Value v = vf.createValue("value");
-        Value[] vArr =  new Value[] {vf.createValue(2), vf.createValue(30)};
+        Value[] vArr = new Value[]{vf.createValue(2), vf.createValue(30)};
 
         user2.setProperty("prop", v);
         user2.setProperty("mvProp", vArr);
@@ -88,7 +90,8 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
         user2.setProperty("relPath/mvProp", vArr);
         root.commit();
 
-        properties = new AuthorizablePropertiesImpl((AuthorizableImpl) user2, getPartialValueFactory());
+        properties = new AuthorizablePropertiesImpl((AuthorizableImpl) user2,
+            getPartialValueFactory());
     }
 
     @Override
@@ -132,17 +135,17 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
     @Test(expected = RepositoryException.class)
     public void testGetNamesMissingResolutionToOakPath() throws Exception {
         AuthorizableProperties props = new AuthorizablePropertiesImpl((AuthorizableImpl) user2,
-                new PartialValueFactory(new NamePathMapper.Default() {
-            @Override
-            public String getOakNameOrNull(@NotNull String jcrName) {
-                return null;
-            }
+            new PartialValueFactory(new NamePathMapper.Default() {
+                @Override
+                public String getOakNameOrNull(@NotNull String jcrName) {
+                    return null;
+                }
 
-            @Override
-            public String getOakPath(String jcrPath) {
-                return null;
-            }
-        }));
+                @Override
+                public String getOakPath(String jcrPath) {
+                    return null;
+                }
+            }));
         props.getNames("relPath");
     }
 
@@ -177,7 +180,8 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
     @Test
     public void testGetProtectedProperty() throws Exception {
         Tree t = root.getTree(user2.getPath());
-        TreeUtil.addMixin(t, NodeTypeConstants.MIX_VERSIONABLE, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
+        TreeUtil.addMixin(t, NodeTypeConstants.MIX_VERSIONABLE,
+            root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
         root.commit();
 
         assertNull(properties.getProperty(VersionConstants.JCR_BASEVERSION));
@@ -201,18 +205,23 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
     public void testGetPropertyParentNotAccessible() throws Exception {
         // prevent everyone from reading the relPath intermediate node (but allowing reading the user and the properties)
         AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, user2.getPath());
-        acl.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.JCR_READ), true);
-        acl.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.REP_READ_NODES), false,
-                Collections.emptyMap(),
-                Collections.singletonMap(AccessControlConstants.REP_ITEM_NAMES, new Value[] {getValueFactory(root).createValue("relPath", PropertyType.NAME)}));
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr,
+            user2.getPath());
+        acl.addEntry(EveryonePrincipal.getInstance(),
+            privilegesFromNames(PrivilegeConstants.JCR_READ), true);
+        acl.addEntry(EveryonePrincipal.getInstance(),
+            privilegesFromNames(PrivilegeConstants.REP_READ_NODES), false,
+            Collections.emptyMap(),
+            Collections.singletonMap(AccessControlConstants.REP_ITEM_NAMES,
+                new Value[]{getValueFactory(root).createValue("relPath", PropertyType.NAME)}));
         acMgr.setPolicy(acl.getPath(), acl);
         root.commit();
 
         try (ContentSession testsession = login(new GuestCredentials())) {
             Root r = testsession.getLatestRoot();
             Authorizable u = getUserManager(r).getAuthorizable(user2.getID());
-            AuthorizablePropertiesImpl props = new AuthorizablePropertiesImpl((AuthorizableImpl) u, getPartialValueFactory());
+            AuthorizablePropertiesImpl props = new AuthorizablePropertiesImpl((AuthorizableImpl) u,
+                getPartialValueFactory());
             assertNull(props.getProperty("relPath/prop"));
         }
     }
@@ -231,7 +240,8 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
 
     @Test(expected = ConstraintViolationException.class)
     public void testSetPrimaryType() throws Exception {
-        properties.setProperty("relPath/" + JcrConstants.JCR_PRIMARYTYPE, vf.createValue(NodeTypeConstants.NT_OAK_UNSTRUCTURED, PropertyType.NAME));
+        properties.setProperty("relPath/" + JcrConstants.JCR_PRIMARYTYPE,
+            vf.createValue(NodeTypeConstants.NT_OAK_UNSTRUCTURED, PropertyType.NAME));
     }
 
     @Test
@@ -256,7 +266,7 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
     public void testSetModifyProperty() throws Exception {
         Value v = vf.createValue("newValue");
         properties.setProperty("prop", v);
-        assertArrayEquals(new Value[] {v}, properties.getProperty("prop"));
+        assertArrayEquals(new Value[]{v}, properties.getProperty("prop"));
     }
 
     @Test
@@ -269,29 +279,29 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
     @Test
     public void testSetPropertyChangeMvStatus2() throws Exception {
         Value v = vf.createValue("newValue");
-        properties.setProperty("relPath/prop", new Value[] {v, v});
+        properties.setProperty("relPath/prop", new Value[]{v, v});
         assertArrayEquals(new Value[]{v, v}, properties.getProperty("relPath/prop"));
     }
 
     @Test(expected = RepositoryException.class)
     public void testSetMissingResolutionToOakPath() throws Exception {
         AuthorizableProperties props = new AuthorizablePropertiesImpl((AuthorizableImpl) user2,
-                new PartialValueFactory(new NamePathMapper.Default() {
-            @Override
-            public String getOakNameOrNull(@NotNull String jcrName) {
-                return null;
-            }
+            new PartialValueFactory(new NamePathMapper.Default() {
+                @Override
+                public String getOakNameOrNull(@NotNull String jcrName) {
+                    return null;
+                }
 
-            @Override
-            public String getOakPath(String jcrPath) {
-                return null;
-            }
-        }));
+                @Override
+                public String getOakPath(String jcrPath) {
+                    return null;
+                }
+            }));
         props.setProperty("relPath/prop", vf.createValue("value"));
     }
 
     @Test
-    public void testSetPropertyNullArray() throws Exception  {
+    public void testSetPropertyNullArray() throws Exception {
         properties.setProperty("mvProp", (Value[]) null);
         assertFalse(properties.hasProperty("mvProp"));
 
@@ -300,7 +310,7 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testSetPropertyNull() throws Exception  {
+    public void testSetPropertyNull() throws Exception {
         properties.setProperty("mvProp", (Value) null);
         assertFalse(properties.hasProperty("mvProp"));
 
@@ -315,7 +325,8 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
 
     @Test(expected = RepositoryException.class)
     public void testSetPropertyOtherUser() throws Exception {
-        emptyProperties.setProperty("../" + PathUtils.getName(user2.getPath()) + "/prop", vf.createValue("newValue"));
+        emptyProperties.setProperty("../" + PathUtils.getName(user2.getPath()) + "/prop",
+            vf.createValue("newValue"));
     }
 
     //-----------------------------------------------------< removeProperty >---
@@ -346,17 +357,17 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
     @Test(expected = RepositoryException.class)
     public void testRemoveMissingResolutionToOakPath() throws Exception {
         AuthorizableProperties props = new AuthorizablePropertiesImpl((AuthorizableImpl) user2,
-                new PartialValueFactory(new NamePathMapper.Default() {
-            @Override
-            public String getOakNameOrNull(@NotNull String jcrName) {
-                return null;
-            }
+            new PartialValueFactory(new NamePathMapper.Default() {
+                @Override
+                public String getOakNameOrNull(@NotNull String jcrName) {
+                    return null;
+                }
 
-            @Override
-            public String getOakPath(String jcrPath) {
-                return null;
-            }
-        }));
+                @Override
+                public String getOakPath(String jcrPath) {
+                    return null;
+                }
+            }));
         props.removeProperty("relPath/prop");
     }
 

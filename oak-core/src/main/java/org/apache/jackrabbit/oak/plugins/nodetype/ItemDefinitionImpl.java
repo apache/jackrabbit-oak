@@ -32,7 +32,7 @@ import java.util.Objects;
 /**
  * <pre>
  * [nt:{propertyDefinition,childNodeDefinition}]
- * - jcr:name (NAME) protected 
+ * - jcr:name (NAME) protected
  * - jcr:autoCreated (BOOLEAN) protected mandatory
  * - jcr:mandatory (BOOLEAN) protected mandatory
  * - jcr:onParentVersion (STRING) protected mandatory
@@ -42,12 +42,12 @@ import java.util.Objects;
  * </pre>
  */
 class ItemDefinitionImpl extends AbstractTypeDefinition
-        implements ItemDefinition {
+    implements ItemDefinition {
 
     private final NodeType type;
 
     protected ItemDefinitionImpl(
-            Tree definition, NodeType type, NamePathMapper mapper) {
+        Tree definition, NodeType type, NamePathMapper mapper) {
         super(definition, mapper);
         this.type = checkNotNull(type);
     }
@@ -106,12 +106,15 @@ class ItemDefinitionImpl extends AbstractTypeDefinition
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         ItemDefinitionImpl other = (ItemDefinitionImpl) obj;
         return Objects.equals(type, other.type);
     }

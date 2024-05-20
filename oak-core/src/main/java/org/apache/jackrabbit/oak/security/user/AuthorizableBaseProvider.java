@@ -46,7 +46,8 @@ abstract class AuthorizableBaseProvider implements UserConstants {
         this.config = checkNotNull(config);
 
         identifierManager = new IdentifierManager(root);
-        usercaseMappedProfile = config.getConfigValue(PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, DEFAULT_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE);
+        usercaseMappedProfile = config.getConfigValue(PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE,
+            DEFAULT_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE);
     }
 
     @Nullable
@@ -55,7 +56,8 @@ abstract class AuthorizableBaseProvider implements UserConstants {
     }
 
     @Nullable
-    private Tree getByContentID(@NotNull String contentId, @NotNull AuthorizableType authorizableType) {
+    private Tree getByContentID(@NotNull String contentId,
+        @NotNull AuthorizableType authorizableType) {
         Tree tree = identifierManager.getTree(contentId);
         if (UserUtil.isType(tree, authorizableType)) {
             return tree;

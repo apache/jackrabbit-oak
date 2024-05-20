@@ -28,8 +28,7 @@ import org.osgi.annotation.versioning.ProviderType;
 public interface IndexInfoService {
 
     /**
-     * Returns {@code IndexInfo} for all the indexes present in
-     * the repository
+     * Returns {@code IndexInfo} for all the indexes present in the repository
      */
     Iterable<IndexInfo> getAllIndexInfo();
 
@@ -37,16 +36,13 @@ public interface IndexInfoService {
      * Returns {@code IndexInfo} for index at given path
      *
      * @param indexPath path repository
-     *
-     * @return indexInfo for the index or null if there is no index node
-     * found at given path
+     * @return indexInfo for the index or null if there is no index node found at given path
      */
     @Nullable
     IndexInfo getInfo(String indexPath) throws IOException;
 
     /**
-     * Determined if the index is valid and usable. If the index is corrupt
-     * then it returns false
+     * Determined if the index is valid and usable. If the index is corrupt then it returns false
      */
     boolean isValid(String indexPath) throws IOException;
 }

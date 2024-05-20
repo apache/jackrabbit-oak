@@ -34,11 +34,13 @@ import java.util.Map;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
 
 final class TestUtility {
-    
-    private TestUtility() {}
+
+    private TestUtility() {
+    }
 
     @NotNull
-    static ACL getApplicablePolicy( @NotNull AccessControlManager acMgr, @Nullable String path) throws RepositoryException {
+    static ACL getApplicablePolicy(@NotNull AccessControlManager acMgr, @Nullable String path)
+        throws RepositoryException {
         AccessControlPolicyIterator itr = acMgr.getApplicablePolicies(path);
         if (itr.hasNext()) {
             return (ACL) itr.nextAccessControlPolicy();
@@ -49,12 +51,12 @@ final class TestUtility {
 
     @NotNull
     static ACL setupPolicy(@NotNull AccessControlManager acMgr,
-                           @Nullable String path,
-                           @NotNull Principal testPrincipal,
-                           @NotNull Privilege[] privileges,
-                           boolean isAllow,
-                           @Nullable Map<String, Value> restrictions,
-                           @Nullable Map<String, Value[]> mvRestrictions) throws RepositoryException {
+        @Nullable String path,
+        @NotNull Principal testPrincipal,
+        @NotNull Privilege[] privileges,
+        boolean isAllow,
+        @Nullable Map<String, Value> restrictions,
+        @Nullable Map<String, Value[]> mvRestrictions) throws RepositoryException {
         ACL policy = getApplicablePolicy(acMgr, path);
         if (path == null) {
             policy.addAccessControlEntry(testPrincipal, privileges);
@@ -66,7 +68,8 @@ final class TestUtility {
     }
 
     @NotNull
-    static Map<String, Value> getGlobRestriction(@NotNull String value, @NotNull ValueFactory valueFactory) {
+    static Map<String, Value> getGlobRestriction(@NotNull String value,
+        @NotNull ValueFactory valueFactory) {
         return ImmutableMap.of(REP_GLOB, valueFactory.createValue(value));
     }
 }

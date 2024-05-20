@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.any;
 import static org.hamcrest.CoreMatchers.anyOf;
@@ -52,12 +53,14 @@ class AssertingPeriodicReporter extends PeriodicReporter {
     }
 
     @Override
-    protected void reportPeriodicNode(final long count, @NotNull final ReportingNodeState nodeState) {
+    protected void reportPeriodicNode(final long count,
+        @NotNull final ReportingNodeState nodeState) {
         reportedNodes.put(count, nodeState.getPath());
     }
 
     @Override
-    protected void reportPeriodicProperty(final long count, @NotNull final ReportingNodeState parent, @NotNull final String propertyName) {
+    protected void reportPeriodicProperty(final long count,
+        @NotNull final ReportingNodeState parent, @NotNull final String propertyName) {
         reportedProperties.put(count, PathUtils.concat(parent.getPath(), propertyName));
     }
 
@@ -66,28 +69,32 @@ class AssertingPeriodicReporter extends PeriodicReporter {
         return "Reported{ nodes: " + reportedNodes + " properties: " + reportedProperties + "}";
     }
 
-    public static Matcher<AssertingPeriodicReporter> hasReportedNode(final int count, final String path) {
+    public static Matcher<AssertingPeriodicReporter> hasReportedNode(final int count,
+        final String path) {
         return hasReports(hasEntry((long) count, path), whatever());
     }
 
-    public static Matcher<AssertingPeriodicReporter> hasReportedNode(final int count, final Matcher<String> pathMatcher) {
+    public static Matcher<AssertingPeriodicReporter> hasReportedNode(final int count,
+        final Matcher<String> pathMatcher) {
         return hasReports(typesafeHasEntry(equalTo((long) count), pathMatcher), whatever());
     }
 
     public static Matcher<AssertingPeriodicReporter> hasReportedNodes(final String... paths) {
         final List<Matcher<? super AssertingPeriodicReporter>> matchers =
-                new ArrayList<Matcher<? super AssertingPeriodicReporter>>();
+            new ArrayList<Matcher<? super AssertingPeriodicReporter>>();
         for (final String path : paths) {
             matchers.add(hasReports(typesafeHasEntry(any(Long.class), equalTo(path)), whatever()));
         }
         return allOf(matchers);
     }
 
-    public static Matcher<AssertingPeriodicReporter> hasReportedProperty(final int count, final String path) {
+    public static Matcher<AssertingPeriodicReporter> hasReportedProperty(final int count,
+        final String path) {
         return hasReports(whatever(), hasEntry((long) count, path));
     }
 
-    public static Matcher<AssertingPeriodicReporter> hasReportedProperty(final int count, final Matcher<String> pathMatcher) {
+    public static Matcher<AssertingPeriodicReporter> hasReportedProperty(final int count,
+        final Matcher<String> pathMatcher) {
         return hasReports(whatever(), typesafeHasEntry(equalTo((long) count), pathMatcher));
     }
 
@@ -104,24 +111,25 @@ class AssertingPeriodicReporter extends PeriodicReporter {
     }
 
     private static Matcher<AssertingPeriodicReporter> hasReports(
-            final Matcher<Map<? extends Long, ? extends String>> nodeMapMatcher,
-            final Matcher<Map<? extends Long, ? extends String>> propertyMapMatcher) {
+        final Matcher<Map<? extends Long, ? extends String>> nodeMapMatcher,
+        final Matcher<Map<? extends Long, ? extends String>> propertyMapMatcher) {
 
         return new org.hamcrest.TypeSafeMatcher<AssertingPeriodicReporter>() {
             @Override
             protected boolean matchesSafely(final AssertingPeriodicReporter reporter) {
                 final boolean nodesMatch = nodeMapMatcher.matches(reporter.reportedNodes);
-                final boolean propertiesMatch = propertyMapMatcher.matches(reporter.reportedProperties);
+                final boolean propertiesMatch = propertyMapMatcher.matches(
+                    reporter.reportedProperties);
                 return nodesMatch && propertiesMatch;
             }
 
             @Override
             public void describeTo(final Description description) {
                 description
-                        .appendText("Reported{ nodes: ")
-                        .appendDescriptionOf(nodeMapMatcher)
-                        .appendText(", properties: ")
-                        .appendDescriptionOf(propertyMapMatcher);
+                    .appendText("Reported{ nodes: ")
+                    .appendDescriptionOf(nodeMapMatcher)
+                    .appendText(", properties: ")
+                    .appendDescriptionOf(propertyMapMatcher);
 
             }
         };
@@ -130,7 +138,7 @@ class AssertingPeriodicReporter extends PeriodicReporter {
     // Java 6 fails to infer generics correctly if hasEntry is not wrapped in this
     // method.
     private static Matcher<Map<? extends Long, ? extends String>> typesafeHasEntry(
-            final Matcher<Long> countMatcher, final Matcher<String> pathMatcher) {
+        final Matcher<Long> countMatcher, final Matcher<String> pathMatcher) {
         return hasEntry(countMatcher, pathMatcher);
     }
 }

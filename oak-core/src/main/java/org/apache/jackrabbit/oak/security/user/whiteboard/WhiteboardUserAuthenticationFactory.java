@@ -26,12 +26,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Dynamic {@link org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory}
- * based on the available whiteboard services.
+ * Dynamic {@link org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory} based on
+ * the available whiteboard services.
  */
 public class WhiteboardUserAuthenticationFactory
-        extends AbstractServiceTracker<UserAuthenticationFactory>
-        implements UserAuthenticationFactory {
+    extends AbstractServiceTracker<UserAuthenticationFactory>
+    implements UserAuthenticationFactory {
 
     private final UserAuthenticationFactory defaultFactory;
 
@@ -43,14 +43,16 @@ public class WhiteboardUserAuthenticationFactory
 
     @Nullable
     @Override
-    public Authentication getAuthentication(@NotNull UserConfiguration userConfiguration, @NotNull Root root, @Nullable String userId) {
+    public Authentication getAuthentication(@NotNull UserConfiguration userConfiguration,
+        @NotNull Root root, @Nullable String userId) {
         List<UserAuthenticationFactory> services = getServices();
         if (services.isEmpty() && defaultFactory != null) {
             return defaultFactory.getAuthentication(userConfiguration, root, userId);
 
         }
         for (UserAuthenticationFactory factory : services) {
-            Authentication authentication = factory.getAuthentication(userConfiguration, root, userId);
+            Authentication authentication = factory.getAuthentication(userConfiguration, root,
+                userId);
             if (authentication != null) {
                 return authentication;
             }

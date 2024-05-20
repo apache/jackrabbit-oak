@@ -60,10 +60,10 @@ class LoginContextProviderImpl implements LoginContextProvider {
     private Configuration configuration;
 
     LoginContextProviderImpl(String appName, ConfigurationParameters params,
-                             ContentRepository contentRepository,
-                             SecurityProvider securityProvider,
-                             Whiteboard whiteboard,
-                             LoginModuleMonitor loginModuleMonitor) {
+        ContentRepository contentRepository,
+        SecurityProvider securityProvider,
+        Whiteboard whiteboard,
+        LoginModuleMonitor loginModuleMonitor) {
         this.appName = appName;
         this.params = params;
         this.contentRepository = contentRepository;
@@ -75,7 +75,7 @@ class LoginContextProviderImpl implements LoginContextProvider {
     @Override
     @NotNull
     public LoginContext getLoginContext(Credentials credentials, String workspaceName)
-            throws LoginException {
+        throws LoginException {
         Subject subject = getSubject();
         if (subject != null && credentials == null) {
             log.debug("Found pre-authenticated subject: No further login actions required.");
@@ -103,7 +103,8 @@ class LoginContextProviderImpl implements LoginContextProvider {
 
     @NotNull
     private CallbackHandler getCallbackHandler(Credentials credentials, String workspaceName) {
-        return new CallbackHandlerImpl(credentials, workspaceName, contentRepository, securityProvider, whiteboard, loginModuleMonitor);
+        return new CallbackHandlerImpl(credentials, workspaceName, contentRepository,
+            securityProvider, whiteboard, loginModuleMonitor);
     }
 
     @NotNull
@@ -121,13 +122,13 @@ class LoginContextProviderImpl implements LoginContextProvider {
                      - Name of the config provider : 'configSpiName' as retrieved from the PARAM_CONFIG_SPI_NAME configuration (default: null)
                      */
                     loginConfig = Configuration.getInstance(
-                            "JavaLoginConfig",
-                            null,
-                            configSpiName
+                        "JavaLoginConfig",
+                        null,
+                        configSpiName
                     );
                     if (loginConfig.getAppConfigurationEntry(appName) == null) {
                         log.warn("No configuration found for application {} though fetching JAAS " +
-                                "configuration from SPI {} is enabled.", appName, configSpiName);
+                            "configuration from SPI {} is enabled.", appName, configSpiName);
                     }
                 } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
                     log.warn("Error fetching JAAS config from SPI {}", configSpiName, e);

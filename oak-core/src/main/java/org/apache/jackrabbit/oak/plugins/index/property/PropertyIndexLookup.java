@@ -51,9 +51,9 @@ import org.slf4j.LoggerFactory;
 /**
  * Is responsible for querying the property index content.
  * <br>
- * This class can be used directly on a subtree where there is an index defined
- * by supplying a {@link NodeState} root.
- * 
+ * This class can be used directly on a subtree where there is an index defined by supplying a
+ * {@link NodeState} root.
+ *
  * <pre>{@code
  * {
  *     NodeState state = ... // get a node state
@@ -70,7 +70,7 @@ public class PropertyIndexLookup {
      * The cost overhead to use the index in number of read operations.
      */
     public static final double COST_OVERHEAD = 2;
-    
+
     /**
      * The maximum cost when the index can be used.
      */
@@ -90,13 +90,12 @@ public class PropertyIndexLookup {
     }
 
     /**
-     * Checks whether the named property is indexed somewhere along the given
-     * path. Lookup starts at the current path (at the root of this object) and
-     * traverses down the path.
-     * 
+     * Checks whether the named property is indexed somewhere along the given path. Lookup starts at
+     * the current path (at the root of this object) and traverses down the path.
+     *
      * @param propertyName property name
-     * @param path lookup path
-     * @param filter for the node type restriction (null if no node type restriction)
+     * @param path         lookup path
+     * @param filter       for the node type restriction (null if no node type restriction)
      * @return true if the property is indexed
      */
     public boolean isIndexed(String propertyName, String path, Filter filter) {
@@ -115,7 +114,7 @@ public class PropertyIndexLookup {
     }
 
     public Iterable<String> query(Filter filter, String propertyName,
-            PropertyValue value) {
+        PropertyValue value) {
         NodeState indexMeta = getIndexNode(root, propertyName, filter);
         if (indexMeta == null) {
             throw new IllegalArgumentException("No index for " + propertyName);
@@ -124,16 +123,16 @@ public class PropertyIndexLookup {
         ValuePattern pattern = new ValuePattern(indexMeta);
         for (IndexStoreStrategy s : getStrategies(indexMeta)) {
             iterables.add(s.query(filter, propertyName, indexMeta,
-                    encode(value, pattern)));
+                encode(value, pattern)));
         }
         return Iterables.concat(iterables);
     }
 
     Set<IndexStoreStrategy> getStrategies(NodeState definition) {
         boolean unique = definition
-                .getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME);
+            .getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME);
         return Multiplexers.getStrategies(unique, mountInfoProvider,
-                definition, INDEX_CONTENT_NODE_NAME);
+            definition, INDEX_CONTENT_NODE_NAME);
     }
 
     public double getCost(Filter filter, String propertyName, PropertyValue value) {
@@ -151,15 +150,14 @@ public class PropertyIndexLookup {
     }
 
     /**
-     * Get the node with the index definition for the given property, if there
-     * is an applicable index with data.
-     * 
+     * Get the node with the index definition for the given property, if there is an applicable
+     * index with data.
+     *
      * @param propertyName the property name
-     * @param filter the filter (which contains information of all supertypes,
-     *            unless the filter matches all types)
-     * @return the node where the index definition (metadata) is stored (the
-     *         parent of ":index"), or null if no index definition or index data
-     *         node was found
+     * @param filter       the filter (which contains information of all supertypes, unless the
+     *                     filter matches all types)
+     * @return the node where the index definition (metadata) is stored (the parent of ":index"), or
+     * null if no index definition or index data node was found
      */
     @Nullable
     NodeState getIndexNode(NodeState node, String propertyName, Filter filter) {
@@ -202,7 +200,7 @@ public class PropertyIndexLookup {
 
     /**
      * retrieve the type of the index
-     * 
+     *
      * @return the type
      */
     String getType() {
@@ -218,7 +216,8 @@ public class PropertyIndexLookup {
     }
 
     @NotNull
-    private static Iterable<String> getNames(@NotNull NodeState state, @NotNull String propertyName) {
+    private static Iterable<String> getNames(@NotNull NodeState state,
+        @NotNull String propertyName) {
         Iterable<String> ret = state.getNames(propertyName);
         if (ret.iterator().hasNext()) {
             return ret;
@@ -227,7 +226,7 @@ public class PropertyIndexLookup {
         PropertyState property = state.getProperty(propertyName);
         if (property != null) {
             LOG.warn("Expected '{}' as type of property '{}' but found '{}'. Node - '{}'",
-                    Type.NAMES, propertyName, property.getType(), state);
+                Type.NAMES, propertyName, property.getType(), state);
             ret = property.getValue(Type.STRINGS);
         } else {
             ret = Collections.emptyList();

@@ -26,12 +26,11 @@ import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Dynamic {@link IndexEditorProvider} based on the available
- * whiteboard services.
+ * Dynamic {@link IndexEditorProvider} based on the available whiteboard services.
  */
 public class WhiteboardIndexEditorProvider
-        extends AbstractServiceTracker<IndexEditorProvider>
-        implements IndexEditorProvider {
+    extends AbstractServiceTracker<IndexEditorProvider>
+    implements IndexEditorProvider {
 
     public WhiteboardIndexEditorProvider() {
         super(IndexEditorProvider.class);
@@ -39,10 +38,10 @@ public class WhiteboardIndexEditorProvider
 
     @Override
     public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder builder,
-            @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
-            throws CommitFailedException {
+        @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
+        throws CommitFailedException {
         IndexEditorProvider composite = CompositeIndexEditorProvider
-                .compose(getServices());
+            .compose(getServices());
         if (composite == null) {
             return null;
         }

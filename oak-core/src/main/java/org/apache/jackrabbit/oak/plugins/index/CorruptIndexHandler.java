@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 import java.util.Calendar;
 
 public interface CorruptIndexHandler {
+
     CorruptIndexHandler NOOP = new CorruptIndexHandler() {
         @Override
         public boolean skippingCorruptIndex(String async, String indexPath, Calendar corruptSince) {
@@ -37,8 +38,8 @@ public interface CorruptIndexHandler {
     /**
      * Callback method to inform handler that a corrupt index has been skipped
      *
-     * @param async async name
-     * @param indexPath corrupt index path
+     * @param async        async name
+     * @param indexPath    corrupt index path
      * @param corruptSince time since index is corrupt
      * @return true if warning is logged for skipped indexing
      */

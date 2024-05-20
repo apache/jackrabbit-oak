@@ -21,5 +21,5 @@ import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
 public interface QueryStatsReporter {
 
     QueryExecutionStats getQueryExecution(String statement, String language);
-    
+
 }

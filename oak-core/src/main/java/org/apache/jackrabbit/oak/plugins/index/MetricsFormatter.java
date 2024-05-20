@@ -20,8 +20,10 @@ import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 
 public class MetricsFormatter {
+
     private final JsopBuilder jsopBuilder = new JsopBuilder();
     private boolean isWritable = true;
+
     public static MetricsFormatter newBuilder() {
         return new MetricsFormatter();
     }
@@ -55,7 +57,7 @@ public class MetricsFormatter {
     }
 
     public String build() {
-        if (isWritable){
+        if (isWritable) {
             jsopBuilder.endObject();
             isWritable = false;
         }

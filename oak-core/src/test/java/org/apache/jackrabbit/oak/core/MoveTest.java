@@ -50,8 +50,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Test methods (mostly) copied from oak-it RootTest and parameterized to run
- * with {@link MutableRoot.ClassicMove} and {@link MutableRoot.NeoMove}.
+ * Test methods (mostly) copied from oak-it RootTest and parameterized to run with
+ * {@link MutableRoot.ClassicMove} and {@link MutableRoot.NeoMove}.
  */
 @RunWith(Parameterized.class)
 public class MoveTest {
@@ -60,7 +60,7 @@ public class MoveTest {
 
     private ContentSession session;
 
-    @Parameterized.Parameters(name="Classic Move: ({0})")
+    @Parameterized.Parameters(name = "Classic Move: ({0})")
     public static List<Boolean> classicMove() {
         return Arrays.asList(true, false);
     }
@@ -307,7 +307,7 @@ public class MoveTest {
         checkEqual(root1.getTree("/"), root2.getTree("/"));
 
         root2.getTree("/").addChild("one").addChild("two").addChild("three")
-                .setProperty("p1", "V1");
+             .setProperty("p1", "V1");
         root2.commit();
 
         root1.rebase();
@@ -360,7 +360,7 @@ public class MoveTest {
         checkEqual(root1.getTree("/"), root2.getTree("/"));
 
         root2.getTree("/").addChild("one").addChild("two").addChild("three")
-                .setProperty("p1", "V1");
+             .setProperty("p1", "V1");
         root2.commit();
 
         root1.getTree("/").addChild("child");
@@ -378,7 +378,7 @@ public class MoveTest {
         checkEqual(root1.getTree("/"), root2.getTree("/"));
 
         root2.getTree("/").addChild("one").addChild("two").addChild("three")
-                .setProperty("p1", "V1");
+             .setProperty("p1", "V1");
         root2.commit();
 
         root1.getTree("/").getChild("x").remove();
@@ -396,7 +396,7 @@ public class MoveTest {
         checkEqual(root1.getTree("/"), root2.getTree("/"));
 
         root2.getTree("/").addChild("one").addChild("two").addChild("three")
-                .setProperty("p1", "V1");
+             .setProperty("p1", "V1");
         root2.commit();
 
         root1.getTree("/").setProperty("new", 42);
@@ -414,7 +414,7 @@ public class MoveTest {
         checkEqual(root1.getTree("/"), root2.getTree("/"));
 
         root2.getTree("/").addChild("one").addChild("two").addChild("three")
-                .setProperty("p1", "V1");
+             .setProperty("p1", "V1");
         root2.commit();
 
         root1.getTree("/").removeProperty("a");
@@ -432,7 +432,7 @@ public class MoveTest {
         checkEqual(root1.getTree("/"), root2.getTree("/"));
 
         root2.getTree("/").addChild("one").addChild("two").addChild("three")
-                .setProperty("p1", "V1");
+             .setProperty("p1", "V1");
         root2.commit();
 
         root1.getTree("/").setProperty("a", 42);
@@ -450,7 +450,7 @@ public class MoveTest {
         checkEqual(root1.getTree("/"), root2.getTree("/"));
 
         root2.getTree("/").addChild("one").addChild("two").addChild("three")
-                .setProperty("p1", "V1");
+             .setProperty("p1", "V1");
         root2.commit();
 
         root1.move("/x", "/y/x-moved");
@@ -610,7 +610,8 @@ public class MoveTest {
     }
 
     private static void checkEqual(Tree tree1, Tree tree2) {
-        assertEquals(tree1.getChildrenCount(Long.MAX_VALUE), tree2.getChildrenCount(Long.MAX_VALUE));
+        assertEquals(tree1.getChildrenCount(Long.MAX_VALUE),
+            tree2.getChildrenCount(Long.MAX_VALUE));
         assertEquals(tree1.getPropertyCount(), tree2.getPropertyCount());
 
         for (PropertyState property1 : tree1.getProperties()) {

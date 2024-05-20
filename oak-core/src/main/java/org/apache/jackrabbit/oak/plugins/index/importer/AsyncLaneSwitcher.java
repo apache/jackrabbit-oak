@@ -29,20 +29,20 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 
 /**
- * Coordinates the switching of indexing lane for indexes which are
- * to be imported. Its support idempotent operation i.e. if an
- * indexer is switched to temp lane then a repeat of same
- * operation would be no op.
+ * Coordinates the switching of indexing lane for indexes which are to be imported. Its support
+ * idempotent operation i.e. if an indexer is switched to temp lane then a repeat of same operation
+ * would be no op.
  */
 public class AsyncLaneSwitcher {
+
     /**
      * Property name where previous value of 'async' is stored
      */
     static final String ASYNC_PREVIOUS = "async-previous";
 
     /**
-     * Value stored in previous async property if the index is not async
-     * i.e. when a sync index is reindexed in out of band mode
+     * Value stored in previous async property if the index is not async i.e. when a sync index is
+     * reindexed in out of band mode
      */
     static final String ASYNC_PREVIOUS_NONE = "none";
 
@@ -53,14 +53,15 @@ public class AsyncLaneSwitcher {
 
     /**
      * Make a copy of current async value and replace it with one required for offline reindexing
-     * The switch lane operation can be safely repeated and if the index
-     * lane is found to be switched already it would not be modified
+     * The switch lane operation can be safely repeated and if the index lane is found to be
+     * switched already it would not be modified
      */
     public static void switchLane(NodeBuilder idxBuilder, String laneName) {
         PropertyState currentAsyncState = idxBuilder.getProperty(ASYNC_PROPERTY_NAME);
-        PropertyState newAsyncState = PropertyStates.createProperty(ASYNC_PROPERTY_NAME, laneName, Type.STRING);
+        PropertyState newAsyncState = PropertyStates.createProperty(ASYNC_PROPERTY_NAME, laneName,
+            Type.STRING);
 
-        if (idxBuilder.hasProperty(ASYNC_PREVIOUS)){
+        if (idxBuilder.hasProperty(ASYNC_PREVIOUS)) {
             //Lane already switched
             return;
         }
@@ -81,13 +82,14 @@ public class AsyncLaneSwitcher {
         return idxBuilder.hasProperty(ASYNC_PREVIOUS);
     }
 
-    public static String getTempLaneName(String laneName){
+    public static String getTempLaneName(String laneName) {
         return TEMP_LANE_PREFIX + laneName;
     }
 
     public static void revertSwitch(NodeBuilder idxBuilder, String indexPath) {
         PropertyState previousAsync = idxBuilder.getProperty(ASYNC_PREVIOUS);
-        checkState(previousAsync != null, "No previous async state property found for index [%s]", indexPath);
+        checkState(previousAsync != null, "No previous async state property found for index [%s]",
+            indexPath);
 
         if (isNone(previousAsync)) {
             idxBuilder.removeProperty(IndexConstants.ASYNC_PROPERTY_NAME);
@@ -100,15 +102,18 @@ public class AsyncLaneSwitcher {
     }
 
     public static boolean isNone(PropertyState previousAsync) {
-        return !previousAsync.isArray() && ASYNC_PREVIOUS_NONE.equals(previousAsync.getValue(Type.STRING));
+        return !previousAsync.isArray() && ASYNC_PREVIOUS_NONE.equals(
+            previousAsync.getValue(Type.STRING));
     }
 
     private static PropertyState clone(String newName, PropertyState currentAsyncState) {
         PropertyState clonedState;
         if (currentAsyncState.isArray()) {
-            clonedState = PropertyStates.createProperty(newName, currentAsyncState.getValue(Type.STRINGS), Type.STRINGS);
+            clonedState = PropertyStates.createProperty(newName,
+                currentAsyncState.getValue(Type.STRINGS), Type.STRINGS);
         } else {
-            clonedState = PropertyStates.createProperty(newName, currentAsyncState.getValue(Type.STRING), Type.STRING);
+            clonedState = PropertyStates.createProperty(newName,
+                currentAsyncState.getValue(Type.STRING), Type.STRING);
         }
         return clonedState;
     }

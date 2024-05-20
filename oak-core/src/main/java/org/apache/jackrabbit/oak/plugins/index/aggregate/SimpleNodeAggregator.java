@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * List based NodeAggregator
- * 
  */
 public class SimpleNodeAggregator implements QueryIndex.NodeAggregator {
 
@@ -53,7 +52,7 @@ public class SimpleNodeAggregator implements QueryIndex.NodeAggregator {
     }
 
     private Iterator<String> getParents(NodeState root, String path,
-            boolean acceptStarIncludes) {
+        boolean acceptStarIncludes) {
 
         int levelsUp = 0;
         Set<String> primaryType = new HashSet<String>();
@@ -87,7 +86,7 @@ public class SimpleNodeAggregator implements QueryIndex.NodeAggregator {
                 if (isNodeType(root, parentPath, primaryType)) {
                     parents.add(parentPath);
                     parents.addAll(newArrayList(getParents(root, parentPath,
-                            false)));
+                        false)));
                     return parents.iterator();
                 }
             }
@@ -116,12 +115,11 @@ public class SimpleNodeAggregator implements QueryIndex.NodeAggregator {
 
     /**
      * Include children with the provided name. '*' means include all children
-     * 
+     * <p>
      * Note: there is no support for property names yet
-     * 
      */
     public SimpleNodeAggregator newRuleWithName(String primaryType,
-            List<String> includes) {
+        List<String> includes) {
         aggregates.add(new ChildNameRule(primaryType, includes));
         return this;
     }

@@ -54,16 +54,17 @@ public class PasswordExpiryHistoryTest extends AbstractSecurityTest {
     protected ConfigurationParameters getSecurityConfigParameters() {
         final PasswordValidationAction pwAction = new PasswordValidationAction();
         pwAction.init(null, ConfigurationParameters.of(
-                PasswordValidationAction.CONSTRAINT, "^.*(?=.{4,}).*"
+            PasswordValidationAction.CONSTRAINT, "^.*(?=.{4,}).*"
         ));
-        final AuthorizableActionProvider actionProvider = securityProvider -> ImmutableList.of(pwAction);
+        final AuthorizableActionProvider actionProvider = securityProvider -> ImmutableList.of(
+            pwAction);
 
         ConfigurationParameters userConfig = ConfigurationParameters.of(
-                ImmutableMap.of(
-                        UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider,
-                        UserConstants.PARAM_PASSWORD_MAX_AGE, 10,
-                        UserConstants.PARAM_PASSWORD_HISTORY_SIZE, 10
-                )
+            ImmutableMap.of(
+                UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider,
+                UserConstants.PARAM_PASSWORD_MAX_AGE, 10,
+                UserConstants.PARAM_PASSWORD_HISTORY_SIZE, 10
+            )
         );
         return ConfigurationParameters.of(UserConfiguration.NAME, userConfig);
     }
@@ -73,7 +74,8 @@ public class PasswordExpiryHistoryTest extends AbstractSecurityTest {
         User user = getTestUser();
         Authentication a = new UserAuthentication(getUserConfiguration(), root, userId);
         // set password last modified to beginning of epoch
-        root.getTree(user.getPath()).getChild(UserConstants.REP_PWD).setProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED, 0);
+        root.getTree(user.getPath()).getChild(UserConstants.REP_PWD)
+            .setProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED, 0);
         root.commit();
         try {
             a.authenticate(new SimpleCredentials(userId, userId.toCharArray()));
@@ -84,16 +86,18 @@ public class PasswordExpiryHistoryTest extends AbstractSecurityTest {
             // try to change password to the same one, this should fail due pw history
             SimpleCredentials pwChangeCreds = new SimpleCredentials(userId, userId.toCharArray());
             try {
-                pwChangeCreds.setAttribute(UserConstants.CREDENTIALS_ATTRIBUTE_NEWPASSWORD, user.getID());
+                pwChangeCreds.setAttribute(UserConstants.CREDENTIALS_ATTRIBUTE_NEWPASSWORD,
+                    user.getID());
                 a.authenticate(pwChangeCreds);
                 fail("User password changed in spite of enabled pw history");
             } catch (CredentialExpiredException c) {
                 // success, pw found in history
-                Object attr = pwChangeCreds.getAttribute(PasswordHistoryException.class.getSimpleName());
+                Object attr = pwChangeCreds.getAttribute(
+                    PasswordHistoryException.class.getSimpleName());
                 assertEquals(
-                        "credentials should contain pw change failure reason",
-                        "New password is identical to the current password.",
-                        attr);
+                    "credentials should contain pw change failure reason",
+                    "New password is identical to the current password.",
+                    attr);
             } finally {
                 assertNull(pwChangeCreds.getAttribute(CREDENTIALS_ATTRIBUTE_NEWPASSWORD));
             }
@@ -106,7 +110,8 @@ public class PasswordExpiryHistoryTest extends AbstractSecurityTest {
         user.changePassword("pw12345678");
         Authentication a = new UserAuthentication(getUserConfiguration(), root, userId);
         // set password last modified to beginning of epoch
-        root.getTree(user.getPath()).getChild(UserConstants.REP_PWD).setProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED, 0);
+        root.getTree(user.getPath()).getChild(UserConstants.REP_PWD)
+            .setProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED, 0);
         root.commit();
         try {
             a.authenticate(new SimpleCredentials(userId, "pw12345678".toCharArray()));
@@ -115,18 +120,21 @@ public class PasswordExpiryHistoryTest extends AbstractSecurityTest {
             // success, credentials are expired
 
             // try to change password to the same one, this should fail due pw history
-            SimpleCredentials pwChangeCreds = new SimpleCredentials(userId, "pw12345678".toCharArray());
+            SimpleCredentials pwChangeCreds = new SimpleCredentials(userId,
+                "pw12345678".toCharArray());
             try {
-                pwChangeCreds.setAttribute(UserConstants.CREDENTIALS_ATTRIBUTE_NEWPASSWORD, user.getID());
+                pwChangeCreds.setAttribute(UserConstants.CREDENTIALS_ATTRIBUTE_NEWPASSWORD,
+                    user.getID());
                 a.authenticate(pwChangeCreds);
                 fail("User password changed in spite of enabled pw history");
             } catch (CredentialExpiredException c) {
                 // success, pw found in history
-                Object attr = pwChangeCreds.getAttribute(PasswordHistoryException.class.getSimpleName());
+                Object attr = pwChangeCreds.getAttribute(
+                    PasswordHistoryException.class.getSimpleName());
                 assertEquals(
-                        "credentials should contain pw change failure reason",
-                        "New password was found in password history.",
-                        attr);
+                    "credentials should contain pw change failure reason",
+                    "New password was found in password history.",
+                    attr);
             } finally {
                 assertNull(pwChangeCreds.getAttribute(CREDENTIALS_ATTRIBUTE_NEWPASSWORD));
             }
@@ -138,7 +146,8 @@ public class PasswordExpiryHistoryTest extends AbstractSecurityTest {
         User user = getTestUser();
         Authentication a = new UserAuthentication(getUserConfiguration(), root, userId);
         // set password last modified to beginning of epoch
-        root.getTree(user.getPath()).getChild(UserConstants.REP_PWD).setProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED, 0);
+        root.getTree(user.getPath()).getChild(UserConstants.REP_PWD)
+            .setProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED, 0);
         root.commit();
         try {
             a.authenticate(new SimpleCredentials(userId, userId.toCharArray()));
@@ -154,7 +163,8 @@ public class PasswordExpiryHistoryTest extends AbstractSecurityTest {
                 fail("User password changed in spite of expected validation failure");
             } catch (CredentialExpiredException c) {
                 // success, pw found in history
-                assertNull(pwChangeCreds.getAttribute(PasswordHistoryException.class.getSimpleName()));
+                assertNull(
+                    pwChangeCreds.getAttribute(PasswordHistoryException.class.getSimpleName()));
             } finally {
                 assertNull(pwChangeCreds.getAttribute(CREDENTIALS_ATTRIBUTE_NEWPASSWORD));
             }

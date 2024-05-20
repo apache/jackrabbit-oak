@@ -49,9 +49,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class PrincipalRestrictionProviderTest extends AbstractSecurityTest implements AccessControlConstants {
+public class PrincipalRestrictionProviderTest extends AbstractSecurityTest implements
+    AccessControlConstants {
 
-    private static final Logger log = LoggerFactory.getLogger(PrincipalRestrictionProviderTest.class);
+    private static final Logger log = LoggerFactory.getLogger(
+        PrincipalRestrictionProviderTest.class);
 
     private RestrictionProvider base = mock(RestrictionProvider.class);
     private PrincipalRestrictionProvider provider = new PrincipalRestrictionProvider(base);
@@ -111,7 +113,7 @@ public class PrincipalRestrictionProviderTest extends AbstractSecurityTest imple
 
         verify(base, times(1)).validateRestrictions("/testPath", t);
     }
-    
+
     @Test
     public void testGetPatternFromTree() throws Exception {
         Tree t = mock(Tree.class);

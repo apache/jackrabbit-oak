@@ -73,14 +73,16 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
     @Test
     public void testAuthenticateWithoutUserId() throws Exception {
         authentication = new UserAuthentication(getUserConfiguration(), root, null);
-        assertFalse(authentication.authenticate(new SimpleCredentials(userId, userId.toCharArray())));
+        assertFalse(
+            authentication.authenticate(new SimpleCredentials(userId, userId.toCharArray())));
     }
 
     @Test
     public void testAuthenticateInvalidCredentials() throws Exception {
         List<Credentials> invalid = new ArrayList<>();
         invalid.add(new TokenCredentials("token"));
-        invalid.add(new Credentials() {});
+        invalid.add(new Credentials() {
+        });
 
         for (Credentials creds : invalid) {
             assertFalse(authentication.authenticate(creds));
@@ -113,7 +115,8 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
     @Test(expected = AccountLockedException.class)
     public void testAuthenticateResolvesToDisabledUser() throws Exception {
         User testUser = getTestUser();
-        SimpleCredentials sc = new SimpleCredentials(testUser.getID(), testUser.getID().toCharArray());
+        SimpleCredentials sc = new SimpleCredentials(testUser.getID(),
+            testUser.getID().toCharArray());
         Authentication a = new UserAuthentication(getUserConfiguration(), root, sc.getUserID());
 
         try {
@@ -153,16 +156,22 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
 
     @Test
     public void testAuthenticateSimpleCredentials() throws Exception {
-       assertTrue(authentication.authenticate(new SimpleCredentials(userId, userId.toCharArray())));
+        assertTrue(
+            authentication.authenticate(new SimpleCredentials(userId, userId.toCharArray())));
     }
 
     @Test
     public void testAuthenticateInvalidImpersonationCredentials() {
-       List<Credentials> invalid = new ArrayList<>();
-        invalid.add(new ImpersonationCredentials(new GuestCredentials(), adminSession.getAuthInfo()));
-        invalid.add(new ImpersonationCredentials(new SimpleCredentials(adminSession.getAuthInfo().getUserID(), new char[0]), mockAuthInfo(userId)));
-        invalid.add(new ImpersonationCredentials(new SimpleCredentials("unknown", new char[0]), adminSession.getAuthInfo()));
-        invalid.add(new ImpersonationCredentials(new SimpleCredentials("unknown", new char[0]), mockAuthInfo(userId)));
+        List<Credentials> invalid = new ArrayList<>();
+        invalid.add(
+            new ImpersonationCredentials(new GuestCredentials(), adminSession.getAuthInfo()));
+        invalid.add(new ImpersonationCredentials(
+            new SimpleCredentials(adminSession.getAuthInfo().getUserID(), new char[0]),
+            mockAuthInfo(userId)));
+        invalid.add(new ImpersonationCredentials(new SimpleCredentials("unknown", new char[0]),
+            adminSession.getAuthInfo()));
+        invalid.add(new ImpersonationCredentials(new SimpleCredentials("unknown", new char[0]),
+            mockAuthInfo(userId)));
 
         for (Credentials creds : invalid) {
             try {
@@ -178,18 +187,22 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
     @Test
     public void testAuthenticateImpersonationCredentials() throws Exception {
         SimpleCredentials sc = new SimpleCredentials(userId, new char[0]);
-        assertTrue(authentication.authenticate(new ImpersonationCredentials(sc, adminSession.getAuthInfo())));
+        assertTrue(authentication.authenticate(
+            new ImpersonationCredentials(sc, adminSession.getAuthInfo())));
     }
 
     @Test
     public void testAuthenticateImpersonationCredentials2() throws Exception {
         SimpleCredentials sc = new SimpleCredentials(userId, new char[0]);
-        assertTrue(authentication.authenticate(new ImpersonationCredentials(sc, mockAuthInfo(userId))));
+        assertTrue(
+            authentication.authenticate(new ImpersonationCredentials(sc, mockAuthInfo(userId))));
     }
 
     @Test
     public void testAuthenticateGuestCredentials() throws Exception {
-        UserAuthentication ua = new UserAuthentication(getUserConfiguration(), root, getUserConfiguration().getParameters().getConfigValue(UserConstants.PARAM_ANONYMOUS_ID, UserConstants.DEFAULT_ANONYMOUS_ID));
+        UserAuthentication ua = new UserAuthentication(getUserConfiguration(), root,
+            getUserConfiguration().getParameters().getConfigValue(UserConstants.PARAM_ANONYMOUS_ID,
+                UserConstants.DEFAULT_ANONYMOUS_ID));
         assertTrue(ua.authenticate(new GuestCredentials()));
     }
 
@@ -200,8 +213,10 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
 
     @Test(expected = LoginException.class)
     public void testAuthenticateWithFailingUserLookup() throws Exception {
-        UserManager um = mock(UserManager.class, withSettings().defaultAnswer(new ThrowsException(new RepositoryException())));
-        UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(any(Root.class), any(NamePathMapper.class))).thenReturn(um).getMock();
+        UserManager um = mock(UserManager.class,
+            withSettings().defaultAnswer(new ThrowsException(new RepositoryException())));
+        UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(any(Root.class),
+            any(NamePathMapper.class))).thenReturn(um).getMock();
 
         UserAuthentication ua = new UserAuthentication(uc, root, userId);
         ua.authenticate(new SimpleCredentials(userId, userId.toCharArray()));
@@ -209,7 +224,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
 
     @Test(expected = IllegalStateException.class)
     public void testGetUserIdBeforeLogin() {
-       authentication.getUserId();
+        authentication.getUserId();
     }
 
     @Test

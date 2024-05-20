@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Collections;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 
@@ -43,12 +42,12 @@ public class SameNodeImpl extends ConstraintImpl {
         String p = normalizePath(path);
         return selector.currentPath().equals(p);
     }
-    
+
     @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
         return Collections.emptySet();
     }
-    
+
     @Override
     public Set<SelectorImpl> getSelectors() {
         return Collections.singleton(selector);
@@ -61,8 +60,8 @@ public class SameNodeImpl extends ConstraintImpl {
 
     @Override
     public String toString() {
-        return "issamenode(" +  quote(selectorName) + 
-                ", " + quote(path) + ')';
+        return "issamenode(" + quote(selectorName) +
+            ", " + quote(path) + ')';
     }
 
     public void bindSelector(SourceImpl source) {

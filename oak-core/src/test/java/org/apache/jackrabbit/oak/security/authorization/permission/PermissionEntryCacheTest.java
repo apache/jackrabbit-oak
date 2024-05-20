@@ -46,7 +46,8 @@ public class PermissionEntryCacheTest {
 
     @Before
     public void before() {
-        permissionEntry = new PermissionEntry("/path", true, 0, PrivilegeBits.BUILT_IN.get(PrivilegeBits.JCR_READ), RestrictionPattern.EMPTY);
+        permissionEntry = new PermissionEntry("/path", true, 0,
+            PrivilegeBits.BUILT_IN.get(PrivilegeBits.JCR_READ), RestrictionPattern.EMPTY);
         ppe = new PrincipalPermissionEntries();
         ppe.putEntriesByPath("/path", Sets.newHashSet(permissionEntry));
 
@@ -239,12 +240,14 @@ public class PermissionEntryCacheTest {
         assertSame(ppe, entries);
     }
 
-    private static PrincipalPermissionEntries inspectEntries(@NotNull PermissionEntryCache cache, @NotNull String principalName) throws Exception {
+    private static PrincipalPermissionEntries inspectEntries(@NotNull PermissionEntryCache cache,
+        @NotNull String principalName) throws Exception {
         Map<String, PrincipalPermissionEntries> entries = inspectEntries(cache);
         return entries.get(principalName);
     }
 
-    private static Map<String, PrincipalPermissionEntries> inspectEntries(@NotNull PermissionEntryCache cache) throws Exception {
+    private static Map<String, PrincipalPermissionEntries> inspectEntries(
+        @NotNull PermissionEntryCache cache) throws Exception {
         Field f = PermissionEntryCache.class.getDeclaredField("entries");
         f.setAccessible(true);
 

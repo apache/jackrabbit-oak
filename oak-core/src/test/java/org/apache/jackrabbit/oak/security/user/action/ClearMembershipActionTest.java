@@ -30,8 +30,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Integration tests for {@link ClearMembershipAction} including a complete
- * security setup.
+ * Integration tests for {@link ClearMembershipAction} including a complete security setup.
  */
 public class ClearMembershipActionTest extends AbstractSecurityTest {
 

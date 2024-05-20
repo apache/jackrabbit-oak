@@ -27,6 +27,7 @@ import org.junit.Test;
  * @see <a href="https://issues.apache.org/jira/browse/OAK-2933">OAK-2933</a>
  */
 public class MoveWithoutEntryCacheTest extends AbstractOakCoreTest {
+
     @Override
     public void before() throws Exception {
         super.before();
@@ -41,11 +42,14 @@ public class MoveWithoutEntryCacheTest extends AbstractOakCoreTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        return ConfigurationParameters.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of("eagerCacheSize", 0));
+        return ConfigurationParameters.of(AuthorizationConfiguration.NAME,
+            ConfigurationParameters.of("eagerCacheSize", 0));
     }
 
     /**
-     * Similar to {@code org.apache.jackrabbit.oak.jcr.security.authorization.SessionMoveTest.testMoveAndAddProperty2()}
+     * Similar to
+     * {@code
+     * org.apache.jackrabbit.oak.jcr.security.authorization.SessionMoveTest.testMoveAndAddProperty2()}
      * without having a permission-entry cache.
      *
      * @throws Exception
@@ -53,12 +57,12 @@ public class MoveWithoutEntryCacheTest extends AbstractOakCoreTest {
     @Test
     public void testMoveAndAddProperty2() throws Exception {
         setupPermission("/a/b", testPrincipal, true,
-                PrivilegeConstants.JCR_REMOVE_NODE,
-                PrivilegeConstants.JCR_REMOVE_CHILD_NODES,
-                PrivilegeConstants.REP_ADD_PROPERTIES);
+            PrivilegeConstants.JCR_REMOVE_NODE,
+            PrivilegeConstants.JCR_REMOVE_CHILD_NODES,
+            PrivilegeConstants.REP_ADD_PROPERTIES);
         setupPermission("/a/bb", testPrincipal, true,
-                PrivilegeConstants.JCR_ADD_CHILD_NODES,
-                PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT);
+            PrivilegeConstants.JCR_ADD_CHILD_NODES,
+            PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT);
 
         String siblingDestPath = "/a/bb/destination";
 
@@ -71,7 +75,9 @@ public class MoveWithoutEntryCacheTest extends AbstractOakCoreTest {
     }
 
     /**
-     * Same as {@code org.apache.jackrabbit.oak.jcr.security.authorization.SessionMoveTest.testMoveAndRemoveProperty2()}
+     * Same as
+     * {@code
+     * org.apache.jackrabbit.oak.jcr.security.authorization.SessionMoveTest.testMoveAndRemoveProperty2()}
      * without having a permission-entry cache.
      *
      * @throws Exception
@@ -79,12 +85,12 @@ public class MoveWithoutEntryCacheTest extends AbstractOakCoreTest {
     @Test
     public void testMoveAndRemoveProperty2() throws Exception {
         setupPermission("/a/b", testPrincipal, true,
-                PrivilegeConstants.JCR_REMOVE_NODE,
-                PrivilegeConstants.JCR_REMOVE_CHILD_NODES,
-                PrivilegeConstants.REP_REMOVE_PROPERTIES);
+            PrivilegeConstants.JCR_REMOVE_NODE,
+            PrivilegeConstants.JCR_REMOVE_CHILD_NODES,
+            PrivilegeConstants.REP_REMOVE_PROPERTIES);
         setupPermission("/a/bb", testPrincipal, true,
-                PrivilegeConstants.JCR_ADD_CHILD_NODES,
-                PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT);
+            PrivilegeConstants.JCR_ADD_CHILD_NODES,
+            PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT);
 
         String siblingDestPath = "/a/bb/destination";
 

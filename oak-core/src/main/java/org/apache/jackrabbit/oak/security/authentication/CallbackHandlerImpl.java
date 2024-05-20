@@ -34,8 +34,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Default implementation of the {@link CallbackHandler} interface. It currently
- * supports the following {@code Callback} implementations:
+ * Default implementation of the {@link CallbackHandler} interface. It currently supports the
+ * following {@code Callback} implementations:
  * <p>
  * <ul>
  * <li>{@link CredentialsCallback}</li>
@@ -54,10 +54,10 @@ class CallbackHandlerImpl implements CallbackHandler {
     private final LoginModuleMonitor loginModuleMonitor;
 
     CallbackHandlerImpl(Credentials credentials, String workspaceName,
-                        ContentRepository contentRepository,
-                        SecurityProvider securityProvider,
-                        Whiteboard whiteboard,
-                        LoginModuleMonitor loginModuleMonitor) {
+        ContentRepository contentRepository,
+        SecurityProvider securityProvider,
+        Whiteboard whiteboard,
+        LoginModuleMonitor loginModuleMonitor) {
         this.credentials = credentials;
         this.workspaceName = workspaceName;
         this.contentRepository = contentRepository;

@@ -111,7 +111,8 @@ class AuthorizableImpl implements Authorizable {
     }
 
     @Override
-    public void setProperty(@NotNull String s, @Nullable Value[] values) throws RepositoryException {
+    public void setProperty(@NotNull String s, @Nullable Value[] values)
+        throws RepositoryException {
         try {
             dlg.setProperty(s, values);
         } finally {

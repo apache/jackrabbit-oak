@@ -36,8 +36,8 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 
 /**
- * Base class for all classes that attempt to test OAK API and OAK core functionality
- * in combination with permission evaluation
+ * Base class for all classes that attempt to test OAK API and OAK core functionality in combination
+ * with permission evaluation
  */
 public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
 
@@ -106,41 +106,44 @@ public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
     }
 
     /**
-     * Same as {@link #setupPermission(org.apache.jackrabbit.oak.api.Root, String, java.security.Principal, boolean, String...)}
-     * where the specified root is the current root associated with the admin
+     * Same as
+     * {@link #setupPermission(org.apache.jackrabbit.oak.api.Root, String, java.security.Principal,
+     * boolean, String...)} where the specified root is the current root associated with the admin
      * session created in the test setup.
      *
-     * @param path The path of the access controlled tree.
-     * @param principal The principal for which new ACE is being created.
-     * @param isAllow {@code true} if privileges are granted; {@code false} otherwise.
+     * @param path           The path of the access controlled tree.
+     * @param principal      The principal for which new ACE is being created.
+     * @param isAllow        {@code true} if privileges are granted; {@code false} otherwise.
      * @param privilegeNames The privilege names.
      * @throws Exception If an error occurs.
      */
     protected void setupPermission(@Nullable String path,
-                                   @NotNull Principal principal,
-                                   boolean isAllow,
-                                   @NotNull String... privilegeNames) throws Exception {
+        @NotNull Principal principal,
+        boolean isAllow,
+        @NotNull String... privilegeNames) throws Exception {
         setupPermission(root, path, principal, isAllow, privilegeNames);
     }
 
     /**
      * Setup simple allow/deny permissions (without restrictions).
      *
-     * @param root The editing root.
-     * @param path The path of the access controlled tree.
-     * @param principal The principal for which new ACE is being created.
-     * @param isAllow {@code true} if privileges are granted; {@code false} otherwise.
+     * @param root           The editing root.
+     * @param path           The path of the access controlled tree.
+     * @param principal      The principal for which new ACE is being created.
+     * @param isAllow        {@code true} if privileges are granted; {@code false} otherwise.
      * @param privilegeNames The privilege names.
      * @throws Exception If an error occurs.
      */
     protected void setupPermission(@NotNull Root root,
-                                   @Nullable String path,
-                                   @NotNull Principal principal,
-                                   boolean isAllow,
-                                   @NotNull String... privilegeNames) throws Exception {
+        @Nullable String path,
+        @NotNull Principal principal,
+        boolean isAllow,
+        @NotNull String... privilegeNames) throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = checkNotNull(AccessControlUtils.getAccessControlList(acMgr, path));
-        acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), isAllow);
+        JackrabbitAccessControlList acl = checkNotNull(
+            AccessControlUtils.getAccessControlList(acMgr, path));
+        acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames),
+            isAllow);
         acMgr.setPolicy(path, acl);
         root.commit();
     }

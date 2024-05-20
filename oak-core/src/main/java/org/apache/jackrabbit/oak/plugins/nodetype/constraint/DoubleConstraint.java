@@ -27,7 +27,7 @@ public class DoubleConstraint extends NumericConstraint<Double> {
 
     @Override
     protected Double getBound(String bound) {
-        return  bound == null || bound.isEmpty()
+        return bound == null || bound.isEmpty()
             ? null
             : Double.parseDouble(bound);
     }

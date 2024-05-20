@@ -31,29 +31,29 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Immutable implementation of the {@code Tree} interface in order to provide
- * the much feature rich API functionality for a given {@code NodeState}.
+ * Immutable implementation of the {@code Tree} interface in order to provide the much feature rich
+ * API functionality for a given {@code NodeState}.
  *
  * <h3>Tree hierarchy</h3>
- * Due to the nature of this {@code Tree} implementation creating a proper
- * hierarchical view of the tree structure is the responsibility of the caller.
- * It is recommended to start with the state of the
- * {@link #ImmutableTree(org.apache.jackrabbit.oak.spi.state.NodeState) root node}
- * and build up the hierarchy by calling
- * {@link #ImmutableTree(ImmutableTree, String, org.apache.jackrabbit.oak.spi.state.NodeState)}
- * for every subsequent child state. Note, that this implementation will not
- * perform any kind of validation of the passed state and methods like {@link #isRoot()},
- * {@link #getName()} or {@link #getPath()} will just make use of the hierarchy that has been
- * create by that sequence. In order to create a disconnected individual tree in cases where
- * the hierarchy information is not (yet) need or known it is suggested to use
- * {@link #ImmutableTree(ImmutableTree.ParentProvider, String, org.apache.jackrabbit.oak.spi.state.NodeState)}
- * an specify an appropriate {@code ParentProvider} implementation.
+ * Due to the nature of this {@code Tree} implementation creating a proper hierarchical view of the
+ * tree structure is the responsibility of the caller. It is recommended to start with the state of
+ * the {@link #ImmutableTree(org.apache.jackrabbit.oak.spi.state.NodeState) root node} and build up
+ * the hierarchy by calling
+ * {@link #ImmutableTree(ImmutableTree, String, org.apache.jackrabbit.oak.spi.state.NodeState)} for
+ * every subsequent child state. Note, that this implementation will not perform any kind of
+ * validation of the passed state and methods like {@link #isRoot()}, {@link #getName()} or
+ * {@link #getPath()} will just make use of the hierarchy that has been create by that sequence. In
+ * order to create a disconnected individual tree in cases where the hierarchy information is not
+ * (yet) need or known it is suggested to use
+ * {@link #ImmutableTree(ImmutableTree.ParentProvider, String,
+ * org.apache.jackrabbit.oak.spi.state.NodeState)} an specify an appropriate {@code ParentProvider}
+ * implementation.
  *
  * <h3>ParentProvider</h3>
- * Apart from create the tree hierarchy in traversal mode this tree implementation
- * allows to instantiate disconnected trees that depending on the use may
- * never or on demand retrieve hierarchy information. The following default
- * implementations of this internal interface are present:
+ * Apart from create the tree hierarchy in traversal mode this tree implementation allows to
+ * instantiate disconnected trees that depending on the use may never or on demand retrieve
+ * hierarchy information. The following default implementations of this internal interface are
+ * present:
  *
  * <ul>
  *     <li>{@link DefaultParentProvider}: used with the default usage where the
@@ -100,11 +100,13 @@ public final class ImmutableTree extends AbstractTree implements TreeTypeAware, 
         this(ParentProvider.ROOT_PROVIDER, PathUtils.ROOT_NAME, rootState);
     }
 
-    public ImmutableTree(@NotNull ImmutableTree parent, @NotNull String name, @NotNull NodeState state) {
+    public ImmutableTree(@NotNull ImmutableTree parent, @NotNull String name,
+        @NotNull NodeState state) {
         this(new DefaultParentProvider(parent), name, state);
     }
 
-    public ImmutableTree(@NotNull ParentProvider parentProvider, @NotNull String name, @NotNull NodeState state) {
+    public ImmutableTree(@NotNull ParentProvider parentProvider, @NotNull String name,
+        @NotNull NodeState state) {
         this.nodeBuilder = new ReadOnlyBuilder(state);
         this.name = name;
         this.parentProvider = parentProvider;
@@ -234,7 +236,8 @@ public final class ImmutableTree extends AbstractTree implements TreeTypeAware, 
         }
         if (o instanceof ImmutableTree) {
             ImmutableTree other = (ImmutableTree) o;
-            return getName().equals(other.getName()) && nodeBuilder.getNodeState().equals(other.nodeBuilder.getNodeState());
+            return getName().equals(other.getName()) && nodeBuilder.getNodeState().equals(
+                other.nodeBuilder.getNodeState());
         }
         return false;
     }
@@ -262,6 +265,7 @@ public final class ImmutableTree extends AbstractTree implements TreeTypeAware, 
     }
 
     public static final class DefaultParentProvider implements ParentProvider {
+
         private final ImmutableTree parent;
 
         DefaultParentProvider(@NotNull ImmutableTree parent) {

@@ -65,7 +65,7 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
     public void before() throws Exception {
         super.before();
 
-        testTree = TreeUtil.addChild(root.getTree("/"),"test", NT_OAK_UNSTRUCTURED);
+        testTree = TreeUtil.addChild(root.getTree("/"), "test", NT_OAK_UNSTRUCTURED);
         Tree a = TreeUtil.addChild(testTree, "a", NT_OAK_UNSTRUCTURED);
         Tree b = TreeUtil.addChild(a, "b", NT_OAK_UNSTRUCTURED);
         TreeUtil.addChild(b, "c", NT_OAK_UNSTRUCTURED);
@@ -73,7 +73,8 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
 
         AccessControlManager acMgr = getAccessControlManager(root);
         AccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/test");
-        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ));
+        acl.addAccessControlEntry(EveryonePrincipal.getInstance(),
+            AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ));
         acMgr.setPolicy("/test", acl);
         root.commit();
 
@@ -84,7 +85,9 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
         root.commit();
 
         vMgr = ReadOnlyVersionManager.getInstance(root, NamePathMapper.DEFAULT);
-        pp = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.of(EveryonePrincipal.getInstance()));
+        pp = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root,
+            root.getContentSession().getWorkspaceName(),
+            ImmutableSet.of(EveryonePrincipal.getInstance()));
 
         assertTrue(pp instanceof PermissionProviderImpl);
 
@@ -109,7 +112,8 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
         }
     }
 
-    private static TreePermission getVersionPermission(Root root, PermissionProvider pp, String path) {
+    private static TreePermission getVersionPermission(Root root, PermissionProvider pp,
+        String path) {
         Tree t = root.getTree("/");
         TreePermission tp = pp.getTreePermission(t, TreePermission.EMPTY);
         for (String name : PathUtils.elements(path)) {
@@ -119,12 +123,14 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
         return tp;
     }
 
-    private void assertVersionPermission(@NotNull TreePermission tp, @NotNull String expectedPath, boolean canRead) throws Exception {
+    private void assertVersionPermission(@NotNull TreePermission tp, @NotNull String expectedPath,
+        boolean canRead) throws Exception {
         assertTrue(tp instanceof VersionTreePermission);
         assertEquals(canRead, tp.canRead());
         assertEquals(canRead, tp.canRead(PropertyStates.createProperty("any", "Value")));
         assertEquals(canRead, tp.isGranted(Permissions.READ));
-        assertEquals(canRead, tp.isGranted(Permissions.READ, PropertyStates.createProperty("any", "Value")));
+        assertEquals(canRead,
+            tp.isGranted(Permissions.READ, PropertyStates.createProperty("any", "Value")));
         assertEquals(canRead, tp.canReadProperties());
         assertFalse(tp.canReadAll());
 
@@ -155,7 +161,7 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
         assertVersionPermission(tp, expectedPath, true);
 
         Tree t = frozen;
-        for (String name : new String[] {"a", "b", "c"}) {
+        for (String name : new String[]{"a", "b", "c"}) {
             t = t.getChild(name);
             expectedPath = PathUtils.concat(expectedPath, name);
             tp = pp.getTreePermission(t, tp);
@@ -185,7 +191,7 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
         tp = tp.getChildPermission(JCR_FROZENNODE, ns);
         assertVersionPermission(tp, "/test", true);
 
-        for (String name : new String[] {"a", "b", "c"}) {
+        for (String name : new String[]{"a", "b", "c"}) {
             ns = ns.getChildNode(name);
             expectedPath = PathUtils.concat(expectedPath, name);
 
@@ -216,7 +222,7 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
 
         Tree t = frozen;
         String expectedPath = "/";
-        for (String name : new String[] {"a", "b", "c"}) {
+        for (String name : new String[]{"a", "b", "c"}) {
             t = t.getChild(name);
             expectedPath = PathUtils.concat(expectedPath, name);
             tp = pp.getTreePermission(t, tp);
@@ -231,7 +237,8 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
         pp.refresh();
 
         Tree versionHistory = checkNotNull(vMgr.getVersionHistory(testTree));
-        String frozenCPath = PathUtils.concat(versionHistory.getPath(), "1.0", JCR_FROZENNODE, "a/b/c");
+        String frozenCPath = PathUtils.concat(versionHistory.getPath(), "1.0", JCR_FROZENNODE,
+            "a/b/c");
 
         TreePermission tp = getVersionPermission(root, pp, frozenCPath);
         assertVersionPermission(tp, "/test/a/b/c", true);
@@ -268,7 +275,8 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
     @Test
     public void testCanRead() {
         TreePermission versionableTreePermission = mock(TreePermission.class);
-        VersionTreePermission vtp = new VersionTreePermission(mock(Tree.class), versionableTreePermission, getTreeProvider());
+        VersionTreePermission vtp = new VersionTreePermission(mock(Tree.class),
+            versionableTreePermission, getTreeProvider());
 
         vtp.canRead();
         verify(versionableTreePermission, times(1)).canRead();
@@ -277,7 +285,8 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
     @Test
     public void testCanReadProperty() {
         TreePermission versionableTreePermission = mock(TreePermission.class);
-        VersionTreePermission vtp = new VersionTreePermission(mock(Tree.class), versionableTreePermission, getTreeProvider());
+        VersionTreePermission vtp = new VersionTreePermission(mock(Tree.class),
+            versionableTreePermission, getTreeProvider());
 
         PropertyState ps = mock(PropertyState.class);
         vtp.canRead(ps);
@@ -287,7 +296,8 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
     @Test
     public void testCanReadAll() {
         TreePermission versionableTreePermission = mock(TreePermission.class);
-        VersionTreePermission vtp = new VersionTreePermission(mock(Tree.class), versionableTreePermission, getTreeProvider());
+        VersionTreePermission vtp = new VersionTreePermission(mock(Tree.class),
+            versionableTreePermission, getTreeProvider());
 
         vtp.canReadAll();
         verify(versionableTreePermission, times(1)).canReadAll();
@@ -296,7 +306,8 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
     @Test
     public void testCanReadProperties() {
         TreePermission versionableTreePermission = mock(TreePermission.class);
-        VersionTreePermission vtp = new VersionTreePermission(mock(Tree.class), versionableTreePermission, getTreeProvider());
+        VersionTreePermission vtp = new VersionTreePermission(mock(Tree.class),
+            versionableTreePermission, getTreeProvider());
 
         vtp.canReadProperties();
         verify(versionableTreePermission, times(1)).canReadProperties();
@@ -305,7 +316,8 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
     @Test
     public void testIsGranted() {
         TreePermission versionableTreePermission = mock(TreePermission.class);
-        VersionTreePermission vtp = new VersionTreePermission(mock(Tree.class), versionableTreePermission, getTreeProvider());
+        VersionTreePermission vtp = new VersionTreePermission(mock(Tree.class),
+            versionableTreePermission, getTreeProvider());
 
         vtp.isGranted(Permissions.ALL);
         verify(versionableTreePermission, times(1)).isGranted(Permissions.ALL);
@@ -314,7 +326,8 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
     @Test
     public void testIsGrantedProperty() {
         TreePermission versionableTreePermission = mock(TreePermission.class);
-        VersionTreePermission vtp = new VersionTreePermission(mock(Tree.class), versionableTreePermission, getTreeProvider());
+        VersionTreePermission vtp = new VersionTreePermission(mock(Tree.class),
+            versionableTreePermission, getTreeProvider());
 
         PropertyState ps = mock(PropertyState.class);
 

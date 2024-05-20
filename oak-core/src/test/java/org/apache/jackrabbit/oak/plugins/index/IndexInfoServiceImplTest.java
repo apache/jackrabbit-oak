@@ -50,14 +50,14 @@ public class IndexInfoServiceImplTest {
     private SimpleIndexPathService pathService = new SimpleIndexPathService();
 
     @Before
-    public void setUp(){
+    public void setUp() {
         context.registerService(NodeStore.class, store);
         context.registerService(IndexPathService.class, pathService);
         MockOsgi.injectServices(service, context.bundleContext());
     }
 
     @Test
-    public void indexInfo() throws Exception{
+    public void indexInfo() throws Exception {
         //1. Test Empty
         assertNull(service.getInfo("/nonExistingPath"));
 
@@ -88,14 +88,18 @@ public class IndexInfoServiceImplTest {
     }
 
     @Test
-    public void allIndexInfo() throws Exception{
-        pathService.paths = Lists.newArrayList("/oak:index/a", "/oak:index/b", "/oak:index/c", "/oak:index/d");
+    public void allIndexInfo() throws Exception {
+        pathService.paths = Lists.newArrayList("/oak:index/a", "/oak:index/b", "/oak:index/c",
+            "/oak:index/d");
 
         NodeBuilder builder = store.getRoot().builder();
         builder.child("oak:index").child("a"); //Index with no type
-        builder.child("oak:index").child("b").setProperty("type", "type-b"); //No backing info provider
-        builder.child("oak:index").child("c").setProperty("type", "type-c"); //Info provider throws exception
-        builder.child("oak:index").child("d").setProperty("type", "type-d"); //Info provider returns result
+        builder.child("oak:index").child("b")
+               .setProperty("type", "type-b"); //No backing info provider
+        builder.child("oak:index").child("c")
+               .setProperty("type", "type-c"); //Info provider throws exception
+        builder.child("oak:index").child("d")
+               .setProperty("type", "type-d"); //Info provider returns result
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         IndexInfoProvider type_c = mock(IndexInfoProvider.class);
@@ -119,7 +123,7 @@ public class IndexInfoServiceImplTest {
         assertEquals(2, infos.size());
 
         for (IndexInfo info : infos) {
-            if (info.getType().equals("type-d")){
+            if (info.getType().equals("type-d")) {
                 assertEquals("async-d", info.getAsyncLaneName());
             }
         }
@@ -127,6 +131,7 @@ public class IndexInfoServiceImplTest {
     }
 
     private static class SimpleIndexPathService implements IndexPathService {
+
         List<String> paths = Collections.emptyList();
 
         @Override

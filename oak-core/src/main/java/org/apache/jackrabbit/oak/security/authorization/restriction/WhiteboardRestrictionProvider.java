@@ -32,12 +32,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Dynamic {@link RestrictionProvider} based on the available
- * whiteboard services.
+ * Dynamic {@link RestrictionProvider} based on the available whiteboard services.
  */
 public class WhiteboardRestrictionProvider
-        extends AbstractServiceTracker<RestrictionProvider>
-        implements RestrictionProvider {
+    extends AbstractServiceTracker<RestrictionProvider>
+    implements RestrictionProvider {
 
     public WhiteboardRestrictionProvider() {
         super(RestrictionProvider.class);
@@ -51,13 +50,15 @@ public class WhiteboardRestrictionProvider
 
     @NotNull
     @Override
-    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value value) throws RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName,
+        @NotNull Value value) throws RepositoryException {
         return getProvider().createRestriction(oakPath, oakName, value);
     }
 
     @NotNull
     @Override
-    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value... values) throws RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName,
+        @NotNull Value... values) throws RepositoryException {
         return getProvider().createRestriction(oakPath, oakName, values);
     }
 
@@ -68,12 +69,14 @@ public class WhiteboardRestrictionProvider
     }
 
     @Override
-    public void writeRestrictions(@Nullable String oakPath, @NotNull Tree aceTree, @NotNull Set<Restriction> restrictions) throws RepositoryException {
+    public void writeRestrictions(@Nullable String oakPath, @NotNull Tree aceTree,
+        @NotNull Set<Restriction> restrictions) throws RepositoryException {
         getProvider().writeRestrictions(oakPath, aceTree, restrictions);
     }
 
     @Override
-    public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) throws RepositoryException {
+    public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree)
+        throws RepositoryException {
         getProvider().validateRestrictions(oakPath, aceTree);
     }
 
@@ -85,7 +88,8 @@ public class WhiteboardRestrictionProvider
 
     @NotNull
     @Override
-    public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
+    public RestrictionPattern getPattern(@Nullable String oakPath,
+        @NotNull Set<Restriction> restrictions) {
         return getProvider().getPattern(oakPath, restrictions);
     }
 

@@ -50,15 +50,13 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Default login module implementation that authenticates JCR {@code Credentials}
- * against the repository. Based on the credentials the {@link Principal}s
- * associated with user are retrieved from a configurable
- * {@link org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider}.
+ * Default login module implementation that authenticates JCR {@code Credentials} against the
+ * repository. Based on the credentials the {@link Principal}s associated with user are retrieved
+ * from a configurable {@link org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider}.
  *
  * <h3>Credentials</h3>
- *
- * The {@code Credentials} are collected during {@link #login()} using the
- * following logic:
+ * <p>
+ * The {@code Credentials} are collected during {@link #login()} using the following logic:
  *
  * <ul>
  *     <li>{@code Credentials} as specified in {@link javax.jcr.Repository#login(javax.jcr.Credentials)}
@@ -69,7 +67,7 @@ import java.util.stream.Stream;
  *     tries to obtain them from the subject. See also
  *     {@link javax.security.auth.Subject#getSubject(java.security.AccessControlContext)}</li>
  * </ul>
- *
+ * <p>
  * This implementation of the {@code LoginModule} currently supports the following
  * types of JCR Credentials:
  *
@@ -78,7 +76,7 @@ import java.util.stream.Stream;
  *     <li>{@link GuestCredentials}</li>
  *     <li>{@link ImpersonationCredentials}</li>
  * </ul>
- *
+ * <p>
  * The {@link Credentials} obtained during the {@code #login()} are added to
  * the shared state and - upon successful {@code #commit()} to the {@code Subject}.
  *
@@ -103,6 +101,7 @@ public final class LoginModuleImpl extends AbstractLoginModule {
     private static final Logger log = LoggerFactory.getLogger(LoginModuleImpl.class);
 
     protected static final Set<Class> SUPPORTED_CREDENTIALS = new HashSet<>(3);
+
     static {
         SUPPORTED_CREDENTIALS.add(SimpleCredentials.class);
         SUPPORTED_CREDENTIALS.add(GuestCredentials.class);
@@ -181,7 +180,8 @@ public final class LoginModuleImpl extends AbstractLoginModule {
 
     @Override
     public boolean logout() throws LoginException {
-        Set creds = Stream.of(credentials, authInfo).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set creds = Stream.of(credentials, authInfo).filter(Objects::nonNull)
+                          .collect(Collectors.toSet());
         return logout((creds.isEmpty() ? null : creds), principals);
     }
 
@@ -234,7 +234,8 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         if (sp == null) {
             return null;
         } else {
-            ConfigurationParameters params = sp.getConfiguration(UserConfiguration.class).getParameters();
+            ConfigurationParameters params = sp.getConfiguration(UserConfiguration.class)
+                                               .getParameters();
             return UserUtil.getAnonymousId(params);
         }
     }
@@ -245,7 +246,9 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         Root root = getRoot();
         if (securityProvider != null && root != null) {
             UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
-            UserAuthenticationFactory factory = uc.getParameters().getConfigValue(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, null, UserAuthenticationFactory.class);
+            UserAuthenticationFactory factory = uc.getParameters().getConfigValue(
+                UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, null,
+                UserAuthenticationFactory.class);
             if (factory != null) {
                 return factory.getAuthentication(uc, root, loginName);
             } else {
@@ -255,8 +258,10 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         return null;
     }
 
-    private boolean authenticate(@Nullable PreAuthenticatedLogin preAuthLogin, @NotNull Authentication authentication) throws LoginException {
-        Credentials crds = (preAuthLogin != null) ? PreAuthenticatedLogin.PRE_AUTHENTICATED : credentials;
+    private boolean authenticate(@Nullable PreAuthenticatedLogin preAuthLogin,
+        @NotNull Authentication authentication) throws LoginException {
+        Credentials crds =
+            (preAuthLogin != null) ? PreAuthenticatedLogin.PRE_AUTHENTICATED : credentials;
         try {
             return authentication.authenticate(crds);
         } catch (LoginException e) {
@@ -275,13 +280,14 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         Map<String, Object> attributes = new HashMap<>();
         Object shared = sharedState.get(SHARED_KEY_ATTRIBUTES);
         if (shared instanceof Map) {
-            ((Map<?,?>) shared).forEach((key, value) -> attributes.put(key.toString(), value));
+            ((Map<?, ?>) shared).forEach((key, value) -> attributes.put(key.toString(), value));
         } else if (creds instanceof SimpleCredentials) {
             SimpleCredentials sc = (SimpleCredentials) creds;
             for (String attrName : sc.getAttributeNames()) {
                 attributes.put(attrName, sc.getAttribute(attrName));
             }
         }
-        return new AuthInfoImpl(userId, attributes, Iterables.concat(principals, subject.getPrincipals()));
+        return new AuthInfoImpl(userId, attributes,
+            Iterables.concat(principals, subject.getPrincipals()));
     }
 }

@@ -20,11 +20,13 @@
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 public interface FilterConfigMBean {
+
     String TYPE = "FilterConfig";
 
     /**
      * A set of paths, potentially containing globs, that include all events of this filter.
-     * @return  list of paths
+     *
+     * @return list of paths
      * @see org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder#addSubTree(String)
      */
     String[] getPaths();

@@ -30,16 +30,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * A predicate for matching against a list of UUIDs. This predicate holds
- * whenever the {@code NodeState} passed to its apply functions has a {@code jcr:uuid}
- * property and the value of that property matches any of the UUIDs that
- * has been passed to the predicate's constructor.
+ * A predicate for matching against a list of UUIDs. This predicate holds whenever the
+ * {@code NodeState} passed to its apply functions has a {@code jcr:uuid} property and the value of
+ * that property matches any of the UUIDs that has been passed to the predicate's constructor.
  */
 public class UuidPredicate implements Predicate<NodeState> {
+
     private final String[] uuids;
 
     /**
-     * @param uuids    uuids
+     * @param uuids uuids
      */
     public UuidPredicate(@NotNull String[] uuids) {
         this.uuids = checkNotNull(uuids);

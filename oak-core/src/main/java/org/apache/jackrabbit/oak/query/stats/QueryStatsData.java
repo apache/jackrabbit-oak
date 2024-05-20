@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.query.stats;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 
 public class QueryStatsData {
-    
+
     private final String query;
     private final String language;
     private final long createdMillis = System.currentTimeMillis();
@@ -27,15 +27,15 @@ public class QueryStatsData {
     private String lastThreadName;
     private long lastExecutedMillis;
     private long executeCount;
-    
+
     /**
      * Rows read by iterating over the query result.
      */
     private long totalRowsRead;
     private long maxRowsRead;
-    
+
     /**
-     *  Rows returned by the index.
+     * Rows returned by the index.
      */
     private long totalRowsScanned;
     private long maxRowsScanned;
@@ -48,40 +48,40 @@ public class QueryStatsData {
         this.query = query;
         this.language = language;
     }
-    
+
     public String getKey() {
         return query + "/" + language;
     }
-    
+
     /**
      * The maximum CPU time needed to run one query.
-     * 
+     *
      * @return the time in nanoseconds
      */
     public long getMaxTimeNanos() {
         return maxTimeNanos;
     }
-    
+
     public long getTotalTimeNanos() {
         return planNanos + readNanos;
     }
-    
+
     public long getMaxRowsRead() {
         return maxRowsRead;
     }
-    
+
     public long getMaxRowsScanned() {
         return maxRowsScanned;
     }
-    
+
     public void setCaptureStackTraces(boolean captureStackTraces) {
         this.captureStackTraces = captureStackTraces;
     }
-    
+
     public long getCreatedMillis() {
         return createdMillis;
     }
-    
+
 
     public long getExecuteCount() {
         return executeCount;
@@ -114,35 +114,35 @@ public class QueryStatsData {
     public long getLastExecutedMillis() {
         return lastExecutedMillis;
     }
-    
+
     @Override
     public String toString() {
         return new JsopBuilder().object().
-            key("createdMillis").value(getTimeString(createdMillis)).
-            key("lastExecutedMillis").value(getTimeString(lastExecutedMillis)).
-            key("executeCount").value(executeCount).
-            key("totalRowsRead").value(totalRowsRead).
-            key("maxRowsRead").value(maxRowsRead).
-            key("totalRowsScanned").value(totalRowsScanned).
-            key("maxRowsScanned").value(maxRowsScanned).
-            key("planNanos").value(planNanos).
-            key("readNanos").value(readNanos).
-            key("maxTimeNanos").value(maxTimeNanos).
-            key("internal").value(internal).
-            key("query").value(query).
-            key("language").value(language).
-            key("lastThreadName").value(lastThreadName).
-        endObject().toString();
+                                key("createdMillis").value(getTimeString(createdMillis)).
+                                key("lastExecutedMillis").value(getTimeString(lastExecutedMillis)).
+                                key("executeCount").value(executeCount).
+                                key("totalRowsRead").value(totalRowsRead).
+                                key("maxRowsRead").value(maxRowsRead).
+                                key("totalRowsScanned").value(totalRowsScanned).
+                                key("maxRowsScanned").value(maxRowsScanned).
+                                key("planNanos").value(planNanos).
+                                key("readNanos").value(readNanos).
+                                key("maxTimeNanos").value(maxTimeNanos).
+                                key("internal").value(internal).
+                                key("query").value(query).
+                                key("language").value(language).
+                                key("lastThreadName").value(lastThreadName).
+                                endObject().toString();
     }
-    
+
     public static final String getTimeString(long timeMillis) {
         return String.format("%tF %tT", timeMillis, timeMillis);
     }
 
     public class QueryExecutionStats {
-        
+
         long time;
-        
+
         public void execute(long nanos) {
             QueryRecorder.record(query, internal);
             executeCount++;
@@ -159,7 +159,7 @@ public class QueryStatsData {
         public void setThreadName(String name) {
             if (captureStackTraces) {
                 StringBuilder buff = new StringBuilder();
-                for(StackTraceElement e : Thread.currentThread().getStackTrace()) {
+                for (StackTraceElement e : Thread.currentThread().getStackTrace()) {
                     buff.append("\n\tat " + e);
                 }
                 name = name + buff.toString();

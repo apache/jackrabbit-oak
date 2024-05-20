@@ -58,8 +58,8 @@ public class PasswordExpiryAndForceInitialChangeTest extends AbstractSecurityTes
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         ConfigurationParameters parameters = ConfigurationParameters.of(
-                UserConstants.PARAM_PASSWORD_MAX_AGE, 10,
-                UserConstants.PARAM_PASSWORD_INITIAL_CHANGE, true);
+            UserConstants.PARAM_PASSWORD_MAX_AGE, 10,
+            UserConstants.PARAM_PASSWORD_INITIAL_CHANGE, true);
         return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, parameters));
     }
 
@@ -77,7 +77,8 @@ public class PasswordExpiryAndForceInitialChangeTest extends AbstractSecurityTes
             root.commit();
 
             assertFalse(getUserTree(user).hasChild(UserConstants.REP_PWD));
-            assertFalse(user.hasProperty(UserConstants.REP_PWD + "/" + UserConstants.REP_PASSWORD_LAST_MODIFIED));
+            assertFalse(user.hasProperty(
+                UserConstants.REP_PWD + "/" + UserConstants.REP_PASSWORD_LAST_MODIFIED));
         } finally {
             if (user != null) {
                 user.remove();
@@ -104,7 +105,8 @@ public class PasswordExpiryAndForceInitialChangeTest extends AbstractSecurityTes
         User user = getTestUser();
         user.changePassword(userId);
         root.commit();
-        PropertyState p = getUserTree(user).getChild(UserConstants.REP_PWD).getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED);
+        PropertyState p = getUserTree(user).getChild(UserConstants.REP_PWD)
+                                           .getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED);
         long newModTime = p.getValue(Type.LONG);
         assertTrue(newModTime > 0);
 
@@ -114,7 +116,8 @@ public class PasswordExpiryAndForceInitialChangeTest extends AbstractSecurityTes
     }
 
     /**
-     * rep:passwordLastModified must NOT be created otherwise the user might never be forced to change pw upon first login.
+     * rep:passwordLastModified must NOT be created otherwise the user might never be forced to
+     * change pw upon first login.
      */
     @Test
     public void testSetPasswordImportExistingUser() throws Exception {

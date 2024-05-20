@@ -24,16 +24,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * {@code TreePermission} implementation for the access control policy coverying
- * repository level permissions. In this implementation these permissions are
- * managed in the policy tree defined at /rep:repoPolicy, which is considered
- * protected access control content.
- *
- * This implementation relies on the precondition that the subtree defined by the
- * /rep:repoPolicy node only consists of trees of type access control. Consequently,
- * read access to trees and properties is granted if and only if {@link Permissions#READ_ACCESS_CONTROL}
- * is granted at the repo-level.
- *
+ * {@code TreePermission} implementation for the access control policy coverying repository level
+ * permissions. In this implementation these permissions are managed in the policy tree defined at
+ * /rep:repoPolicy, which is considered protected access control content.
+ * <p>
+ * This implementation relies on the precondition that the subtree defined by the /rep:repoPolicy
+ * node only consists of trees of type access control. Consequently, read access to trees and
+ * properties is granted if and only if {@link Permissions#READ_ACCESS_CONTROL} is granted at the
+ * repo-level.
+ * <p>
  * For the same reason any other permissions are evaluated by checking the
  * {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission},
  * which apply for all items defined by this special subtree.
@@ -55,7 +54,8 @@ final class RepoPolicyTreePermission implements TreePermission {
     //-----------------------------------------------------< TreePermission >---
     @NotNull
     @Override
-    public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
+    public TreePermission getChildPermission(@NotNull String childName,
+        @NotNull NodeState childState) {
         return getChildPermission();
     }
 

@@ -33,11 +33,12 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.*;
 
 public class IndexerInfoTest {
+
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     @Test
-    public void basics() throws Exception{
+    public void basics() throws Exception {
         IndexerInfo info = new IndexerInfo(temporaryFolder.getRoot(), "foo");
         info.save();
 
@@ -46,12 +47,12 @@ public class IndexerInfoTest {
     }
 
     @Test
-    public void indexDirs() throws Exception{
+    public void indexDirs() throws Exception {
         IndexerInfo info = new IndexerInfo(temporaryFolder.getRoot(), "foo");
         info.save();
 
         List<String> indexPaths = Arrays.asList("/foo", "/bar");
-        for (String indexPath : indexPaths){
+        for (String indexPath : indexPaths) {
             File indexDir = new File(temporaryFolder.getRoot(), indexPath.substring(1));
             File indexMeta = new File(indexDir, IndexerInfo.INDEX_METADATA_FILE_NAME);
             Properties p = new Properties();

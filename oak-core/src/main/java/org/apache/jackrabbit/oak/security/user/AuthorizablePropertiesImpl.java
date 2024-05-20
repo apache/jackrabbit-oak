@@ -42,10 +42,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Oak level implementation of the internal {@code AuthorizableProperties} that
- * is used in those cases where no {@code Session} is associated with the
- * {@code UserManager} and only OAK API methods can be used to read and
- * modify authorizable properties.
+ * Oak level implementation of the internal {@code AuthorizableProperties} that is used in those
+ * cases where no {@code Session} is associated with the {@code UserManager} and only OAK API
+ * methods can be used to read and modify authorizable properties.
  */
 class AuthorizablePropertiesImpl implements AuthorizableProperties {
 
@@ -55,7 +54,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
     private final PartialValueFactory valueFactory;
 
     AuthorizablePropertiesImpl(@NotNull AuthorizableImpl authorizable,
-                               @NotNull PartialValueFactory valueFactory) {
+        @NotNull PartialValueFactory valueFactory) {
         this.authorizable = authorizable;
         this.valueFactory = valueFactory;
     }
@@ -78,7 +77,8 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
             }
             return l.iterator();
         } else {
-            throw new RepositoryException("Relative path " + relPath + " refers to non-existing tree or tree outside of scope of authorizable.");
+            throw new RepositoryException("Relative path " + relPath
+                + " refers to non-existing tree or tree outside of scope of authorizable.");
         }
     }
 
@@ -112,10 +112,12 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
     }
 
     /**
-     * @see org.apache.jackrabbit.api.security.user.Authorizable#setProperty(String, javax.jcr.Value)
+     * @see org.apache.jackrabbit.api.security.user.Authorizable#setProperty(String,
+     * javax.jcr.Value)
      */
     @Override
-    public void setProperty(@NotNull String relPath, @Nullable Value value) throws RepositoryException {
+    public void setProperty(@NotNull String relPath, @Nullable Value value)
+        throws RepositoryException {
         if (value == null) {
             removeProperty(relPath);
         } else {
@@ -123,7 +125,8 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
             String name = Text.getName(oakPath);
             PropertyState propertyState = PropertyStates.createProperty(name, value);
 
-            String intermediate = (oakPath.equals(name)) ? null : Text.getRelativeParent(oakPath, 1);
+            String intermediate =
+                (oakPath.equals(name)) ? null : Text.getRelativeParent(oakPath, 1);
             Tree parent = getOrCreateTargetTree(intermediate);
             checkProtectedProperty(parent, propertyState);
 
@@ -132,19 +135,22 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
     }
 
     /**
-     * @see org.apache.jackrabbit.api.security.user.Authorizable#setProperty(String, javax.jcr.Value[])
+     * @see org.apache.jackrabbit.api.security.user.Authorizable#setProperty(String,
+     * javax.jcr.Value[])
      */
     @Override
-    public void setProperty(@NotNull String relPath, @Nullable Value[] values) throws RepositoryException {
+    public void setProperty(@NotNull String relPath, @Nullable Value[] values)
+        throws RepositoryException {
         if (values == null) {
             removeProperty(relPath);
         } else {
             String oakPath = getOakPath(relPath);
             String name = Text.getName(oakPath);
             PropertyState propertyState =
-                    PropertyStates.createProperty(name, Arrays.asList(values));
+                PropertyStates.createProperty(name, Arrays.asList(values));
 
-            String intermediate = (oakPath.equals(name)) ? null : Text.getRelativeParent(oakPath, 1);
+            String intermediate =
+                (oakPath.equals(name)) ? null : Text.getRelativeParent(oakPath, 1);
             Tree parent = getOrCreateTargetTree(intermediate);
             checkProtectedProperty(parent, propertyState);
 
@@ -164,7 +170,8 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
             if (isAuthorizableProperty(node, propertyLocation, true)) {
                 return propertyLocation.remove();
             } else {
-                throw new ConstraintViolationException("Property " + relPath + " isn't a modifiable authorizable property");
+                throw new ConstraintViolationException(
+                    "Property " + relPath + " isn't a modifiable authorizable property");
             }
         } else {
             checkScope(node.getPath(), propertyLocation.getPath(), relPath);
@@ -180,42 +187,42 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
     }
 
     /**
-     * Returns true if the given property of the authorizable node is one of the
-     * non-protected properties defined by the rep:Authorizable node type or a
-     * some other descendant of the authorizable node.
+     * Returns true if the given property of the authorizable node is one of the non-protected
+     * properties defined by the rep:Authorizable node type or a some other descendant of the
+     * authorizable node.
      *
      * @param authorizableTree The tree of the target authorizable.
      * @param propertyLocation Location to be tested.
-     * @param verifyAncestor   If true the property is tested to be a descendant
-     *                         of the node of this authorizable; otherwise it is expected that this
-     *                         test has been executed by the caller.
-     * @return {@code true} if the given property is not protected and is defined
-     *         by the rep:authorizable node type or one of it's sub-node types;
-     *         {@code false} otherwise.
+     * @param verifyAncestor   If true the property is tested to be a descendant of the node of this
+     *                         authorizable; otherwise it is expected that this test has been
+     *                         executed by the caller.
+     * @return {@code true} if the given property is not protected and is defined by the
+     * rep:authorizable node type or one of it's sub-node types; {@code false} otherwise.
      * @throws RepositoryException If an error occurs.
      */
-    private boolean isAuthorizableProperty(@NotNull Tree authorizableTree, @NotNull TreeLocation propertyLocation, boolean verifyAncestor) throws RepositoryException {
+    private boolean isAuthorizableProperty(@NotNull Tree authorizableTree,
+        @NotNull TreeLocation propertyLocation, boolean verifyAncestor) throws RepositoryException {
         return getAuthorizableProperty(authorizableTree, propertyLocation, verifyAncestor) != null;
     }
 
     /**
-     * Returns the valid authorizable property identified by the specified
-     * property location or {@code null} if that property does not exist or
-     * isn't a authorizable property because it is protected or outside of the
-     * scope of the {@code authorizableTree}.
+     * Returns the valid authorizable property identified by the specified property location or
+     * {@code null} if that property does not exist or isn't a authorizable property because it is
+     * protected or outside of the scope of the {@code authorizableTree}.
      *
      * @param authorizableTree The tree of the target authorizable.
      * @param propertyLocation Location to be tested.
-     * @param verifyAncestor   If true the property is tested to be a descendant
-     *                         of the node of this authorizable; otherwise it is expected that this
-     *                         test has been executed by the caller.
-     * @return a valid authorizable property or {@code null} if no such property
-     *         exists or fi the property is protected or not defined by the rep:authorizable
-     *         node type or one of it's sub-node types.
+     * @param verifyAncestor   If true the property is tested to be a descendant of the node of this
+     *                         authorizable; otherwise it is expected that this test has been
+     *                         executed by the caller.
+     * @return a valid authorizable property or {@code null} if no such property exists or fi the
+     * property is protected or not defined by the rep:authorizable node type or one of it's
+     * sub-node types.
      * @throws RepositoryException If an error occurs.
      */
     @Nullable
-    private PropertyState getAuthorizableProperty(@NotNull Tree authorizableTree, @NotNull TreeLocation propertyLocation, boolean verifyAncestor) throws RepositoryException {
+    private PropertyState getAuthorizableProperty(@NotNull Tree authorizableTree,
+        @NotNull TreeLocation propertyLocation, boolean verifyAncestor) throws RepositoryException {
         PropertyState property = propertyLocation.getProperty();
         if (property == null) {
             return null;
@@ -229,36 +236,40 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
 
         Tree parent = propertyLocation.getParent().getTree();
         if (parent == null) {
-            log.debug("Unable to determine definition of authorizable property at {}", propertyLocation.getPath());
+            log.debug("Unable to determine definition of authorizable property at {}",
+                propertyLocation.getPath());
             return null;
         }
-        ReadOnlyNodeTypeManager nodeTypeManager = authorizable.getUserManager().getNodeTypeManager();
+        ReadOnlyNodeTypeManager nodeTypeManager = authorizable.getUserManager()
+                                                              .getNodeTypeManager();
         PropertyDefinition def = nodeTypeManager.getDefinition(parent, property, true);
         if (def.isProtected() || (authorizablePath.equals(parent.getPath())
-                && !def.getDeclaringNodeType().isNodeType(UserConstants.NT_REP_AUTHORIZABLE))) {
+            && !def.getDeclaringNodeType().isNodeType(UserConstants.NT_REP_AUTHORIZABLE))) {
             return null;
         } // else: non-protected property somewhere in the subtree of the user tree.
 
         return property;
     }
 
-    private void checkProtectedProperty(@NotNull Tree parent, @NotNull PropertyState property) throws RepositoryException {
-        ReadOnlyNodeTypeManager nodeTypeManager = authorizable.getUserManager().getNodeTypeManager();
+    private void checkProtectedProperty(@NotNull Tree parent, @NotNull PropertyState property)
+        throws RepositoryException {
+        ReadOnlyNodeTypeManager nodeTypeManager = authorizable.getUserManager()
+                                                              .getNodeTypeManager();
         PropertyDefinition def = nodeTypeManager.getDefinition(parent, property, false);
         if (def.isProtected()) {
-            throw new ConstraintViolationException("Attempt to set an protected property " + property.getName());
+            throw new ConstraintViolationException(
+                "Attempt to set an protected property " + property.getName());
         }
     }
 
     /**
-     * Retrieves the node at {@code relPath} relative to node associated with
-     * this authorizable. If no such node exist it and any missing intermediate
-     * nodes are created.
+     * Retrieves the node at {@code relPath} relative to node associated with this authorizable. If
+     * no such node exist it and any missing intermediate nodes are created.
      *
      * @param relPath A relative path.
      * @return The corresponding node.
-     * @throws RepositoryException If an error occurs or if {@code relPath} refers
-     *                             to a node that is outside of the scope of this authorizable.
+     * @throws RepositoryException If an error occurs or if {@code relPath} refers to a node that is
+     *                             outside of the scope of this authorizable.
      */
     @NotNull
     private Tree getOrCreateTargetTree(@Nullable String relPath) throws RepositoryException {
@@ -304,9 +315,11 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         return oakPath;
     }
 
-    private static void checkScope(@NotNull String userPath, @NotNull String targetPath, @NotNull String relPath) throws RepositoryException {
+    private static void checkScope(@NotNull String userPath, @NotNull String targetPath,
+        @NotNull String relPath) throws RepositoryException {
         if (!Text.isDescendantOrEqual(userPath, targetPath)) {
-            throw new RepositoryException("Relative path " + relPath + " outside of scope of " + userPath);
+            throw new RepositoryException(
+                "Relative path " + relPath + " outside of scope of " + userPath);
         }
     }
 }

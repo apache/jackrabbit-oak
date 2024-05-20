@@ -36,54 +36,64 @@ import org.slf4j.LoggerFactory;
 public class QueryEngineSettingsService {
 
     @ObjectClassDefinition(
-            name = "Apache Jackrabbit Query Engine Settings Service",
-            description = "Various settings exposed by Oak QueryEngine. Note that settings done by system property " +
-                    "supersedes the one defined via OSGi config"
+        name = "Apache Jackrabbit Query Engine Settings Service",
+        description =
+            "Various settings exposed by Oak QueryEngine. Note that settings done by system property "
+                +
+                "supersedes the one defined via OSGi config"
     )
     @interface Configuration {
 
         @AttributeDefinition(
-                name = "In memory limit",
-                description = "Maximum number of entries that can be held in memory while evaluating any query"
+            name = "In memory limit",
+            description = "Maximum number of entries that can be held in memory while evaluating any query"
         )
         int queryLimitInMemory() default DEFAULT_QUERY_LIMIT_IN_MEMORY;
 
         @AttributeDefinition(
-                name = "In memory read limit",
-                description = "Maximum number of results which can be read by any query"
+            name = "In memory read limit",
+            description = "Maximum number of results which can be read by any query"
         )
         int queryLimitReads() default DEFAULT_QUERY_LIMIT_READS;
 
         @AttributeDefinition(
-                name = "Fail traversal",
-                description = "If enabled any query execution which results in traversal would fail."
+            name = "Fail traversal",
+            description = "If enabled any query execution which results in traversal would fail."
         )
         boolean queryFailTraversal() default DEFAULT_QUERY_FAIL_TRAVERSAL;
 
         @AttributeDefinition(
-                name = "Fast result size",
-                description = "Whether the query result size (QueryResult.getSize()) should return an estimation for queries that return many nodes. " +
-                        "The estimate will be larger or equal the actual result size, as it includes unindexed properties and nodes that are not accessible. " +
-                        "If disabled, for such cases -1 is returned. " +
-                        "Note: even if enabled, getSize may still return -1 if the index used does not support the feature." 
+            name = "Fast result size",
+            description =
+                "Whether the query result size (QueryResult.getSize()) should return an estimation for queries that return many nodes. "
+                    +
+                    "The estimate will be larger or equal the actual result size, as it includes unindexed properties and nodes that are not accessible. "
+                    +
+                    "If disabled, for such cases -1 is returned. " +
+                    "Note: even if enabled, getSize may still return -1 if the index used does not support the feature."
         )
         boolean fastQuerySize() default false;
 
         @AttributeDefinition(
-                name = "Enable Strict Path restrictions for indexes to be used",
-                description = "Whether path restrictions of indexes (excludedPaths / includedPaths) are taken into" +
-                        "account during query execution, for Lucene indexes. When enabled, only indexes are considered if" +
-                        "the index path restriction is compatible with the query path restrictions. When disabled, only" +
-                        "the queryPaths of the index is taken into account."
+            name = "Enable Strict Path restrictions for indexes to be used",
+            description =
+                "Whether path restrictions of indexes (excludedPaths / includedPaths) are taken into"
+                    +
+                    "account during query execution, for Lucene indexes. When enabled, only indexes are considered if"
+                    +
+                    "the index path restriction is compatible with the query path restrictions. When disabled, only"
+                    +
+                    "the queryPaths of the index is taken into account."
         )
         String getStrictPathRestrictionsForIndexes() default DISABLED_STRICT_PATH_RESTRICTION;
-        
+
         @AttributeDefinition(
-                name="Fully qualified class names to ignore when finding caller",
-                description="If non-empty the query engine logs the query statement plus the java package "
-                        + "which executed this query. This java package is the first package in the call trace "
-                        + "which does not  start with any of the provided fully qualified class names (packagename + classname)"
-                )
+            name = "Fully qualified class names to ignore when finding caller",
+            description =
+                "If non-empty the query engine logs the query statement plus the java package "
+                    + "which executed this query. This java package is the first package in the call trace "
+                    + "which does not  start with any of the provided fully qualified class names (packagename + classname)"
+        )
         String[] ignoredClassNamesInCallTrace() default {};
 
     }
@@ -98,7 +108,7 @@ public class QueryEngineSettingsService {
 
     private static final boolean DEFAULT_QUERY_FAIL_TRAVERSAL = false;
     static final String QUERY_FAIL_TRAVERSAL = "queryFailTraversal";
-    
+
     static final String QUERY_FAST_QUERY_SIZE = "fastQuerySize";
     static final String DISABLED_STRICT_PATH_RESTRICTION = "DISABLE";
 
@@ -135,7 +145,7 @@ public class QueryEngineSettingsService {
         boolean fastQuerySizeSysProp = QueryEngineSettings.DEFAULT_FAST_QUERY_SIZE;
         boolean fastQuerySizeFromConfig = config.fastQuerySize();
         queryEngineSettings.setFastQuerySize(fastQuerySizeFromConfig || fastQuerySizeSysProp);
-        
+
         queryEngineSettings.setStrictPathRestriction(config.getStrictPathRestrictionsForIndexes());
 
         log.info("Initialize QueryEngine settings {}", queryEngineSettings);
@@ -143,7 +153,7 @@ public class QueryEngineSettingsService {
 
     private void logMsg(String key, String sysPropKey) {
         log.info("For {} using value {} defined via system property {}", key,
-                System.getProperty(sysPropKey), sysPropKey);
+            System.getProperty(sysPropKey), sysPropKey);
     }
 
 }

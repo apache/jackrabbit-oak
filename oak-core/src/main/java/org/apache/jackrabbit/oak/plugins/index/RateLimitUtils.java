@@ -30,32 +30,31 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RateLimitUtils {
-    
-    private final static Logger LOG = LoggerFactory.getLogger(RateLimitUtils.class);    
 
-    // when getOldestAsyncIndexUpdate was called the last time 
+    private final static Logger LOG = LoggerFactory.getLogger(RateLimitUtils.class);
+
+    // when getOldestAsyncIndexUpdate was called the last time
     private static Instant lastJmxBeanCall = Instant.now();
 
     // the return value of the last call to getOldestAsyncIndexUpdate
     private static Instant cachedOldestAsyncUpdate = Instant.now();
-    
+
     // the last time the rateLimitWrites was called
     private static Instant lastRateLimitCall = Instant.now();
 
     private RateLimitUtils() {
     }
-    
+
     /**
-     * Rate limit writes in case indexes are lagging behind too far. The method
-     * returns immediately if all async indexes are up-to-date (updated in the last
-     * 30 seconds).
-     * 
-     * If indexing lanes are lagging behind, however, the method will wait (using
-     * Thread.sleep) for at most 1 minute. If the method is called more than once
-     * per minute, it will sleep for at most the time that passed until the last
-     * call; that is, an application that is calling it a lot will be paused for up
-     * to 50%. This assumes indexes will be able to catch up in this situation.
-     * 
+     * Rate limit writes in case indexes are lagging behind too far. The method returns immediately
+     * if all async indexes are up-to-date (updated in the last 30 seconds).
+     * <p>
+     * If indexing lanes are lagging behind, however, the method will wait (using Thread.sleep) for
+     * at most 1 minute. If the method is called more than once per minute, it will sleep for at
+     * most the time that passed until the last call; that is, an application that is calling it a
+     * lot will be paused for up to 50%. This assumes indexes will be able to catch up in this
+     * situation.
+     *
      * @return the number of milliseconds the call was sleeping
      */
     public static long rateLimitWrites() {
@@ -63,10 +62,10 @@ public class RateLimitUtils {
         Duration delay = Duration.between(getOldestAsyncIndexUpdate(now), now);
         return rateLimit(now, delay, true);
     }
-    
+
     static long rateLimit(Instant now, Duration delay, boolean callThreadSleep) {
         long sleep;
-        if (delay.getSeconds()  < 30) {
+        if (delay.getSeconds() < 30) {
             // less than 30 seconds: no need to wait
             sleep = 0;
         } else {
@@ -91,16 +90,15 @@ public class RateLimitUtils {
         lastRateLimitCall = now;
         return sleep;
     }
-    
+
     /**
-     * Get the timestamp of the oldest indexing lane. In the normal case, this is at
-     * most 5 seconds ago, if indexing lanes are updated every 5 seconds. If
-     * indexing is delayed, or paused, this can be in the past.
-     * 
-     * The method can be called often without issues. If the last call was less than
-     * one second ago, the last returned value is returned. This is to avoid
-     * unnecessary calls to the JMX beans.
-     * 
+     * Get the timestamp of the oldest indexing lane. In the normal case, this is at most 5 seconds
+     * ago, if indexing lanes are updated every 5 seconds. If indexing is delayed, or paused, this
+     * can be in the past.
+     * <p>
+     * The method can be called often without issues. If the last call was less than one second ago,
+     * the last returned value is returned. This is to avoid unnecessary calls to the JMX beans.
+     *
      * @param now the current time
      * @return the timestamp of the oldest indexing lane
      */

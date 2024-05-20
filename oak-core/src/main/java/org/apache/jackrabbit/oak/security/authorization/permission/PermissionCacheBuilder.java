@@ -100,7 +100,8 @@ final class PermissionCacheBuilder {
             Map<String, Collection<PermissionEntry>> pathEntryMap = new HashMap<>();
             for (String name : existingNames) {
                 PrincipalPermissionEntries ppe = peCache.getFullyLoadedEntries(store, name);
-                for (Map.Entry<String, Collection<PermissionEntry>> e : ppe.getEntries().entrySet()) {
+                for (Map.Entry<String, Collection<PermissionEntry>> e : ppe.getEntries()
+                                                                           .entrySet()) {
                     String path = e.getKey();
                     Collection<PermissionEntry> pathEntries = pathEntryMap.get(path);
                     if (pathEntries == null) {
@@ -122,17 +123,19 @@ final class PermissionCacheBuilder {
     }
 
     //------------------------------------< PermissionCache Implementations >---
+
     /**
-     * Default implementation of {@code PermissionCache} wrapping the
-     * {@code PermissionEntryCache}, which was previously hold as shared field
-     * inside the {@code PermissionEntryProviderImpl}
+     * Default implementation of {@code PermissionCache} wrapping the {@code PermissionEntryCache},
+     * which was previously hold as shared field inside the {@code PermissionEntryProviderImpl}
      */
     private static final class DefaultPermissionCache implements PermissionCache {
+
         private final PermissionStore store;
         private final PermissionEntryCache cache;
         private final Set<String> existingNames;
 
-        DefaultPermissionCache(@NotNull PermissionStore store, @NotNull PermissionEntryCache cache, Set<String> existingNames) {
+        DefaultPermissionCache(@NotNull PermissionStore store, @NotNull PermissionEntryCache cache,
+            Set<String> existingNames) {
             this.store = store;
             this.cache = cache;
             this.existingNames = existingNames;
@@ -152,18 +155,19 @@ final class PermissionCacheBuilder {
         @Override
         public Collection<PermissionEntry> getEntries(@NotNull Tree accessControlledTree) {
             return (accessControlledTree.hasChild(AccessControlConstants.REP_POLICY)) ?
-                    getEntries(accessControlledTree.getPath()) :
-                    Collections.emptyList();
+                getEntries(accessControlledTree.getPath()) :
+                Collections.emptyList();
         }
     }
 
     /**
-     * Fixed size implementation of {@code PermissionCache} that holds a map
-     * containing all existing entries that in this case have been read eagerly
-     * upfront. This implementation replaces the optional {@code pathEntryMap}
-     * previously present inside the the {@code PermissionEntryProviderImpl}.
+     * Fixed size implementation of {@code PermissionCache} that holds a map containing all existing
+     * entries that in this case have been read eagerly upfront. This implementation replaces the
+     * optional {@code pathEntryMap} previously present inside the the
+     * {@code PermissionEntryProviderImpl}.
      */
     private static final class PathEntryMapCache implements PermissionCache {
+
         private final Map<String, Collection<PermissionEntry>> pathEntryMap;
 
         PathEntryMapCache(@NotNull Map<String, Collection<PermissionEntry>> pathEntryMap) {
@@ -186,9 +190,8 @@ final class PermissionCacheBuilder {
     }
 
     /**
-     * Empty implementation of {@code PermissionCache} for those cases where
-     * for a given (possibly empty) set of principals no permission entries are
-     * present.
+     * Empty implementation of {@code PermissionCache} for those cases where for a given (possibly
+     * empty) set of principals no permission entries are present.
      */
     private static final class EmptyCache implements PermissionCache {
 

@@ -41,12 +41,14 @@ import org.osgi.service.component.annotations.Component;
  * Configuration for the privilege management component.
  */
 @Component(service = {PrivilegeConfiguration.class, SecurityConfiguration.class})
-public class PrivilegeConfigurationImpl extends ConfigurationBase implements PrivilegeConfiguration {
+public class PrivilegeConfigurationImpl extends ConfigurationBase implements
+    PrivilegeConfiguration {
 
     //---------------------------------------------< PrivilegeConfiguration >---
     @NotNull
     @Override
-    public PrivilegeManager getPrivilegeManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
+    public PrivilegeManager getPrivilegeManager(@NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) {
         return new PrivilegeManagerImpl(root, namePathMapper);
     }
 
@@ -77,8 +79,10 @@ public class PrivilegeConfigurationImpl extends ConfigurationBase implements Pri
 
     @NotNull
     @Override
-    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-        return Collections.singletonList(new PrivilegeValidatorProvider(getRootProvider(), getTreeProvider()));
+    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName,
+        @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
+        return Collections.singletonList(
+            new PrivilegeValidatorProvider(getRootProvider(), getTreeProvider()));
     }
 
     @NotNull

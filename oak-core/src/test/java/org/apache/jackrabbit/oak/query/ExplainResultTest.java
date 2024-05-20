@@ -41,9 +41,9 @@ public class ExplainResultTest extends AbstractQueryTest {
     @Override
     protected ContentRepository createRepository() {
         return new Oak(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT))
-                .with(new OpenSecurityProvider())
-                .with(new PropertyIndexProvider())
-                .with(new PropertyIndexEditorProvider()).createContentRepository();
+            .with(new OpenSecurityProvider())
+            .with(new PropertyIndexProvider())
+            .with(new PropertyIndexEditorProvider()).createContentRepository();
     }
 
     @Test
@@ -60,7 +60,7 @@ public class ExplainResultTest extends AbstractQueryTest {
         assertEquals("should exist 2 nodes", 2, count);
 
         Result explainResult = executeQuery("explain " + xpath,
-                "xpath", Collections.emptyMap());
+            "xpath", Collections.emptyMap());
         int explainCount = 0;
         ResultRow explainRow = null;
         for (ResultRow row : explainResult.getRows()) {
@@ -74,14 +74,15 @@ public class ExplainResultTest extends AbstractQueryTest {
         assertNotNull("explain row should not be null", explainRow);
 
         assertTrue("result should have 'plan' column",
-                Arrays.asList(explainResult.getColumnNames()).contains("plan"));
+            Arrays.asList(explainResult.getColumnNames()).contains("plan"));
         assertTrue("result should have 'statement' column",
-                Arrays.asList(explainResult.getColumnNames()).contains("statement"));
+            Arrays.asList(explainResult.getColumnNames()).contains("statement"));
 
         final String explainedStatement = explainRow.getValue("statement").getValue(Type.STRING);
-        assertTrue("'statement' should begin with 'select'", explainedStatement.startsWith("select"));
+        assertTrue("'statement' should begin with 'select'",
+            explainedStatement.startsWith("select"));
         assertTrue("statement should contain original xpath with prefix 'xpath: '",
-                explainedStatement.contains("xpath: " + xpath));
+            explainedStatement.contains("xpath: " + xpath));
     }
 
     @Test
@@ -97,7 +98,7 @@ public class ExplainResultTest extends AbstractQueryTest {
         assertEquals("should exist 2 nodes", 2, count);
 
         Result explainResult = executeQuery("explain " + sql1,
-                "sql", Collections.emptyMap());
+            "sql", Collections.emptyMap());
         int explainCount = 0;
         ResultRow explainRow = null;
         for (ResultRow row : explainResult.getRows()) {
@@ -111,14 +112,15 @@ public class ExplainResultTest extends AbstractQueryTest {
         assertNotNull("explain row should not be null", explainRow);
 
         assertTrue("result should have 'plan' column",
-                Arrays.asList(explainResult.getColumnNames()).contains("plan"));
+            Arrays.asList(explainResult.getColumnNames()).contains("plan"));
         assertTrue("result should have 'statement' column",
-                Arrays.asList(explainResult.getColumnNames()).contains("statement"));
+            Arrays.asList(explainResult.getColumnNames()).contains("statement"));
 
         final String explainedStatement = explainRow.getValue("statement").getValue(Type.STRING);
-        assertTrue("'statement' should begin with 'select'", explainedStatement.startsWith("select"));
+        assertTrue("'statement' should begin with 'select'",
+            explainedStatement.startsWith("select"));
         assertEquals("explained statement should be same as original, without 'explain'",
-                sql1, explainedStatement);
+            sql1, explainedStatement);
     }
 
     @Test
@@ -134,7 +136,7 @@ public class ExplainResultTest extends AbstractQueryTest {
         assertEquals("should exist 2 nodes", 2, count);
 
         Result explainResult = executeQuery("explain " + sql2,
-                "JCR-SQL2", Collections.emptyMap());
+            "JCR-SQL2", Collections.emptyMap());
         int explainCount = 0;
         ResultRow explainRow = null;
         for (ResultRow row : explainResult.getRows()) {
@@ -148,13 +150,14 @@ public class ExplainResultTest extends AbstractQueryTest {
         assertNotNull("explain row should not be null", explainRow);
 
         assertTrue("result should have 'plan' column",
-                Arrays.asList(explainResult.getColumnNames()).contains("plan"));
+            Arrays.asList(explainResult.getColumnNames()).contains("plan"));
         assertTrue("result should have 'statement' column",
-                Arrays.asList(explainResult.getColumnNames()).contains("statement"));
+            Arrays.asList(explainResult.getColumnNames()).contains("statement"));
 
         final String explainedStatement = explainRow.getValue("statement").getValue(Type.STRING);
-        assertTrue("'statement' should begin with 'select'", explainedStatement.startsWith("select"));
+        assertTrue("'statement' should begin with 'select'",
+            explainedStatement.startsWith("select"));
         assertEquals("explained statement should be same as original, without 'explain'",
-                sql2, explainedStatement);
+            sql2, explainedStatement);
     }
 }

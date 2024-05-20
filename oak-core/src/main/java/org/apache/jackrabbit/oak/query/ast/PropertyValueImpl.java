@@ -22,9 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.SQL2Parser;
@@ -51,8 +49,8 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         this.selectorName = selectorName;
         this.propertyName = propertyName;
         this.propertyType = propertyType == null ?
-                PropertyType.UNDEFINED :
-                SQL2Parser.getPropertyTypeFromName(propertyType);
+            PropertyType.UNDEFINED :
+            SQL2Parser.getPropertyTypeFromName(propertyType);
     }
 
     public String getSelectorName() {
@@ -74,12 +72,12 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         String s = quote(selectorName) + '.' + quote(propertyName);
         if (propertyType != PropertyType.UNDEFINED) {
             s = "property(" + s + ", '" +
-                    PropertyType.nameFromValue(propertyType).toLowerCase(Locale.ENGLISH) +
-                    "')";
+                PropertyType.nameFromValue(propertyType).toLowerCase(Locale.ENGLISH) +
+                "')";
         }
         return s;
     }
-    
+
     @Override
     public boolean supportsRangeConditions() {
         // the jcr:path pseudo-property doesn't support LIKE conditions,
@@ -87,7 +85,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         // expressions that would result in incorrect results (/test[1] for example)
         return !propertyName.equals(QueryConstants.JCR_PATH);
     }
-    
+
     @Override
     public PropertyExistenceImpl getPropertyExistence() {
         if (propertyName.equals("*")) {
@@ -95,7 +93,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         }
         return new PropertyExistenceImpl(selector, selectorName, propertyName);
     }
-    
+
     @Override
     public Set<SelectorImpl> getSelectors() {
         return Collections.singleton(selector);
@@ -109,7 +107,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         } else {
             p = selector.currentProperty(propertyName, propertyType);
         }
-        return p;        
+        return p;
     }
 
     public void bindSelector(SourceImpl source) {
@@ -142,15 +140,15 @@ public class PropertyValueImpl extends DynamicOperandImpl {
             }
         }
     }
-    
+
     @Override
     public void restrictList(FilterImpl f, List<PropertyValue> list) {
         if (f.getSelector().equals(selector)) {
-            String pn = normalizePropertyName(propertyName);            
+            String pn = normalizePropertyName(propertyName);
             f.restrictPropertyAsList(pn, list);
         }
     }
-    
+
     @Override
     public String getFunction(SelectorImpl s) {
         if (!s.equals(selector)) {
@@ -164,12 +162,12 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     public boolean canRestrictSelector(SelectorImpl s) {
         return s.equals(selector);
     }
-    
+
     @Override
     int getPropertyType() {
         return propertyType;
     }
-    
+
     @Override
     public PropertyValueImpl createCopy() {
         return new PropertyValueImpl(selectorName, propertyName);
@@ -183,10 +181,10 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         }
         String pn = normalizePropertyName(propertyName);
         return new OrderEntry(
-            pn, 
-            Type.UNDEFINED, 
-            o.isDescending() ? 
-            OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
+            pn,
+            Type.UNDEFINED,
+            o.isDescending() ?
+                OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
     }
 
     @Override

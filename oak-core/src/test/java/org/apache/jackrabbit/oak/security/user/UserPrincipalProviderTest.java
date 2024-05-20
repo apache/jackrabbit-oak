@@ -83,11 +83,13 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
 
     @Test
     public void testTreeBasedSystemUserPrincipal() throws Exception {
-        User systemUser = getUserManager(root).createSystemUser("systemUser" + UUID.randomUUID(), null);
+        User systemUser = getUserManager(root).createSystemUser("systemUser" + UUID.randomUUID(),
+            null);
         root.commit();
 
         try {
-            Principal principal = principalProvider.getPrincipal(systemUser.getPrincipal().getName());
+            Principal principal = principalProvider.getPrincipal(
+                systemUser.getPrincipal().getName());
             assertTrue(principal instanceof SystemUserPrincipalImpl);
         } finally {
             systemUser.remove();
@@ -137,7 +139,8 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
 
     @Test
     public void testGetPrincipalsForUser() throws Exception {
-        Set<? extends Principal> principals = principalProvider.getPrincipals(getTestUser().getID());
+        Set<? extends Principal> principals = principalProvider.getPrincipals(
+            getTestUser().getID());
         for (Principal p : principals) {
             String name = p.getName();
             if (name.equals(getTestUser().getPrincipal().getName())) {
@@ -152,10 +155,12 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
     public void testGetPrincipalsForSystemUser() throws Exception {
         User systemUser = null;
         try {
-            systemUser = getUserManager(root).createSystemUser("systemUser" + UUID.randomUUID(), null);
+            systemUser = getUserManager(root).createSystemUser("systemUser" + UUID.randomUUID(),
+                null);
             testGroup.addMember(systemUser);
             root.commit();
-            Set<? extends Principal> principals = principalProvider.getPrincipals(systemUser.getID());
+            Set<? extends Principal> principals = principalProvider.getPrincipals(
+                systemUser.getID());
             for (Principal p : principals) {
                 String name = p.getName();
                 if (name.equals(systemUser.getPrincipal().getName())) {
@@ -174,9 +179,11 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
 
     @Test
     public void testGetPrincipalsForAdminUser() throws Exception {
-        Authorizable adminUser = getUserManager(root).getAuthorizable(adminSession.getAuthInfo().getUserID());
+        Authorizable adminUser = getUserManager(root).getAuthorizable(
+            adminSession.getAuthInfo().getUserID());
         if (adminUser != null && adminUser.getPrincipal() instanceof AdminPrincipal) {
-            Set<? extends Principal> principals = principalProvider.getPrincipals(adminUser.getID());
+            Set<? extends Principal> principals = principalProvider.getPrincipals(
+                adminUser.getID());
             for (Principal p : principals) {
                 String name = p.getName();
                 if (name.equals(adminUser.getPrincipal().getName())) {
@@ -254,7 +261,8 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
 
     @Test
     public void testFindWithEmptyHint() throws Exception {
-        List<String> resultNames = getNames(principalProvider.findPrincipals("", PrincipalManager.SEARCH_TYPE_GROUP));
+        List<String> resultNames = getNames(
+            principalProvider.findPrincipals("", PrincipalManager.SEARCH_TYPE_GROUP));
 
         assertFalse(resultNames.contains(getTestUser().getPrincipal().getName()));
 
@@ -265,9 +273,9 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
     @Test
     public void testFindFullTextWithAndWithoutWildcard() {
         Iterator<? extends Principal> i1 = principalProvider.findPrincipals("testGroup", true,
-                SEARCH_TYPE_GROUP, 0, -1);
+            SEARCH_TYPE_GROUP, 0, -1);
         Iterator<? extends Principal> i2 = principalProvider.findPrincipals("testGroup*", true,
-                SEARCH_TYPE_GROUP, 0, -1);
+            SEARCH_TYPE_GROUP, 0, -1);
         assertTrue(Iterators.elementsEqual(i1, i2));
     }
 
@@ -279,8 +287,11 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
             everyoneGroup = userMgr.createGroup(EveryonePrincipal.NAME);
             root.commit();
 
-            Iterator<? extends Principal> principals = principalProvider.findPrincipals(null, SEARCH_TYPE_GROUP);
-            Iterator filtered = Iterators.filter(principals, (Predicate<Principal>) principal -> EveryonePrincipal.NAME.equals(principal.getName()));
+            Iterator<? extends Principal> principals = principalProvider.findPrincipals(null,
+                SEARCH_TYPE_GROUP);
+            Iterator filtered = Iterators.filter(principals,
+                (Predicate<Principal>) principal -> EveryonePrincipal.NAME.equals(
+                    principal.getName()));
             assertEquals(1, Iterators.size(filtered));
         } finally {
             if (everyoneGroup != null) {
@@ -294,9 +305,9 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
 
         for (int limit = -1; limit < expected.size() + 2; limit++) {
             Iterator<? extends Principal> i1 = principalProvider.findPrincipals("testGroup", true,
-                    SEARCH_TYPE_GROUP, 0, limit);
+                SEARCH_TYPE_GROUP, 0, limit);
             Iterator<? extends Principal> i2 = principalProvider.findPrincipals("testGroup*", true,
-                    SEARCH_TYPE_GROUP, 0, limit);
+                SEARCH_TYPE_GROUP, 0, limit);
             assertTrue(Iterators.elementsEqual(i1, i2));
         }
     }
@@ -304,23 +315,27 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
     @Test
     public void testFindPrincipalsQueryFails() throws ParseException {
         QueryEngine qe = mock(QueryEngine.class);
-        when(qe.executeQuery(anyString(), anyString(), anyLong(), anyLong(), any(Map.class), any(Map.class))).thenThrow(new ParseException("err",0));
+        when(qe.executeQuery(anyString(), anyString(), anyLong(), anyLong(), any(Map.class),
+            any(Map.class))).thenThrow(new ParseException("err", 0));
 
         Root r = when(mock(Root.class).getQueryEngine()).thenReturn(qe).getMock();
-        UserPrincipalProvider upp = new UserPrincipalProvider(r, getUserConfiguration(), NamePathMapper.DEFAULT);
-        Iterator<? extends Principal> it = upp.findPrincipals("a", false, PrincipalManager.SEARCH_TYPE_ALL, -1, -1);
+        UserPrincipalProvider upp = new UserPrincipalProvider(r, getUserConfiguration(),
+            NamePathMapper.DEFAULT);
+        Iterator<? extends Principal> it = upp.findPrincipals("a", false,
+            PrincipalManager.SEARCH_TYPE_ALL, -1, -1);
         assertNotNull(it);
         assertFalse(it.hasNext());
     }
-    
+
     @Test
     public void testCreatePrincipalInvalidType() throws Exception {
         Method m = UserPrincipalProvider.class.getDeclaredMethod("createPrincipal", Tree.class);
         m.setAccessible(true);
-        
-        assertNull(m.invoke(principalProvider, (Tree)null));
-        
-        PropertyState ps = PropertyStates.createProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, Type.NAME);
+
+        assertNull(m.invoke(principalProvider, (Tree) null));
+
+        PropertyState ps = PropertyStates.createProperty(JCR_PRIMARYTYPE,
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED, Type.NAME);
         Tree tree = when(mock(Tree.class).getProperty(JCR_PRIMARYTYPE)).thenReturn(ps).getMock();
         assertNull(m.invoke(principalProvider, tree));
     }

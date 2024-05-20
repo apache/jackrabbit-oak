@@ -28,12 +28,14 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.junit.Assert.*;
 
 public class IndexUtilsTest {
-    
+
     // all relevant package TLDs
-    private static final String[] ALL_CLASSES_IGNORED = new String[] {"org", "com", "sun", "jdk", "java"};
-    
+    private static final String[] ALL_CLASSES_IGNORED = new String[]{"org", "com", "sun", "jdk",
+        "java"};
+
     // all packages used with Oak
-    private static final String[] OAK_CLASSES_IGNORED = new String[] {"org.apache.jackrabbit", "java.lang", "sun.reflect", "jdk"};
+    private static final String[] OAK_CLASSES_IGNORED = new String[]{"org.apache.jackrabbit",
+        "java.lang", "sun.reflect", "jdk"};
 
     @Test
     public void asyncName() throws Exception {
@@ -51,10 +53,10 @@ public class IndexUtilsTest {
     public void getCaller() {
         assertNotNull(IndexUtils.getCaller(null));
         assertNotNull(IndexUtils.getCaller(new String[0]));
-        
-        assertEquals("(internal)",IndexUtils.getCaller(ALL_CLASSES_IGNORED));
-        
+
+        assertEquals("(internal)", IndexUtils.getCaller(ALL_CLASSES_IGNORED));
+
         String caller = IndexUtils.getCaller(OAK_CLASSES_IGNORED);
         assertTrue(caller.startsWith("org.junit.runners"));
-    }  
+    }
 }

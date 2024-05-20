@@ -65,8 +65,8 @@ public class PropertyIndexDeprecatedTest {
     private NodeState root;
     private NodeBuilder rootBuilder;
     private static final EditorHook HOOK = new EditorHook(
-            new IndexUpdateProvider(new PropertyIndexEditorProvider()));
- 
+        new IndexUpdateProvider(new PropertyIndexEditorProvider()));
+
     @Before
     public void setup() throws Exception {
         root = EmptyNodeState.EMPTY_NODE;
@@ -76,39 +76,40 @@ public class PropertyIndexDeprecatedTest {
 
     @Test
     public void deprecated() throws Exception {
-        NodeBuilder index = createIndexDefinition(rootBuilder.child(INDEX_DEFINITIONS_NAME), 
-                "foo", true, false, ImmutableSet.of("foo"), null);
+        NodeBuilder index = createIndexDefinition(rootBuilder.child(INDEX_DEFINITIONS_NAME),
+            "foo", true, false, ImmutableSet.of("foo"), null);
         index.setProperty(IndexConstants.INDEX_DEPRECATED, false);
         commit();
         for (int i = 0; i < MANY; i++) {
             rootBuilder.child("test").child("n" + i).setProperty("foo", "x" + i % 20);
         }
         commit();
-        
+
         FilterImpl f = createFilter(root, NT_BASE);
         f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("x10"));
         PropertyIndex propertyIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
         assertTrue(propertyIndex.getCost(f, root) != Double.POSITIVE_INFINITY);
         ListAppender<ILoggingEvent> appender = createAndRegisterAppender();
         propertyIndex.query(f, root);
-        
+
         assertEquals("[]", appender.list.toString());
         appender.list.clear();
-        
+
         // now test with a node that doesn't exist
         index = rootBuilder.child(INDEX_DEFINITIONS_NAME).child("foo");
         index.setProperty(IndexConstants.INDEX_DEPRECATED, true);
         commit();
-        
+
         appender.list.clear();
         // need to create a new one - otherwise the cached definition is used
         propertyIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
         propertyIndex.query(f, root);
-        assertEquals("[[WARN] This index is deprecated: foo; " + 
-                "it is used for query Filter(query=" + 
-                "SELECT * FROM [nt:base], path=*, property=[foo=[x10]]) called by (<function not configured>). " + 
-                "Please change the query or the index definitions.]", appender.list.toString());
-        
+        assertEquals("[[WARN] This index is deprecated: foo; " +
+            "it is used for query Filter(query=" +
+            "SELECT * FROM [nt:base], path=*, property=[foo=[x10]]) called by (<function not configured>). "
+            +
+            "Please change the query or the index definitions.]", appender.list.toString());
+
         index = rootBuilder.child(INDEX_DEFINITIONS_NAME).child("foo");
         index.removeProperty(IndexConstants.INDEX_DEPRECATED);
         commit();
@@ -121,7 +122,7 @@ public class PropertyIndexDeprecatedTest {
 
         deregisterAppender(appender);
     }
-    
+
     private void commit() throws Exception {
         root = HOOK.processCommit(rootBuilder.getBaseState(), rootBuilder.getNodeState(), EMPTY);
         rootBuilder = root.builder();
@@ -129,27 +130,28 @@ public class PropertyIndexDeprecatedTest {
 
     private static FilterImpl createFilter(NodeState root, String nodeTypeName) {
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
-        NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);        
+        NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
-        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
+        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]",
+            new QueryEngineSettings());
     }
-    
+
     private ListAppender<ILoggingEvent> createAndRegisterAppender() {
         WarnFilter filter = new WarnFilter();
-        filter.start();        
+        filter.start();
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
         appender.setContext(getContext());
         appender.setName("TestLogCollector");
-        appender.addFilter(filter);        
+        appender.addFilter(filter);
         appender.start();
         rootLogger().addAppender(appender);
         return appender;
-    }    
-    
-    private void deregisterAppender(Appender<ILoggingEvent> appender){
+    }
+
+    private void deregisterAppender(Appender<ILoggingEvent> appender) {
         rootLogger().detachAppender(appender);
     }
-    
+
     private static class WarnFilter extends ch.qos.logback.core.filter.Filter<ILoggingEvent> {
 
         @Override
@@ -160,29 +162,29 @@ public class PropertyIndexDeprecatedTest {
                 return FilterReply.DENY;
             }
         }
-    }    
-    
-    private static LoggerContext getContext(){
+    }
+
+    private static LoggerContext getContext() {
         return (LoggerContext) LoggerFactory.getILoggerFactory();
     }
-    
+
     private static ch.qos.logback.classic.Logger rootLogger() {
         return getContext().getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
-    }    
-    
+    }
+
     public void startCollecting() {
-        Logger fooLogger = (Logger) LoggerFactory.getLogger(PropertyIndexDeprecatedTest.class);        
+        Logger fooLogger = (Logger) LoggerFactory.getLogger(PropertyIndexDeprecatedTest.class);
         ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
         listAppender.start();
 
         // add the appender to the logger
         fooLogger.addAppender(listAppender);
-        
+
         fooLogger.warn("hello");
-        
+
         List<ILoggingEvent> logsList = listAppender.list;
         System.out.println(logsList);
-        
+
     }
 
 }

@@ -29,11 +29,10 @@ import org.jetbrains.annotations.NotNull;
 /**
  * <i>Inspired by Jackrabbit 2.x</i>
  * <p>
- * This Class implements a version selector that selects a version by creation
- * date. The selected version is the latest that is older or equal than the
- * given date. If no version could be found {@code null} is returned
- * unless the {@code returnLatest} flag is set to {@code true}, where
- * the latest version is returned.
+ * This Class implements a version selector that selects a version by creation date. The selected
+ * version is the latest that is older or equal than the given date. If no version could be found
+ * {@code null} is returned unless the {@code returnLatest} flag is set to {@code true}, where the
+ * latest version is returned.
  * <pre>
  * V1.0 - 02-Sep-2006
  * V1.1 - 03-Sep-2006
@@ -54,8 +53,8 @@ class DateVersionSelector implements VersionSelector {
     private final long timestamp;
 
     /**
-     * Creates a {@code DateVersionSelector} that will select the latest
-     * version of all those that are older than the given timestamp.
+     * Creates a {@code DateVersionSelector} that will select the latest version of all those that
+     * are older than the given timestamp.
      *
      * @param timestamp reference timestamp
      */
@@ -65,26 +64,28 @@ class DateVersionSelector implements VersionSelector {
 
     @Override
     public NodeBuilder select(@NotNull NodeBuilder history)
-            throws RepositoryException {
+        throws RepositoryException {
         long latestDate = Long.MIN_VALUE;
         NodeBuilder latestVersion = null;
-        for (String name: history.getChildNodeNames()) {
+        for (String name : history.getChildNodeNames()) {
             // OAK-1192 skip hidden child nodes
             if (name.charAt(0) == ':') {
                 continue;
             }
             NodeBuilder v = history.getChildNode(name);
             if (name.equals(JcrConstants.JCR_ROOTVERSION)
-                    || name.equals(JcrConstants.JCR_VERSIONLABELS)) {
+                || name.equals(JcrConstants.JCR_VERSIONLABELS)) {
                 // ignore root version and labels node
                 continue;
             }
-            long c = ISO8601.parse(v.getProperty(JcrConstants.JCR_CREATED).getValue(Type.DATE)).getTimeInMillis();
+            long c = ISO8601.parse(v.getProperty(JcrConstants.JCR_CREATED).getValue(Type.DATE))
+                            .getTimeInMillis();
             if (c > latestDate && c <= timestamp) {
                 latestDate = c;
                 latestVersion = v;
             } else if (c == latestDate) {
-                throw new RepositoryException("two versions share the same jcr:created timestamp in history:" + history);
+                throw new RepositoryException(
+                    "two versions share the same jcr:created timestamp in history:" + history);
             }
         }
         return latestVersion;

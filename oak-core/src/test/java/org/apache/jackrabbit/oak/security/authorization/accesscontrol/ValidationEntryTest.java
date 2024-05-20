@@ -37,35 +37,60 @@ public class ValidationEntryTest extends AbstractAccessControlTest {
     @Before
     public void before() throws Exception {
         super.before();
-        entry = new ValidationEntry("principalName", PrivilegeBits.BUILT_IN.get(JCR_WRITE), false, ImmutableSet.of(mock(Restriction.class)));
+        entry = new ValidationEntry("principalName", PrivilegeBits.BUILT_IN.get(JCR_WRITE), false,
+            ImmutableSet.of(mock(Restriction.class)));
     }
 
     @Test
     public void testEquals() {
-        assertEquals(entry, new ValidationEntry(entry.principalName, entry.privilegeBits, entry.isAllow, entry.restrictions));
-        assertEquals(entry, new ValidationEntry(entry.principalName, entry.privilegeBits, entry.isAllow, entry.restrictions, entry.index+1));
+        assertEquals(entry,
+            new ValidationEntry(entry.principalName, entry.privilegeBits, entry.isAllow,
+                entry.restrictions));
+        assertEquals(entry,
+            new ValidationEntry(entry.principalName, entry.privilegeBits, entry.isAllow,
+                entry.restrictions, entry.index + 1));
         assertTrue(entry.equals(entry));
     }
 
     @Test
     public void testNotEquals() throws Exception {
-        assertNotEquals(entry, new ValidationEntry("other", entry.privilegeBits, entry.isAllow, entry.restrictions));
-        assertNotEquals(entry, new ValidationEntry(entry.principalName, PrivilegeBits.BUILT_IN.get(REP_WRITE), entry.isAllow, entry.restrictions));
-        assertNotEquals(entry, new ValidationEntry(entry.principalName, entry.privilegeBits, !entry.isAllow, entry.restrictions));
-        assertNotEquals(entry, new ValidationEntry(entry.principalName, entry.privilegeBits, entry.isAllow, ImmutableSet.of()));
-        assertNotEquals(entry, createEntry(new PrincipalImpl(entry.principalName), entry.privilegeBits, entry.isAllow, entry.restrictions));
+        assertNotEquals(entry,
+            new ValidationEntry("other", entry.privilegeBits, entry.isAllow, entry.restrictions));
+        assertNotEquals(entry,
+            new ValidationEntry(entry.principalName, PrivilegeBits.BUILT_IN.get(REP_WRITE),
+                entry.isAllow, entry.restrictions));
+        assertNotEquals(entry,
+            new ValidationEntry(entry.principalName, entry.privilegeBits, !entry.isAllow,
+                entry.restrictions));
+        assertNotEquals(entry,
+            new ValidationEntry(entry.principalName, entry.privilegeBits, entry.isAllow,
+                ImmutableSet.of()));
+        assertNotEquals(entry,
+            createEntry(new PrincipalImpl(entry.principalName), entry.privilegeBits, entry.isAllow,
+                entry.restrictions));
     }
 
     @Test
     public void testHashcode() {
         int hc = entry.hashCode();
         assertEquals(hc, entry.hashCode());
-        assertEquals(hc, new ValidationEntry(entry.principalName, entry.privilegeBits, entry.isAllow, entry.restrictions).hashCode());
-        assertEquals(hc, new ValidationEntry(entry.principalName, entry.privilegeBits, entry.isAllow, entry.restrictions, entry.index+1).hashCode());
+        assertEquals(hc,
+            new ValidationEntry(entry.principalName, entry.privilegeBits, entry.isAllow,
+                entry.restrictions).hashCode());
+        assertEquals(hc,
+            new ValidationEntry(entry.principalName, entry.privilegeBits, entry.isAllow,
+                entry.restrictions, entry.index + 1).hashCode());
 
-        assertNotEquals(hc, new ValidationEntry("other", entry.privilegeBits, entry.isAllow, entry.restrictions).hashCode());
-        assertNotEquals(hc, new ValidationEntry(entry.principalName, PrivilegeBits.BUILT_IN.get(REP_WRITE), entry.isAllow, entry.restrictions).hashCode());
-        assertNotEquals(hc, new ValidationEntry(entry.principalName, entry.privilegeBits, !entry.isAllow, entry.restrictions).hashCode());
-        assertNotEquals(hc, new ValidationEntry(entry.principalName, entry.privilegeBits, entry.isAllow, ImmutableSet.of()).hashCode());
+        assertNotEquals(hc, new ValidationEntry("other", entry.privilegeBits, entry.isAllow,
+            entry.restrictions).hashCode());
+        assertNotEquals(hc,
+            new ValidationEntry(entry.principalName, PrivilegeBits.BUILT_IN.get(REP_WRITE),
+                entry.isAllow, entry.restrictions).hashCode());
+        assertNotEquals(hc,
+            new ValidationEntry(entry.principalName, entry.privilegeBits, !entry.isAllow,
+                entry.restrictions).hashCode());
+        assertNotEquals(hc,
+            new ValidationEntry(entry.principalName, entry.privilegeBits, entry.isAllow,
+                ImmutableSet.of()).hashCode());
     }
 }

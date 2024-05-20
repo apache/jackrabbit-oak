@@ -24,9 +24,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Abstract base class for the template implementations in this package.
- * Keeps track of the Oak name of this template and provides utility methods
- * for mapping between JCR and Oak names.
+ * Abstract base class for the template implementations in this package. Keeps track of the Oak name
+ * of this template and provides utility methods for mapping between JCR and Oak names.
  */
 abstract class NamedTemplate {
 
@@ -39,7 +38,7 @@ abstract class NamedTemplate {
     }
 
     protected NamedTemplate(@NotNull NameMapper mapper, @Nullable String jcrName)
-            throws ConstraintViolationException {
+        throws ConstraintViolationException {
         this(mapper);
         if (jcrName != null) {
             setName(jcrName);
@@ -47,8 +46,7 @@ abstract class NamedTemplate {
     }
 
     /**
-     * Returns the Oak name of this template, or {@code null} if the name
-     * has not yet been set.
+     * Returns the Oak name of this template, or {@code null} if the name has not yet been set.
      *
      * @return Oak name, or {@code null}
      */
@@ -60,8 +58,7 @@ abstract class NamedTemplate {
     //------------------------------------------------------------< public >--
 
     /**
-     * Returns the JCR name of this template, or {@code null} if the name
-     * has not yet been set.
+     * Returns the JCR name of this template, or {@code null} if the name has not yet been set.
      *
      * @return JCR name, or {@code null}
      */
@@ -77,17 +74,16 @@ abstract class NamedTemplate {
      * @throws ConstraintViolationException if the name is invalid
      */
     public void setName(@NotNull String jcrName)
-            throws ConstraintViolationException {
+        throws ConstraintViolationException {
         this.oakName = getOakNameOrThrowConstraintViolation(jcrName);
     }
 
     //-------------------------------------------< name handling utilities >--
 
     /**
-     * Like {@link NameMapper#getJcrName(String)}, but allows the given Oak
-     * name to be {@code null}, in which case the return value is also
-     * {@code null}. Useful for the template implementations where
-     * {@code null} values are used to indicate undefined attributes.
+     * Like {@link NameMapper#getJcrName(String)}, but allows the given Oak name to be {@code null},
+     * in which case the return value is also {@code null}. Useful for the template implementations
+     * where {@code null} values are used to indicate undefined attributes.
      *
      * @param oakName Oak name, or {@code null}
      * @return JCR name, or {@code null}
@@ -102,9 +98,8 @@ abstract class NamedTemplate {
     }
 
     /**
-     * Converts the given Oak names to corresponding JCR names. If the given
-     * array is {@code null} (signifying an undefined set of names), then the
-     * return value is also {@code null}.
+     * Converts the given Oak names to corresponding JCR names. If the given array is {@code null}
+     * (signifying an undefined set of names), then the return value is also {@code null}.
      *
      * @param oakNames Oak names, or {@code null}
      * @return JCR names, or {@code null}
@@ -122,9 +117,8 @@ abstract class NamedTemplate {
     }
 
     /**
-     * Converts the given JCR name to the corresponding Oak name. Throws
-     * a {@link ConstraintViolationException} if the name is {@code null}
-     * or otherwise invalid.
+     * Converts the given JCR name to the corresponding Oak name. Throws a
+     * {@link ConstraintViolationException} if the name is {@code null} or otherwise invalid.
      *
      * @param jcrName JCR name
      * @return Oak name
@@ -132,22 +126,21 @@ abstract class NamedTemplate {
      */
     @NotNull
     protected String getOakNameOrThrowConstraintViolation(@Nullable String jcrName)
-            throws ConstraintViolationException {
+        throws ConstraintViolationException {
         if (jcrName == null) {
             throw new ConstraintViolationException("Missing JCR name");
         }
         String oakName = mapper.getOakNameOrNull(jcrName);
         if (oakName == null || !JcrNameParser.validate(jcrName)) {
             throw new ConstraintViolationException(
-                    "Invalid name: " + jcrName);
+                "Invalid name: " + jcrName);
         }
         return oakName;
     }
 
     /**
-     * Like {@link #getOakNameOrThrowConstraintViolation(String)} but allows
-     * the given JCR name to be {@code null}, in which case the return value
-     * is also {@code null}.
+     * Like {@link #getOakNameOrThrowConstraintViolation(String)} but allows the given JCR name to
+     * be {@code null}, in which case the return value is also {@code null}.
      *
      * @param jcrName JCR name, or {@code null}
      * @return Oak name, or {@code null}
@@ -155,7 +148,7 @@ abstract class NamedTemplate {
      */
     @Nullable
     protected String getOakNameAllowNullOrThrowConstraintViolation(@Nullable String jcrName)
-            throws ConstraintViolationException {
+        throws ConstraintViolationException {
         if (jcrName == null) {
             return null;
         } else {
@@ -164,10 +157,9 @@ abstract class NamedTemplate {
     }
 
     /**
-     * Converts the given JCR names to corresponding Oak names. Throws
-     * a {@link ConstraintViolationException} if the given array is
-     * {@code null} or one of the contained JCR names is {@code null}
-     * or otherwise invalid.
+     * Converts the given JCR names to corresponding Oak names. Throws a
+     * {@link ConstraintViolationException} if the given array is {@code null} or one of the
+     * contained JCR names is {@code null} or otherwise invalid.
      *
      * @param jcrNames JCR names
      * @return Oak names
@@ -175,7 +167,7 @@ abstract class NamedTemplate {
      */
     @NotNull
     protected String[] getOakNamesOrThrowConstraintViolation(@Nullable String[] jcrNames)
-            throws ConstraintViolationException {
+        throws ConstraintViolationException {
         if (jcrNames != null) {
             String[] oakNames = new String[jcrNames.length];
             for (int i = 0; i < jcrNames.length; i++) {

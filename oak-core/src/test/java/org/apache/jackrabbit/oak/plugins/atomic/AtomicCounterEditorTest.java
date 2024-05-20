@@ -73,22 +73,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AtomicCounterEditorTest {
+
     /**
      * convenience class to ease construction during tests
      */
     private static class TestableACEProvider extends AtomicCounterEditorProvider {
+
         public TestableACEProvider(final Clusterable c, final ScheduledExecutorService e,
-                                   final NodeStore s, final Whiteboard b) {
+            final NodeStore s, final Whiteboard b) {
             super(new Supplier<Clusterable>() {
                 @Override
                 public Clusterable get() {
                     return c;
-                };
+                }
+
+                ;
             }, new Supplier<ScheduledExecutorService>() {
                 @Override
                 public ScheduledExecutorService get() {
                     return e;
-                };
+                }
+
+                ;
             }, new Supplier<NodeStore>() {
                 @Override
                 public NodeStore get() {
@@ -98,10 +104,13 @@ public class AtomicCounterEditorTest {
                 @Override
                 public Whiteboard get() {
                     return b;
-                };
+                }
+
+                ;
             });
         }
     }
+
     private static final Clusterable CLUSTER_1 = new Clusterable() {
         @Override
         public String getInstanceId() {
@@ -114,7 +123,8 @@ public class AtomicCounterEditorTest {
         }
 
         @Override
-        public boolean isVisible(String visibilityToken, long maxWaitMillis) throws InterruptedException {
+        public boolean isVisible(String visibilityToken, long maxWaitMillis)
+            throws InterruptedException {
             return true;
         }
     };
@@ -130,7 +140,8 @@ public class AtomicCounterEditorTest {
         }
 
         @Override
-        public boolean isVisible(String visibilityToken, long maxWaitMillis) throws InterruptedException {
+        public boolean isVisible(String visibilityToken, long maxWaitMillis)
+            throws InterruptedException {
             return true;
         }
     };
@@ -145,17 +156,17 @@ public class AtomicCounterEditorTest {
         PROP_INCREMENT, 1L);
     private static final PropertyState INCREMENT_BY_2 = PropertyStates.createProperty(
         PROP_INCREMENT, 2L);
-    
+
     @Test
     public void increment() throws CommitFailedException {
         NodeBuilder builder;
         Editor editor;
-        
+
         builder = EMPTY_NODE.builder();
         editor = new AtomicCounterEditor(builder, null, null, null, null);
         editor.propertyAdded(INCREMENT_BY_1);
         assertNoCounters(builder.getProperties());
-        
+
         builder = EMPTY_NODE.builder();
         builder = setMixin(builder);
         editor = new AtomicCounterEditor(builder, null, null, null, null);
@@ -163,70 +174,73 @@ public class AtomicCounterEditorTest {
         assertNull("the oak:increment should never be set", builder.getProperty(PROP_INCREMENT));
         assertTotalCountersValue(builder.getProperties(), 1);
     }
-    
+
     @Test
     public void consolidate() throws CommitFailedException {
         NodeBuilder builder;
         Editor editor;
-        
+
         builder = EMPTY_NODE.builder();
         builder = setMixin(builder);
         editor = new AtomicCounterEditor(builder, null, null, null, null);
-        
+
         editor.propertyAdded(INCREMENT_BY_1);
         assertTotalCountersValue(builder.getProperties(), 1);
         editor.propertyAdded(INCREMENT_BY_1);
         assertTotalCountersValue(builder.getProperties(), 2);
         AtomicCounterEditor.consolidateCount(builder);
-        assertCounterNodeState(builder, ImmutableSet.of(PREFIX_PROP_COUNTER, PREFIX_PROP_REVISION), 2);
+        assertCounterNodeState(builder, ImmutableSet.of(PREFIX_PROP_COUNTER, PREFIX_PROP_REVISION),
+            2);
     }
 
     /**
      * that a list of properties does not contains any property with name starting with
      * {@link AtomicCounterEditor#PREFIX_PROP_COUNTER}
-     * 
+     *
      * @param properties
      */
-    private static void assertNoCounters(@NotNull final Iterable<? extends PropertyState> properties) {
+    private static void assertNoCounters(
+        @NotNull final Iterable<? extends PropertyState> properties) {
         checkNotNull(properties);
-        
+
         for (PropertyState p : properties) {
             assertFalse("there should be no counter property",
                 p.getName().startsWith(PREFIX_PROP_COUNTER));
         }
     }
-    
+
     /**
      * assert the total amount of {@link AtomicCounterEditor#PREFIX_PROP_COUNTER}
-     * 
+     *
      * @param properties
      */
-    private static void assertTotalCountersValue(@NotNull final Iterable<? extends PropertyState> properties,
-                                            int expected) {
+    private static void assertTotalCountersValue(
+        @NotNull final Iterable<? extends PropertyState> properties,
+        int expected) {
         int total = 0;
         for (PropertyState p : checkNotNull(properties)) {
             if (p.getName().startsWith(PREFIX_PROP_COUNTER)) {
                 total += p.getValue(LONG);
             }
         }
-        
+
         assertEquals("the total amount of :oak-counter properties does not match", expected, total);
     }
-    
+
     private static NodeBuilder setMixin(@NotNull final NodeBuilder builder) {
         return checkNotNull(builder).setProperty(JCR_MIXINTYPES, of(MIX_ATOMIC_COUNTER), NAMES);
     }
-    
-    
-    private static void assertCounterNodeState(@NotNull NodeBuilder builder, 
-                                               @NotNull Set<String> hiddenProps, 
-                                               long expectedCounter) {
+
+
+    private static void assertCounterNodeState(@NotNull NodeBuilder builder,
+        @NotNull Set<String> hiddenProps,
+        long expectedCounter) {
         checkNotNull(builder);
         checkNotNull(hiddenProps);
         long totalHiddenValue = 0;
         PropertyState counter = builder.getProperty(PROP_COUNTER);
         Set<String> hp = Sets.newHashSet(hiddenProps);
-        
+
         assertNotNull("counter property cannot be null", counter);
         assertNull("The increment property should not be there",
             builder.getProperty(PROP_INCREMENT));
@@ -245,50 +259,54 @@ public class AtomicCounterEditorTest {
             .getValue(LONG).longValue());
     }
 
-    private static NodeBuilder incrementBy(@NotNull NodeBuilder builder, @NotNull PropertyState increment) {
+    private static NodeBuilder incrementBy(@NotNull NodeBuilder builder,
+        @NotNull PropertyState increment) {
         return checkNotNull(builder).setProperty(checkNotNull(increment));
     }
-    
+
     @Test
     public void notCluster() throws CommitFailedException {
         NodeBuilder builder;
         NodeState before, after;
-        
+
         builder = EMPTY_NODE.builder();
         before = builder.getNodeState();
         builder = setMixin(builder);
         builder = incrementBy(builder, INCREMENT_BY_1);
         after = builder.getNodeState();
         builder = HOOK_NO_CLUSTER.processCommit(before, after, EMPTY).builder();
-        assertCounterNodeState(builder, ImmutableSet.of(PREFIX_PROP_COUNTER, PREFIX_PROP_REVISION), 1);
+        assertCounterNodeState(builder, ImmutableSet.of(PREFIX_PROP_COUNTER, PREFIX_PROP_REVISION),
+            1);
 
         before = builder.getNodeState();
         builder = incrementBy(builder, INCREMENT_BY_2);
-        after = builder.getNodeState(); 
+        after = builder.getNodeState();
         builder = HOOK_NO_CLUSTER.processCommit(before, after, EMPTY).builder();
-        assertCounterNodeState(builder, ImmutableSet.of(PREFIX_PROP_COUNTER, PREFIX_PROP_REVISION), 3);
+        assertCounterNodeState(builder, ImmutableSet.of(PREFIX_PROP_COUNTER, PREFIX_PROP_REVISION),
+            3);
     }
-    
+
     /**
      * simulates the update from multiple oak instances
-     * @throws CommitFailedException 
+     *
+     * @throws CommitFailedException
      */
     @Test
     public void multipleNodeUpdates() throws CommitFailedException {
         NodeBuilder builder;
         NodeState before, after;
-        
+
         builder = EMPTY_NODE.builder();
-        before = builder.getNodeState(); 
+        before = builder.getNodeState();
         builder = setMixin(builder);
         builder = incrementBy(builder, INCREMENT_BY_1);
         after = builder.getNodeState();
         builder = HOOK_1_SYNC.processCommit(before, after, EMPTY).builder();
         assertCounterNodeState(
-            builder, 
+            builder,
             ImmutableSet.of(PREFIX_PROP_COUNTER + "1", PREFIX_PROP_REVISION + "1"),
             1);
-        
+
         before = builder.getNodeState();
         builder = incrementBy(builder, INCREMENT_BY_1);
         after = builder.getNodeState();
@@ -297,22 +315,23 @@ public class AtomicCounterEditorTest {
             builder,
             ImmutableSet.of(
                 PREFIX_PROP_COUNTER + "1",
-                PREFIX_PROP_COUNTER + "2", 
+                PREFIX_PROP_COUNTER + "2",
                 PREFIX_PROP_REVISION + "1",
                 PREFIX_PROP_REVISION + "2"),
             2);
     }
-    
+
     /**
      * covers the revision increments aspect
-     * @throws CommitFailedException 
+     *
+     * @throws CommitFailedException
      */
     @Test
     public void revisionIncrements() throws CommitFailedException {
         NodeBuilder builder;
         NodeState before, after;
         PropertyState rev;
-        
+
         builder = EMPTY_NODE.builder();
         before = builder.getNodeState();
         builder = setMixin(builder);
@@ -342,24 +361,25 @@ public class AtomicCounterEditorTest {
         assertNotNull(rev);
         assertEquals(1, rev.getValue(LONG).longValue());
     }
-    
+
     @Test
-    public void singleNodeAsync() throws CommitFailedException, InterruptedException, ExecutionException {
+    public void singleNodeAsync()
+        throws CommitFailedException, InterruptedException, ExecutionException {
         NodeStore store = new MemoryNodeStore();
         MyExecutor exec1 = new MyExecutor();
         Whiteboard board = new DefaultWhiteboard();
         EditorHook hook1 = new EditorHook(new TestableACEProvider(CLUSTER_1, exec1, store, board));
         NodeBuilder builder, root;
         PropertyState p;
-        
+
         board.register(CommitHook.class, EmptyHook.INSTANCE, null);
-        
+
         root = store.getRoot().builder();
         builder = root.child("c");
         builder = setMixin(builder);
         builder = incrementBy(builder, INCREMENT_BY_1);
         store.merge(root, hook1, CommitInfo.EMPTY);
-        
+
         // as we're providing all the information we expect the counter not to be consolidated for
         // as long as the scheduled process has run
         builder = store.getRoot().builder().getChildNode("c");
@@ -372,10 +392,10 @@ public class AtomicCounterEditorTest {
         assertEquals(1, p.getValue(LONG).longValue());
         p = builder.getProperty(PROP_COUNTER);
         assertNull(p);
-        
+
         // executing the consolidation
         exec1.execute();
-        
+
         // fetching the latest store state to see the changes
         builder = store.getRoot().builder().getChildNode("c");
         assertTrue("the counter node should exists", builder.exists());
@@ -384,23 +404,23 @@ public class AtomicCounterEditorTest {
             ImmutableSet.of(PREFIX_PROP_COUNTER + CLUSTER_1.getInstanceId(),
                 PREFIX_PROP_REVISION + CLUSTER_1.getInstanceId()), 1);
     }
-    
+
     @Test
-    public void noHookInWhiteboard() throws CommitFailedException, InterruptedException, ExecutionException {
+    public void noHookInWhiteboard()
+        throws CommitFailedException, InterruptedException, ExecutionException {
         NodeStore store = new MemoryNodeStore();
         MyExecutor exec1 = new MyExecutor();
         Whiteboard board = new DefaultWhiteboard();
         EditorHook hook1 = new EditorHook(new TestableACEProvider(CLUSTER_1, exec1, store, board));
         NodeBuilder builder, root;
         PropertyState p;
-        
-        
+
         root = store.getRoot().builder();
         builder = root.child("c");
         builder = setMixin(builder);
         builder = incrementBy(builder, INCREMENT_BY_1);
         store.merge(root, hook1, CommitInfo.EMPTY);
-        
+
         // as we're providing all the information we expect the counter not to be consolidated for
         // as long as the scheduled process has run
         builder = store.getRoot().builder().getChildNode("c");
@@ -413,9 +433,9 @@ public class AtomicCounterEditorTest {
         assertEquals(1, p.getValue(LONG).longValue());
         p = builder.getProperty(PROP_COUNTER);
         assertEquals(1, p.getValue(LONG).longValue());
-        
+
         assertTrue("without a registered hook it should have fell to sync", exec1.isEmpty());
-        
+
         // fetching the latest store state to see the changes
         builder = store.getRoot().builder().getChildNode("c");
         assertTrue("the counter node should exists", builder.exists());
@@ -424,17 +444,19 @@ public class AtomicCounterEditorTest {
             ImmutableSet.of(PREFIX_PROP_COUNTER + CLUSTER_1.getInstanceId(),
                 PREFIX_PROP_REVISION + CLUSTER_1.getInstanceId()), 1);
     }
-    
+
     /**
      * a fake {@link ScheduledExecutorService} which does not schedule and wait for a call on
      * {@link #execute()} to execute the first scheduled task. It works in a FIFO manner.
      */
-    private static class MyExecutor extends AbstractExecutorService implements ScheduledExecutorService {
+    private static class MyExecutor extends AbstractExecutorService implements
+        ScheduledExecutorService {
+
         private static final Logger LOG = LoggerFactory.getLogger(MyExecutor.class);
-        
+
         @SuppressWarnings("rawtypes")
         private Queue<ScheduledFuture> fifo = new LinkedList<ScheduledFuture>();
-        
+
         @Override
         public void shutdown() {
         }
@@ -469,19 +491,20 @@ public class AtomicCounterEditorTest {
             throw new UnsupportedOperationException("Not implemented");
         }
 
-        private synchronized void addToQueue(@SuppressWarnings("rawtypes") @NotNull ScheduledFuture future) {
+        private synchronized void addToQueue(
+            @SuppressWarnings("rawtypes") @NotNull ScheduledFuture future) {
             fifo.add(future);
         }
-        
+
         /**
          * return true whether the underlying queue is empty or not
-         * 
+         *
          * @return
          */
         public boolean isEmpty() {
             return fifo.isEmpty();
         }
-        
+
         @SuppressWarnings("rawtypes")
         private synchronized ScheduledFuture getFromQueue() {
             if (fifo.isEmpty()) {
@@ -490,20 +513,22 @@ public class AtomicCounterEditorTest {
                 return fifo.remove();
             }
         }
-        
+
         @Override
-        public <V> ScheduledFuture<V> schedule(final Callable<V> callable, long delay, TimeUnit unit) {
-            LOG.debug("Scheduling with delay: {} and unit: {} the process {}", delay, unit, callable);
-            
+        public <V> ScheduledFuture<V> schedule(final Callable<V> callable, long delay,
+            TimeUnit unit) {
+            LOG.debug("Scheduling with delay: {} and unit: {} the process {}", delay, unit,
+                callable);
+
             checkNotNull(callable);
             checkNotNull(unit);
             if (delay < 0) {
                 delay = 0;
             }
-                        
+
             ScheduledFuture<V> future = new ScheduledFuture<V>() {
                 final Callable<V> c = callable;
-                
+
                 @Override
                 public long getDelay(TimeUnit unit) {
                     throw new UnsupportedOperationException("Not implemented");
@@ -540,11 +565,11 @@ public class AtomicCounterEditorTest {
 
                 @Override
                 public V get(long timeout, TimeUnit unit) throws InterruptedException,
-                                                         ExecutionException, TimeoutException {
+                    ExecutionException, TimeoutException {
                     throw new UnsupportedOperationException("Not implemented");
                 }
             };
-            
+
             addToQueue(future);
             return future;
         }
@@ -552,7 +577,7 @@ public class AtomicCounterEditorTest {
         /**
          * executes the first item scheduled in the queue. If the queue is empty it will silently
          * return {@code null} which can easily be the same returned from the scheduled process.
-         * 
+         *
          * @return the result of the {@link ScheduledFuture} or {@code null} if the queue is empty.
          * @throws InterruptedException
          * @throws ExecutionException
@@ -566,38 +591,38 @@ public class AtomicCounterEditorTest {
                 return f.get();
             }
         }
-        
+
         @Override
         public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay,
-                                                      long period, TimeUnit unit) {
+            long period, TimeUnit unit) {
             throw new UnsupportedOperationException("Not implemented");
         }
 
         @Override
         public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay,
-                                                         long delay, TimeUnit unit) {
+            long delay, TimeUnit unit) {
             throw new UnsupportedOperationException("Not implemented");
         }
     }
-    
+
     @Test
     public void checkRevision() {
         NodeBuilder b = EMPTY_NODE.builder();
         PropertyState r = LongPropertyState.createLongProperty("r", 10L);
-        
+
         assertTrue(AtomicCounterEditor.checkRevision(b, null));
         assertFalse(AtomicCounterEditor.checkRevision(b, r));
-        
+
         b.setProperty(LongPropertyState.createLongProperty(r.getName(), 1L));
         assertFalse(AtomicCounterEditor.checkRevision(b, r));
-        
+
         b.setProperty(LongPropertyState.createLongProperty(r.getName(), 10L));
         assertTrue(AtomicCounterEditor.checkRevision(b, r));
 
         b.setProperty(LongPropertyState.createLongProperty(r.getName(), 20L));
         assertTrue(AtomicCounterEditor.checkRevision(b, r));
     }
-    
+
     @Test
     public void nextDelay() {
         assertEquals(AtomicCounterEditor.ConsolidatorTask.MIN_TIMEOUT,
@@ -618,7 +643,7 @@ public class AtomicCounterEditorTest {
             AtomicCounterEditor.ConsolidatorTask
                 .nextDelay(AtomicCounterEditor.ConsolidatorTask.MAX_TIMEOUT + 1));
     }
-    
+
     @Test
     public void isTimeOut() {
         assertFalse(AtomicCounterEditor.ConsolidatorTask.isTimedOut(0));
@@ -632,16 +657,16 @@ public class AtomicCounterEditorTest {
             .isTimedOut(AtomicCounterEditor.ConsolidatorTask.MAX_TIMEOUT + 1)); // any number > 32
         assertTrue(AtomicCounterEditor.ConsolidatorTask.isTimedOut(Long.MAX_VALUE));
     }
-    
+
     @Test
     public void isConsolidate() {
         NodeBuilder b = EMPTY_NODE.builder();
         PropertyState counter, hidden1, hidden2;
         String hidden1Name = PREFIX_PROP_COUNTER + "1";
         String hidden2Name = PREFIX_PROP_COUNTER + "2";
-        
+
         assertFalse(AtomicCounterEditor.isConsolidate(b));
-        
+
         counter = LongPropertyState.createLongProperty(PROP_COUNTER, 0);
         hidden1 = LongPropertyState.createLongProperty(hidden1Name, 1);
         b.setProperty(counter);

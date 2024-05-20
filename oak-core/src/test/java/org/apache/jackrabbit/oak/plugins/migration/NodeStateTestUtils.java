@@ -48,7 +48,8 @@ public class NodeStateTestUtils {
         // no instances
     }
 
-    public static NodeStore createNodeStoreWithContent(String... paths) throws CommitFailedException, IOException {
+    public static NodeStore createNodeStoreWithContent(String... paths)
+        throws CommitFailedException, IOException {
         final NodeStore store = new MemoryNodeStore();
         final NodeBuilder builder = store.getRoot().builder();
         for (String path : paths) {
@@ -65,7 +66,8 @@ public class NodeStateTestUtils {
         }
     }
 
-    public static void commit(NodeStore store, NodeBuilder rootBuilder) throws CommitFailedException {
+    public static void commit(NodeStore store, NodeBuilder rootBuilder)
+        throws CommitFailedException {
         store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
@@ -140,11 +142,11 @@ public class NodeStateTestUtils {
 
         public ExpectedDifference strict() {
             return this.propertyAdded()
-                    .propertyChanged()
-                    .propertyDeleted()
-                    .childNodeAdded()
-                    .childNodeChanged()
-                    .childNodeDeleted();
+                       .propertyChanged()
+                       .propertyDeleted()
+                       .childNodeAdded()
+                       .childNodeChanged()
+                       .childNodeDeleted();
         }
 
         private ExpectedDifference expect(String type, String... paths) {
@@ -179,7 +181,8 @@ public class NodeStateTestUtils {
         }
 
         @Override
-        public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
+        public void propertyChanged(PropertyState before, PropertyState after)
+            throws CommitFailedException {
             record("propertyChanged", PathUtils.concat(path, after.getName()));
         }
 
@@ -197,7 +200,7 @@ public class NodeStateTestUtils {
 
         @Override
         public Validator childNodeChanged(String name, NodeState before, NodeState after)
-                throws CommitFailedException {
+            throws CommitFailedException {
             // make sure not to record false positives (inefficient for large trees)
             if (!before.equals(after)) {
                 path = PathUtils.concat(path, name);
@@ -208,7 +211,8 @@ public class NodeStateTestUtils {
         }
 
         @Override
-        public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
+        public Validator childNodeDeleted(String name, NodeState before)
+            throws CommitFailedException {
             path = PathUtils.concat(path, name);
             record("childNodeDeleted", path);
             return this;

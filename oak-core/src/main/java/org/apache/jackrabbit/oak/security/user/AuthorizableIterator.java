@@ -45,26 +45,30 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
     private final Iterator<? extends Authorizable> authorizables;
     private final long size;
     private final Set<String> servedIds;
-    
+
     @NotNull
     static AuthorizableIterator create(@NotNull Iterator<Tree> authorizableTrees,
-                                       @NotNull UserManagerImpl userManager,
-                                       @NotNull AuthorizableType authorizableType) {
-        Iterator<Authorizable> it = Iterators.transform(authorizableTrees, new TreeToAuthorizable(userManager, authorizableType));
+        @NotNull UserManagerImpl userManager,
+        @NotNull AuthorizableType authorizableType) {
+        Iterator<Authorizable> it = Iterators.transform(authorizableTrees,
+            new TreeToAuthorizable(userManager, authorizableType));
         long size = getSize(authorizableTrees);
         return new AuthorizableIterator(it, size, false);
     }
 
     @NotNull
-    static AuthorizableIterator create(boolean filterDuplicates, @NotNull Iterator<? extends Authorizable> it1) {
+    static AuthorizableIterator create(boolean filterDuplicates,
+        @NotNull Iterator<? extends Authorizable> it1) {
         long size = getSize(it1);
         return new AuthorizableIterator(it1, size, filterDuplicates);
     }
-    
+
     @NotNull
-    static AuthorizableIterator create(boolean filterDuplicates, @NotNull Iterator<? extends Authorizable> it1, @NotNull Iterator<? extends Authorizable> it2) {
+    static AuthorizableIterator create(boolean filterDuplicates,
+        @NotNull Iterator<? extends Authorizable> it1,
+        @NotNull Iterator<? extends Authorizable> it2) {
         long size = 0;
-        for (Iterator<?> it : new Iterator[] {it1, it2}) {
+        for (Iterator<?> it : new Iterator[]{it1, it2}) {
             long l = getSize(it);
             if (l == -1) {
                 size = -1;
@@ -76,8 +80,9 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
         return new AuthorizableIterator(Iterators.concat(it1, it2), size, filterDuplicates);
     }
 
-    private AuthorizableIterator(Iterator<? extends Authorizable> authorizables, long size, boolean filterDuplicates) {
-        if (filterDuplicates)  {
+    private AuthorizableIterator(Iterator<? extends Authorizable> authorizables, long size,
+        boolean filterDuplicates) {
+        if (filterDuplicates) {
             this.servedIds = new HashSet<>();
             this.authorizables = Iterators.filter(authorizables, authorizable -> {
                 if (authorizable == null) {

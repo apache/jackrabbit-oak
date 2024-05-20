@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.query;
 
 import java.util.Arrays;
-
 import org.apache.jackrabbit.oak.api.StrictPathRestriction;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsMBean;
@@ -35,56 +34,57 @@ import org.jetbrains.annotations.Nullable;
  * Settings of the query engine.
  */
 public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimits {
-    
+
     /**
-     * the flag used to turn on/off the optimisations on top of the {@code org.apache.jackrabbit.oak.query.Query} object.
-     * {@code -Doak.query.sql2optimisation}
+     * the flag used to turn on/off the optimisations on top of the
+     * {@code org.apache.jackrabbit.oak.query.Query} object. {@code -Doak.query.sql2optimisation}
      */
     public static final String SQL2_OPTIMISATION_FLAG = "oak.query.sql2optimisation";
-    
+
     public static final String SQL2_OPTIMISATION_FLAG_2 = "oak.query.sql2optimisation2";
-    
-    public static final boolean SQL2_OPTIMIZATION_2 = 
-            Boolean.parseBoolean(System.getProperty(SQL2_OPTIMISATION_FLAG_2, "true"));
+
+    public static final boolean SQL2_OPTIMIZATION_2 =
+        Boolean.parseBoolean(System.getProperty(SQL2_OPTIMISATION_FLAG_2, "true"));
 
     public static final String OAK_QUERY_LIMIT_IN_MEMORY = "oak.queryLimitInMemory";
 
     // should be the same as QueryEngineSettingsService.DEFAULT_QUERY_LIMIT_IN_MEMORY
     public static final long DEFAULT_QUERY_LIMIT_IN_MEMORY =
-            Long.getLong(OAK_QUERY_LIMIT_IN_MEMORY, 500000);
+        Long.getLong(OAK_QUERY_LIMIT_IN_MEMORY, 500000);
 
     public static final String OAK_QUERY_LIMIT_READS = "oak.queryLimitReads";
 
     // should be the same as QueryEngineSettingsService.DEFAULT_QUERY_LIMIT_READS
     public static final long DEFAULT_QUERY_LIMIT_READS =
-            Long.getLong(OAK_QUERY_LIMIT_READS, 100000);
+        Long.getLong(OAK_QUERY_LIMIT_READS, 100000);
 
     public static final String OAK_QUERY_PREFETCH_COUNT = "oak.prefetchCount";
 
     public static final String FT_NAME_PREFETCH_FOR_QUERIES = "FT_OAK-10490";
 
-    public static final int DEFAULT_PREFETCH_COUNT = Integer.getInteger(OAK_QUERY_PREFETCH_COUNT, -1);
+    public static final int DEFAULT_PREFETCH_COUNT = Integer.getInteger(OAK_QUERY_PREFETCH_COUNT,
+        -1);
 
     public static final String OAK_QUERY_FAIL_TRAVERSAL = "oak.queryFailTraversal";
     private static final boolean DEFAULT_FAIL_TRAVERSAL =
-            Boolean.getBoolean(OAK_QUERY_FAIL_TRAVERSAL);
+        Boolean.getBoolean(OAK_QUERY_FAIL_TRAVERSAL);
 
     private static final boolean DEFAULT_FULL_TEXT_COMPARISON_WITHOUT_INDEX =
-            Boolean.getBoolean("oak.queryFullTextComparisonWithoutIndex");
-    
+        Boolean.getBoolean("oak.queryFullTextComparisonWithoutIndex");
+
     private long limitInMemory = DEFAULT_QUERY_LIMIT_IN_MEMORY;
-    
+
     private long limitReads = DEFAULT_QUERY_LIMIT_READS;
 
     private int prefetchCount = DEFAULT_PREFETCH_COUNT;
 
     private boolean failTraversal = DEFAULT_FAIL_TRAVERSAL;
-    
-    private boolean fullTextComparisonWithoutIndex = 
-            DEFAULT_FULL_TEXT_COMPARISON_WITHOUT_INDEX;
-    
-    private boolean sql2Optimisation = 
-            Boolean.parseBoolean(System.getProperty(SQL2_OPTIMISATION_FLAG, "true"));
+
+    private boolean fullTextComparisonWithoutIndex =
+        DEFAULT_FULL_TEXT_COMPARISON_WITHOUT_INDEX;
+
+    private boolean sql2Optimisation =
+        Boolean.parseBoolean(System.getProperty(SQL2_OPTIMISATION_FLAG, "true"));
 
     private static final String OAK_FAST_QUERY_SIZE = "oak.fastQuerySize";
     public static final boolean DEFAULT_FAST_QUERY_SIZE = Boolean.getBoolean(OAK_FAST_QUERY_SIZE);
@@ -101,19 +101,22 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     private final QueryValidator queryValidator = new QueryValidator();
 
-    private String[] classNamesIgnoredInCallTrace = new String[] {};
+    private String[] classNamesIgnoredInCallTrace = new String[]{};
 
 
     private static final String OAK_QUERY_LENGTH_WARN_LIMIT = "oak.query.length.warn.limit";
     private static final String OAK_QUERY_LENGTH_ERROR_LIMIT = "oak.query.length.error.limit";
 
-    private final long queryLengthWarnLimit = Long.getLong(OAK_QUERY_LENGTH_WARN_LIMIT, 1024 * 1024); // 1 MB
-    private final long queryLengthErrorLimit = Long.getLong(OAK_QUERY_LENGTH_ERROR_LIMIT, 100 * 1024 * 1024); //100MB
+    private final long queryLengthWarnLimit = Long.getLong(OAK_QUERY_LENGTH_WARN_LIMIT,
+        1024 * 1024); // 1 MB
+    private final long queryLengthErrorLimit = Long.getLong(OAK_QUERY_LENGTH_ERROR_LIMIT,
+        100 * 1024 * 1024); //100MB
 
     private Feature prefetchFeature;
 
     private String autoOptionsMappingJson = "{}";
-    private QueryOptions.AutomaticQueryOptionsMapping autoOptionsMapping = new QueryOptions.AutomaticQueryOptionsMapping(autoOptionsMappingJson);
+    private QueryOptions.AutomaticQueryOptionsMapping autoOptionsMapping = new QueryOptions.AutomaticQueryOptionsMapping(
+        autoOptionsMappingJson);
 
     public long getQueryLengthWarnLimit() {
         return queryLengthWarnLimit;
@@ -139,17 +142,17 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public long getLimitInMemory() {
         return limitInMemory;
     }
-    
+
     @Override
     public void setLimitInMemory(long limitInMemory) {
         this.limitInMemory = limitInMemory;
     }
-    
+
     @Override
     public long getLimitReads() {
         return limitReads;
     }
-    
+
     @Override
     public void setLimitReads(long limitReads) {
         this.limitReads = limitReads;
@@ -164,7 +167,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public int getPrefetchCount() {
         if (prefetchCount == -1) {
             return prefetchFeature != null && prefetchFeature.isEnabled() ?
-                    20 : 0;
+                20 : 0;
         }
         return prefetchCount;
     }
@@ -216,11 +219,11 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public void setFullTextComparisonWithoutIndex(boolean fullTextComparisonWithoutIndex) {
         this.fullTextComparisonWithoutIndex = fullTextComparisonWithoutIndex;
     }
-    
+
     public boolean getFullTextComparisonWithoutIndex() {
         return fullTextComparisonWithoutIndex;
     }
-    
+
     public boolean isSql2Optimisation() {
         return sql2Optimisation;
     }
@@ -228,7 +231,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public QueryStatsMBean getQueryStats() {
         return queryStats;
     }
-    
+
     public QueryStatsReporter getQueryStatsReporter() {
         return queryStats;
     }
@@ -238,7 +241,8 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     }
 
     @Override
-    public void setQueryValidatorPattern(String key, String pattern, String comment, boolean failQuery) {
+    public void setQueryValidatorPattern(String key, String pattern, String comment,
+        boolean failQuery) {
         queryValidator.setPattern(key, pattern, comment, failQuery);
     }
 
@@ -250,7 +254,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public QueryValidator getQueryValidator() {
         return queryValidator;
     }
-    
+
     public void setIgnoredClassNamesInCallTrace(@NotNull String[] packageNames) {
         classNamesIgnoredInCallTrace = packageNames;
     }
@@ -262,15 +266,15 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     @Override
     public String toString() {
         return "QueryEngineSettings{" +
-                "limitInMemory=" + limitInMemory +
-                ", limitReads=" + limitReads +
-                ", failTraversal=" + failTraversal +
-                ", fullTextComparisonWithoutIndex=" + fullTextComparisonWithoutIndex +
-                ", sql2Optimisation=" + sql2Optimisation +
-                ", fastQuerySize=" + fastQuerySize +
-                ", prefetchCount=" + prefetchCount +
-                ", classNamesIgnoredInCallTrace=" + Arrays.toString(classNamesIgnoredInCallTrace) +
-                '}';
+            "limitInMemory=" + limitInMemory +
+            ", limitReads=" + limitReads +
+            ", failTraversal=" + failTraversal +
+            ", fullTextComparisonWithoutIndex=" + fullTextComparisonWithoutIndex +
+            ", sql2Optimisation=" + sql2Optimisation +
+            ", fastQuerySize=" + fastQuerySize +
+            ", prefetchCount=" + prefetchCount +
+            ", classNamesIgnoredInCallTrace=" + Arrays.toString(classNamesIgnoredInCallTrace) +
+            '}';
     }
-    
+
 }

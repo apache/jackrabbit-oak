@@ -66,7 +66,8 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
         if (!ntMgr.hasNodeType(NT_NAME)) {
             NodeTypeTemplate tmpl = ntMgr.createNodeTypeTemplate();
             tmpl.setName(NT_NAME);
-            tmpl.setDeclaredSuperTypeNames(new String[]{JcrConstants.MIX_REFERENCEABLE, JcrConstants.NT_UNSTRUCTURED});
+            tmpl.setDeclaredSuperTypeNames(
+                new String[]{JcrConstants.MIX_REFERENCEABLE, JcrConstants.NT_UNSTRUCTURED});
             ntMgr.registerNodeType(tmpl, true);
         }
 
@@ -82,13 +83,13 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
     }
 
     /**
-     * Creating a tree which is referenceable doesn't require any property
-     * related privilege to be granted as the jcr:uuid property is defined to
-     * be autocreated and protected.
+     * Creating a tree which is referenceable doesn't require any property related privilege to be
+     * granted as the jcr:uuid property is defined to be autocreated and protected.
      */
     @Test
     public void testCreateJcrUuid() throws Exception {
-        setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES);
+        setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.JCR_ADD_CHILD_NODES);
 
         Root testRoot = getTestRoot();
         testRoot.refresh();
@@ -104,7 +105,8 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
      */
     @Test
     public void testCreateInvalidJcrUuid() throws Exception {
-        setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES);
+        setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.JCR_ADD_CHILD_NODES);
 
         try {
             Root testRoot = getTestRoot();
@@ -126,7 +128,8 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
      */
     @Test
     public void testCreateBooleanJcrUuid() throws Exception {
-        setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES);
+        setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.JCR_ADD_CHILD_NODES);
 
         try {
             Root testRoot = getTestRoot();
@@ -143,20 +146,21 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
     }
 
     /**
-     * Creating a non-referenceable tree with an jcr:uuid must fail
-     * with AccessDeniedException unless the REP_ADD_PROPERTY privilege
-     * is granted
+     * Creating a non-referenceable tree with an jcr:uuid must fail with AccessDeniedException
+     * unless the REP_ADD_PROPERTY privilege is granted
      */
     @Test
     public void testCreateNonReferenceableJcrUuid() throws Exception {
-        setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES);
+        setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.JCR_ADD_CHILD_NODES);
 
         try {
             Root testRoot = getTestRoot();
             NodeUtil a = new NodeUtil(testRoot.getTree("/a"));
             a.setString(JCR_UUID, UUIDUtils.generateUUID());
             testRoot.commit();
-            fail("Creating a jcr:uuid property for an unstructured node without ADD_PROPERTY permission must fail.");
+            fail(
+                "Creating a jcr:uuid property for an unstructured node without ADD_PROPERTY permission must fail.");
         } catch (CommitFailedException e) {
             assertTrue(e.isAccessViolation());
         }
@@ -167,7 +171,8 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
      */
     @Test
     public void testModifyJcrUuid() throws Exception {
-        setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+        setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.REP_WRITE);
 
         try {
             Root testRoot = getTestRoot();
@@ -182,15 +187,15 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
     }
 
     /**
-     * Creating a non-referenceable tree with a jcr:uuid must fail
-     * with AccessDeniedException unless the REP_ADD_PROPERTY privilege
-     * is granted
+     * Creating a non-referenceable tree with a jcr:uuid must fail with AccessDeniedException unless
+     * the REP_ADD_PROPERTY privilege is granted
      */
     @Test
     public void testModifyNonReferenceableJcrUuid() throws Exception {
         NodeUtil a = new NodeUtil(root.getTree("/a"));
         a.setString(JCR_UUID, "some-value");
-        setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES);
+        setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.JCR_ADD_CHILD_NODES);
 
         try {
             Root testRoot = getTestRoot();
@@ -198,7 +203,8 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
             assertNotNull(a.getString(JCR_UUID, null));
             a.setString(JCR_UUID, UUIDUtils.generateUUID());
             testRoot.commit();
-            fail("Modifying a jcr:uuid property for an unstructured node without MODIFY_PROPERTY permission must fail.");
+            fail(
+                "Modifying a jcr:uuid property for an unstructured node without MODIFY_PROPERTY permission must fail.");
         } catch (CommitFailedException e) {
             assertTrue(e.isAccessViolation());
         }

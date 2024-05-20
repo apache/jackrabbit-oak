@@ -36,12 +36,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Base class for the node and property definition template implementations
- * in this package. Takes care of the shared item definition attributes and
- * manages mappings between JCR and Oak names.
+ * Base class for the node and property definition template implementations in this package. Takes
+ * care of the shared item definition attributes and manages mappings between JCR and Oak names.
  */
 abstract class ItemDefinitionTemplate extends NamedTemplate
-        implements ItemDefinition {
+    implements ItemDefinition {
 
     private boolean residual = false;
 
@@ -58,8 +57,8 @@ abstract class ItemDefinitionTemplate extends NamedTemplate
     }
 
     protected ItemDefinitionTemplate(
-            NameMapper mapper, ItemDefinition definition)
-            throws ConstraintViolationException {
+        NameMapper mapper, ItemDefinition definition)
+        throws ConstraintViolationException {
         super(mapper, definition.getName());
         setProtected(definition.isProtected());
         setMandatory(definition.isMandatory());
@@ -68,11 +67,10 @@ abstract class ItemDefinitionTemplate extends NamedTemplate
     }
 
     /**
-     * Writes the contents of this item definition to the given tree node.
-     * Used when registering new node types.
+     * Writes the contents of this item definition to the given tree node. Used when registering new
+     * node types.
      *
-     * @param tree an {@code nt:propertyDefinition} or
-     *             {@code nt:childNodeDefinition} node
+     * @param tree an {@code nt:propertyDefinition} or {@code nt:childNodeDefinition} node
      * @throws RepositoryException if this definition could not be written
      */
     void writeTo(Tree tree) throws RepositoryException {
@@ -92,20 +90,20 @@ abstract class ItemDefinitionTemplate extends NamedTemplate
         tree.setProperty(JCR_MANDATORY, isMandatory);
         tree.setProperty(JCR_PROTECTED, isProtected);
         tree.setProperty(
-                JCR_ONPARENTVERSION,
-                OnParentVersionAction.nameFromValue(onParentVersion));
+            JCR_ONPARENTVERSION,
+            OnParentVersionAction.nameFromValue(onParentVersion));
     }
 
     //------------------------------------------------------------< public >--
 
     /**
-     * Returns the name of this template, or {@code null} if the name
-     * has not yet been set. The special name "*" is used for residual
-     * item definitions.
+     * Returns the name of this template, or {@code null} if the name has not yet been set. The
+     * special name "*" is used for residual item definitions.
      *
      * @return JCR name, "*", or {@code null}
      */
-    @Override @Nullable
+    @Override
+    @Nullable
     public String getName() {
         if (residual) {
             return NodeTypeConstants.RESIDUAL_NAME;
@@ -115,15 +113,14 @@ abstract class ItemDefinitionTemplate extends NamedTemplate
     }
 
     /**
-     * Sets the name of this template. Use the special name "*" for a residual
-     * item definition.
+     * Sets the name of this template. Use the special name "*" for a residual item definition.
      *
      * @param jcrName JCR name, or "*"
      * @throws ConstraintViolationException if the name is invalid
      */
     @Override
     public void setName(@NotNull String jcrName)
-            throws ConstraintViolationException {
+        throws ConstraintViolationException {
         residual = NodeTypeConstants.RESIDUAL_NAME.equals(jcrName);
         if (!residual) {
             super.setName(jcrName);
@@ -131,8 +128,8 @@ abstract class ItemDefinitionTemplate extends NamedTemplate
     }
 
     /**
-     * Returns {@code null} since an item definition template is not
-     * attached to a live, already registered node type.
+     * Returns {@code null} since an item definition template is not attached to a live, already
+     * registered node type.
      *
      * @return {@code null}
      */

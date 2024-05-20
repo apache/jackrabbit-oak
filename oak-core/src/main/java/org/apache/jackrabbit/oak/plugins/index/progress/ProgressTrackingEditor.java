@@ -29,16 +29,18 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Editor to track traversal and notify the callback for each node traversed.
- * The editor also ensures that path is lazily constructed
+ * Editor to track traversal and notify the callback for each node traversed. The editor also
+ * ensures that path is lazily constructed
  */
 class ProgressTrackingEditor implements Editor, NodeTraversalCallback.PathSource {
+
     private final Editor editor;
     private final NodeTraversalCallback traversalCallback;
     private final ProgressTrackingEditor parent;
     private final String name;
 
-    public ProgressTrackingEditor(Editor editor, String name, NodeTraversalCallback traversalCallback) {
+    public ProgressTrackingEditor(Editor editor, String name,
+        NodeTraversalCallback traversalCallback) {
         this.editor = editor;
         this.name = name;
         this.traversalCallback = traversalCallback;
@@ -46,7 +48,7 @@ class ProgressTrackingEditor implements Editor, NodeTraversalCallback.PathSource
     }
 
     private ProgressTrackingEditor(Editor editor, String name, NodeTraversalCallback callback,
-                                   ProgressTrackingEditor parent) {
+        ProgressTrackingEditor parent) {
         this.editor = editor;
         this.name = name;
         this.traversalCallback = callback;
@@ -78,7 +80,8 @@ class ProgressTrackingEditor implements Editor, NodeTraversalCallback.PathSource
     }
 
     @Override
-    public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
+    public void propertyChanged(PropertyState before, PropertyState after)
+        throws CommitFailedException {
         editor.propertyChanged(before, after);
     }
 
@@ -93,7 +96,8 @@ class ProgressTrackingEditor implements Editor, NodeTraversalCallback.PathSource
     }
 
     @Override
-    public Editor childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+    public Editor childNodeChanged(String name, NodeState before, NodeState after)
+        throws CommitFailedException {
         return createChildEditor(editor.childNodeChanged(name, before, after), name);
     }
 

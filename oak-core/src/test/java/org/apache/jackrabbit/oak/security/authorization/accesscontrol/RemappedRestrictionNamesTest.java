@@ -44,9 +44,9 @@ import static org.junit.Assert.assertTrue;
 public class RemappedRestrictionNamesTest extends AbstractAccessControlTest {
 
     private static final Map<String, String> LOCAL_NAME_MAPPINGS = ImmutableMap.of(
-            "a","internal",
-            "b","http://www.jcp.org/jcr/1.0",
-            "c","http://jackrabbit.apache.org/oak/ns/1.0"
+        "a", "internal",
+        "b", "http://www.jcp.org/jcr/1.0",
+        "c", "http://jackrabbit.apache.org/oak/ns/1.0"
     );
 
     private NamePathMapperImpl remapped;
@@ -59,7 +59,8 @@ public class RemappedRestrictionNamesTest extends AbstractAccessControlTest {
         super.before();
 
         privs = privilegesFromNames(PrivilegeConstants.JCR_READ);
-        acl = createACL(TEST_PATH, Collections.emptyList(), getNamePathMapper(), getRestrictionProvider());
+        acl = createACL(TEST_PATH, Collections.emptyList(), getNamePathMapper(),
+            getRestrictionProvider());
     }
 
     @Override
@@ -70,33 +71,38 @@ public class RemappedRestrictionNamesTest extends AbstractAccessControlTest {
         return remapped;
     }
 
-    protected Privilege[] privilegesFromNames(@NotNull String... privilegeNames) throws RepositoryException {
-        Iterable<String> jcrNames = Arrays.stream(privilegeNames).map(s -> getNamePathMapper().getJcrName(s)).collect(Collectors.toList());
+    protected Privilege[] privilegesFromNames(@NotNull String... privilegeNames)
+        throws RepositoryException {
+        Iterable<String> jcrNames = Arrays.stream(privilegeNames)
+                                          .map(s -> getNamePathMapper().getJcrName(s))
+                                          .collect(Collectors.toList());
         return super.privilegesFromNames(jcrNames);
     }
 
     @Test
     public void testAddEntryWithSingleValueRestriction() throws Exception {
         String jcrGlobName = getNamePathMapper().getJcrName(REP_GLOB);
-        Map<String, Value> rest = ImmutableMap.of(jcrGlobName, getValueFactory(root).createValue("*"));
+        Map<String, Value> rest = ImmutableMap.of(jcrGlobName,
+            getValueFactory(root).createValue("*"));
         assertTrue(acl.addEntry(testPrincipal, privs, false, rest));
 
         List<ACE> entries = acl.getEntries();
         assertEquals(1, entries.size());
-        assertArrayEquals(new String[] {jcrGlobName}, entries.get(0).getRestrictionNames());
+        assertArrayEquals(new String[]{jcrGlobName}, entries.get(0).getRestrictionNames());
         assertEquals(rest.get(jcrGlobName), entries.get(0).getRestriction(jcrGlobName));
     }
 
     @Test
     public void testAddEntryWithMVRestriction() throws Exception {
         String jcrItemNames = getNamePathMapper().getJcrName(REP_ITEM_NAMES);
-        Value[] valArray = new Value[] {getValueFactory(root).createValue("myItemName", PropertyType.NAME)};
+        Value[] valArray = new Value[]{
+            getValueFactory(root).createValue("myItemName", PropertyType.NAME)};
         Map<String, Value[]> rest = ImmutableMap.of(jcrItemNames, valArray);
         assertTrue(acl.addEntry(testPrincipal, privs, false, null, rest));
 
         List<ACE> entries = acl.getEntries();
         assertEquals(1, entries.size());
-        assertArrayEquals(new String[] {jcrItemNames}, entries.get(0).getRestrictionNames());
+        assertArrayEquals(new String[]{jcrItemNames}, entries.get(0).getRestrictionNames());
         assertArrayEquals(valArray, entries.get(0).getRestrictions(jcrItemNames));
     }
 }

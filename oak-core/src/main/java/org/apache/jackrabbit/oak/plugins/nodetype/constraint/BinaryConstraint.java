@@ -20,6 +20,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
 public class BinaryConstraint extends LongConstraint {
+
     public BinaryConstraint(String definition) {
         super(definition);
     }

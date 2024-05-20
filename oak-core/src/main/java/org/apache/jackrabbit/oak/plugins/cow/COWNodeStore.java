@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.cow;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.jmx.CopyOnWriteStoreMBean;
@@ -29,26 +35,20 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * <p>The copy-on-write (COW) node store implementation allows to temporarily
- * switch the repository into the "testing" mode, in which all the changes are
- * stored in a volatile storage, namely the MemoryNodeStore. After switching
- * back to the "production" mode, the test changes should be dropped.</p>
+ * switch the repository into the "testing" mode, in which all the changes are stored in a volatile
+ * storage, namely the MemoryNodeStore. After switching back to the "production" mode, the test
+ * changes should be dropped.</p>
  *
  * <p>If the CoW is enabled, a special :cow=true property will be set on the
- * root node returned by getRoot(). It's being used in the merge() to decide
- * which store be modified. Removing this property will result in merging
- * changes to the main node store, even in the CoW mode.</p>
+ * root node returned by getRoot(). It's being used in the merge() to decide which store be
+ * modified. Removing this property will result in merging changes to the main node store, even in
+ * the CoW mode.</p>
  *
  * <p>The checkpoint support is provided by the {@link BranchNodeStore} class.
- * All the existing checkpoints are still available in the CoW mode (until they
- * expire). New checkpoints are only created in the MemoryNodeStore.</p>
+ * All the existing checkpoints are still available in the CoW mode (until they expire). New
+ * checkpoints are only created in the MemoryNodeStore.</p>
  *
  * <p>Known limitations:</p>
  *
@@ -81,7 +81,8 @@ public class COWNodeStore implements NodeStore, Observable {
         b.setProperty(":cow", true);
         branchStore.merge(b, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        branchStore.addObserver((root, info) -> observers.stream().forEach(o -> o.contentChanged(root, info)));
+        branchStore.addObserver(
+            (root, info) -> observers.stream().forEach(o -> o.contentChanged(root, info)));
         this.branchStore = branchStore;
     }
 
@@ -103,7 +104,8 @@ public class COWNodeStore implements NodeStore, Observable {
         if (builder.hasProperty(":cow")) {
             NodeStore s = branchStore;
             if (s == null) {
-                throw new IllegalStateException("Node store for this builder is no longer available");
+                throw new IllegalStateException(
+                    "Node store for this builder is no longer available");
             } else {
                 return s;
             }
@@ -127,7 +129,8 @@ public class COWNodeStore implements NodeStore, Observable {
 
     @NotNull
     @Override
-    public NodeState merge(@NotNull NodeBuilder builder, @NotNull CommitHook commitHook, @NotNull CommitInfo info) throws CommitFailedException {
+    public NodeState merge(@NotNull NodeBuilder builder, @NotNull CommitHook commitHook,
+        @NotNull CommitInfo info) throws CommitFailedException {
         return getNodeStore(builder).merge(builder, commitHook, info);
     }
 

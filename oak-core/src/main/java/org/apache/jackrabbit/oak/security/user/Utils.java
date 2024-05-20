@@ -46,26 +46,25 @@ public final class Utils {
 
     private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
-    private Utils() {}
+    private Utils() {
+    }
 
     /**
-     * Create the tree at the specified relative path including all missing
-     * intermediate trees using the specified {@code primaryTypeName}. This
-     * method treats ".." parent element and "." as current element and
-     * resolves them accordingly; in case of a relative path containing parent
-     * elements this may lead to tree creating outside the tree structure
-     * defined by the given {@code Tree}.
+     * Create the tree at the specified relative path including all missing intermediate trees using
+     * the specified {@code primaryTypeName}. This method treats ".." parent element and "." as
+     * current element and resolves them accordingly; in case of a relative path containing parent
+     * elements this may lead to tree creating outside the tree structure defined by the given
+     * {@code Tree}.
      *
-     * @param relativePath    A relative OAK path that may contain parent and
-     *                        current elements.
-     * @param primaryTypeName An oak name of a primary node type that is used
-     *                        to create the missing trees.
+     * @param relativePath    A relative OAK path that may contain parent and current elements.
+     * @param primaryTypeName An oak name of a primary node type that is used to create the missing
+     *                        trees.
      * @return The node util of the tree at the specified {@code relativePath}.
-     * @throws AccessDeniedException If the intermediate tree does not exist
-     *                               and cannot be created.
+     * @throws AccessDeniedException If the intermediate tree does not exist and cannot be created.
      */
     @NotNull
-    static Tree getOrAddTree(@NotNull Tree tree, @NotNull String relativePath, @NotNull String primaryTypeName) throws AccessDeniedException {
+    static Tree getOrAddTree(@NotNull Tree tree, @NotNull String relativePath,
+        @NotNull String primaryTypeName) throws AccessDeniedException {
         if (PathUtils.denotesCurrent(relativePath)) {
             return tree;
         } else if (PathUtils.denotesParent(relativePath)) {
@@ -84,29 +83,37 @@ public final class Utils {
         }
     }
 
-    static boolean canHavePasswordExpired(@NotNull String userId, @NotNull ConfigurationParameters config) {
-        return !UserUtil.isAdmin(config, userId) || config.getConfigValue(UserAuthentication.PARAM_PASSWORD_EXPIRY_FOR_ADMIN, false);
+    static boolean canHavePasswordExpired(@NotNull String userId,
+        @NotNull ConfigurationParameters config) {
+        return !UserUtil.isAdmin(config, userId) || config.getConfigValue(
+            UserAuthentication.PARAM_PASSWORD_EXPIRY_FOR_ADMIN, false);
     }
 
-    static boolean canHavePasswordExpired(@NotNull User user, @NotNull ConfigurationParameters config) {
-        return !user.isAdmin() || config.getConfigValue(UserAuthentication.PARAM_PASSWORD_EXPIRY_FOR_ADMIN, false);
+    static boolean canHavePasswordExpired(@NotNull User user,
+        @NotNull ConfigurationParameters config) {
+        return !user.isAdmin() || config.getConfigValue(
+            UserAuthentication.PARAM_PASSWORD_EXPIRY_FOR_ADMIN, false);
     }
-    
+
     static boolean isEveryone(@NotNull Authorizable authorizable) {
-        return authorizable.isGroup() && EveryonePrincipal.NAME.equals(getPrincipalName(authorizable));
+        return authorizable.isGroup() && EveryonePrincipal.NAME.equals(
+            getPrincipalName(authorizable));
     }
 
     /**
-     * Return {@code true} if the given principal can impersonate all users. 
-     * The implementation tests if the given principal refers to an existing {@code User} for which {@link User#isAdmin()} 
-     * returns {@code true} OR if the user's principal name or any of its membership is configured to impersonate all users.
-     * 
-     * @param principal A non-null principal instance.
-     * @param userManager The user manager used for the lookup calling {@link UserManager#getAuthorizable(Principal))}
-     * @return {@code true} if the given principal can impersonate all users; {@code false} if that condition is not met 
-     * or if the evaluation failed.
+     * Return {@code true} if the given principal can impersonate all users. The implementation
+     * tests if the given principal refers to an existing {@code User} for which
+     * {@link User#isAdmin()} returns {@code true} OR if the user's principal name or any of its
+     * membership is configured to impersonate all users.
+     *
+     * @param principal   A non-null principal instance.
+     * @param userManager The user manager used for the lookup calling
+     *                    {@link UserManager#getAuthorizable(Principal))}
+     * @return {@code true} if the given principal can impersonate all users; {@code false} if that
+     * condition is not met or if the evaluation failed.
      */
-    public static boolean canImpersonateAllUsers(@NotNull Principal principal, @NotNull UserManager userManager) {
+    public static boolean canImpersonateAllUsers(@NotNull Principal principal,
+        @NotNull UserManager userManager) {
         try {
             Authorizable authorizable = userManager.getAuthorizable(principal);
             if (authorizable == null || authorizable.isGroup()) {
@@ -122,24 +129,26 @@ public final class Utils {
     }
 
     /**
-     * Return {@code true} if the given user has the right to impersonate.
-     * The implementation tests if the given user refers to an existing {@code Principal} that is either member
-     * of a configured impersonator group or is has its name amongst configured impersonators. Both those configurations
-     * are under the {@code PARAM_IMPERSONATOR_PRINCIPAL_NAMES} configuration value.
+     * Return {@code true} if the given user has the right to impersonate. The implementation tests
+     * if the given user refers to an existing {@code Principal} that is either member of a
+     * configured impersonator group or is has its name amongst configured impersonators. Both those
+     * configurations are under the {@code PARAM_IMPERSONATOR_PRINCIPAL_NAMES} configuration value.
      *
-     * @param user A non-null user instance.
-     * @param userManager The user manager implementation to retrieve the configuration and principal manager.
-     * @return {@code true} if the given user is an impersonator; {@code false} if that condition is not met
-     * or if the evaluation failed.
+     * @param user        A non-null user instance.
+     * @param userManager The user manager implementation to retrieve the configuration and
+     *                    principal manager.
+     * @return {@code true} if the given user is an impersonator; {@code false} if that condition is
+     * not met or if the evaluation failed.
      */
-    private static boolean isImpersonator(@NotNull User user, @NotNull UserManager userManager) throws RepositoryException {
+    private static boolean isImpersonator(@NotNull User user, @NotNull UserManager userManager)
+        throws RepositoryException {
         if (!(userManager instanceof UserManagerImpl)) {
             return false;
         }
         UserManagerImpl umImpl = (UserManagerImpl) userManager;
         Set<String> impersonatorPrincipals = Set.of(umImpl.getConfig().getConfigValue(
-                PARAM_IMPERSONATOR_PRINCIPAL_NAMES,
-                new String[]{}));
+            PARAM_IMPERSONATOR_PRINCIPAL_NAMES,
+            new String[]{}));
         if (impersonatorPrincipals.isEmpty()) {
             return false;
         }
@@ -147,7 +156,8 @@ public final class Utils {
         Principal userPrincipal = user.getPrincipal();
         PrincipalManager principalManager = umImpl.getPrincipalManager();
         for (String impersonatorPrincipalName : impersonatorPrincipals) {
-            Principal impersonatorPrincipal = principalManager.getPrincipal(impersonatorPrincipalName);
+            Principal impersonatorPrincipal = principalManager.getPrincipal(
+                impersonatorPrincipalName);
             if (impersonatorPrincipal == null) {
                 continue;
             }
@@ -164,14 +174,15 @@ public final class Utils {
     }
 
     /**
-     * Return {@code true} if the given principal is admin.
-     * The implementation tests if the given principal refers to an existing {@code User} for which {@link User#isAdmin()}
-     * returns {@code true}.
+     * Return {@code true} if the given principal is admin. The implementation tests if the given
+     * principal refers to an existing {@code User} for which {@link User#isAdmin()} returns
+     * {@code true}.
      *
-     * @param principal A non-null principal instance.
-     * @param userManager The user manager used for the lookup calling {@link UserManager#getAuthorizable(Principal))}
-     * @return {@code true} if the given principal is admin; {@code false} if that condition is not met
-     * or if the evaluation failed.
+     * @param principal   A non-null principal instance.
+     * @param userManager The user manager used for the lookup calling
+     *                    {@link UserManager#getAuthorizable(Principal))}
+     * @return {@code true} if the given principal is admin; {@code false} if that condition is not
+     * met or if the evaluation failed.
      */
     public static boolean isAdmin(@NotNull Principal principal, @NotNull UserManager userManager) {
         try {
@@ -180,14 +191,14 @@ public final class Utils {
                 return false;
             }
 
-            return ((User)authorizable).isAdmin();
+            return ((User) authorizable).isAdmin();
         } catch (RepositoryException e) {
             log.debug(e.getMessage());
             return false;
         }
     }
 
-    
+
     @Nullable
     private static String getPrincipalName(@NotNull Authorizable authorizable) {
         if (authorizable instanceof AuthorizableImpl) {
@@ -200,7 +211,7 @@ public final class Utils {
             }
         }
     }
-    
+
     @Nullable
     static String getIdOrNull(@NotNull Authorizable authorizable) {
         try {
@@ -209,9 +220,10 @@ public final class Utils {
             return null;
         }
     }
-    
+
     @NotNull
-    static Tree getTree(@NotNull Authorizable authorizable, @NotNull Root root) throws RepositoryException {
+    static Tree getTree(@NotNull Authorizable authorizable, @NotNull Root root)
+        throws RepositoryException {
         if (authorizable instanceof TreeAware) {
             return ((TreeAware) authorizable).getTree();
         } else {

@@ -41,9 +41,9 @@ public class OrQueryOrderLimitWithoutIndexTest extends AbstractQueryTest {
     @Override
     protected ContentRepository createRepository() {
         return new Oak()
-                .with(new OpenSecurityProvider())
-                .with(new InitialContent())
-                .createContentRepository();
+            .with(new OpenSecurityProvider())
+            .with(new InitialContent())
+            .createContentRepository();
     }
 
     @Before
@@ -65,24 +65,24 @@ public class OrQueryOrderLimitWithoutIndexTest extends AbstractQueryTest {
         final int limit = 8;
         final int offset = 0;
         String query = "SELECT idn1.* FROM [nt:base] as idn1 " +
-                "WHERE ISDESCENDANTNODE([/UnionQueryTest]) " +
-                "OR " +
-                "ISDESCENDANTNODE([/UnionQueryTest1])" +
-                " ORDER BY idn1.[x] ASC";
+            "WHERE ISDESCENDANTNODE([/UnionQueryTest]) " +
+            "OR " +
+            "ISDESCENDANTNODE([/UnionQueryTest1])" +
+            " ORDER BY idn1.[x] ASC";
 
         String[] expected = {
-                "/UnionQueryTest1/node0",
-                "/UnionQueryTest/node0",
-                "/UnionQueryTest1/node0/node1",
-                "/UnionQueryTest/node0/node1",
-                "/UnionQueryTest1/node0/node1/node2",
-                "/UnionQueryTest/node0/node1/node2",
-                "/UnionQueryTest1/node0/node1/node2/node3",
-                "/UnionQueryTest/node0/node1/node2/node3"
+            "/UnionQueryTest1/node0",
+            "/UnionQueryTest/node0",
+            "/UnionQueryTest1/node0/node1",
+            "/UnionQueryTest/node0/node1",
+            "/UnionQueryTest1/node0/node1/node2",
+            "/UnionQueryTest/node0/node1/node2",
+            "/UnionQueryTest1/node0/node1/node2/node3",
+            "/UnionQueryTest/node0/node1/node2/node3"
         };
 
         Result result = qe.executeQuery(query, QueryEngineImpl.SQL2, limit, offset,
-                QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
+            QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
 
         List<ResultRow> rows = Lists.newArrayList(result.getRows());
         Assert.assertEquals(expected.length, rows.size());

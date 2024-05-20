@@ -56,7 +56,9 @@ public class UserImporterImpersonationIgnoreTest extends UserImporterBaseTest {
 
     @Test
     public void testUnknownImpersonators() throws Exception {
-        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS, "impersonator1", "impersonator2"), mockPropertyDefinition(NT_REP_USER, true)));
+        assertTrue(importer.handlePropInfo(userTree,
+            createPropInfo(REP_IMPERSONATORS, "impersonator1", "impersonator2"),
+            mockPropertyDefinition(NT_REP_USER, true)));
         importer.processReferences();
 
         // default importbehavior == IGNORE
@@ -67,34 +69,44 @@ public class UserImporterImpersonationIgnoreTest extends UserImporterBaseTest {
     @Test
     public void testKnownImpersonators() throws Exception {
         userTree.setProperty(UserConstants.REP_PRINCIPAL_NAME, TEST_USER_ID);
-        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS, testUser.getPrincipal().getName()), mockPropertyDefinition(NT_REP_USER, true)));
+        assertTrue(importer.handlePropInfo(userTree,
+            createPropInfo(REP_IMPERSONATORS, testUser.getPrincipal().getName()),
+            mockPropertyDefinition(NT_REP_USER, true)));
         importer.processReferences();
 
         PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
         assertNotNull(impersonators);
-        assertEquals(ImmutableList.of(testUser.getPrincipal().getName()), impersonators.getValue(Type.STRINGS));
+        assertEquals(ImmutableList.of(testUser.getPrincipal().getName()),
+            impersonators.getValue(Type.STRINGS));
     }
 
     @Test
     public void testMixedImpersonators() throws Exception {
-        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS, "impersonator1", testUser.getPrincipal().getName()), mockPropertyDefinition(NT_REP_USER, true)));
+        assertTrue(importer.handlePropInfo(userTree,
+            createPropInfo(REP_IMPERSONATORS, "impersonator1", testUser.getPrincipal().getName()),
+            mockPropertyDefinition(NT_REP_USER, true)));
         importer.processReferences();
 
         PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
         assertNotNull(impersonators);
-        assertEquals(ImmutableList.of(testUser.getPrincipal().getName()), impersonators.getValue(Type.STRINGS));
+        assertEquals(ImmutableList.of(testUser.getPrincipal().getName()),
+            impersonators.getValue(Type.STRINGS));
     }
 
     @Test(expected = RepositoryException.class)
     public void testUserRemovedBeforeProcessing() throws Exception {
-        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS, testUser.getPrincipal().getName()), mockPropertyDefinition(NT_REP_USER, true)));
+        assertTrue(importer.handlePropInfo(userTree,
+            createPropInfo(REP_IMPERSONATORS, testUser.getPrincipal().getName()),
+            mockPropertyDefinition(NT_REP_USER, true)));
         userTree.remove();
         importer.processReferences();
     }
 
     @Test(expected = RepositoryException.class)
     public void testUserConvertedGroupBeforeProcessing() throws Exception {
-        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS, testUser.getPrincipal().getName()), mockPropertyDefinition(NT_REP_USER, true)));
+        assertTrue(importer.handlePropInfo(userTree,
+            createPropInfo(REP_IMPERSONATORS, testUser.getPrincipal().getName()),
+            mockPropertyDefinition(NT_REP_USER, true)));
         userTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_GROUP);
         importer.processReferences();
     }
@@ -103,35 +115,48 @@ public class UserImporterImpersonationIgnoreTest extends UserImporterBaseTest {
     public void testReplaceExistingProperty() throws Exception {
         userTree.setProperty(REP_IMPERSONATORS, ImmutableList.of("impersonator1"), Type.STRINGS);
 
-        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS, testUser.getPrincipal().getName()), mockPropertyDefinition(NT_REP_USER, true)));
+        assertTrue(importer.handlePropInfo(userTree,
+            createPropInfo(REP_IMPERSONATORS, testUser.getPrincipal().getName()),
+            mockPropertyDefinition(NT_REP_USER, true)));
         importer.processReferences();
 
         PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
         assertNotNull(impersonators);
-        assertEquals(ImmutableList.of(testUser.getPrincipal().getName()), impersonators.getValue(Type.STRINGS));
+        assertEquals(ImmutableList.of(testUser.getPrincipal().getName()),
+            impersonators.getValue(Type.STRINGS));
     }
 
     @Test
     public void testReplaceExistingProperty2() throws Exception {
         userTree.setProperty(REP_IMPERSONATORS, ImmutableList.of("impersonator1"), Type.STRINGS);
 
-        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS, "impersonator1", testUser.getPrincipal().getName()), mockPropertyDefinition(NT_REP_USER, true)));
+        assertTrue(importer.handlePropInfo(userTree,
+            createPropInfo(REP_IMPERSONATORS, "impersonator1", testUser.getPrincipal().getName()),
+            mockPropertyDefinition(NT_REP_USER, true)));
         importer.processReferences();
 
         PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
         assertNotNull(impersonators);
-        assertEquals(ImmutableSet.of("impersonator1", testUser.getPrincipal().getName()), ImmutableSet.copyOf(impersonators.getValue(Type.STRINGS)));
+        assertEquals(ImmutableSet.of("impersonator1", testUser.getPrincipal().getName()),
+            ImmutableSet.copyOf(impersonators.getValue(Type.STRINGS)));
     }
 
     @Test
     public void testNewImpersonator() throws Exception {
-        Tree folder = root.getTree(getUserConfiguration().getParameters().getConfigValue(PARAM_USER_PATH, DEFAULT_USER_PATH));
+        Tree folder = root.getTree(getUserConfiguration().getParameters()
+                                                         .getConfigValue(PARAM_USER_PATH,
+                                                             DEFAULT_USER_PATH));
         Tree impersonatorTree = folder.addChild("impersonatorTree");
         impersonatorTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_USER, Type.NAME);
-        impersonatorTree.setProperty(JcrConstants.JCR_UUID, new UserProvider(root, ConfigurationParameters.EMPTY).getContentID("impersonator1"));
+        impersonatorTree.setProperty(JcrConstants.JCR_UUID,
+            new UserProvider(root, ConfigurationParameters.EMPTY).getContentID("impersonator1"));
 
-        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS, "impersonator1"), mockPropertyDefinition(NT_REP_USER, true)));
-        assertTrue(importer.handlePropInfo(impersonatorTree, createPropInfo(REP_PRINCIPAL_NAME, "impersonator1"), mockPropertyDefinition(NT_REP_AUTHORIZABLE, false)));
+        assertTrue(
+            importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS, "impersonator1"),
+                mockPropertyDefinition(NT_REP_USER, true)));
+        assertTrue(importer.handlePropInfo(impersonatorTree,
+            createPropInfo(REP_PRINCIPAL_NAME, "impersonator1"),
+            mockPropertyDefinition(NT_REP_AUTHORIZABLE, false)));
 
         importer.processReferences();
 
@@ -142,14 +167,21 @@ public class UserImporterImpersonationIgnoreTest extends UserImporterBaseTest {
 
     @Test
     public void testNewImpersonator2() throws Exception {
-        Tree folder = root.getTree(getUserConfiguration().getParameters().getConfigValue(PARAM_USER_PATH, DEFAULT_USER_PATH));
+        Tree folder = root.getTree(getUserConfiguration().getParameters()
+                                                         .getConfigValue(PARAM_USER_PATH,
+                                                             DEFAULT_USER_PATH));
         Tree impersonatorTree = folder.addChild("impersonatorTree");
         impersonatorTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_USER, Type.NAME);
-        impersonatorTree.setProperty(JcrConstants.JCR_UUID, new UserProvider(root, ConfigurationParameters.EMPTY).getContentID("impersonator1"));
+        impersonatorTree.setProperty(JcrConstants.JCR_UUID,
+            new UserProvider(root, ConfigurationParameters.EMPTY).getContentID("impersonator1"));
 
         // NOTE: reversed over of import compared to 'testNewImpersonator'
-        assertTrue(importer.handlePropInfo(impersonatorTree, createPropInfo(REP_PRINCIPAL_NAME, "impersonator1"), mockPropertyDefinition(NT_REP_AUTHORIZABLE, false)));
-        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS, "impersonator1"), mockPropertyDefinition(NT_REP_USER, true)));
+        assertTrue(importer.handlePropInfo(impersonatorTree,
+            createPropInfo(REP_PRINCIPAL_NAME, "impersonator1"),
+            mockPropertyDefinition(NT_REP_AUTHORIZABLE, false)));
+        assertTrue(
+            importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS, "impersonator1"),
+                mockPropertyDefinition(NT_REP_USER, true)));
 
         importer.processReferences();
 
@@ -160,7 +192,9 @@ public class UserImporterImpersonationIgnoreTest extends UserImporterBaseTest {
 
     @Test
     public void testGrantImpersonationGroupPrincipal() throws Exception {
-        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS, EveryonePrincipal.NAME), mockPropertyDefinition(NT_REP_USER, true)));
+        assertTrue(importer.handlePropInfo(userTree,
+            createPropInfo(REP_IMPERSONATORS, EveryonePrincipal.NAME),
+            mockPropertyDefinition(NT_REP_USER, true)));
         importer.processReferences();
 
         PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
@@ -173,11 +207,13 @@ public class UserImporterImpersonationIgnoreTest extends UserImporterBaseTest {
         doAnswer(invocationOnMock -> {
             userTree.removeProperty(REP_IMPERSONATORS);
             return null;
-        }).when(ua).onRevokeImpersonation(any(User.class), any(Principal.class), any(Root.class), any(NamePathMapper.class));
+        }).when(ua).onRevokeImpersonation(any(User.class), any(Principal.class), any(Root.class),
+            any(NamePathMapper.class));
 
         userTree.setProperty(REP_IMPERSONATORS, ImmutableList.of("impersonator1"), Type.STRINGS);
 
-        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS), mockPropertyDefinition(NT_REP_USER, true)));
+        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS),
+            mockPropertyDefinition(NT_REP_USER, true)));
         importer.processReferences();
 
         PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);

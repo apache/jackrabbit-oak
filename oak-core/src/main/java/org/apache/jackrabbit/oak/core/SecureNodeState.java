@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -28,11 +33,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static java.util.Collections.emptyList;
 
 class SecureNodeState extends AbstractNodeState {
 
@@ -60,7 +60,8 @@ class SecureNodeState extends AbstractNodeState {
         return treePermission.canRead();
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public PropertyState getProperty(@NotNull String name) {
         PropertyState property = state.getProperty(name);
         if (property != null && treePermission.canRead(property)) {
@@ -77,21 +78,22 @@ class SecureNodeState extends AbstractNodeState {
                 propertyCount = state.getPropertyCount();
             } else {
                 propertyCount = count(filter(
-                        state.getProperties(),
-                        new ReadablePropertyPredicate()));
+                    state.getProperties(),
+                    new ReadablePropertyPredicate()));
             }
         }
         return propertyCount;
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Iterable<? extends PropertyState> getProperties() {
         if (treePermission.canReadProperties()) {
             return state.getProperties();
         } else {
             return filter(
-                    state.getProperties(),
-                    new ReadablePropertyPredicate());
+                state.getProperties(),
+                new ReadablePropertyPredicate());
         }
     }
 
@@ -136,22 +138,24 @@ class SecureNodeState extends AbstractNodeState {
         return childNodeCount;
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         if (treePermission.canReadAll()) {
             // everything is readable including ac-content -> no secure wrapper needed
             return state.getChildNodeEntries();
         } else if (treePermission.canRead()) {
             Iterable<ChildNodeEntry> readable = transform(
-                    state.getChildNodeEntries(),
-                    new WrapChildEntryFunction());
+                state.getChildNodeEntries(),
+                new WrapChildEntryFunction());
             return filter(readable, new IterableNodePredicate());
         } else {
             return emptyList();
-       }
+        }
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public NodeBuilder builder() {
         return new MemoryNodeBuilder(this);
     }
@@ -162,6 +166,7 @@ class SecureNodeState extends AbstractNodeState {
      * Predicate for testing whether a given property is readable.
      */
     private class ReadablePropertyPredicate implements Predicate<PropertyState> {
+
         @Override
         public boolean apply(@Nullable PropertyState property) {
             return property != null && treePermission.canRead(property);
@@ -172,6 +177,7 @@ class SecureNodeState extends AbstractNodeState {
      * Predicate for testing whether the node state in a child node entry is iterable.
      */
     private static class IterableNodePredicate implements Predicate<ChildNodeEntry> {
+
         @Override
         public boolean apply(@Nullable ChildNodeEntry input) {
             return input != null && input.getNodeState().exists();
@@ -179,15 +185,16 @@ class SecureNodeState extends AbstractNodeState {
     }
 
     /**
-     * Function that that adds a security wrapper to node states from
-     * in child node entries. The {@link IterableNodePredicate} predicate should be
-     * used on the result to filter out non-existing/iterable child nodes.
+     * Function that that adds a security wrapper to node states from in child node entries. The
+     * {@link IterableNodePredicate} predicate should be used on the result to filter out
+     * non-existing/iterable child nodes.
      * <p>
-     * Note that the SecureNodeState wrapper is needed only when the child
-     * or any of its descendants has read access restrictions. Otherwise
-     * we can optimize access by skipping the security wrapper entirely.
+     * Note that the SecureNodeState wrapper is needed only when the child or any of its descendants
+     * has read access restrictions. Otherwise we can optimize access by skipping the security
+     * wrapper entirely.
      */
     private class WrapChildEntryFunction implements Function<ChildNodeEntry, ChildNodeEntry> {
+
         @NotNull
         @Override
         public ChildNodeEntry apply(@NotNull ChildNodeEntry input) {
@@ -196,8 +203,8 @@ class SecureNodeState extends AbstractNodeState {
             TreePermission childContext = treePermission.getChildPermission(name, child);
             SecureNodeState secureChild = new SecureNodeState(child, childContext);
             if (child.getChildNodeCount(1) == 0
-                    && secureChild.treePermission.canRead()
-                    && secureChild.treePermission.canReadProperties()) {
+                && secureChild.treePermission.canRead()
+                && secureChild.treePermission.canReadProperties()) {
                 // Since this is an accessible leaf node whose all properties
                 // are readable, we don't need the SecureNodeState wrapper
                 // TODO: A further optimization would be to return the raw

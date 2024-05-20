@@ -31,11 +31,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * {@code NodeTypeIndex} implements a {@link QueryIndex} using
- * {@link org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup}s
- * on {@code jcr:primaryType} and {@code jcr:mixinTypes} to evaluate a node type
- * restriction on {@link Filter}. The cost for this index is the sum of the costs
- * of the {@link org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup}
- * for queries on {@code jcr:primaryType} and {@code jcr:mixinTypes}.
+ * {@link org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup}s on
+ * {@code jcr:primaryType} and {@code jcr:mixinTypes} to evaluate a node type restriction on
+ * {@link Filter}. The cost for this index is the sum of the costs of the
+ * {@link org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup} for queries on
+ * {@code jcr:primaryType} and {@code jcr:mixinTypes}.
  */
 class NodeTypeIndex implements QueryIndex, JcrConstants {
 
@@ -69,7 +69,7 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
         if (wrongIndex(filter)) {
             return Double.POSITIVE_INFINITY;
         }
-        
+
         NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root, mountInfoProvider);
         if (lookup.isIndexed(filter.getPath(), filter)) {
             return lookup.getCost(filter);
@@ -77,15 +77,17 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
             return Double.POSITIVE_INFINITY;
         }
     }
-    
+
     private static boolean wrongIndex(Filter filter) {
         // skip index if "option(index ...)" doesn't match
-        PropertyRestriction indexName = filter.getPropertyRestriction(IndexConstants.INDEX_NAME_OPTION);
+        PropertyRestriction indexName = filter.getPropertyRestriction(
+            IndexConstants.INDEX_NAME_OPTION);
         if (indexName != null && indexName.first != null) {
             // index name specified: just verify this, and ignore tags
             return !"nodetype".equals(indexName.first.getValue(Type.STRING));
         }
-        PropertyRestriction indexTag = filter.getPropertyRestriction(IndexConstants.INDEX_TAG_OPTION);
+        PropertyRestriction indexTag = filter.getPropertyRestriction(
+            IndexConstants.INDEX_TAG_OPTION);
         // index tag specified (the nodetype index doesn't support tags)
         return indexTag != null && indexTag.first != null;
     }
@@ -95,24 +97,24 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
         NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root, mountInfoProvider);
         if (!hasNodeTypeRestriction(filter) || !lookup.isIndexed(filter.getPath(), filter)) {
             throw new IllegalStateException(
-                    "NodeType index is used even when no index is available for filter " + filter);
+                "NodeType index is used even when no index is available for filter " + filter);
         }
         return Cursors.newPathCursorDistinct(lookup.query(filter), filter.getQueryLimits());
     }
-    
+
     @Override
     public String getPlan(Filter filter, NodeState root) {
         return "nodeType\n" +
-                "    path: " + filter.getPath() + "\n" +
-                "    primaryTypes: " + filter.getPrimaryTypes() + "\n" +
-                "    mixinTypes: " + filter.getMixinTypes() + "\n";
+            "    path: " + filter.getPath() + "\n" +
+            "    primaryTypes: " + filter.getPrimaryTypes() + "\n" +
+            "    mixinTypes: " + filter.getMixinTypes() + "\n";
     }
 
     @Override
     public String getIndexName() {
         return "nodeType";
     }
-    
+
     //----------------------------< internal >----------------------------------
 
     private static boolean hasNodeTypeRestriction(Filter filter) {

@@ -38,13 +38,15 @@ public class UserImporterMembershipAbortTest extends UserImporterMembershipIgnor
 
     @Test(expected = ConstraintViolationException.class)
     public void testUnknownMember() throws Exception {
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, unknownContentId)));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES),
+            ImmutableList.of(createPropInfo(REP_MEMBERS, unknownContentId)));
         importer.processReferences();
     }
 
     @Test(expected = ConstraintViolationException.class)
     public void testMixedMembers() throws Exception {
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, unknownContentId, knownMemberContentId)));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES),
+            ImmutableList.of(createPropInfo(REP_MEMBERS, unknownContentId, knownMemberContentId)));
         importer.processReferences();
     }
 
@@ -53,7 +55,8 @@ public class UserImporterMembershipAbortTest extends UserImporterMembershipIgnor
         String contentId = userProvider.getContentID(groupTree);
 
         // NOTE: reversed over of import compared to 'testNewMembers'
-        assertTrue(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, contentId), mockPropertyDefinition(NT_REP_MEMBER_REFERENCES, true)));
+        assertTrue(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, contentId),
+            mockPropertyDefinition(NT_REP_MEMBER_REFERENCES, true)));
         importer.processReferences();
     }
 
@@ -65,8 +68,11 @@ public class UserImporterMembershipAbortTest extends UserImporterMembershipIgnor
         Tree userTree = createUserTree();
         String contentId = userProvider.getContentID(userTree);
 
-        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_AUTHORIZABLE_ID, TEST_USER_ID), mockPropertyDefinition(NT_REP_AUTHORIZABLE, false)));
-        assertTrue(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, contentId), mockPropertyDefinition(NT_REP_MEMBER_REFERENCES, true)));
+        assertTrue(
+            importer.handlePropInfo(userTree, createPropInfo(REP_AUTHORIZABLE_ID, TEST_USER_ID),
+                mockPropertyDefinition(NT_REP_AUTHORIZABLE, false)));
+        assertTrue(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, contentId),
+            mockPropertyDefinition(NT_REP_MEMBER_REFERENCES, true)));
         importer.processReferences();
     }
 }

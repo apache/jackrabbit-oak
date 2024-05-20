@@ -42,8 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Default restriction provider implementation that supports the following
- * restrictions:
+ * Default restriction provider implementation that supports the following restrictions:
  *
  * <ul>
  *     <li>{@link #REP_GLOB}: A simple paths matching pattern. See {@link GlobPattern}
@@ -58,20 +57,56 @@ import org.slf4j.LoggerFactory;
  * </ul>
  */
 @Component(
-        service = RestrictionProvider.class,
-        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl")
+    service = RestrictionProvider.class,
+    property = OAK_SECURITY_NAME
+        + "=org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl")
 public class RestrictionProviderImpl extends AbstractRestrictionProvider {
 
     private static final Logger log = LoggerFactory.getLogger(RestrictionProviderImpl.class);
-    
+
     private static final Map<String, RestrictionDefinition> DEFINITIONS = ImmutableMap.<String, RestrictionDefinition>builder()
-            .put(REP_GLOB, new RestrictionDefinitionImpl(REP_GLOB, Type.STRING, false))
-            .put(REP_NT_NAMES, new RestrictionDefinitionImpl(REP_NT_NAMES, Type.NAMES, false))
-            .put(REP_PREFIXES, new RestrictionDefinitionImpl(REP_PREFIXES, Type.STRINGS, false))
-            .put(REP_ITEM_NAMES, new RestrictionDefinitionImpl(REP_ITEM_NAMES, Type.NAMES, false))
-            .put(REP_CURRENT, new RestrictionDefinitionImpl(REP_CURRENT, Type.STRINGS, false))
-            .put(REP_GLOBS, new RestrictionDefinitionImpl(REP_GLOBS, Type.STRINGS, false))
-            .put(REP_SUBTREES, new RestrictionDefinitionImpl(REP_SUBTREES, Type.STRINGS, false)).build();
+                                                                                      .put(REP_GLOB,
+                                                                                          new RestrictionDefinitionImpl(
+                                                                                              REP_GLOB,
+                                                                                              Type.STRING,
+                                                                                              false))
+                                                                                      .put(
+                                                                                          REP_NT_NAMES,
+                                                                                          new RestrictionDefinitionImpl(
+                                                                                              REP_NT_NAMES,
+                                                                                              Type.NAMES,
+                                                                                              false))
+                                                                                      .put(
+                                                                                          REP_PREFIXES,
+                                                                                          new RestrictionDefinitionImpl(
+                                                                                              REP_PREFIXES,
+                                                                                              Type.STRINGS,
+                                                                                              false))
+                                                                                      .put(
+                                                                                          REP_ITEM_NAMES,
+                                                                                          new RestrictionDefinitionImpl(
+                                                                                              REP_ITEM_NAMES,
+                                                                                              Type.NAMES,
+                                                                                              false))
+                                                                                      .put(
+                                                                                          REP_CURRENT,
+                                                                                          new RestrictionDefinitionImpl(
+                                                                                              REP_CURRENT,
+                                                                                              Type.STRINGS,
+                                                                                              false))
+                                                                                      .put(
+                                                                                          REP_GLOBS,
+                                                                                          new RestrictionDefinitionImpl(
+                                                                                              REP_GLOBS,
+                                                                                              Type.STRINGS,
+                                                                                              false))
+                                                                                      .put(
+                                                                                          REP_SUBTREES,
+                                                                                          new RestrictionDefinitionImpl(
+                                                                                              REP_SUBTREES,
+                                                                                              Type.STRINGS,
+                                                                                              false))
+                                                                                      .build();
 
     public RestrictionProviderImpl() {
         super(DEFINITIONS);
@@ -90,13 +125,13 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
             if (glob != null) {
                 patterns.add(GlobPattern.create(oakPath, glob.getValue(Type.STRING)));
             }
-            for (String name : new String[] {REP_NT_NAMES, REP_ITEM_NAMES}) {
+            for (String name : new String[]{REP_NT_NAMES, REP_ITEM_NAMES}) {
                 PropertyState ps = tree.getProperty(name);
                 if (ps != null) {
                     patterns.add(createPattern(oakPath, name, ps.getValue(Type.NAMES)));
                 }
             }
-            for (String name : new String[] {REP_PREFIXES, REP_CURRENT, REP_GLOBS, REP_SUBTREES}) {
+            for (String name : new String[]{REP_PREFIXES, REP_CURRENT, REP_GLOBS, REP_SUBTREES}) {
                 PropertyState ps = tree.getProperty(name);
                 if (ps != null) {
                     patterns.add(createPattern(oakPath, name, ps.getValue(Type.STRINGS)));
@@ -105,15 +140,22 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
             return CompositePattern.create(patterns);
         }
     }
-    
-    private static RestrictionPattern createPattern(@NotNull String path, @NotNull String name, @NotNull Iterable<String> values) {
+
+    private static RestrictionPattern createPattern(@NotNull String path, @NotNull String name,
+        @NotNull Iterable<String> values) {
         switch (name) {
-            case REP_ITEM_NAMES: return new ItemNamePattern(values);
-            case REP_NT_NAMES: return new NodeTypePattern(values);
-            case REP_PREFIXES: return new PrefixPattern(values);
-            case REP_CURRENT:  return new CurrentPattern(path, values);
-            case REP_GLOBS:    return new GlobsPattern(path, values);
-            case REP_SUBTREES: return new SubtreePattern(path, values);
+            case REP_ITEM_NAMES:
+                return new ItemNamePattern(values);
+            case REP_NT_NAMES:
+                return new NodeTypePattern(values);
+            case REP_PREFIXES:
+                return new PrefixPattern(values);
+            case REP_CURRENT:
+                return new CurrentPattern(path, values);
+            case REP_GLOBS:
+                return new GlobsPattern(path, values);
+            case REP_SUBTREES:
+                return new SubtreePattern(path, values);
             default: {
                 log.debug("Ignoring unsupported restriction {} at {}", name, path);
                 return RestrictionPattern.EMPTY;
@@ -123,7 +165,8 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
 
     @NotNull
     @Override
-    public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
+    public RestrictionPattern getPattern(@Nullable String oakPath,
+        @NotNull Set<Restriction> restrictions) {
         if (oakPath == null || restrictions.isEmpty()) {
             return RestrictionPattern.EMPTY;
         } else {
@@ -131,11 +174,14 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
             for (Restriction r : restrictions) {
                 String name = r.getDefinition().getName();
                 if (REP_GLOB.equals(name)) {
-                    patterns.add(GlobPattern.create(oakPath, r.getProperty().getValue(Type.STRING)));
+                    patterns.add(
+                        GlobPattern.create(oakPath, r.getProperty().getValue(Type.STRING)));
                 } else if (REP_NT_NAMES.equals(name) || REP_ITEM_NAMES.equals(name)) {
-                    patterns.add(createPattern(oakPath, name, r.getProperty().getValue(Type.NAMES)));
+                    patterns.add(
+                        createPattern(oakPath, name, r.getProperty().getValue(Type.NAMES)));
                 } else {
-                    patterns.add(createPattern(oakPath, name, r.getProperty().getValue(Type.STRINGS)));
+                    patterns.add(
+                        createPattern(oakPath, name, r.getProperty().getValue(Type.STRINGS)));
                 }
             }
             return CompositePattern.create(patterns);
@@ -143,7 +189,8 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
     }
 
     @Override
-    public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) throws AccessControlException {
+    public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree)
+        throws AccessControlException {
         super.validateRestrictions(oakPath, aceTree);
 
         Tree restrictionsTree = getRestrictionsTree(aceTree);

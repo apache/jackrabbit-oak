@@ -87,29 +87,34 @@ public class PermissionTest extends AbstractSecurityTest {
         }
     }
 
-    private void addEntry(String path, boolean grant, String restriction, String... privilegeNames) throws Exception {
+    private void addEntry(String path, boolean grant, String restriction, String... privilegeNames)
+        throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
         if (restriction.length() > 0) {
             Map<String, Value> rs = new HashMap<>();
             rs.put("rep:glob", new StringValue(restriction));
-            acl.addEntry(testPrincipal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), grant, rs);
+            acl.addEntry(testPrincipal,
+                AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), grant, rs);
         } else {
-            acl.addEntry(testPrincipal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), grant);
+            acl.addEntry(testPrincipal,
+                AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), grant);
         }
         acMgr.setPolicy(path, acl);
         root.commit();
     }
 
-    private void assertIsGranted(PermissionProvider pp, Root root, boolean allow, String path, long permissions) {
+    private void assertIsGranted(PermissionProvider pp, Root root, boolean allow, String path,
+        long permissions) {
         assertEquals("user should " + (allow ? "" : "not ") + "have " + permissions + " on " + path,
-                allow, pp.isGranted(root.getTree(path), null, permissions));
+            allow, pp.isGranted(root.getTree(path), null, permissions));
     }
 
     private PermissionProvider getPermissionProvider(ContentSession session) {
         return getSecurityProvider()
-                .getConfiguration(AuthorizationConfiguration.class)
-                .getPermissionProvider(root, session.getWorkspaceName(), session.getAuthInfo().getPrincipals());
+            .getConfiguration(AuthorizationConfiguration.class)
+            .getPermissionProvider(root, session.getWorkspaceName(),
+                session.getAuthInfo().getPrincipals());
     }
 
     @Test(expected = CommitFailedException.class)
@@ -119,7 +124,8 @@ public class PermissionTest extends AbstractSecurityTest {
         // allow jcr:removeNode /testroot/a/b
         // deny  jcr:removeNode /testroot/a/b/c
 
-        addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+        addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.REP_WRITE);
         addEntry(TEST_B_PATH, true, "", PrivilegeConstants.JCR_REMOVE_NODE);
         addEntry(TEST_C_PATH, false, "", PrivilegeConstants.JCR_REMOVE_NODE);
 
@@ -137,12 +143,11 @@ public class PermissionTest extends AbstractSecurityTest {
     }
 
     /**
-     * Tests if the restrictions are properly inherited.
-     * the restriction enable/disable the ACE where it is defined.
-     * since the 'allow' on /a/b is after the 'deny' on a/b/c, the allow wins.
-     *
-     * The test currently fails on evaluation of /a/b/c/d. Probably because the evaluation
-     * of /a/b/c yields a deny, which terminates the iteration.
+     * Tests if the restrictions are properly inherited. the restriction enable/disable the ACE
+     * where it is defined. since the 'allow' on /a/b is after the 'deny' on a/b/c, the allow wins.
+     * <p>
+     * The test currently fails on evaluation of /a/b/c/d. Probably because the evaluation of /a/b/c
+     * yields a deny, which terminates the iteration.
      */
     @Test(expected = CommitFailedException.class)
     public void testHasPermissionWithRestrictions() throws Exception {
@@ -151,7 +156,8 @@ public class PermissionTest extends AbstractSecurityTest {
         // deny  jcr:removeNode /testroot/a  glob=*/c
         // allow jcr:removeNode /testroot/a  glob=*/b
 
-        addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+        addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.REP_WRITE);
         addEntry(TEST_A_PATH, false, "*/c", PrivilegeConstants.JCR_REMOVE_NODE);
         addEntry(TEST_A_PATH, true, "*/b", PrivilegeConstants.JCR_REMOVE_NODE);
 
@@ -176,9 +182,8 @@ public class PermissionTest extends AbstractSecurityTest {
     }
 
     /**
-     * Tests if the restrictions are properly inherited.
-     * the restriction enable/disable the ACE where it is defined.
-     * since the 'deny' on /a/b is after the 'allow' on a/b/c, the deny wins.
+     * Tests if the restrictions are properly inherited. the restriction enable/disable the ACE
+     * where it is defined. since the 'deny' on /a/b is after the 'allow' on a/b/c, the deny wins.
      */
     @Test(expected = CommitFailedException.class)
     public void testHasPermissionWithRestrictions2() throws Exception {
@@ -187,7 +192,8 @@ public class PermissionTest extends AbstractSecurityTest {
         // allow jcr:removeNode /testroot/a  glob=*/b
         // deny  jcr:removeNode /testroot/a  glob=*/c
 
-        addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+        addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.REP_WRITE);
         addEntry(TEST_A_PATH, true, "*/b", PrivilegeConstants.JCR_REMOVE_NODE);
         addEntry(TEST_A_PATH, false, "*/c", PrivilegeConstants.JCR_REMOVE_NODE);
 
@@ -220,7 +226,8 @@ public class PermissionTest extends AbstractSecurityTest {
         // allow rep:write          /testroot
         // deny  jcr:modifyProperties /testroot/a  glob = */c
 
-        addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+        addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.REP_WRITE);
         addEntry(TEST_A_PATH, false, "*/c", PrivilegeConstants.JCR_MODIFY_PROPERTIES);
 
         try (ContentSession testSession = createTestSession()) {

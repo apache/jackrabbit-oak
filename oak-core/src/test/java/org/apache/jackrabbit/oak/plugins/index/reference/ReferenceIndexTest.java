@@ -63,7 +63,7 @@ public class ReferenceIndexTest {
     public ExpectedException thrown = ExpectedException.none();
 
     @Test
-    public void basicReferenceHandling() throws Exception{
+    public void basicReferenceHandling() throws Exception {
         NodeState root = INITIAL_CONTENT;
 
         NodeBuilder builder = root.builder();
@@ -75,7 +75,7 @@ public class ReferenceIndexTest {
 
         NodeState after = builder.getNodeState();
         EditorHook hook = new EditorHook(
-                new IndexUpdateProvider(new ReferenceEditorProvider()));
+            new IndexUpdateProvider(new ReferenceEditorProvider()));
 
         NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
         FilterImpl f = createFilter(indexed, NT_BASE);
@@ -89,7 +89,7 @@ public class ReferenceIndexTest {
     }
 
     @Test
-    public void referenceHandlingWithMounts() throws Exception{
+    public void referenceHandlingWithMounts() throws Exception {
         NodeState root = INITIAL_CONTENT;
 
         NodeBuilder builder = root.builder();
@@ -105,11 +105,11 @@ public class ReferenceIndexTest {
         NodeState after = builder.getNodeState();
 
         MountInfoProvider mip = Mounts.newBuilder()
-                .mount("foo", "/a")
-                .build();
+                                      .mount("foo", "/a")
+                                      .build();
 
         EditorHook hook = new EditorHook(
-                new IndexUpdateProvider(new ReferenceEditorProvider().with(mip)));
+            new IndexUpdateProvider(new ReferenceEditorProvider().with(mip)));
 
         ReferenceIndex referenceIndex = new ReferenceIndex(mip);
 
@@ -126,7 +126,7 @@ public class ReferenceIndexTest {
     }
 
     @Test
-    public void removeReferencedNode() throws Exception{
+    public void removeReferencedNode() throws Exception {
         NodeState root = INITIAL_CONTENT;
 
         NodeBuilder builder = root.builder();
@@ -137,7 +137,7 @@ public class ReferenceIndexTest {
 
         NodeState after = builder.getNodeState();
         EditorHook hook = new EditorHook(
-                new IndexUpdateProvider(new ReferenceEditorProvider()));
+            new IndexUpdateProvider(new ReferenceEditorProvider()));
 
         NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
 
@@ -150,7 +150,7 @@ public class ReferenceIndexTest {
     }
 
     @Test
-    public void removeWeaklyReferencedNode() throws Exception{
+    public void removeWeaklyReferencedNode() throws Exception {
         NodeState root = INITIAL_CONTENT;
 
         NodeBuilder builder = root.builder();
@@ -161,7 +161,7 @@ public class ReferenceIndexTest {
 
         NodeState after = builder.getNodeState();
         EditorHook hook = new EditorHook(
-                new IndexUpdateProvider(new ReferenceEditorProvider()));
+            new IndexUpdateProvider(new ReferenceEditorProvider()));
 
         NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
 
@@ -176,11 +176,12 @@ public class ReferenceIndexTest {
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
-        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
+        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]",
+            new QueryEngineSettings());
     }
 
     private static List<String> assertFilter(Filter filter, QueryIndex queryIndex,
-                                             NodeState indexed, List<String> expected) {
+        NodeState indexed, List<String> expected) {
         Cursor cursor = queryIndex.query(filter, indexed);
         List<String> paths = newArrayList();
         while (cursor.hasNext()) {
@@ -191,7 +192,7 @@ public class ReferenceIndexTest {
             assertTrue("Expected path " + p + " not found", paths.contains(p));
         }
         assertEquals("Result set size is different \nExpected: " +
-                expected + "\nActual: " + paths, expected.size(), paths.size());
+            expected + "\nActual: " + paths, expected.size(), paths.size());
         return paths;
     }
 

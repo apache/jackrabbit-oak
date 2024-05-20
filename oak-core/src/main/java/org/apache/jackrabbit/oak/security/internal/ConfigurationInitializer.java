@@ -28,15 +28,21 @@ import org.jetbrains.annotations.NotNull;
 
 final class ConfigurationInitializer {
 
-    private ConfigurationInitializer() {}
-
-    @NotNull
-    static <T extends SecurityConfiguration> T initializeConfiguration(@NotNull T configuration, @NotNull SecurityProvider securityProvider, @NotNull RootProvider rootProvider, @NotNull TreeProvider treeProvider) {
-        return initializeConfiguration(configuration, securityProvider, ConfigurationParameters.EMPTY, rootProvider, treeProvider);
+    private ConfigurationInitializer() {
     }
 
     @NotNull
-    static <T extends SecurityConfiguration> T initializeConfiguration(@NotNull T configuration, @NotNull SecurityProvider securityProvider, @NotNull ConfigurationParameters parameters, @NotNull RootProvider rootProvider, @NotNull TreeProvider treeProvider) {
+    static <T extends SecurityConfiguration> T initializeConfiguration(@NotNull T configuration,
+        @NotNull SecurityProvider securityProvider, @NotNull RootProvider rootProvider,
+        @NotNull TreeProvider treeProvider) {
+        return initializeConfiguration(configuration, securityProvider,
+            ConfigurationParameters.EMPTY, rootProvider, treeProvider);
+    }
+
+    @NotNull
+    static <T extends SecurityConfiguration> T initializeConfiguration(@NotNull T configuration,
+        @NotNull SecurityProvider securityProvider, @NotNull ConfigurationParameters parameters,
+        @NotNull RootProvider rootProvider, @NotNull TreeProvider treeProvider) {
         if (configuration instanceof ConfigurationBase) {
             ConfigurationBase base = (ConfigurationBase) configuration;
             base.setSecurityProvider(securityProvider);
@@ -47,17 +53,20 @@ final class ConfigurationInitializer {
         return configuration;
     }
 
-    static <T extends SecurityConfiguration> void initializeConfigurations(@NotNull CompositeConfiguration<T> configuration, @NotNull SecurityProvider securityProvider,
-                                         @NotNull ConfigurationParameters parameters,
-                                         @NotNull RootProvider rootProvider,
-                                         @NotNull TreeProvider treeProvider) {
+    static <T extends SecurityConfiguration> void initializeConfigurations(
+        @NotNull CompositeConfiguration<T> configuration,
+        @NotNull SecurityProvider securityProvider,
+        @NotNull ConfigurationParameters parameters,
+        @NotNull RootProvider rootProvider,
+        @NotNull TreeProvider treeProvider) {
         configuration.setSecurityProvider(securityProvider);
         configuration.setRootProvider(rootProvider);
         configuration.setTreeProvider(treeProvider);
 
         List<T> configs = configuration.getConfigurations();
         for (T config : configs) {
-            initializeConfiguration(config, securityProvider, parameters, rootProvider, treeProvider);
+            initializeConfiguration(config, securityProvider, parameters, rootProvider,
+                treeProvider);
         }
     }
 }

@@ -29,8 +29,8 @@ public class RemoveMembersByIdAbortTest extends AbstractRemoveMembersByIdTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         return ConfigurationParameters.of(UserConfiguration.NAME,
-                ConfigurationParameters.of(
-                        ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT)
+            ConfigurationParameters.of(
+                ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT)
         );
     }
 

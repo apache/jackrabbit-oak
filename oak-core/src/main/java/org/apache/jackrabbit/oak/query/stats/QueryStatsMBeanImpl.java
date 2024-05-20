@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.concurrent.ConcurrentSkipListMap;
-
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
@@ -29,27 +28,26 @@ import javax.management.openmbean.SimpleType;
 import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
-
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class QueryStatsMBeanImpl extends AnnotatedStandardMBean 
-        implements QueryStatsMBean, QueryStatsReporter {
+public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
+    implements QueryStatsMBean, QueryStatsReporter {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final int SLOW_QUERY_LIMIT_SCANNED = 
-            Integer.getInteger("oak.query.slowScanLimit", 5000);
+    private final int SLOW_QUERY_LIMIT_SCANNED =
+        Integer.getInteger("oak.query.slowScanLimit", 5000);
     private final int MAX_STATS_DATA =
-            Integer.getInteger("oak.query.stats", 5000);
-    private final int MAX_POPULAR_QUERIES = 
-            Integer.getInteger("oak.query.slowLimit", 100);
+        Integer.getInteger("oak.query.stats", 5000);
+    private final int MAX_POPULAR_QUERIES =
+        Integer.getInteger("oak.query.slowLimit", 100);
     private final int MAX_QUERY_SIZE =
-            Integer.getInteger("oak.query.maxQuerySize", 2048);
-    private final ConcurrentSkipListMap<String, QueryStatsData> statistics = 
-            new ConcurrentSkipListMap<String, QueryStatsData>();
+        Integer.getInteger("oak.query.maxQuerySize", 2048);
+    private final ConcurrentSkipListMap<String, QueryStatsData> statistics =
+        new ConcurrentSkipListMap<String, QueryStatsData>();
     private final QueryEngineSettings settings;
     private boolean captureStackTraces;
     private int evictionCount;
@@ -58,13 +56,13 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
         super(QueryStatsMBean.class);
         this.settings = settings;
     }
-    
+
     @Override
     public TabularData getSlowQueries() {
         ArrayList<QueryStatsData> list = new ArrayList<QueryStatsData>();
         long maxScanned = Math.min(SLOW_QUERY_LIMIT_SCANNED, settings.getLimitReads());
-        for(QueryStatsData s : statistics.values()) {
-            if(s.getMaxRowsScanned() > maxScanned) {
+        for (QueryStatsData s : statistics.values()) {
+            if (s.getMaxRowsScanned() > maxScanned) {
                 list.add(s);
             }
         }
@@ -76,7 +74,7 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
         });
         return asTabularData(list);
     }
-    
+
     @Override
     public TabularData getPopularQueries() {
         ArrayList<QueryStatsData> list = new ArrayList<QueryStatsData>(statistics.values());
@@ -96,7 +94,7 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
     public void resetStats() {
         statistics.clear();
     }
-    
+
     @Override
     public void setCaptureStackTraces(boolean captureStackTraces) {
         this.captureStackTraces = captureStackTraces;
@@ -106,7 +104,7 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
     public boolean getCaptureStackTraces() {
         return captureStackTraces;
     }
-    
+
     @Override
     public String asJson() {
         ArrayList<QueryStatsData> list = new ArrayList<QueryStatsData>(statistics.values());
@@ -119,7 +117,7 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
         StringBuilder buff = new StringBuilder();
         buff.append("[\n");
         int i = 0;
-        for(QueryStatsData s : list) {
+        for (QueryStatsData s : list) {
             if (i++ > 0) {
                 buff.append(",\n");
             }
@@ -138,10 +136,11 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
         }
         if (statement.length() > MAX_QUERY_SIZE) {
             statement = new StringBuilder().append("Truncated query: ")
-                    .append(statement.substring(0, MAX_QUERY_SIZE >> 1))
-                    .append(" ...... ")
-                    .append(statement.substring(statement.length() - (MAX_QUERY_SIZE >> 1)))
-                    .toString();
+                                           .append(statement.substring(0, MAX_QUERY_SIZE >> 1))
+                                           .append(" ...... ")
+                                           .append(statement.substring(
+                                               statement.length() - (MAX_QUERY_SIZE >> 1)))
+                                           .toString();
         }
         QueryStatsData stats = new QueryStatsData(statement, language);
         QueryStatsData s2 = statistics.putIfAbsent(stats.getKey(), stats);
@@ -155,7 +154,7 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
     private void evict() {
         evictionCount++;
         // retain 50% of the slowest entries
-        // of the rest, retain the newest entries 
+        // of the rest, retain the newest entries
         ArrayList<QueryStatsData> list = new ArrayList<QueryStatsData>(statistics.values());
         Collections.sort(list, new Comparator<QueryStatsData>() {
             @Override
@@ -167,33 +166,34 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
                 return comp;
             }
         });
-        Collections.sort(list.subList(MAX_STATS_DATA / 2, MAX_STATS_DATA), new Comparator<QueryStatsData>() {
-            @Override
-            public int compare(QueryStatsData o1, QueryStatsData o2) {
-                return -Long.compare(o1.getCreatedMillis(), o2.getCreatedMillis());
-            }
-        });
+        Collections.sort(list.subList(MAX_STATS_DATA / 2, MAX_STATS_DATA),
+            new Comparator<QueryStatsData>() {
+                @Override
+                public int compare(QueryStatsData o1, QueryStatsData o2) {
+                    return -Long.compare(o1.getCreatedMillis(), o2.getCreatedMillis());
+                }
+            });
         for (int i = MAX_STATS_DATA; i < list.size(); i++) {
             statistics.remove(list.get(i).getKey());
         }
     }
-    
+
     public int getEvictionCount() {
         return evictionCount;
     }
-    
+
     private TabularData asTabularData(ArrayList<QueryStatsData> list) {
         TabularDataSupport tds = null;
         try {
             CompositeType ct = QueryStatsCompositeTypeFactory.getCompositeType();
             TabularType tt = new TabularType(QueryStatsData.class.getName(),
-                    "Query History", ct, QueryStatsCompositeTypeFactory.index);
+                "Query History", ct, QueryStatsCompositeTypeFactory.index);
             tds = new TabularDataSupport(tt);
             int position = 1;
             for (QueryStatsData q : list) {
                 tds.put(new CompositeDataSupport(ct,
-                        QueryStatsCompositeTypeFactory.names,
-                        QueryStatsCompositeTypeFactory.getValues(q, position++)));
+                    QueryStatsCompositeTypeFactory.names,
+                    QueryStatsCompositeTypeFactory.getValues(q, position++)));
             }
             return tds;
         } catch (Exception e) {
@@ -201,38 +201,40 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
             return null;
         }
     }
-    
+
     private static class QueryStatsCompositeTypeFactory {
 
-        private final static String[] index = { "position" };
+        private final static String[] index = {"position"};
 
-        private final static String[] names = { "position", 
-                "maxTimeMillis", "totalTimeMillis", "executeCount", 
-                "rowsRead", "rowsScanned", "maxRowsRead", "maxRowsScanned",
-                "language", "statement", "lastExecuted",
-                "lastThread"};
+        private final static String[] names = {"position",
+            "maxTimeMillis", "totalTimeMillis", "executeCount",
+            "rowsRead", "rowsScanned", "maxRowsRead", "maxRowsScanned",
+            "language", "statement", "lastExecuted",
+            "lastThread"};
 
         private final static String[] descriptions = names;
 
         @SuppressWarnings("rawtypes")
         private final static OpenType[] types = {SimpleType.LONG,
-                    SimpleType.LONG, SimpleType.LONG, SimpleType.LONG,
-                    SimpleType.LONG, SimpleType.LONG, SimpleType.LONG, SimpleType.LONG,
-                    SimpleType.STRING, SimpleType.STRING, SimpleType.STRING,
-                    SimpleType.STRING};
+            SimpleType.LONG, SimpleType.LONG, SimpleType.LONG,
+            SimpleType.LONG, SimpleType.LONG, SimpleType.LONG, SimpleType.LONG,
+            SimpleType.STRING, SimpleType.STRING, SimpleType.STRING,
+            SimpleType.STRING};
 
         public static CompositeType getCompositeType() throws OpenDataException {
             return new CompositeType(QueryStatsMBean.class.getName(),
-                    QueryStatsMBean.class.getName(), names, descriptions, types);
+                QueryStatsMBean.class.getName(), names, descriptions, types);
         }
 
         public static Object[] getValues(QueryStatsData q, int position) {
-            return new Object[] { (long) position,
-                    q.getMaxTimeNanos() / 1000000, q.getTotalTimeNanos() / 1000000, q.getExecuteCount(), 
-                    q.getTotalRowsRead(), q.getTotalRowsScanned(), q.getMaxRowsRead(), q.getMaxRowsScanned(),
-                    q.getLanguage(), q.getQuery(), QueryStatsData.getTimeString(q.getLastExecutedMillis()),
-                    q.isInternal() ? "(internal query)" : q.getLastThreadName()};
+            return new Object[]{(long) position,
+                q.getMaxTimeNanos() / 1000000, q.getTotalTimeNanos() / 1000000, q.getExecuteCount(),
+                q.getTotalRowsRead(), q.getTotalRowsScanned(), q.getMaxRowsRead(),
+                q.getMaxRowsScanned(),
+                q.getLanguage(), q.getQuery(),
+                QueryStatsData.getTimeString(q.getLastExecutedMillis()),
+                q.isInternal() ? "(internal query)" : q.getLastThreadName()};
         }
     }
-    
+
 }

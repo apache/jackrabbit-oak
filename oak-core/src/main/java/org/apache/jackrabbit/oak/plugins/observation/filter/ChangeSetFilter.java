@@ -22,21 +22,17 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 import org.apache.jackrabbit.oak.spi.observation.ChangeSet;
 
 /**
- * A ChangeSetFilter is capable of inspecting a ChangeSet
- * and deciding if the corresponding consumer
- * (eg EventListener) is possibly interested in it
- * or definitely not.
+ * A ChangeSetFilter is capable of inspecting a ChangeSet and deciding if the corresponding consumer
+ * (eg EventListener) is possibly interested in it or definitely not.
  * <p>
- * Falsely deciding to include is fine, falsely
- * deciding to exclude is not.
+ * Falsely deciding to include is fine, falsely deciding to exclude is not.
  */
 public interface ChangeSetFilter {
 
     /**
-     * Decides if the commit belonging to the provided
-     * ChangeSet is potentially relevant to the listener
-     * or if it can definitely be excluded.
+     * Decides if the commit belonging to the provided ChangeSet is potentially relevant to the
+     * listener or if it can definitely be excluded.
      */
-	boolean excludes(ChangeSet changeSet);
+    boolean excludes(ChangeSet changeSet);
 
 }

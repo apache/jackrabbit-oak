@@ -40,11 +40,13 @@ abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements Grou
 
     private static final Logger log = LoggerFactory.getLogger(AbstractGroupPrincipal.class);
 
-    AbstractGroupPrincipal(@NotNull String principalName, @NotNull Tree groupTree, @NotNull NamePathMapper namePathMapper) {
+    AbstractGroupPrincipal(@NotNull String principalName, @NotNull Tree groupTree,
+        @NotNull NamePathMapper namePathMapper) {
         super(principalName, groupTree, namePathMapper);
     }
 
-    AbstractGroupPrincipal(@NotNull String principalName, @NotNull String groupPath, @NotNull NamePathMapper namePathMapper) {
+    AbstractGroupPrincipal(@NotNull String principalName, @NotNull String groupPath,
+        @NotNull NamePathMapper namePathMapper) {
         super(principalName, groupPath, namePathMapper);
     }
 

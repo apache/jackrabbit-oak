@@ -54,7 +54,7 @@ public class MembershipWriter {
     /**
      * Adds a new member to the given {@code groupTree}.
      *
-     * @param groupTree the group to add the member to
+     * @param groupTree       the group to add the member to
      * @param memberContentId the id of the new member
      * @return {@code true} if the member was added
      */
@@ -76,8 +76,8 @@ public class MembershipWriter {
         // check all possible rep:members properties for the new member and also find the one with the least values
         Tree membersList = groupTree.getChild(UserConstants.REP_MEMBERS_LIST);
         Iterator<Tree> trees = Iterators.concat(
-                Iterators.singletonIterator(groupTree),
-                membersList.getChildren().iterator()
+            Iterators.singletonIterator(groupTree),
+            membersList.getChildren().iterator()
         );
 
         Set<String> failed = new HashSet<>(memberIds.size());
@@ -123,7 +123,8 @@ public class MembershipWriter {
                 } else {
                     bestTree = createMemberRefTree(groupTree, membersList);
                 }
-                propertyBuilder = PropertyBuilder.array(Type.WEAKREFERENCE, UserConstants.REP_MEMBERS);
+                propertyBuilder = PropertyBuilder.array(Type.WEAKREFERENCE,
+                    UserConstants.REP_MEMBERS);
                 propCnt = 0;
             } else {
                 propertyBuilder = PropertyBuilder.copy(Type.WEAKREFERENCE, bestProperty);
@@ -148,7 +149,8 @@ public class MembershipWriter {
                         // continue filling the next (new) node + propertyBuilder pair
                         propCnt = 0;
                         bestTree = createMemberRefTree(groupTree, membersList);
-                        propertyBuilder = PropertyBuilder.array(Type.WEAKREFERENCE, UserConstants.REP_MEMBERS);
+                        propertyBuilder = PropertyBuilder.array(Type.WEAKREFERENCE,
+                            UserConstants.REP_MEMBERS);
                     }
                 }
             } else {
@@ -163,10 +165,12 @@ public class MembershipWriter {
     private static Tree createMemberRefTree(@NotNull Tree groupTree, @NotNull Tree membersList) {
         if (!membersList.exists()) {
             membersList = groupTree.addChild(UserConstants.REP_MEMBERS_LIST);
-            membersList.setProperty(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_MEMBER_REFERENCES_LIST, NAME);
+            membersList.setProperty(JcrConstants.JCR_PRIMARYTYPE,
+                UserConstants.NT_REP_MEMBER_REFERENCES_LIST, NAME);
         }
         Tree refTree = membersList.addChild(nextRefNodeName(membersList));
-        refTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_MEMBER_REFERENCES, NAME);
+        refTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_MEMBER_REFERENCES,
+            NAME);
         return refTree;
     }
 
@@ -184,7 +188,7 @@ public class MembershipWriter {
     /**
      * Removes the member from the given group.
      *
-     * @param groupTree group to remove the member from
+     * @param groupTree       group to remove the member from
      * @param memberContentId member to remove
      * @return {@code true} if the member was removed.
      */
@@ -205,15 +209,15 @@ public class MembershipWriter {
     Set<String> removeMembers(@NotNull Tree groupTree, @NotNull Map<String, String> memberIds) {
         Tree membersList = groupTree.getChild(UserConstants.REP_MEMBERS_LIST);
         Iterator<Tree> trees = Iterators.concat(
-                Iterators.singletonIterator(groupTree),
-                membersList.getChildren().iterator()
+            Iterators.singletonIterator(groupTree),
+            membersList.getChildren().iterator()
         );
         while (trees.hasNext() && !memberIds.isEmpty()) {
             Tree t = trees.next();
             PropertyState refs = t.getProperty(UserConstants.REP_MEMBERS);
             if (refs != null) {
                 PropertyBuilder<String> prop = PropertyBuilder.copy(Type.WEAKREFERENCE, refs);
-                Iterator<Map.Entry<String,String>> it = memberIds.entrySet().iterator();
+                Iterator<Map.Entry<String, String>> it = memberIds.entrySet().iterator();
                 while (it.hasNext() && !prop.isEmpty()) {
                     String memberContentId = it.next().getKey();
                     if (prop.hasValue(memberContentId)) {

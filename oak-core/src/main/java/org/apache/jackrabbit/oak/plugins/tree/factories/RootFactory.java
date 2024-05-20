@@ -39,7 +39,8 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class RootFactory {
 
-    private RootFactory() {}
+    private RootFactory() {
+    }
 
     @NotNull
     public static Root createReadOnlyRoot(@NotNull NodeState rootState) {
@@ -56,31 +57,31 @@ public final class RootFactory {
      */
     @NotNull
     public static Root createSystemRoot(@NotNull NodeStore store,
-                                        @Nullable CommitHook hook,
-                                        @Nullable String workspaceName,
-                                        @Nullable SecurityProvider securityProvider,
-                                        @Nullable QueryEngineSettings queryEngineSettings,
-                                        @Nullable QueryIndexProvider indexProvider) {
+        @Nullable CommitHook hook,
+        @Nullable String workspaceName,
+        @Nullable SecurityProvider securityProvider,
+        @Nullable QueryEngineSettings queryEngineSettings,
+        @Nullable QueryIndexProvider indexProvider) {
         return SystemRoot.create(store,
-                (hook == null) ? EmptyHook.INSTANCE : hook,
-                (workspaceName == null) ? Oak.DEFAULT_WORKSPACE_NAME : workspaceName,
-                (securityProvider == null) ? new OpenSecurityProvider() : securityProvider,
-                queryEngineSettings,
-                (indexProvider == null) ? new CompositeQueryIndexProvider(): indexProvider);
+            (hook == null) ? EmptyHook.INSTANCE : hook,
+            (workspaceName == null) ? Oak.DEFAULT_WORKSPACE_NAME : workspaceName,
+            (securityProvider == null) ? new OpenSecurityProvider() : securityProvider,
+            queryEngineSettings,
+            (indexProvider == null) ? new CompositeQueryIndexProvider() : indexProvider);
 
     }
 
     @NotNull
     public static Root createSystemRoot(@NotNull NodeStore store,
-                                        @Nullable CommitHook hook,
-                                        @Nullable String workspaceName,
-                                        @Nullable SecurityProvider securityProvider,
-                                        @Nullable QueryIndexProvider indexProvider) {
+        @Nullable CommitHook hook,
+        @Nullable String workspaceName,
+        @Nullable SecurityProvider securityProvider,
+        @Nullable QueryIndexProvider indexProvider) {
         return SystemRoot.create(store,
-                (hook == null) ? EmptyHook.INSTANCE : hook,
-                (workspaceName == null) ? Oak.DEFAULT_WORKSPACE_NAME : workspaceName,
-                (securityProvider == null) ? new OpenSecurityProvider() : securityProvider,
-                (indexProvider == null) ? new CompositeQueryIndexProvider() : indexProvider);
+            (hook == null) ? EmptyHook.INSTANCE : hook,
+            (workspaceName == null) ? Oak.DEFAULT_WORKSPACE_NAME : workspaceName,
+            (securityProvider == null) ? new OpenSecurityProvider() : securityProvider,
+            (indexProvider == null) ? new CompositeQueryIndexProvider() : indexProvider);
 
     }
 }

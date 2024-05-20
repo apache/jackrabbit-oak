@@ -38,13 +38,13 @@ class IntersectionCursor extends AbstractCursor {
     private boolean init;
     private boolean closed;
     private IndexRow current;
-    
+
     IntersectionCursor(Cursor first, Cursor second, QueryLimits settings) {
         this.first = first;
         this.second = second;
         this.settings = settings;
     }
-    
+
     @Override
     public IndexRow next() {
         if (closed) {
@@ -71,7 +71,7 @@ class IntersectionCursor extends AbstractCursor {
         }
         return !closed;
     }
-    
+
     private void fetchNext() {
         while (true) {
             if (!first.hasNext()) {
@@ -101,12 +101,12 @@ class IntersectionCursor extends AbstractCursor {
             }
         }
     }
-    
+
     private void markSeen(String path) {
         seen.add(path);
         FilterIterators.checkMemoryLimit(seen.size(), settings);
     }
-    
+
     @Override
     public long getSize(SizePrecision precision, long max) {
         // this is the worst case
@@ -117,5 +117,5 @@ class IntersectionCursor extends AbstractCursor {
         }
         return QueryImpl.saturatedAdd(a, b);
     }
-    
+
 }

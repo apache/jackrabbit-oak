@@ -66,9 +66,9 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 /**
- * UserQueryManagerTest provides test cases for {@link UserQueryManager}.
- * This class include the original jr2.x test-cases provided by
- * {@code NodeResolverTest} and {@code IndexNodeResolverTest}.
+ * UserQueryManagerTest provides test cases for {@link UserQueryManager}. This class include the
+ * original jr2.x test-cases provided by {@code NodeResolverTest} and
+ * {@code IndexNodeResolverTest}.
  */
 public class UserQueryManagerTest extends AbstractUserTest {
 
@@ -87,13 +87,14 @@ public class UserQueryManagerTest extends AbstractUserTest {
 
         UserManagerImpl userMgr = (UserManagerImpl) getUserManager(root);
         user = getTestUser();
-        queryMgr = new UserQueryManager(userMgr, namePathMapper, getUserConfiguration().getParameters(), root);
+        queryMgr = new UserQueryManager(userMgr, namePathMapper,
+            getUserConfiguration().getParameters(), root);
 
         valueFactory = getValueFactory(root);
         propertyName = "testProperty";
         v = valueFactory.createValue("value");
     }
-    
+
     protected QueryEngineSettings getQueryEngineSettings() {
         if (querySettings == null) {
             querySettings = new QueryEngineSettings();
@@ -117,7 +118,8 @@ public class UserQueryManagerTest extends AbstractUserTest {
         }
     }
 
-    private Group createGroup(@Nullable String id, @Nullable Principal principal) throws RepositoryException {
+    private Group createGroup(@Nullable String id, @Nullable Principal principal)
+        throws RepositoryException {
         Group g;
         if (id != null) {
             if (principal != null) {
@@ -133,7 +135,8 @@ public class UserQueryManagerTest extends AbstractUserTest {
         return g;
     }
 
-    private static void assertResultContainsAuthorizables(@NotNull Iterator<Authorizable> result, Authorizable... expected) throws RepositoryException {
+    private static void assertResultContainsAuthorizables(@NotNull Iterator<Authorizable> result,
+        Authorizable... expected) throws RepositoryException {
         switch (expected.length) {
             case 0:
                 assertFalse(result.hasNext());
@@ -157,7 +160,8 @@ public class UserQueryManagerTest extends AbstractUserTest {
         user.setProperty(propertyName, vs);
         root.commit();
 
-        Iterator<Authorizable> result = queryMgr.findAuthorizables(propertyName, "value \\, containing backslash", AuthorizableType.USER, true);
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(propertyName,
+            "value \\, containing backslash", AuthorizableType.USER, true);
         assertResultContainsAuthorizables(result, user);
     }
 
@@ -167,7 +171,8 @@ public class UserQueryManagerTest extends AbstractUserTest {
         user.setProperty(propertyName, vs);
         root.commit();
 
-        Iterator<Authorizable> result = queryMgr.findAuthorizables(propertyName, "value \\, containing backslash", AuthorizableType.USER, false);
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(propertyName,
+            "value \\, containing backslash", AuthorizableType.USER, false);
         assertResultContainsAuthorizables(result, user);
     }
 
@@ -177,7 +182,8 @@ public class UserQueryManagerTest extends AbstractUserTest {
         user.setProperty(propertyName, vs);
         root.commit();
 
-        Iterator<Authorizable> result = queryMgr.findAuthorizables(propertyName, "value ' with apostrophe", AuthorizableType.USER, false);
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(propertyName,
+            "value ' with apostrophe", AuthorizableType.USER, false);
         assertResultContainsAuthorizables(result, user);
     }
 
@@ -187,7 +193,8 @@ public class UserQueryManagerTest extends AbstractUserTest {
         user.setProperty(propertyName, vs);
         root.commit();
 
-        Iterator<Authorizable> result = queryMgr.findAuthorizables(propertyName, "value ' with apostrophe", AuthorizableType.USER, true);
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(propertyName,
+            "value ' with apostrophe", AuthorizableType.USER, true);
         assertResultContainsAuthorizables(result, user);
     }
 
@@ -196,7 +203,8 @@ public class UserQueryManagerTest extends AbstractUserTest {
         user.setProperty(propertyName, v);
         root.commit();
 
-        Iterator<Authorizable> result = queryMgr.findAuthorizables("./" + propertyName, v.getString(), AuthorizableType.GROUP, false);
+        Iterator<Authorizable> result = queryMgr.findAuthorizables("./" + propertyName,
+            v.getString(), AuthorizableType.GROUP, false);
         assertResultContainsAuthorizables(result);
     }
 
@@ -205,7 +213,8 @@ public class UserQueryManagerTest extends AbstractUserTest {
         user.setProperty(propertyName, v);
         root.commit();
 
-        Iterator<Authorizable> result = queryMgr.findAuthorizables("./" + propertyName, v.getString(), AuthorizableType.USER, false);
+        Iterator<Authorizable> result = queryMgr.findAuthorizables("./" + propertyName,
+            v.getString(), AuthorizableType.USER, false);
         assertResultContainsAuthorizables(result, user);
     }
 
@@ -214,7 +223,8 @@ public class UserQueryManagerTest extends AbstractUserTest {
         user.setProperty(propertyName, v);
         root.commit();
 
-        Iterator<Authorizable> result = queryMgr.findAuthorizables("rel/path/to/" + propertyName, v.getString(), AuthorizableType.USER, false);
+        Iterator<Authorizable> result = queryMgr.findAuthorizables("rel/path/to/" + propertyName,
+            v.getString(), AuthorizableType.USER, false);
         assertResultContainsAuthorizables(result);
     }
 
@@ -225,8 +235,10 @@ public class UserQueryManagerTest extends AbstractUserTest {
         g.setProperty("rel/path/to/" + propertyName, v);
         root.commit();
 
-        for (AuthorizableType type : new AuthorizableType[] {AuthorizableType.AUTHORIZABLE, AuthorizableType.GROUP}) {
-            Iterator<Authorizable> result = queryMgr.findAuthorizables("rel/path/to/" + propertyName, v.getString(), type, false);
+        for (AuthorizableType type : new AuthorizableType[]{AuthorizableType.AUTHORIZABLE,
+            AuthorizableType.GROUP}) {
+            Iterator<Authorizable> result = queryMgr.findAuthorizables(
+                "rel/path/to/" + propertyName, v.getString(), type, false);
             assertResultContainsAuthorizables(result, g);
         }
     }
@@ -238,7 +250,8 @@ public class UserQueryManagerTest extends AbstractUserTest {
         g.setProperty("rel/path/to/" + propertyName, v);
         root.commit();
 
-        Iterator<Authorizable> result = queryMgr.findAuthorizables("rel/path/to/" + propertyName, v.getString(), AuthorizableType.USER, false);
+        Iterator<Authorizable> result = queryMgr.findAuthorizables("rel/path/to/" + propertyName,
+            v.getString(), AuthorizableType.USER, false);
         assertResultContainsAuthorizables(result);
     }
 
@@ -248,7 +261,8 @@ public class UserQueryManagerTest extends AbstractUserTest {
         user.setProperty("rel/path/to/" + propertyName, v);
         root.commit();
 
-        Iterator<Authorizable> result = queryMgr.findAuthorizables(propertyName, v.getString(), AuthorizableType.AUTHORIZABLE, false);
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(propertyName, v.getString(),
+            AuthorizableType.AUTHORIZABLE, false);
         assertResultContainsAuthorizables(result, user);
     }
 
@@ -553,23 +567,29 @@ public class UserQueryManagerTest extends AbstractUserTest {
 
     @Test
     public void testFindWhenRootTreeIsSearchRoot() throws Exception {
-        ConfigurationParameters config = ConfigurationParameters.of(PARAM_GROUP_PATH, PathUtils.ROOT_PATH);
-        SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(ConfigurationParameters.of(UserConfiguration.NAME, config)).withRootProvider(getRootProvider()).withTreeProvider(getTreeProvider()).build();
+        ConfigurationParameters config = ConfigurationParameters.of(PARAM_GROUP_PATH,
+            PathUtils.ROOT_PATH);
+        SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(
+                                                         ConfigurationParameters.of(UserConfiguration.NAME, config))
+                                                     .withRootProvider(getRootProvider())
+                                                     .withTreeProvider(getTreeProvider()).build();
         UserManagerImpl umgr = createUserManagerImpl(root);
         UserQueryManager uqm = new UserQueryManager(umgr, getNamePathMapper(), config, root);
 
-        Iterator<Authorizable> result = uqm.findAuthorizables(REP_AUTHORIZABLE_ID, DEFAULT_ADMIN_ID, AuthorizableType.AUTHORIZABLE);
+        Iterator<Authorizable> result = uqm.findAuthorizables(REP_AUTHORIZABLE_ID, DEFAULT_ADMIN_ID,
+            AuthorizableType.AUTHORIZABLE);
         assertTrue(result.hasNext());
     }
 
     @Test
     public void testFindReservedProperty() throws Exception {
-        user.setProperty("subtree/"+REP_DISABLED, valueFactory.createValue("disabled"));
+        user.setProperty("subtree/" + REP_DISABLED, valueFactory.createValue("disabled"));
 
-        Iterator<Authorizable> result = queryMgr.findAuthorizables(REP_DISABLED, "disabled", AuthorizableType.USER);
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(REP_DISABLED, "disabled",
+            AuthorizableType.USER);
         assertFalse(result.hasNext());
 
-        user.removeProperty("subtree/"+REP_DISABLED);
+        user.removeProperty("subtree/" + REP_DISABLED);
         user.disable("disabled");
 
         result = queryMgr.findAuthorizables(REP_DISABLED, "disabled", AuthorizableType.USER);
@@ -580,18 +600,23 @@ public class UserQueryManagerTest extends AbstractUserTest {
     public void testFindResultNotAccessible() throws Exception {
         user.setProperty("profile/name", valueFactory.createValue("userName"));
         AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, PathUtils.concat(user.getPath(), "profile"));
-        if (acl != null && acl.addAccessControlEntry(user.getPrincipal(), privilegesFromNames(JCR_READ))) {
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr,
+            PathUtils.concat(user.getPath(), "profile"));
+        if (acl != null && acl.addAccessControlEntry(user.getPrincipal(),
+            privilegesFromNames(JCR_READ))) {
             acMgr.setPolicy(acl.getPath(), acl);
         }
         root.commit();
 
-        try (ContentSession cs = login(new SimpleCredentials(user.getID(), user.getID().toCharArray()))) {
+        try (ContentSession cs = login(
+            new SimpleCredentials(user.getID(), user.getID().toCharArray()))) {
             Root r = cs.getLatestRoot();
             UserManagerImpl uMgr = createUserManagerImpl(r);
-            UserQueryManager uqm = new UserQueryManager(uMgr, getNamePathMapper(), ConfigurationParameters.EMPTY, r);
+            UserQueryManager uqm = new UserQueryManager(uMgr, getNamePathMapper(),
+                ConfigurationParameters.EMPTY, r);
 
-            Iterator<Authorizable> result = uqm.findAuthorizables("name", "userName", AuthorizableType.USER);
+            Iterator<Authorizable> result = uqm.findAuthorizables("name", "userName",
+                AuthorizableType.USER);
             assertFalse(result.hasNext());
         }
     }

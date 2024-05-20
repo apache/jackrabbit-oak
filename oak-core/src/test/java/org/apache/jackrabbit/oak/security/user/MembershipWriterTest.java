@@ -60,27 +60,27 @@ public class MembershipWriterTest extends MembershipBaseTest {
 
     private static void assertContentStructure(@NotNull Tree groupTree) {
         assertEquals(
-                "rep:members property must have correct number of references",
-                SIZE_TH,
-                groupTree.getProperty(REP_MEMBERS).count()
+            "rep:members property must have correct number of references",
+            SIZE_TH,
+            groupTree.getProperty(REP_MEMBERS).count()
         );
 
         Tree membersList = groupTree.getChild(REP_MEMBERS_LIST);
         assertTrue(
-                "rep:memberList must exist",
-                membersList.exists()
+            "rep:memberList must exist",
+            membersList.exists()
         );
 
         assertEquals(
-                "rep:memberList must have correct primary type.",
-                NT_REP_MEMBER_REFERENCES_LIST,
-                membersList.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING)
+            "rep:memberList must have correct primary type.",
+            NT_REP_MEMBER_REFERENCES_LIST,
+            membersList.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING)
         );
 
         assertEquals(
-                "rep:memberList must have correct number of child nodes.",
-                (MembershipBaseTest.NUM_USERS / SIZE_TH) - 1,
-                membersList.getChildrenCount(Long.MAX_VALUE)
+            "rep:memberList must have correct number of child nodes.",
+            (MembershipBaseTest.NUM_USERS / SIZE_TH) - 1,
+            membersList.getChildrenCount(Long.MAX_VALUE)
         );
     }
 
@@ -225,8 +225,8 @@ public class MembershipWriterTest extends MembershipBaseTest {
         // also check storage structure
         Tree tree = getTree(grp);
         assertNull(
-                "rep:members property not exist",
-                tree.getProperty(REP_MEMBERS)
+            "rep:members property not exist",
+            tree.getProperty(REP_MEMBERS)
         );
 
         // now add TH/2 again.
@@ -238,9 +238,9 @@ public class MembershipWriterTest extends MembershipBaseTest {
         root.commit();
 
         assertEquals(
-                "rep:members property must have correct number of references",
-                SIZE_TH / 2,
-                tree.getProperty(REP_MEMBERS).count()
+            "rep:members property must have correct number of references",
+            SIZE_TH / 2,
+            tree.getProperty(REP_MEMBERS).count()
         );
         assertMembers(grp, members);
 
@@ -256,8 +256,8 @@ public class MembershipWriterTest extends MembershipBaseTest {
 
         Tree membersList = tree.getChild(REP_MEMBERS_LIST);
         assertFalse(
-                "the first overflow node must not exist",
-                membersList.getChild("1").exists()
+            "the first overflow node must not exist",
+            membersList.getChild("1").exists()
         );
 
         // now add 10 users and check if the "1" node exists again

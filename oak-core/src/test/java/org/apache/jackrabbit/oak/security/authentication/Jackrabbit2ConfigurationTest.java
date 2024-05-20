@@ -48,7 +48,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * Test login with {@link ConfigurationUtil#getJackrabbit2Configuration(org.apache.jackrabbit.oak.spi.security.ConfigurationParameters)}
+ * Test login with
+ * {@link
+ * ConfigurationUtil#getJackrabbit2Configuration(org.apache.jackrabbit.oak.spi.security.ConfigurationParameters)}
  */
 public class Jackrabbit2ConfigurationTest extends AbstractSecurityTest {
 
@@ -184,7 +186,9 @@ public class Jackrabbit2ConfigurationTest extends AbstractSecurityTest {
             SimpleCredentials sc = (SimpleCredentials) getAdminCredentials();
             sc.setAttribute(".token", "");
 
-            ImpersonationCredentials ic = new ImpersonationCredentials(sc, new AuthInfoImpl(((SimpleCredentials) getAdminCredentials()).getUserID(), Collections.<String, Object>emptyMap(), Collections.<Principal>emptySet()));
+            ImpersonationCredentials ic = new ImpersonationCredentials(sc,
+                new AuthInfoImpl(((SimpleCredentials) getAdminCredentials()).getUserID(),
+                    Collections.<String, Object>emptyMap(), Collections.<Principal>emptySet()));
             cs = login(ic);
 
             Object token = sc.getAttribute(".token").toString();
@@ -264,7 +268,9 @@ public class Jackrabbit2ConfigurationTest extends AbstractSecurityTest {
             sc.setAttribute(".token.mandatory", "something");
             sc.setAttribute("attr", "val");
 
-            ImpersonationCredentials ic = new ImpersonationCredentials(sc, new AuthInfoImpl(((SimpleCredentials) getAdminCredentials()).getUserID(), Collections.<String, Object>emptyMap(), Collections.<Principal>emptySet()));
+            ImpersonationCredentials ic = new ImpersonationCredentials(sc,
+                new AuthInfoImpl(((SimpleCredentials) getAdminCredentials()).getUserID(),
+                    Collections.<String, Object>emptyMap(), Collections.<Principal>emptySet()));
             cs = login(ic);
 
             AuthInfo ai = cs.getAuthInfo();

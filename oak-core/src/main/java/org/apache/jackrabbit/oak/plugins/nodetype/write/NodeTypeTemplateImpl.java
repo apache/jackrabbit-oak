@@ -57,10 +57,10 @@ import org.jetbrains.annotations.Nullable;
 class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
 
     private static final PropertyDefinition[] EMPTY_PROPERTY_DEFINITION_ARRAY =
-            new PropertyDefinition[0];
+        new PropertyDefinition[0];
 
     private static final NodeDefinition[] EMPTY_NODE_DEFINITION_ARRAY =
-            new NodeDefinition[0];
+        new NodeDefinition[0];
 
     protected boolean isMixin;
 
@@ -84,7 +84,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
     }
 
     NodeTypeTemplateImpl(@NotNull NameMapper mapper, @NotNull NodeTypeDefinition definition)
-            throws ConstraintViolationException {
+        throws ConstraintViolationException {
         super(mapper, definition.getName());
 
         setMixin(definition.isMixin());
@@ -100,31 +100,30 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
         PropertyDefinition[] pds = definition.getDeclaredPropertyDefinitions();
         if (pds != null) {
             propertyDefinitionTemplates =
-                    Lists.newArrayListWithCapacity(pds.length);
+                Lists.newArrayListWithCapacity(pds.length);
             for (PropertyDefinition pd : pds) {
                 propertyDefinitionTemplates.add(
-                        new PropertyDefinitionTemplateImpl(mapper, pd));
+                    new PropertyDefinitionTemplateImpl(mapper, pd));
             }
         }
 
         NodeDefinition[] nds = definition.getDeclaredChildNodeDefinitions();
         if (nds != null) {
             nodeDefinitionTemplates =
-                    Lists.newArrayListWithCapacity(nds.length);
+                Lists.newArrayListWithCapacity(nds.length);
             for (NodeDefinition nd : nds) {
                 nodeDefinitionTemplates.add(
-                        new NodeDefinitionTemplateImpl(mapper, nd));
+                    new NodeDefinitionTemplateImpl(mapper, nd));
             }
         }
     }
 
     /**
-     * Writes this node type as an {@code nt:nodeType} child of the given
-     * parent node. An exception is thrown if the child node already exists,
-     * unless the {@code allowUpdate} flag is set, in which case the existing
-     * node is overwritten.
+     * Writes this node type as an {@code nt:nodeType} child of the given parent node. An exception
+     * is thrown if the child node already exists, unless the {@code allowUpdate} flag is set, in
+     * which case the existing node is overwritten.
      *
-     * @param parent parent node under which to write this node type
+     * @param parent      parent node under which to write this node type
      * @param allowUpdate whether to overwrite an existing type
      * @return The node type tree.
      * @throws RepositoryException if this type could not be written
@@ -141,15 +140,15 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
             type.setProperty(JCR_PRIMARYTYPE, NT_NODETYPE, Type.NAME);
         } else if (!allowUpdate) {
             throw new NodeTypeExistsException(
-                    "Node type " + getName() + " already exists");
+                "Node type " + getName() + " already exists");
         }
 
         type.setProperty(JCR_NODETYPENAME, oakName, Type.NAME);
 
         if (superTypeOakNames.length > 0) {
             type.setProperty(
-                    JCR_SUPERTYPES,
-                    Arrays.asList(superTypeOakNames), Type.NAMES);
+                JCR_SUPERTYPES,
+                Arrays.asList(superTypeOakNames), Type.NAMES);
         } else {
             type.removeProperty(JCR_SUPERTYPES);
         }
@@ -172,14 +171,17 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
 
         // TODO fail (in validator?) on invalid item definitions
         // See 3.7.6.8 Item Definitions in Subtypes (OAK-411)
-        writeItemDefinitions(type, propertyDefinitionTemplates, JCR_PROPERTYDEFINITION, NT_PROPERTYDEFINITION);
-        writeItemDefinitions(type, nodeDefinitionTemplates, JCR_CHILDNODEDEFINITION, NT_CHILDNODEDEFINITION);
+        writeItemDefinitions(type, propertyDefinitionTemplates, JCR_PROPERTYDEFINITION,
+            NT_PROPERTYDEFINITION);
+        writeItemDefinitions(type, nodeDefinitionTemplates, JCR_CHILDNODEDEFINITION,
+            NT_CHILDNODEDEFINITION);
 
         return type;
     }
 
-    private static void writeItemDefinitions(@NotNull Tree nodeTypeTree, @Nullable List<? extends ItemDefinitionTemplate> itemDefTemplates,
-                                             @NotNull String nodeName, @NotNull String primaryTypeName) throws RepositoryException {
+    private static void writeItemDefinitions(@NotNull Tree nodeTypeTree,
+        @Nullable List<? extends ItemDefinitionTemplate> itemDefTemplates,
+        @NotNull String nodeName, @NotNull String primaryTypeName) throws RepositoryException {
         // first remove existing
         for (Tree t : filter(nodeTypeTree.getChildren(), new SameNamePredicate(nodeName))) {
             t.remove();
@@ -193,7 +195,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
                 if (!tree.exists()) {
                     tree = nodeTypeTree.addChild(name);
                     tree.setProperty(
-                            JCR_PRIMARYTYPE, primaryTypeName, NAME);
+                        JCR_PRIMARYTYPE, primaryTypeName, NAME);
                 }
                 template.writeTo(tree);
                 index++;
@@ -234,7 +236,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
 
     @Override
     public boolean hasOrderableChildNodes() {
-        return isOrderable ;
+        return isOrderable;
     }
 
     @Override
@@ -269,9 +271,9 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
 
     @Override
     public void setPrimaryItemName(String jcrName)
-            throws ConstraintViolationException {
+        throws ConstraintViolationException {
         this.primaryItemOakName =
-                getOakNameAllowNullOrThrowConstraintViolation(jcrName);
+            getOakNameAllowNullOrThrowConstraintViolation(jcrName);
     }
 
     @Override
@@ -281,16 +283,16 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
 
     @Override
     public void setDeclaredSuperTypeNames(String[] jcrNames)
-            throws ConstraintViolationException {
+        throws ConstraintViolationException {
         this.superTypeOakNames =
-                getOakNamesOrThrowConstraintViolation(jcrNames);
+            getOakNamesOrThrowConstraintViolation(jcrNames);
     }
 
     @Override
     public PropertyDefinition[] getDeclaredPropertyDefinitions() {
         if (propertyDefinitionTemplates != null) {
             return propertyDefinitionTemplates.toArray(
-                    EMPTY_PROPERTY_DEFINITION_ARRAY);
+                EMPTY_PROPERTY_DEFINITION_ARRAY);
         } else {
             return null;
         }
@@ -308,7 +310,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
     public NodeDefinition[] getDeclaredChildNodeDefinitions() {
         if (nodeDefinitionTemplates != null) {
             return nodeDefinitionTemplates.toArray(
-                    EMPTY_NODE_DEFINITION_ARRAY);
+                EMPTY_NODE_DEFINITION_ARRAY);
         } else {
             return null;
         }

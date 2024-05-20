@@ -38,6 +38,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 public class IdentifierManagerTest {
+
     private static final String UUID_Y = UUIDUtils.generateUUID();
     private static final String UUID_Z1 = UUIDUtils.generateUUID();
     public static final String ID_ROOT = "/";
@@ -99,8 +100,8 @@ public class IdentifierManagerTest {
         try {
             identifierManager.getTree(ID_INVALID);
             fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException expected) {
         }
-        catch (IllegalArgumentException expected) { }
     }
 
     @Test
@@ -114,8 +115,8 @@ public class IdentifierManagerTest {
         try {
             identifierManager.getPath(ID_INVALID);
             fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException expected) {
         }
-        catch (IllegalArgumentException expected) { }
     }
 
     @Test
@@ -128,8 +129,8 @@ public class IdentifierManagerTest {
         try {
             identifierManager.getPath(PropertyStates.createProperty("any", "any"));
             fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException expected) {
         }
-        catch (IllegalArgumentException expected) { }
     }
 
     private static PropertyState createReferenceProperty(String value) {

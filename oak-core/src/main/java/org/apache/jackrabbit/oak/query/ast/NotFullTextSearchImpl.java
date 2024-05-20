@@ -19,20 +19,20 @@ package org.apache.jackrabbit.oak.query.ast;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.util.Set;
-
+import org.apache.jackrabbit.guava.common.base.Splitter;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 public class NotFullTextSearchImpl extends FullTextSearchImpl {
+
     private static final Set<String> KEYWORDS = ImmutableSet.of("or");
-    private static final Splitter SPACE_SPLITTER = Splitter.on(' ').omitEmptyStrings().trimResults();
+    private static final Splitter SPACE_SPLITTER = Splitter.on(' ').omitEmptyStrings()
+                                                           .trimResults();
 
     public NotFullTextSearchImpl(String selectorName, String propertyName,
-                                 StaticOperandImpl fullTextSearchExpression) {
+        StaticOperandImpl fullTextSearchExpression) {
         super(selectorName, propertyName, fullTextSearchExpression);
     }
 
@@ -43,7 +43,7 @@ public class NotFullTextSearchImpl extends FullTextSearchImpl {
     @Override
     ConstraintImpl not() {
         return new FullTextSearchImpl(this.selectorName, this.propertyName,
-                this.fullTextSearchExpression);
+            this.fullTextSearchExpression);
     }
 
     @Override

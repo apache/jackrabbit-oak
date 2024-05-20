@@ -33,10 +33,11 @@ import org.jetbrains.annotations.Nullable;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 
 public final class ValuePatternUtil {
+
     /**
      * Get the longest prefix of restrictions on a property.
      *
-     * @param filter the filter with all restrictions
+     * @param filter   the filter with all restrictions
      * @param property the property
      * @return the longest prefix, or null if none
      */
@@ -44,7 +45,7 @@ public final class ValuePatternUtil {
     public static String getLongestPrefix(Filter filter, String property) {
         boolean first = false, last = false;
         List<String> list = new ArrayList<>();
-        for(PropertyRestriction p : filter.getPropertyRestrictions(property)) {
+        for (PropertyRestriction p : filter.getPropertyRestrictions(property)) {
             if (p.isLike) {
                 continue;
             }
@@ -79,16 +80,16 @@ public final class ValuePatternUtil {
     }
 
     @Nullable
-    public static Set<String> getAllValues(PropertyRestriction restriction){
+    public static Set<String> getAllValues(PropertyRestriction restriction) {
         return getValues(restriction, ValuePattern.MATCH_ALL);
     }
 
     @Nullable
     public static Set<String> getValues(PropertyRestriction restriction, ValuePattern pattern) {
         if (restriction.firstIncluding
-                && restriction.lastIncluding
-                && restriction.first != null
-                && restriction.first.equals(restriction.last)) {
+            && restriction.lastIncluding
+            && restriction.first != null
+            && restriction.first.equals(restriction.last)) {
             // "[property] = $value"
             return read(restriction.first, pattern);
         } else if (restriction.list != null) {

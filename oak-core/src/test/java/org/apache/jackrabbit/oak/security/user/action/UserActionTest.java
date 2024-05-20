@@ -50,11 +50,13 @@ public class UserActionTest extends AbstractSecurityTest {
     private UserAction userAction = mock(UserAction.class);
     private ClearProfileAction clearProfileAction = new ClearProfileAction();
 
-    private final AuthorizableActionProvider actionProvider = securityProvider -> ImmutableList.of(userAction, clearProfileAction);
+    private final AuthorizableActionProvider actionProvider = securityProvider -> ImmutableList.of(
+        userAction, clearProfileAction);
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        ConfigurationParameters userParams = ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider);
+        ConfigurationParameters userParams = ConfigurationParameters.of(
+            UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider);
         return ConfigurationParameters.of(UserConfiguration.NAME, userParams);
     }
 
@@ -64,13 +66,17 @@ public class UserActionTest extends AbstractSecurityTest {
         user.disable("disabled");
 
         verify(userAction, times(1)).onDisable(user, "disabled", root, getNamePathMapper());
-        verify(userAction, never()).onGrantImpersonation(any(User.class), any(Principal.class), any(Root.class), any(NamePathMapper.class));
-        verify(userAction, never()).onRevokeImpersonation(any(User.class), any(Principal.class), any(Root.class), any(NamePathMapper.class));
+        verify(userAction, never()).onGrantImpersonation(any(User.class), any(Principal.class),
+            any(Root.class), any(NamePathMapper.class));
+        verify(userAction, never()).onRevokeImpersonation(any(User.class), any(Principal.class),
+            any(Root.class), any(NamePathMapper.class));
 
         user.disable(null);
         verify(userAction, times(1)).onDisable(user, null, root, getNamePathMapper());
-        verify(userAction, never()).onGrantImpersonation(any(User.class), any(Principal.class), any(Root.class), any(NamePathMapper.class));
-        verify(userAction, never()).onRevokeImpersonation(any(User.class), any(Principal.class), any(Root.class), any(NamePathMapper.class));
+        verify(userAction, never()).onGrantImpersonation(any(User.class), any(Principal.class),
+            any(Root.class), any(NamePathMapper.class));
+        verify(userAction, never()).onRevokeImpersonation(any(User.class), any(Principal.class),
+            any(Root.class), any(NamePathMapper.class));
     }
 
     @Test
@@ -80,9 +86,12 @@ public class UserActionTest extends AbstractSecurityTest {
 
         user.getImpersonation().grantImpersonation(p2);
 
-        verify(userAction, never()).onDisable(any(User.class), anyString(), any(Root.class), any(NamePathMapper.class));
-        verify(userAction, times(1)).onGrantImpersonation(any(User.class), any(Principal.class), any(Root.class), any(NamePathMapper.class));
-        verify(userAction, never()).onRevokeImpersonation(any(User.class), any(Principal.class), any(Root.class), any(NamePathMapper.class));
+        verify(userAction, never()).onDisable(any(User.class), anyString(), any(Root.class),
+            any(NamePathMapper.class));
+        verify(userAction, times(1)).onGrantImpersonation(any(User.class), any(Principal.class),
+            any(Root.class), any(NamePathMapper.class));
+        verify(userAction, never()).onRevokeImpersonation(any(User.class), any(Principal.class),
+            any(Root.class), any(NamePathMapper.class));
     }
 
     @Test
@@ -92,9 +101,12 @@ public class UserActionTest extends AbstractSecurityTest {
 
         user.getImpersonation().revokeImpersonation(p2);
 
-        verify(userAction, never()).onDisable(any(User.class), anyString(), any(Root.class), any(NamePathMapper.class));
-        verify(userAction, never()).onGrantImpersonation(any(User.class), any(Principal.class), any(Root.class), any(NamePathMapper.class));
-        verify(userAction, times(1)).onRevokeImpersonation(any(User.class), any(Principal.class), any(Root.class), any(NamePathMapper.class));
+        verify(userAction, never()).onDisable(any(User.class), anyString(), any(Root.class),
+            any(NamePathMapper.class));
+        verify(userAction, never()).onGrantImpersonation(any(User.class), any(Principal.class),
+            any(Root.class), any(NamePathMapper.class));
+        verify(userAction, times(1)).onRevokeImpersonation(any(User.class), any(Principal.class),
+            any(Root.class), any(NamePathMapper.class));
     }
 
     @Test
@@ -126,7 +138,8 @@ public class UserActionTest extends AbstractSecurityTest {
     class ClearProfileAction extends AbstractAuthorizableAction implements UserAction {
 
         @Override
-        public void onDisable(@NotNull User user, @Nullable String disableReason, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+        public void onDisable(@NotNull User user, @Nullable String disableReason,
+            @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             if (disableReason != null) {
                 Tree t = root.getTree(user.getPath());
                 if (t.exists() && t.hasChild("profiles")) {
@@ -136,12 +149,14 @@ public class UserActionTest extends AbstractSecurityTest {
         }
 
         @Override
-        public void onGrantImpersonation(@NotNull User user, @NotNull Principal principal, @NotNull Root root, @NotNull NamePathMapper namePathMapper) {
+        public void onGrantImpersonation(@NotNull User user, @NotNull Principal principal,
+            @NotNull Root root, @NotNull NamePathMapper namePathMapper) {
             // nothing to do
         }
 
         @Override
-        public void onRevokeImpersonation(@NotNull User user, @NotNull Principal principal, @NotNull Root root, @NotNull NamePathMapper namePathMapper) {
+        public void onRevokeImpersonation(@NotNull User user, @NotNull Principal principal,
+            @NotNull Root root, @NotNull NamePathMapper namePathMapper) {
             // nothing to do
         }
     }

@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Collections;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.query.plan.ExecutionPlan;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -30,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * The base class of a selector and a join.
  */
 public abstract class SourceImpl extends AstElement {
-    
+
     /**
      * Set the complete constraint of the query (the WHERE ... condition).
      *
@@ -41,19 +40,20 @@ public abstract class SourceImpl extends AstElement {
     /**
      * Add the join condition (the ON ... condition).
      *
-     * @param joinCondition the join condition
-     * @param forThisSelector if set, the join condition can only be evaluated
-     *        when all previous selectors are executed.
+     * @param joinCondition   the join condition
+     * @param forThisSelector if set, the join condition can only be evaluated when all previous
+     *                        selectors are executed.
      */
     public abstract void addJoinCondition(JoinConditionImpl joinCondition, boolean forThisSelector);
 
     /**
      * Set whether this source is the left hand side or right hand side of a left outer join.
      *
-     * @param outerJoinLeftHandSide true if yes
+     * @param outerJoinLeftHandSide  true if yes
      * @param outerJoinRightHandSide true if yes
      */
-    public abstract void setOuterJoin(boolean outerJoinLeftHandSide, boolean outerJoinRightHandSide);
+    public abstract void setOuterJoin(boolean outerJoinLeftHandSide,
+        boolean outerJoinRightHandSide);
 
     /**
      * Get the selector with the given name, or null if not found.
@@ -94,26 +94,26 @@ public abstract class SourceImpl extends AstElement {
     public abstract String getIndexCostInfo(NodeState rootState);
 
     /**
-     * Prepare executing the query (recursively). This will 'wire' the
-     * selectors with the join constraints, and decide which index to use.
-     * 
+     * Prepare executing the query (recursively). This will 'wire' the selectors with the join
+     * constraints, and decide which index to use.
+     *
      * @return the execution plan
      */
     public abstract ExecutionPlan prepare();
-    
+
     /**
      * Undo a prepare.
      */
     public abstract void unprepare();
 
     /**
-     * Re-apply a previously prepared plan. This will also 're-wire' the
-     * selectors with the join constraints
-     * 
+     * Re-apply a previously prepared plan. This will also 're-wire' the selectors with the join
+     * constraints
+     *
      * @param p the plan to use
      */
     public abstract void prepare(ExecutionPlan p);
-    
+
     /**
      * Execute the query. The current node is set to before the first row.
      *
@@ -122,8 +122,8 @@ public abstract class SourceImpl extends AstElement {
     public abstract void execute(NodeState rootState);
 
     /**
-     * Go to the next node for the given source. This will also filter the
-     * result for the right node type if required.
+     * Go to the next node for the given source. This will also filter the result for the right node
+     * type if required.
      *
      * @return true if there is a next row
      */
@@ -131,9 +131,9 @@ public abstract class SourceImpl extends AstElement {
 
     /**
      * <b>!Test purpose only! </b>
-     * 
+     * <p>
      * this creates a filter for the given query
-     * 
+     *
      * @param preparing whether this this the prepare phase
      * @return a new filter
      */
@@ -141,33 +141,33 @@ public abstract class SourceImpl extends AstElement {
 
     /**
      * Get all sources that are joined via inner join. (These can be swapped.)
-     * 
+     *
      * @return the list of selectors (sorted from left to right)
      */
     public abstract List<SourceImpl> getInnerJoinSelectors();
-    
+
     /**
      * Get the list of inner join conditions. (These match the inner join selectors.)
-     * 
+     *
      * @return the list of join conditions
      */
     public List<JoinConditionImpl> getInnerJoinConditions() {
         return Collections.emptyList();
     }
-    
+
     /**
      * Whether any selector is the outer-join right hand side.
-     * 
+     *
      * @return true if there is any
      */
     public abstract boolean isOuterJoinRightHandSide();
 
     /**
      * Get the size if known.
-     * 
+     *
      * @param rootState the root node state (to initialize the cursor, if needed)
      * @param precision the required precision
-     * @param max the maximum nodes read (for an exact size)
+     * @param max       the maximum nodes read (for an exact size)
      * @return the size, or -1 if unknown
      */
     public abstract long getSize(NodeState rootState, SizePrecision precision, long max);

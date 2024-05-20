@@ -62,7 +62,7 @@ public class NodeTypeIndexTest {
 
         // remove "rep:security" as it interferes with tests
         root.getChildNode("rep:security").remove();
-        
+
         // set "entryCount", so the node type index counts the nodes
         // and the approximation is not used
         root.getChildNode("oak:index").getChildNode("nodetype").setProperty("entryCount", -1);
@@ -72,11 +72,11 @@ public class NodeTypeIndexTest {
         addFile(root, "file-1");
 
         store.merge(root, new EditorHook(new IndexUpdateProvider(
-                new PropertyIndexEditorProvider())), CommitInfo.EMPTY);
+            new PropertyIndexEditorProvider())), CommitInfo.EMPTY);
 
         NodeState rootState = store.getRoot();
         NodeTypeIndex index = new NodeTypeIndex(
-                Mounts.defaultMountInfoProvider());
+            Mounts.defaultMountInfoProvider());
         FilterImpl filter;
 
         filter = createFilter(rootState, JcrConstants.NT_FOLDER);
@@ -94,16 +94,17 @@ public class NodeTypeIndexTest {
 
     private static FilterImpl createFilter(NodeState root, String nodeTypeName) {
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
-        NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);        
+        NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
-        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
+        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]",
+            new QueryEngineSettings());
     }
 
     private static void checkCursor(Cursor cursor, String... matches) {
         // make sure the index is actually used
         // and does not traverse
         assertEquals(PathCursor.class.getName(),
-                cursor.getClass().getName());
+            cursor.getClass().getName());
         Set<String> expected = Sets.newHashSet();
         expected.addAll(Arrays.asList(matches));
         Set<String> actual = Sets.newHashSet();
@@ -118,10 +119,10 @@ public class NodeTypeIndexTest {
     }
 
     private NodeBuilder addFile(NodeBuilder node, String name)
-            throws IOException {
+        throws IOException {
         NodeBuilder file = addChild(node, name, JcrConstants.NT_FILE);
         NodeBuilder content = addChild(file, JcrConstants.JCR_CONTENT,
-                JcrConstants.NT_RESOURCE);
+            JcrConstants.NT_RESOURCE);
         content.setProperty(JcrConstants.JCR_MIMETYPE, "text/plain");
         Blob blob = store.createBlob(new ByteArrayInputStream("Apache Oak".getBytes()));
         content.setProperty(JcrConstants.JCR_DATA, blob);
@@ -130,7 +131,7 @@ public class NodeTypeIndexTest {
 
     private static NodeBuilder addChild(NodeBuilder node, String name, String nodeType) {
         return node.child(name).setProperty(
-                JcrConstants.JCR_PRIMARYTYPE, nodeType, Type.NAME);
+            JcrConstants.JCR_PRIMARYTYPE, nodeType, Type.NAME);
     }
 
 }

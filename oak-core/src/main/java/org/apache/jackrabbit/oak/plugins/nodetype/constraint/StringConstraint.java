@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class StringConstraint implements Predicate<Value> {
+
     private static final Logger log = LoggerFactory.getLogger(StringConstraint.class);
 
     private final Pattern pattern;
@@ -36,8 +37,7 @@ public class StringConstraint implements Predicate<Value> {
         Pattern p;
         try {
             p = Pattern.compile(definition);
-        }
-        catch (PatternSyntaxException pse) {
+        } catch (PatternSyntaxException pse) {
             String msg = '\'' + definition + "' is not valid regular expression syntax";
             log.warn(msg);
             p = null;
@@ -54,8 +54,7 @@ public class StringConstraint implements Predicate<Value> {
         try {
             Matcher matcher = pattern.matcher(value.getString());
             return matcher.matches();
-        }
-        catch (RepositoryException e) {
+        } catch (RepositoryException e) {
             log.warn("Error checking string constraint " + this, e);
             return false;
         }

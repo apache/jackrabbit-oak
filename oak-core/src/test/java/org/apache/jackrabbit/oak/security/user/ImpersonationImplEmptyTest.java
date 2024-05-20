@@ -85,7 +85,9 @@ public class ImpersonationImplEmptyTest extends AbstractSecurityTest {
     }
 
     private Principal getAdminPrincipal() throws Exception {
-        String id = getConfig(UserConfiguration.class).getParameters().getConfigValue(UserConstants.PARAM_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID);
+        String id = getConfig(UserConfiguration.class).getParameters()
+                                                      .getConfigValue(UserConstants.PARAM_ADMIN_ID,
+                                                          UserConstants.DEFAULT_ADMIN_ID);
         User adminUser = getUserManager(root).getAuthorizable(id, User.class);
         assertNotNull(adminUser);
 
@@ -94,7 +96,8 @@ public class ImpersonationImplEmptyTest extends AbstractSecurityTest {
 
     @NotNull
     static Subject createSubject(@NotNull Principal... principals) {
-        return new Subject(true, ImmutableSet.copyOf(principals), ImmutableSet.of(), ImmutableSet.of());
+        return new Subject(true, ImmutableSet.copyOf(principals), ImmutableSet.of(),
+            ImmutableSet.of());
     }
 
     @Test
@@ -104,18 +107,21 @@ public class ImpersonationImplEmptyTest extends AbstractSecurityTest {
 
     @Test
     public void testGrantNonExistingPrincipal() throws Exception {
-        assertFalse(impersonation.grantImpersonation(new PrincipalImpl("principal" + UUID.randomUUID())));
+        assertFalse(
+            impersonation.grantImpersonation(new PrincipalImpl("principal" + UUID.randomUUID())));
     }
 
     @Test
     public void testGrantNonExistingTreeBasedPrincipal() throws Exception {
-        TreeBasedPrincipal tbPrincipal = new TreeBasedPrincipal("name", "/nonExisting", getNamePathMapper());
+        TreeBasedPrincipal tbPrincipal = new TreeBasedPrincipal("name", "/nonExisting",
+            getNamePathMapper());
         assertFalse(impersonation.grantImpersonation(tbPrincipal));
     }
 
     @Test
     public void testGrantNonAuthorizableTreeBasedPrincipal() throws Exception {
-        TreeBasedPrincipal tbPrincipal = new TreeBasedPrincipal("name", PathUtils.ROOT_PATH, getNamePathMapper());
+        TreeBasedPrincipal tbPrincipal = new TreeBasedPrincipal("name", PathUtils.ROOT_PATH,
+            getNamePathMapper());
         assertFalse(impersonation.grantImpersonation(tbPrincipal));
     }
 
@@ -131,7 +137,8 @@ public class ImpersonationImplEmptyTest extends AbstractSecurityTest {
 
     @Test
     public void testGrantAdminPrincipal3() throws Exception {
-        assertFalse(impersonation.grantImpersonation(new PrincipalImpl(getAdminPrincipal().getName())));
+        assertFalse(
+            impersonation.grantImpersonation(new PrincipalImpl(getAdminPrincipal().getName())));
     }
 
     @Test
@@ -206,7 +213,8 @@ public class ImpersonationImplEmptyTest extends AbstractSecurityTest {
 
     @Test
     public void testAllowsAdminPrincipal3() throws Exception {
-        assertTrue(impersonation.allows(createSubject(new PrincipalImpl(getAdminPrincipal().getName()))));
+        assertTrue(
+            impersonation.allows(createSubject(new PrincipalImpl(getAdminPrincipal().getName()))));
     }
 
     @Test

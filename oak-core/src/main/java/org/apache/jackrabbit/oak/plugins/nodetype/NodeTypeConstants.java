@@ -19,5 +19,7 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 /**
  * @deprecated Use {@link org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants} instead
  */
-public interface NodeTypeConstants extends org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants {
+public interface NodeTypeConstants extends
+    org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants {
+
 }

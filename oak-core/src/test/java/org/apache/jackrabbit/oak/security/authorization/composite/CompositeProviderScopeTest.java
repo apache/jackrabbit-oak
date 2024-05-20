@@ -44,35 +44,31 @@ import static org.junit.Assert.assertTrue;
 
 /**
  * Test the effect of the combination of
- *
- * - default permission provider
- * - custom provider that
- *   > supports namespace-management and nodetype-def-mgt permission on repository level
- *   > write permission below {@link #TEST_A_PATH}.
- *
- * The tests are executed both for the set of principals associated with the test
- * user and with the admin session.
- *
- * At the repository level, the effective result is as follows:
- * - admin has full access at repo-level without namespace management (which is denied)
- * - test user has only nodetype-definition-mgt left as namespace management is
- *   denied by the custom provider.
- *
- * Below {@link #TEST_A_PATH} the effective result is as follows:
- * - any permissions not covered by the custom provider are defined by the default
- * - {@link Permissions#ADD_PROPERTY} and {@link Permissions#ADD_NODE} are denied
- *   for both admin and test user (due to deny in the custom provider)
- * - the other aggregates of the write permission are allowed if the default
- *   provider allows them (different for admin and test user).
- *
- * All paths outside of the scope of the custom provider have the following
- * characteristics:
- * - admin has full access (all permissions granted)
- * - effective permissions for the test user are define by the default setup.
+ * <p>
+ * - default permission provider - custom provider that > supports namespace-management and
+ * nodetype-def-mgt permission on repository level > write permission below {@link #TEST_A_PATH}.
+ * <p>
+ * The tests are executed both for the set of principals associated with the test user and with the
+ * admin session.
+ * <p>
+ * At the repository level, the effective result is as follows: - admin has full access at
+ * repo-level without namespace management (which is denied) - test user has only
+ * nodetype-definition-mgt left as namespace management is denied by the custom provider.
+ * <p>
+ * Below {@link #TEST_A_PATH} the effective result is as follows: - any permissions not covered by
+ * the custom provider are defined by the default - {@link Permissions#ADD_PROPERTY} and
+ * {@link Permissions#ADD_NODE} are denied for both admin and test user (due to deny in the custom
+ * provider) - the other aggregates of the write permission are allowed if the default provider
+ * allows them (different for admin and test user).
+ * <p>
+ * All paths outside of the scope of the custom provider have the following characteristics: - admin
+ * has full access (all permissions granted) - effective permissions for the test user are define by
+ * the default setup.
  */
 public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
 
-    private static List<String> PATH_OUTSIDE_SCOPE = ImmutableList.of(ROOT_PATH, TEST_PATH, TEST_CHILD_PATH);
+    private static List<String> PATH_OUTSIDE_SCOPE = ImmutableList.of(ROOT_PATH, TEST_PATH,
+        TEST_CHILD_PATH);
 
     private CompositePermissionProvider cppTestUser;
     private CompositePermissionProvider cppAdminUser;
@@ -87,8 +83,10 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
     public void before() throws Exception {
         super.before();
 
-        cppTestUser = createPermissionProvider(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
-        cppAdminUser = createPermissionProvider(root.getContentSession().getAuthInfo().getPrincipals());
+        cppTestUser = createPermissionProvider(getTestUser().getPrincipal(),
+            EveryonePrincipal.getInstance());
+        cppAdminUser = createPermissionProvider(
+            root.getContentSession().getAuthInfo().getPrincipals());
 
         pbp = new PrivilegeBitsProvider(readOnlyRoot);
         denied = pbp.getBits(JCR_ADD_CHILD_NODES, REP_ADD_PROPERTIES);
@@ -113,7 +111,8 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
             Set<String> privNames = cppTestUser.getPrivileges(tree);
 
             if (testProvider.isSupported(path)) {
-                PrivilegeBits expected = pbp.getBits(defaultPrivs).modifiable().diff(denied).unmodifiable();
+                PrivilegeBits expected = pbp.getBits(defaultPrivs).modifiable().diff(denied)
+                                            .unmodifiable();
                 assertEquals(expected, pbp.getBits(privNames));
             } else {
                 assertEquals(path, defaultPrivs, privNames);
@@ -128,7 +127,8 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
             Set<String> privNames = cppAdminUser.getPrivileges(tree);
 
             if (testProvider.isSupported(path)) {
-                PrivilegeBits expected = pbp.getBits(JCR_ALL).modifiable().diff(denied).unmodifiable();
+                PrivilegeBits expected = pbp.getBits(JCR_ALL).modifiable().diff(denied)
+                                            .unmodifiable();
                 assertEquals(expected, pbp.getBits(privNames));
             } else {
                 assertEquals(path, ImmutableSet.of(JCR_ALL), privNames);
@@ -144,7 +144,8 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
 
     @Test
     public void testGetPrivilegesOnRepoAdmin() throws Exception {
-        PrivilegeBits expected = pbp.getBits(JCR_ALL).modifiable().diff(pbp.getBits(JCR_NAMESPACE_MANAGEMENT)).unmodifiable();
+        PrivilegeBits expected = pbp.getBits(JCR_ALL).modifiable()
+                                    .diff(pbp.getBits(JCR_NAMESPACE_MANAGEMENT)).unmodifiable();
         assertEquals(expected, pbp.getBits(cppAdminUser.getPrivileges(null)));
     }
 
@@ -156,26 +157,31 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
             Tree tree = readOnlyRoot.getTree(path);
 
             if (testProvider.isSupported(path)) {
-                Set<String> expected = pbp.getPrivilegeNames(pbp.getBits(defaultPrivs).modifiable().diff(denied));
-                assertTrue(path, cppTestUser.hasPrivileges(tree, expected.toArray(new String[expected.size()])));
+                Set<String> expected = pbp.getPrivilegeNames(
+                    pbp.getBits(defaultPrivs).modifiable().diff(denied));
+                assertTrue(path,
+                    cppTestUser.hasPrivileges(tree, expected.toArray(new String[expected.size()])));
 
                 assertFalse(path, cppTestUser.hasPrivileges(tree, JCR_ADD_CHILD_NODES));
                 assertFalse(path, cppTestUser.hasPrivileges(tree, REP_ADD_PROPERTIES));
                 assertFalse(path, cppTestUser.hasPrivileges(tree, JCR_MODIFY_PROPERTIES));
             } else {
-                assertTrue(path, cppTestUser.hasPrivileges(tree, defaultPrivs.toArray(new String[defaultPrivs.size()])));
+                assertTrue(path, cppTestUser.hasPrivileges(tree,
+                    defaultPrivs.toArray(new String[defaultPrivs.size()])));
             }
         }
     }
 
     @Test
     public void testHasPrivilegesAdmin() throws Exception {
-        Set<String> expectedAllowed = pbp.getPrivilegeNames(pbp.getBits(JCR_ALL).modifiable().diff(pbp.getBits(JCR_ADD_CHILD_NODES, REP_ADD_PROPERTIES)));
+        Set<String> expectedAllowed = pbp.getPrivilegeNames(pbp.getBits(JCR_ALL).modifiable().diff(
+            pbp.getBits(JCR_ADD_CHILD_NODES, REP_ADD_PROPERTIES)));
         for (String path : NODE_PATHS) {
             Tree tree = readOnlyRoot.getTree(path);
 
             if (testProvider.isSupported(path)) {
-                assertTrue(cppAdminUser.hasPrivileges(tree, expectedAllowed.toArray(new String[expectedAllowed.size()])));
+                assertTrue(cppAdminUser.hasPrivileges(tree,
+                    expectedAllowed.toArray(new String[expectedAllowed.size()])));
                 assertFalse(cppAdminUser.hasPrivileges(tree, JCR_ADD_CHILD_NODES));
                 assertFalse(cppAdminUser.hasPrivileges(tree, REP_ADD_PROPERTIES));
                 assertFalse(cppAdminUser.hasPrivileges(tree, JCR_WRITE));
@@ -188,7 +194,8 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
     @Test
     public void testHasPrivilegesOnRepo() throws Exception {
         assertFalse(cppTestUser.hasPrivileges(null, JCR_NAMESPACE_MANAGEMENT));
-        assertFalse(cppTestUser.hasPrivileges(null, JCR_NAMESPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT));
+        assertFalse(cppTestUser.hasPrivileges(null, JCR_NAMESPACE_MANAGEMENT,
+            JCR_NODE_TYPE_DEFINITION_MANAGEMENT));
         assertFalse(cppTestUser.hasPrivileges(null, JCR_ALL));
 
         assertTrue(cppTestUser.hasPrivileges(null, JCR_NODE_TYPE_DEFINITION_MANAGEMENT));
@@ -198,11 +205,13 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
     @Test
     public void testHasPrivilegeOnRepoAdmin() throws Exception {
         assertFalse(cppAdminUser.hasPrivileges(null, JCR_NAMESPACE_MANAGEMENT));
-        assertFalse(cppAdminUser.hasPrivileges(null, JCR_NAMESPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT));
+        assertFalse(cppAdminUser.hasPrivileges(null, JCR_NAMESPACE_MANAGEMENT,
+            JCR_NODE_TYPE_DEFINITION_MANAGEMENT));
         assertFalse(cppAdminUser.hasPrivileges(null, JCR_ALL));
 
         assertTrue(cppAdminUser.hasPrivileges(null, JCR_NODE_TYPE_DEFINITION_MANAGEMENT));
-        Set<String> expected = pbp.getPrivilegeNames(pbp.getBits(JCR_ALL).modifiable().diff(pbp.getBits(JCR_NAMESPACE_MANAGEMENT)));
+        Set<String> expected = pbp.getPrivilegeNames(
+            pbp.getBits(JCR_ALL).modifiable().diff(pbp.getBits(JCR_NAMESPACE_MANAGEMENT)));
         assertTrue(cppAdminUser.hasPrivileges(null, expected.toArray(new String[expected.size()])));
         assertTrue(cppAdminUser.hasPrivileges(null));
     }
@@ -214,7 +223,8 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
             Tree tree = readOnlyRoot.getTree(p);
 
             if (testProvider.isSupported(p)) {
-                long expected = Permissions.diff(defaultPerms, Permissions.ADD_NODE|Permissions.ADD_PROPERTY);
+                long expected = Permissions.diff(defaultPerms,
+                    Permissions.ADD_NODE | Permissions.ADD_PROPERTY);
                 assertTrue(cppTestUser.isGranted(tree, null, expected));
 
                 assertFalse(cppTestUser.isGranted(tree, null, Permissions.ADD_NODE));
@@ -233,10 +243,12 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
             Tree tree = readOnlyRoot.getTree(path);
 
             if (testProvider.isSupported(path)) {
-                assertTrue(cppAdminUser.isGranted(tree, null, Permissions.diff(Permissions.ALL, Permissions.ADD_NODE|Permissions.ADD_PROPERTY)));
+                assertTrue(cppAdminUser.isGranted(tree, null, Permissions.diff(Permissions.ALL,
+                    Permissions.ADD_NODE | Permissions.ADD_PROPERTY)));
                 assertFalse(cppAdminUser.isGranted(tree, null, Permissions.ADD_NODE));
                 assertFalse(cppAdminUser.isGranted(tree, null, Permissions.ADD_PROPERTY));
-                assertFalse(cppAdminUser.isGranted(tree, null, Permissions.ADD_NODE | Permissions.ADD_PROPERTY));
+                assertFalse(cppAdminUser.isGranted(tree, null,
+                    Permissions.ADD_NODE | Permissions.ADD_PROPERTY));
                 assertFalse(cppAdminUser.isGranted(tree, null, Permissions.WRITE));
             } else {
                 assertTrue(cppAdminUser.isGranted(tree, null, Permissions.ALL));
@@ -251,7 +263,8 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
             Tree tree = readOnlyRoot.getTree(p);
 
             if (testProvider.isSupported(p)) {
-                long expected = Permissions.diff(defaultPerms, Permissions.ADD_NODE|Permissions.ADD_PROPERTY);
+                long expected = Permissions.diff(defaultPerms,
+                    Permissions.ADD_NODE | Permissions.ADD_PROPERTY);
                 assertTrue(cppTestUser.isGranted(tree, PROPERTY_STATE, expected));
 
                 assertFalse(cppTestUser.isGranted(tree, PROPERTY_STATE, Permissions.ADD_PROPERTY));
@@ -269,10 +282,13 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
             Tree tree = readOnlyRoot.getTree(p);
 
             if (testProvider.isSupported(p)) {
-                assertTrue(cppAdminUser.isGranted(tree, PROPERTY_STATE, Permissions.diff(Permissions.ALL, Permissions.ADD_NODE|Permissions.ADD_PROPERTY)));
+                assertTrue(cppAdminUser.isGranted(tree, PROPERTY_STATE,
+                    Permissions.diff(Permissions.ALL,
+                        Permissions.ADD_NODE | Permissions.ADD_PROPERTY)));
                 assertFalse(cppAdminUser.isGranted(tree, PROPERTY_STATE, Permissions.ADD_NODE));
                 assertFalse(cppAdminUser.isGranted(tree, PROPERTY_STATE, Permissions.ADD_PROPERTY));
-                assertFalse(cppAdminUser.isGranted(tree, PROPERTY_STATE, Permissions.ADD_NODE | Permissions.ADD_PROPERTY));
+                assertFalse(cppAdminUser.isGranted(tree, PROPERTY_STATE,
+                    Permissions.ADD_NODE | Permissions.ADD_PROPERTY));
                 assertFalse(cppAdminUser.isGranted(tree, PROPERTY_STATE, Permissions.WRITE));
             } else {
                 assertTrue(cppAdminUser.isGranted(tree, PROPERTY_STATE, Permissions.ALL));
@@ -282,7 +298,8 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
 
     @Test
     public void testIsGrantedAction() throws Exception {
-        Set<String> denied = ImmutableSet.of(Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_ADD_PROPERTY);
+        Set<String> denied = ImmutableSet.of(Session.ACTION_ADD_NODE,
+            JackrabbitSession.ACTION_ADD_PROPERTY);
 
         for (String p : defActionsGranted.keySet()) {
             String[] actions = defActionsGranted.get(p);
@@ -296,9 +313,11 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
                     expected.remove(Session.ACTION_SET_PROPERTY);
                 }
 
-                assertTrue(p, cppTestUser.isGranted(p, getActionString(expected.toArray(new String[expected.size()]))));
+                assertTrue(p, cppTestUser.isGranted(p,
+                    getActionString(expected.toArray(new String[expected.size()]))));
 
-                assertEquals(p, canSetProperty, cppTestUser.isGranted(p, Session.ACTION_SET_PROPERTY));
+                assertEquals(p, canSetProperty,
+                    cppTestUser.isGranted(p, Session.ACTION_SET_PROPERTY));
                 assertFalse(p, cppTestUser.isGranted(p, Session.ACTION_ADD_NODE));
                 assertFalse(p, cppTestUser.isGranted(p, JackrabbitSession.ACTION_ADD_PROPERTY));
             } else {
@@ -310,17 +329,17 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
     @Test
     public void testIsGrantedActionAdmin() throws Exception {
         String[] grantedActions = new String[]{
-                Session.ACTION_READ,
-                JackrabbitSession.ACTION_REMOVE_NODE,
-                JackrabbitSession.ACTION_MODIFY_PROPERTY,
-                JackrabbitSession.ACTION_REMOVE_PROPERTY,
-                Session.ACTION_REMOVE,
-                JackrabbitSession.ACTION_READ_ACCESS_CONTROL,
-                JackrabbitSession.ACTION_MODIFY_ACCESS_CONTROL,
-                JackrabbitSession.ACTION_LOCKING,
-                JackrabbitSession.ACTION_NODE_TYPE_MANAGEMENT,
-                JackrabbitSession.ACTION_VERSIONING,
-                JackrabbitSession.ACTION_USER_MANAGEMENT
+            Session.ACTION_READ,
+            JackrabbitSession.ACTION_REMOVE_NODE,
+            JackrabbitSession.ACTION_MODIFY_PROPERTY,
+            JackrabbitSession.ACTION_REMOVE_PROPERTY,
+            Session.ACTION_REMOVE,
+            JackrabbitSession.ACTION_READ_ACCESS_CONTROL,
+            JackrabbitSession.ACTION_MODIFY_ACCESS_CONTROL,
+            JackrabbitSession.ACTION_LOCKING,
+            JackrabbitSession.ACTION_NODE_TYPE_MANAGEMENT,
+            JackrabbitSession.ACTION_VERSIONING,
+            JackrabbitSession.ACTION_USER_MANAGEMENT
         };
 
         for (String path : NODE_PATHS) {
@@ -341,13 +360,17 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
         RepositoryPermission rp = cppTestUser.getRepositoryPermission();
 
         assertFalse(rp.isGranted(Permissions.NAMESPACE_MANAGEMENT));
-        assertFalse(rp.isGranted(Permissions.NAMESPACE_MANAGEMENT | Permissions.NODE_TYPE_DEFINITION_MANAGEMENT));
-        assertFalse(rp.isGranted(Permissions.NAMESPACE_MANAGEMENT | Permissions.PRIVILEGE_MANAGEMENT));
+        assertFalse(rp.isGranted(
+            Permissions.NAMESPACE_MANAGEMENT | Permissions.NODE_TYPE_DEFINITION_MANAGEMENT));
+        assertFalse(
+            rp.isGranted(Permissions.NAMESPACE_MANAGEMENT | Permissions.PRIVILEGE_MANAGEMENT));
 
         assertTrue(rp.isGranted(Permissions.NODE_TYPE_DEFINITION_MANAGEMENT));
 
         assertFalse(rp.isGranted(Permissions.PRIVILEGE_MANAGEMENT));
-        assertFalse(rp.isGranted(Permissions.NODE_TYPE_DEFINITION_MANAGEMENT | Permissions.PRIVILEGE_MANAGEMENT | Permissions.WORKSPACE_MANAGEMENT));
+        assertFalse(rp.isGranted(
+            Permissions.NODE_TYPE_DEFINITION_MANAGEMENT | Permissions.PRIVILEGE_MANAGEMENT
+                | Permissions.WORKSPACE_MANAGEMENT));
 
         assertFalse(rp.isGranted(Permissions.ALL));
 
@@ -358,13 +381,17 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
         RepositoryPermission rp = cppAdminUser.getRepositoryPermission();
 
         assertFalse(rp.isGranted(Permissions.NAMESPACE_MANAGEMENT));
-        assertFalse(rp.isGranted(Permissions.NAMESPACE_MANAGEMENT | Permissions.NODE_TYPE_DEFINITION_MANAGEMENT));
-        assertFalse(rp.isGranted(Permissions.NAMESPACE_MANAGEMENT | Permissions.PRIVILEGE_MANAGEMENT));
+        assertFalse(rp.isGranted(
+            Permissions.NAMESPACE_MANAGEMENT | Permissions.NODE_TYPE_DEFINITION_MANAGEMENT));
+        assertFalse(
+            rp.isGranted(Permissions.NAMESPACE_MANAGEMENT | Permissions.PRIVILEGE_MANAGEMENT));
 
         assertTrue(rp.isGranted(Permissions.NODE_TYPE_DEFINITION_MANAGEMENT));
 
         assertTrue(rp.isGranted(Permissions.PRIVILEGE_MANAGEMENT));
-        assertTrue(rp.isGranted(Permissions.NODE_TYPE_DEFINITION_MANAGEMENT|Permissions.PRIVILEGE_MANAGEMENT|Permissions.WORKSPACE_MANAGEMENT));
+        assertTrue(rp.isGranted(
+            Permissions.NODE_TYPE_DEFINITION_MANAGEMENT | Permissions.PRIVILEGE_MANAGEMENT
+                | Permissions.WORKSPACE_MANAGEMENT));
 
         assertFalse(rp.isGranted(Permissions.ALL));
     }
@@ -374,12 +401,15 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
         TreePermission parentPermission = TreePermission.EMPTY;
 
         for (String path : TP_PATHS) {
-            TreePermission tp = cppTestUser.getTreePermission(readOnlyRoot.getTree(path), parentPermission);
+            TreePermission tp = cppTestUser.getTreePermission(readOnlyRoot.getTree(path),
+                parentPermission);
 
-            Long toTest = (defPermissions.containsKey(path)) ? defPermissions.get(path) : defPermissions.get(PathUtils.getAncestorPath(path, 1));
+            Long toTest = (defPermissions.containsKey(path)) ? defPermissions.get(path)
+                : defPermissions.get(PathUtils.getAncestorPath(path, 1));
             if (toTest != null) {
                 if (testProvider.isSupported(path)) {
-                    assertTrue(tp.isGranted(Permissions.diff(toTest, Permissions.ADD_NODE|Permissions.ADD_PROPERTY)));
+                    assertTrue(tp.isGranted(
+                        Permissions.diff(toTest, Permissions.ADD_NODE | Permissions.ADD_PROPERTY)));
                     assertFalse(tp.isGranted(Permissions.ADD_PROPERTY | Permissions.ADD_NODE));
                 } else {
                     assertTrue(tp.isGranted(toTest));
@@ -390,14 +420,16 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
     }
 
     @Test
-    public void testTreePermissionIsGrantedAdmin( ) {
+    public void testTreePermissionIsGrantedAdmin() {
         TreePermission parentPermission = TreePermission.EMPTY;
 
         for (String path : TP_PATHS) {
-            TreePermission tp = cppAdminUser.getTreePermission(readOnlyRoot.getTree(path), parentPermission);
+            TreePermission tp = cppAdminUser.getTreePermission(readOnlyRoot.getTree(path),
+                parentPermission);
 
             if (testProvider.isSupported(path)) {
-                assertTrue(path, tp.isGranted(Permissions.diff(Permissions.ALL, Permissions.ADD_NODE|Permissions.ADD_PROPERTY)));
+                assertTrue(path, tp.isGranted(Permissions.diff(Permissions.ALL,
+                    Permissions.ADD_NODE | Permissions.ADD_PROPERTY)));
                 assertFalse(path, tp.isGranted(Permissions.ADD_PROPERTY | Permissions.ADD_NODE));
                 assertFalse(path, tp.isGranted(Permissions.ALL));
             } else {
@@ -422,11 +454,15 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
         TreePermission parentPermission = TreePermission.EMPTY;
 
         for (String path : TP_PATHS) {
-            TreePermission tp = cppTestUser.getTreePermission(readOnlyRoot.getTree(path), parentPermission);
-            Long toTest = (defPermissions.containsKey(path)) ? defPermissions.get(path) : defPermissions.get(PathUtils.getAncestorPath(path, 1));
+            TreePermission tp = cppTestUser.getTreePermission(readOnlyRoot.getTree(path),
+                parentPermission);
+            Long toTest = (defPermissions.containsKey(path)) ? defPermissions.get(path)
+                : defPermissions.get(PathUtils.getAncestorPath(path, 1));
             if (toTest != null) {
                 if (testProvider.isSupported(path)) {
-                    assertTrue(tp.isGranted(Permissions.diff(toTest, Permissions.ADD_NODE|Permissions.ADD_PROPERTY), PROPERTY_STATE));
+                    assertTrue(tp.isGranted(
+                        Permissions.diff(toTest, Permissions.ADD_NODE | Permissions.ADD_PROPERTY),
+                        PROPERTY_STATE));
                     assertFalse(tp.isGranted(Permissions.ADD_PROPERTY, PROPERTY_STATE));
                 } else {
                     assertTrue(tp.isGranted(toTest, PROPERTY_STATE));
@@ -439,13 +475,13 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
     @Test
     public void testTreePermissionCanRead() throws Exception {
         Map<String, Boolean> readMap = ImmutableMap.<String, Boolean>builder().
-                put(ROOT_PATH, false).
-                put(TEST_PATH, true).
-                put(TEST_A_PATH, true).
-                put(TEST_A_B_PATH, true).
-                put(TEST_A_B_C_PATH, false).
-                put(TEST_A_B_C_PATH + "/nonexisting", false).
-                build();
+                                                   put(ROOT_PATH, false).
+                                                   put(TEST_PATH, true).
+                                                   put(TEST_A_PATH, true).
+                                                   put(TEST_A_B_PATH, true).
+                                                   put(TEST_A_B_C_PATH, false).
+                                                   put(TEST_A_B_C_PATH + "/nonexisting", false).
+                                                   build();
 
         TreePermission parentPermission = TreePermission.EMPTY;
         for (String nodePath : readMap.keySet()) {
@@ -462,13 +498,13 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
     @Test
     public void testTreePermissionCanReadProperty() throws Exception {
         Map<String, Boolean> readMap = ImmutableMap.<String, Boolean>builder().
-                put(ROOT_PATH, false).
-                put(TEST_PATH, true).
-                put(TEST_A_PATH, true).
-                put(TEST_A_B_PATH, true).
-                put(TEST_A_B_C_PATH, true).
-                put(TEST_A_B_C_PATH + "/nonexisting", true).
-                build();
+                                                   put(ROOT_PATH, false).
+                                                   put(TEST_PATH, true).
+                                                   put(TEST_A_PATH, true).
+                                                   put(TEST_A_B_PATH, true).
+                                                   put(TEST_A_B_C_PATH, true).
+                                                   put(TEST_A_B_C_PATH + "/nonexisting", true).
+                                                   build();
 
         TreePermission parentPermission = TreePermission.EMPTY;
         for (String nodePath : readMap.keySet()) {

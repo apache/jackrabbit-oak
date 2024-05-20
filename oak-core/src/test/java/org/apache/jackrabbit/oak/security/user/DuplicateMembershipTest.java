@@ -40,13 +40,13 @@ public class DuplicateMembershipTest extends AbstractSecurityTest {
 
     private Group group;
     private Authorizable member;
-    
-    @Before 
+
+    @Before
     public void before() throws Exception {
         super.before();
         UserManagerImpl userManager = (UserManagerImpl) spy(getUserManager(root));
         member = userManager.getAuthorizable(getTestUser().getID());
-        
+
         group = userManager.createGroup("dynamicTestGroup");
         group.addMember(member);
         root.commit();
@@ -65,15 +65,18 @@ public class DuplicateMembershipTest extends AbstractSecurityTest {
         }
     }
 
-    private @NotNull DynamicMembershipProvider mockDynamicMembershipProvider() throws RepositoryException {
+    private @NotNull DynamicMembershipProvider mockDynamicMembershipProvider()
+        throws RepositoryException {
         DynamicMembershipProvider dmp = mock(DynamicMembershipProvider.class);
         when(dmp.coversAllMembers(any(Group.class))).thenReturn(true);
         // mock iterators with duplicate entries
-        when(dmp.getMembers(any(Group.class), anyBoolean())).thenReturn(Iterators.forArray(member, member));
-        when(dmp.getMembership(any(Authorizable.class), anyBoolean())).thenReturn(Iterators.forArray(group, group));
+        when(dmp.getMembers(any(Group.class), anyBoolean())).thenReturn(
+            Iterators.forArray(member, member));
+        when(dmp.getMembership(any(Authorizable.class), anyBoolean())).thenReturn(
+            Iterators.forArray(group, group));
         return dmp;
     }
-    
+
     @Test
     public void testGetMembers() throws Exception {
         when(dmp.coversAllMembers(any(Group.class))).thenReturn(false);
@@ -97,7 +100,7 @@ public class DuplicateMembershipTest extends AbstractSecurityTest {
         when(dmp.coversAllMembers(any(Group.class))).thenReturn(true);
         assertEquals(1, Iterators.size(group.getDeclaredMembers()));
     }
-    
+
     @Test
     public void testGetMembership() throws Exception {
         assertEquals(1, Iterators.size(member.memberOf()));

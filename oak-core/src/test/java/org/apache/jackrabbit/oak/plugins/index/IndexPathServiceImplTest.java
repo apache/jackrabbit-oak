@@ -53,20 +53,20 @@ public class IndexPathServiceImplTest extends AbstractQueryTest {
     @Override
     protected ContentRepository createRepository() {
         return new Oak(nodeStore).with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .with(new NodeTypeIndexProvider())
-                .with(new PropertyIndexEditorProvider())
-                .createContentRepository();
+                                 .with(new OpenSecurityProvider())
+                                 .with(new NodeTypeIndexProvider())
+                                 .with(new PropertyIndexEditorProvider())
+                                 .createContentRepository();
     }
 
     @Test
-    public void noErrorIfQueryDefinitionsNotIndexed() throws Exception{
+    public void noErrorIfQueryDefinitionsNotIndexed() throws Exception {
         Set<String> paths = Sets.newHashSet(indexPathService.getIndexPaths());
         assertThat(paths, hasItem("/oak:index/uuid"));
     }
 
     @Test(expected = IllegalStateException.class)
-    public void errorIfNodetypeIndexDisabled() throws Exception{
+    public void errorIfNodetypeIndexDisabled() throws Exception {
         Tree tree = root.getTree("/oak:index/nodetype");
         tree.setProperty("type", "disabled");
         root.commit();
@@ -74,7 +74,7 @@ public class IndexPathServiceImplTest extends AbstractQueryTest {
     }
 
     @Test
-    public void nodeTypeIndexed() throws Exception{
+    public void nodeTypeIndexed() throws Exception {
         enableIndexDefinitionIndex();
         Set<String> paths = Sets.newHashSet(indexPathService.getIndexPaths());
         assertThat(paths, hasItem("/oak:index/uuid"));
@@ -83,7 +83,7 @@ public class IndexPathServiceImplTest extends AbstractQueryTest {
     }
 
     @Test
-    public void indexInSubTree() throws Exception{
+    public void indexInSubTree() throws Exception {
         enableIndexDefinitionIndex();
         Tree tree = root.getTree("/").addChild("a").addChild("b");
         Tree fooIndex = tree.addChild("oak:index").addChild("fooIndex");
@@ -100,8 +100,9 @@ public class IndexPathServiceImplTest extends AbstractQueryTest {
         assertTrue(nodetype.exists());
 
         List<String> nodetypes = Lists.newArrayList();
-        if (nodetype.hasProperty(DECLARING_NODE_TYPES)){
-            nodetypes = Lists.newArrayList(nodetype.getProperty(DECLARING_NODE_TYPES).getValue(Type.STRINGS));
+        if (nodetype.hasProperty(DECLARING_NODE_TYPES)) {
+            nodetypes = Lists.newArrayList(
+                nodetype.getProperty(DECLARING_NODE_TYPES).getValue(Type.STRINGS));
         }
 
         nodetypes.add(INDEX_DEFINITIONS_NODE_TYPE);

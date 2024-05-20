@@ -20,11 +20,10 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Collections;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,20 +36,20 @@ public class SimilarImpl extends ConstraintImpl {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     public static final String NATIVE_LUCENE_LANGUAGE = "lucene";
-    
+
     public static final String MORE_LIKE_THIS_PREFIX = "mlt?mlt.fl=:path&mlt.mindf=0&stream.body=";
-    
+
     private final String selectorName;
     private final String propertyName;
     private final StaticOperandImpl pathExpression;
     private SelectorImpl selector;
-    
+
     SimilarImpl(String selectorName, String propertyName, StaticOperandImpl pathExpression) {
         this.selectorName = selectorName;
         this.propertyName = propertyName;
         this.pathExpression = pathExpression;
     }
-    
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -64,7 +63,7 @@ public class SimilarImpl extends ConstraintImpl {
         builder.append(')');
         return builder.toString();
     }
-    
+
     @Override
     public boolean evaluate() {
         // disable evaluation if a fulltext index is used,
@@ -86,7 +85,7 @@ public class SimilarImpl extends ConstraintImpl {
                 return false;
             }
         }
-        
+
         // we assume the index only returns the requested entries
         return true;
     }
@@ -103,7 +102,8 @@ public class SimilarImpl extends ConstraintImpl {
             String path = p.getValue(Type.STRING);
             String query = MORE_LIKE_THIS_PREFIX + path;
             PropertyValue v = PropertyValues.newString(query);
-            f.restrictProperty(NativeFunctionImpl.NATIVE_PREFIX + NATIVE_LUCENE_LANGUAGE, Operator.EQUAL, v);
+            f.restrictProperty(NativeFunctionImpl.NATIVE_PREFIX + NATIVE_LUCENE_LANGUAGE,
+                Operator.EQUAL, v);
         }
     }
 
@@ -127,7 +127,7 @@ public class SimilarImpl extends ConstraintImpl {
     public void bindSelector(SourceImpl source) {
         selector = source.getExistingSelector(selectorName);
     }
-    
+
     public StaticOperandImpl getPathExpression() {
         return pathExpression;
     }

@@ -65,17 +65,19 @@ public class PrivilegeImplTest extends AbstractSecurityTest implements Privilege
         super.after();
     }
 
-    private static void assertAggregation(@NotNull Privilege[] aggr, @NotNull String... expectedNames) {
+    private static void assertAggregation(@NotNull Privilege[] aggr,
+        @NotNull String... expectedNames) {
         assertEquals(expectedNames.length, aggr.length);
 
         Set<String> expected = Sets.newHashSet(expectedNames);
-        Set<String> result = Sets.newHashSet(Iterables.transform(ImmutableSet.copyOf(aggr), new Function<Privilege, String>() {
-            @Nullable
-            @Override
-            public String apply(Privilege input) {
-                return input.getName();
-            }
-        }));
+        Set<String> result = Sets.newHashSet(
+            Iterables.transform(ImmutableSet.copyOf(aggr), new Function<Privilege, String>() {
+                @Nullable
+                @Override
+                public String apply(Privilege input) {
+                    return input.getName();
+                }
+            }));
 
         assertEquals(expected, result);
     }
@@ -107,7 +109,8 @@ public class PrivilegeImplTest extends AbstractSecurityTest implements Privilege
     @Test
     public void testGetDeclaredAggregatedPrivilegesSimple() {
         assertAggregation(privilege.getDeclaredAggregatePrivileges());
-        assertAggregation(aggrPrivilege.getDeclaredAggregatePrivileges(), JCR_NODE_TYPE_MANAGEMENT, JCR_WRITE);
+        assertAggregation(aggrPrivilege.getDeclaredAggregatePrivileges(), JCR_NODE_TYPE_MANAGEMENT,
+            JCR_WRITE);
     }
 
 
@@ -115,9 +118,9 @@ public class PrivilegeImplTest extends AbstractSecurityTest implements Privilege
     public void testGetAggregatedPrivileges() {
         assertAggregation(privilege.getAggregatePrivileges());
         assertAggregation(aggrPrivilege.getAggregatePrivileges(),
-                JCR_NODE_TYPE_MANAGEMENT,
-                JCR_WRITE, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE,
-                JCR_MODIFY_PROPERTIES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES);
+            JCR_NODE_TYPE_MANAGEMENT,
+            JCR_WRITE, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE,
+            JCR_MODIFY_PROPERTIES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES);
     }
 
     @Test
@@ -131,7 +134,8 @@ public class PrivilegeImplTest extends AbstractSecurityTest implements Privilege
         assertNotEquals(privilege, aggrPrivilege);
         assertNotEquals(allPrivilege, privilege);
 
-        final PrivilegeDefinition def = new PrivilegeDefinitionReader(root).readDefinition(privilege.getName());
+        final PrivilegeDefinition def = new PrivilegeDefinitionReader(root).readDefinition(
+            privilege.getName());
         assertNotNull(def);
         assertNotEquals(privilege, new Privilege() {
 
@@ -164,7 +168,8 @@ public class PrivilegeImplTest extends AbstractSecurityTest implements Privilege
 
     @Test
     public void testToString() {
-        PrivilegeDefinition def = new PrivilegeDefinitionReader(root).readDefinition(privilege.getName());
+        PrivilegeDefinition def = new PrivilegeDefinitionReader(root).readDefinition(
+            privilege.getName());
         assertEquals(def.getName(), privilege.toString());
     }
 

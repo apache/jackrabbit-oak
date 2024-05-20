@@ -48,17 +48,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@code LoginModule} implementation that is able to handle login request
- * based on {@link TokenCredentials}. In combination with another login module
- * that handles other {@code Credentials} implementation this module will also
- * take care of creating new login tokens and the corresponding credentials
- * upon {@link #commit()}that it will be able to deal with in subsequent
- * login calls.
+ * {@code LoginModule} implementation that is able to handle login request based on
+ * {@link TokenCredentials}. In combination with another login module that handles other
+ * {@code Credentials} implementation this module will also take care of creating new login tokens
+ * and the corresponding credentials upon {@link #commit()}that it will be able to deal with in
+ * subsequent login calls.
  *
  * <h2>Login and Commit</h2>
  * <h3>Login</h3>
- * This {@code LoginModule} implementation performs the following tasks upon
- * {@link #login()}.
+ * This {@code LoginModule} implementation performs the following tasks upon {@link #login()}.
  *
  * <ol>
  *     <li>Try to retrieve {@link TokenCredentials} credentials (see also
@@ -69,14 +67,14 @@ import org.slf4j.LoggerFactory;
  *     and calculates the principals associated with that user,</li>
  *     <li>and finally puts the credentials on the shared state.</li>
  * </ol>
- *
+ * <p>
  * If no {@code TokenProvider} has been configured {@link #login()} or if
  * no {@code TokenCredentials} can be obtained this module will return {@code false}.
  *
  * <h3>Commit</h3>
  * If login was successfully handled by this module the {@link #commit()} will
  * just populate the subject.<p>
- *
+ * <p>
  * If the login was successfully handled by another module in the chain, the
  * {@code TokenLoginModule} will test if the login was associated with a
  * request for login token generation. This mandates that there are credentials
@@ -138,7 +136,8 @@ public final class TokenLoginModule extends AbstractLoginModule {
         Credentials credentials = getCredentials();
         if (credentials instanceof TokenCredentials) {
             TokenCredentials tc = (TokenCredentials) credentials;
-            TokenAuthentication authentication = new TokenAuthentication(tokenProvider, getLoginModuleMonitor());
+            TokenAuthentication authentication = new TokenAuthentication(tokenProvider,
+                getLoginModuleMonitor());
             if (authentication.authenticate(tc)) {
                 tokenCredentials = tc;
                 tokenInfo = authentication.getTokenInfo();
@@ -156,8 +155,10 @@ public final class TokenLoginModule extends AbstractLoginModule {
     @Override
     public boolean commit() throws LoginException {
         if (tokenCredentials != null && tokenInfo != null) {
-            principals = (principal != null) ? getPrincipals(principal) : getPrincipals(tokenInfo.getUserId());
-            authInfo = getAuthInfo(tokenInfo, Iterables.concat(principals, subject.getPrincipals()));
+            principals = (principal != null) ? getPrincipals(principal)
+                : getPrincipals(tokenInfo.getUserId());
+            authInfo = getAuthInfo(tokenInfo,
+                Iterables.concat(principals, subject.getPrincipals()));
             updateSubject(subject, tokenCredentials, authInfo);
             closeSystemSession();
             return true;
@@ -173,15 +174,18 @@ public final class TokenLoginModule extends AbstractLoginModule {
                     TokenInfo ti = tokenProvider.createToken(shared);
                     if (ti != null) {
                         TokenCredentials tc = new TokenCredentials(ti.getToken());
-                        ti.getPrivateAttributes().forEach((key, value) -> tc.setAttribute(key, value));
-                        ti.getPublicAttributes().forEach((key, value) -> tc.setAttribute(key, value));
+                        ti.getPrivateAttributes()
+                          .forEach((key, value) -> tc.setAttribute(key, value));
+                        ti.getPublicAttributes()
+                          .forEach((key, value) -> tc.setAttribute(key, value));
                         sharedState.put(SHARED_KEY_ATTRIBUTES, ti.getPublicAttributes());
                         updateSubject(subject, tc, null);
                     } else {
                         // failed to create token -> fail commit()
                         onError();
                         Object logId = sharedState.get(SHARED_KEY_LOGIN_NAME);
-                        log.error("TokenProvider failed to create a login token for user {}", logId);
+                        log.error("TokenProvider failed to create a login token for user {}",
+                            logId);
                         throw new LoginException("Failed to create login token for user " + logId);
                     }
                 }
@@ -196,7 +200,8 @@ public final class TokenLoginModule extends AbstractLoginModule {
 
     @Override
     public boolean logout() throws LoginException {
-        Set creds = Stream.of(tokenCredentials, authInfo).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set creds = Stream.of(tokenCredentials, authInfo).filter(Objects::nonNull)
+                          .collect(Collectors.toSet());
         return logout((creds.isEmpty() ? null : creds), principals);
     }
 
@@ -223,6 +228,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
 
     /**
      * Retrieve the token provider
+     *
      * @return the token provider or {@code null}.
      */
     @Nullable
@@ -231,13 +237,14 @@ public final class TokenLoginModule extends AbstractLoginModule {
         SecurityProvider securityProvider = getSecurityProvider();
         Root root = getRoot();
         if (root != null && securityProvider != null) {
-            TokenConfiguration tokenConfig = securityProvider.getConfiguration(TokenConfiguration.class);
+            TokenConfiguration tokenConfig = securityProvider.getConfiguration(
+                TokenConfiguration.class);
             provider = tokenConfig.getTokenProvider(root);
         }
         if (provider == null && callbackHandler != null) {
             try {
                 TokenProviderCallback tcCallback = new TokenProviderCallback();
-                callbackHandler.handle(new Callback[] {tcCallback});
+                callbackHandler.handle(new Callback[]{tcCallback});
                 provider = tcCallback.getTokenProvider();
             } catch (IOException | UnsupportedCallbackException e) {
                 onError();
@@ -248,20 +255,22 @@ public final class TokenLoginModule extends AbstractLoginModule {
     }
 
     /**
-     * Create the {@code AuthInfo} for the specified {@code tokenInfo} as well as
-     * userId and principals, that have been set upon {@link #login}.
+     * Create the {@code AuthInfo} for the specified {@code tokenInfo} as well as userId and
+     * principals, that have been set upon {@link #login}.
      *
      * @param tokenInfo The tokenInfo to retrieve attributes from.
      * @return The {@code AuthInfo} resulting from the successful login.
      */
     @NotNull
-    private static AuthInfo getAuthInfo(@NotNull TokenInfo tokenInfo, @NotNull Iterable<? extends Principal> principals) {
+    private static AuthInfo getAuthInfo(@NotNull TokenInfo tokenInfo,
+        @NotNull Iterable<? extends Principal> principals) {
         Map<String, Object> attributes = new HashMap<>();
         tokenInfo.getPublicAttributes().forEach((key, value) -> attributes.put(key, value));
         return new AuthInfoImpl(tokenInfo.getUserId(), attributes, principals);
     }
 
-    private static void updateSubject(@NotNull Subject subject, @NotNull TokenCredentials tc, @Nullable AuthInfo authInfo) {
+    private static void updateSubject(@NotNull Subject subject, @NotNull TokenCredentials tc,
+        @Nullable AuthInfo authInfo) {
         if (!subject.isReadOnly()) {
             subject.getPublicCredentials().add(tc);
             if (authInfo != null) {

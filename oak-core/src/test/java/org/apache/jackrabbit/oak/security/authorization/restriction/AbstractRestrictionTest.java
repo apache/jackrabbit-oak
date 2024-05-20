@@ -35,7 +35,7 @@ public abstract class AbstractRestrictionTest extends AbstractSecurityTest {
     ValueFactory vf;
     ContentSession testSession;
     Principal testPrincipal;
-    
+
     @Override
     public void before() throws Exception {
         super.before();
@@ -65,7 +65,7 @@ public abstract class AbstractRestrictionTest extends AbstractSecurityTest {
         root.commit();
         testSession = createTestSession();
     }
-    
+
     abstract boolean addEntry(@NotNull JackrabbitAccessControlList acl) throws RepositoryException;
 
     @Override

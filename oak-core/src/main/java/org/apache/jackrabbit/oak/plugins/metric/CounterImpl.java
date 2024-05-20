@@ -23,6 +23,7 @@ import com.codahale.metrics.Counter;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 
 final class CounterImpl implements CounterStats {
+
     private final Counter counter;
 
     CounterImpl(Counter counter) {

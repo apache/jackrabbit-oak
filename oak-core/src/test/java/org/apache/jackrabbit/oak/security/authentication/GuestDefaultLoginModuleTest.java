@@ -49,16 +49,16 @@ public class GuestDefaultLoginModuleTest extends AbstractSecurityTest {
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
                 AppConfigurationEntry guestEntry = new AppConfigurationEntry(
-                        GuestLoginModule.class.getName(),
-                        AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL,
-                        Collections.<String, Object>emptyMap());
+                    GuestLoginModule.class.getName(),
+                    AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL,
+                    Collections.<String, Object>emptyMap());
 
                 AppConfigurationEntry defaultEntry = new AppConfigurationEntry(
-                        LoginModuleImpl.class.getName(),
-                        AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                        Collections.<String, Object>emptyMap());
+                    LoginModuleImpl.class.getName(),
+                    AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                    Collections.<String, Object>emptyMap());
 
-                return new AppConfigurationEntry[] {guestEntry, defaultEntry};
+                return new AppConfigurationEntry[]{guestEntry, defaultEntry};
             }
         };
     }

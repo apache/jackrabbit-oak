@@ -37,21 +37,21 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgumen
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 @Component(
-        configurationPolicy = ConfigurationPolicy.REQUIRE,
-        service = {},
-        name = "org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreTextProviderService")
+    configurationPolicy = ConfigurationPolicy.REQUIRE,
+    service = {},
+    name = "org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreTextProviderService")
 @Designate(ocd = DataStoreTextProviderService.Configuration.class)
 public class DataStoreTextProviderService {
 
     @ObjectClassDefinition(
-            name = "Apache Jackrabbit Oak DataStore PreExtractedTextProvider",
-            description = "Configures a PreExtractedTextProvider based on extracted text stored on FileSystem"
+        name = "Apache Jackrabbit Oak DataStore PreExtractedTextProvider",
+        description = "Configures a PreExtractedTextProvider based on extracted text stored on FileSystem"
     )
     @interface Configuration {
 
         @AttributeDefinition(
-                name = "Path",
-                description = "Local file system path where extracted text is stored in files."
+            name = "Path",
+            description = "Local file system path where extracted text is stored in files."
         )
         String dir();
     }
@@ -74,7 +74,7 @@ public class DataStoreTextProviderService {
     private void deactivate() throws IOException {
         textWriter.close();
 
-        if (reg != null){
+        if (reg != null) {
             reg.unregister();
         }
     }

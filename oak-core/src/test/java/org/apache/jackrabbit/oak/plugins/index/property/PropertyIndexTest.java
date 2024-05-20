@@ -97,7 +97,7 @@ public class PropertyIndexTest {
     private static final int MANY = 100;
 
     private static final EditorHook HOOK = new EditorHook(
-            new IndexUpdateProvider(new PropertyIndexEditorProvider()));
+        new IndexUpdateProvider(new PropertyIndexEditorProvider()));
 
     @Test
     public void costEstimation() throws Exception {
@@ -106,9 +106,9 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+            true, false, ImmutableSet.of("foo"), null);
         // disable the estimation
-        index.setProperty("entryCount", -1);        
+        index.setProperty("entryCount", -1);
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
@@ -129,15 +129,15 @@ public class PropertyIndexTest {
         assertTrue("cost: " + cost, cost >= 6.5 && cost <= 7.5);
 
         cost = lookup.getCost(f, "foo", PropertyValues.newString(
-                Arrays.asList("x1", "x2")));
+            Arrays.asList("x1", "x2")));
         assertTrue("cost: " + cost, cost >= 11.5 && cost <= 12.5);
 
         cost = lookup.getCost(f, "foo", PropertyValues.newString(
-                Arrays.asList("x1", "x2", "x3", "x4", "x5")));
+            Arrays.asList("x1", "x2", "x3", "x4", "x5")));
         assertTrue("cost: " + cost, cost >= 26.5 && cost <= 27.5);
 
         cost = lookup.getCost(f, "foo", PropertyValues.newString(
-                Arrays.asList("x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x0")));
+            Arrays.asList("x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x0")));
         assertTrue("cost: " + cost, cost >= 51.5 && cost <= 52.5);
 
         cost = lookup.getCost(f, "foo", null);
@@ -146,8 +146,10 @@ public class PropertyIndexTest {
 
     /**
      * This is essentially same test as {@link #costEstimation()} with one difference that it uses
-     * path constraint in query and creates similar trees under 2 branches {@code path1} and {@code path2}.
-     * The cost estimation is then verified to be same as that in {@code costEstimation} for query under {@code path1}
+     * path constraint in query and creates similar trees under 2 branches {@code path1} and
+     * {@code path2}. The cost estimation is then verified to be same as that in
+     * {@code costEstimation} for query under {@code path1}
+     *
      * @throws Exception
      */
     @Test
@@ -157,7 +159,7 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+            true, false, ImmutableSet.of("foo"), null);
         // disable the estimation
         index.setProperty("entryCount", -1);
         builder.setProperty(COUNT_PROPERTY_NAME, (long) MANY * 2, Type.LONG);
@@ -186,15 +188,15 @@ public class PropertyIndexTest {
         assertTrue("cost: " + cost, cost >= 10 && cost <= 14);
 
         cost = lookup.getCost(f, "foo", PropertyValues.newString(
-                Arrays.asList("x1", "x2")));
+            Arrays.asList("x1", "x2")));
         assertTrue("cost: " + cost, cost >= 20 && cost <= 24);
 
         cost = lookup.getCost(f, "foo", PropertyValues.newString(
-                Arrays.asList("x1", "x2", "x3", "x4", "x5")));
+            Arrays.asList("x1", "x2", "x3", "x4", "x5")));
         assertTrue("cost: " + cost, cost >= 50 && cost <= 54);
 
         cost = lookup.getCost(f, "foo", PropertyValues.newString(
-                Arrays.asList("x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x0")));
+            Arrays.asList("x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x0")));
         assertTrue("cost: " + cost, cost >= 120 && cost <= 124);
 
         cost = lookup.getCost(f, "foo", null);
@@ -208,7 +210,7 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+            true, false, ImmutableSet.of("foo"), null);
         NodeState before = builder.getNodeState();
 
         // 100 nodes in the index:
@@ -245,12 +247,12 @@ public class PropertyIndexTest {
 
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         double cost = lookup.getCost(f, "foo",
-                PropertyValues.newString("azerty"));
+            PropertyValues.newString("azerty"));
         double traversal = new TraversingIndex().getCost(f, indexed);
 
         assertTrue("Estimated cost for " + nodes
                 + " nodes should not be higher than traversal (" + cost + " < " + traversal + ")",
-                cost < traversal);
+            cost < traversal);
     }
 
     @Test
@@ -260,14 +262,14 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+            true, false, ImmutableSet.of("foo"), null);
         index.setProperty("entryCount", -1);
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
         builder.child("a").setProperty("foo", "abc");
         builder.child("b").setProperty("foo", Arrays.asList("abc", "def"),
-                Type.STRINGS);
+            Type.STRINGS);
         // plus lots of dummy content to highlight the benefit of indexing
         for (int i = 0; i < MANY; i++) {
             builder.child("n" + i).setProperty("foo", "xyz");
@@ -300,7 +302,7 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+            true, false, ImmutableSet.of("foo"), null);
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
@@ -320,9 +322,9 @@ public class PropertyIndexTest {
     }
 
     private static Set<String> find(PropertyIndexLookup lookup, String name,
-            String value, Filter filter) {
+        String value, Filter filter) {
         return Sets.newHashSet(lookup.query(filter, name, value == null ? null
-                : PropertyValues.newString(value)));
+            : PropertyValues.newString(value)));
     }
 
     @Test
@@ -332,15 +334,15 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, false, ImmutableSet.of("foo", "extrafoo"),
-                null);
+            "fooIndex", true, false, ImmutableSet.of("foo", "extrafoo"),
+            null);
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
         builder.child("a").setProperty("foo", "abc")
-                .setProperty("extrafoo", "pqr");
+               .setProperty("extrafoo", "pqr");
         builder.child("b").setProperty("foo", Arrays.asList("abc", "def"),
-                Type.STRINGS);
+            Type.STRINGS);
         // plus lots of dummy content to highlight the benefit of indexing
         for (int i = 0; i < MANY; i++) {
             builder.child("n" + i).setProperty("foo", "xyz");
@@ -370,8 +372,7 @@ public class PropertyIndexTest {
 
     /**
      * @see <a href="https://issues.apache.org/jira/browse/OAK-666">OAK-666:
-     *      Property2Index: node type is used when indexing, but ignored when
-     *      querying</a>
+     * Property2Index: node type is used when indexing, but ignored when querying</a>
      */
     @Test
     public void testCustomConfigNodeType() throws Exception {
@@ -381,19 +382,19 @@ public class PropertyIndexTest {
         NodeBuilder builder = root.builder();
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         createIndexDefinition(index, "fooIndex", true, false,
-                ImmutableSet.of("foo", "extrafoo"),
-                ImmutableSet.of(NT_UNSTRUCTURED));
+            ImmutableSet.of("foo", "extrafoo"),
+            ImmutableSet.of(NT_UNSTRUCTURED));
         createIndexDefinition(index, "fooIndexFile", true, false,
-                ImmutableSet.of("foo"), ImmutableSet.of(NT_FILE));
+            ImmutableSet.of("foo"), ImmutableSet.of(NT_FILE));
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
         builder.child("a")
-                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
-                .setProperty("foo", "abc");
+               .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+               .setProperty("foo", "abc");
         builder.child("b")
-                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
-                .setProperty("foo", Arrays.asList("abc", "def"), Type.STRINGS);
+               .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+               .setProperty("foo", Arrays.asList("abc", "def"), Type.STRINGS);
         NodeState after = builder.getNodeState();
 
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
@@ -416,15 +417,15 @@ public class PropertyIndexTest {
 
     private static FilterImpl createFilter(NodeState root, String nodeTypeName) {
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
-        NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);        
+        NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
-        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
+        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]",
+            new QueryEngineSettings());
     }
 
     /**
      * @see <a href="https://issues.apache.org/jira/browse/OAK-666">OAK-666:
-     *      Property2Index: node type is used when indexing, but ignored when
-     *      querying</a>
+     * Property2Index: node type is used when indexing, but ignored when querying</a>
      */
     @Test
     public void testCustomConfigNodeTypeFallback() throws Exception {
@@ -434,20 +435,20 @@ public class PropertyIndexTest {
         NodeBuilder builder = root.builder();
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         createIndexDefinition(
-                index, "fooIndex", true, false,
-                ImmutableSet.of("foo", "extrafoo"), null);
+            index, "fooIndex", true, false,
+            ImmutableSet.of("foo", "extrafoo"), null);
         createIndexDefinition(
-                index, "fooIndexFile", true, false,
-                ImmutableSet.of("foo"), ImmutableSet.of(NT_FILE));
+            index, "fooIndexFile", true, false,
+            ImmutableSet.of("foo"), ImmutableSet.of(NT_FILE));
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
         builder.child("a")
-                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
-                .setProperty("foo", "abc");
+               .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+               .setProperty("foo", "abc");
         builder.child("b")
-                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
-                .setProperty("foo", Arrays.asList("abc", "def"), Type.STRINGS);
+               .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+               .setProperty("foo", Arrays.asList("abc", "def"), Type.STRINGS);
         NodeState after = builder.getNodeState();
 
         // Add an index
@@ -468,7 +469,7 @@ public class PropertyIndexTest {
             // expected: no index for "pqr"
         }
     }
-    
+
     @Test
     public void valuePattern() throws Exception {
         NodeState root = EMPTY_NODE;
@@ -477,24 +478,24 @@ public class PropertyIndexTest {
         NodeBuilder builder = root.builder();
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder indexDef = createIndexDefinition(
-                index, "fooIndex", true, false,
-                ImmutableSet.of("foo"), null);
+            index, "fooIndex", true, false,
+            ImmutableSet.of("foo"), null);
         indexDef.setProperty(IndexConstants.VALUE_PATTERN, "(a.*|b)");
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
         builder.child("a")
-                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
-                .setProperty("foo", "a");
+               .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+               .setProperty("foo", "a");
         builder.child("a1")
-                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
-                .setProperty("foo", "a1");
+               .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+               .setProperty("foo", "a1");
         builder.child("b")
-                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
-                .setProperty("foo", "b");
+               .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+               .setProperty("foo", "b");
         builder.child("c")
-                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
-                .setProperty("foo", "c");
+               .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+               .setProperty("foo", "c");
         NodeState after = builder.getNodeState();
 
         // Add an index
@@ -511,7 +512,7 @@ public class PropertyIndexTest {
 
         // expected: no index for "is not null"
         assertTrue(pIndex.getCost(f, indexed) == Double.POSITIVE_INFINITY);
-        
+
         ArrayList<PropertyValue> list = new ArrayList<PropertyValue>();
         list.add(PropertyValues.newString("c"));
         f.restrictPropertyAsList("foo", list);
@@ -525,8 +526,8 @@ public class PropertyIndexTest {
         // expected: no index for value a
         assertTrue(pIndex.getCost(f, indexed) < Double.POSITIVE_INFINITY);
 
-    }    
-    
+    }
+
     @Test
     public void valuePatternExclude() throws Exception {
         NodeState root = EMPTY_NODE;
@@ -534,8 +535,8 @@ public class PropertyIndexTest {
         NodeBuilder builder = root.builder();
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder indexDef = createIndexDefinition(
-                index, "fooIndex", true, false,
-                ImmutableSet.of("foo"), null);
+            index, "fooIndex", true, false,
+            ImmutableSet.of("foo"), null);
         indexDef.setProperty(IndexConstants.VALUE_EXCLUDED_PREFIXES, "test");
         valuePatternExclude0(builder);
     }
@@ -547,32 +548,32 @@ public class PropertyIndexTest {
         NodeBuilder builder = root.builder();
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder indexDef = createIndexDefinition(
-                index, "fooIndex", true, false,
-                ImmutableSet.of("foo"), null);
+            index, "fooIndex", true, false,
+            ImmutableSet.of("foo"), null);
         PropertyState ps = PropertyStates.createProperty(
-                IndexConstants.VALUE_EXCLUDED_PREFIXES,
-                Arrays.asList("test"),
-                Type.STRINGS);
+            IndexConstants.VALUE_EXCLUDED_PREFIXES,
+            Arrays.asList("test"),
+            Type.STRINGS);
         indexDef.setProperty(ps);
         valuePatternExclude0(builder);
     }
 
     private void valuePatternExclude0(NodeBuilder builder) throws CommitFailedException {
         NodeState before = builder.getNodeState();
-        
+
         // Add some content and process it through the property index hook
         builder.child("a")
-                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
-                .setProperty("foo", "a");
+               .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+               .setProperty("foo", "a");
         builder.child("a1")
-                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
-                .setProperty("foo", "a1");
+               .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+               .setProperty("foo", "a1");
         builder.child("b")
-                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
-                .setProperty("foo", "b");
+               .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+               .setProperty("foo", "b");
         builder.child("c")
-                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
-                .setProperty("foo", "c");
+               .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+               .setProperty("foo", "c");
         NodeState after = builder.getNodeState();
 
         // Add an index
@@ -595,14 +596,13 @@ public class PropertyIndexTest {
         f.restrictProperty("foo", Operator.LIKE, PropertyValues.newString("t%"));
         assertTrue(pIndex.getCost(f, indexed) == Double.POSITIVE_INFINITY);
         f = createFilter(after, NT_UNSTRUCTURED);
-        
-        
+
         // expected: index for "like 'a%'"
         f.restrictProperty("foo", Operator.GREATER_OR_EQUAL, PropertyValues.newString("a"));
         f.restrictProperty("foo", Operator.LESS_OR_EQUAL, PropertyValues.newString("a0"));
         assertTrue(pIndex.getCost(f, indexed) < Double.POSITIVE_INFINITY);
         f = createFilter(after, NT_UNSTRUCTURED);
-        
+
         // expected: index for value c
         ArrayList<PropertyValue> list = new ArrayList<PropertyValue>();
         list.add(PropertyValues.newString("c"));
@@ -615,7 +615,7 @@ public class PropertyIndexTest {
         list.add(PropertyValues.newString("a"));
         f.restrictPropertyAsList("foo", list);
         assertTrue(pIndex.getCost(f, indexed) < Double.POSITIVE_INFINITY);
-    }    
+    }
 
     @Test(expected = CommitFailedException.class)
     public void testUnique() throws Exception {
@@ -624,41 +624,41 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         createIndexDefinition(
-                builder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, true, ImmutableSet.of("foo"), null);
+            builder.child(INDEX_DEFINITIONS_NAME),
+            "fooIndex", true, true, ImmutableSet.of("foo"), null);
         NodeState before = builder.getNodeState();
         builder.child("a").setProperty("foo", "abc");
         builder.child("b").setProperty("foo", Arrays.asList("abc", "def"),
-                Type.STRINGS);
+            Type.STRINGS);
         NodeState after = builder.getNodeState();
 
         // should throw
-        HOOK.processCommit(before, after, CommitInfo.EMPTY); 
+        HOOK.processCommit(before, after, CommitInfo.EMPTY);
     }
-    
+
     @Test
     public void testUpdateUnique() throws Exception {
         NodeState root = EMPTY_NODE;
 
         NodeBuilder builder = root.builder();
         createIndexDefinition(
-                builder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, true, ImmutableSet.of("foo"), null);
+            builder.child(INDEX_DEFINITIONS_NAME),
+            "fooIndex", true, true, ImmutableSet.of("foo"), null);
         NodeState before = builder.getNodeState();
         builder.child("a").setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
-        NodeState done = HOOK.processCommit(before, after, CommitInfo.EMPTY); 
+        NodeState done = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         // remove, and then re-add the same node
         builder = done.builder();
         builder.child("a").setProperty("foo", "abc");
         after = builder.getNodeState();
-        
+
         // apply the changes to the state before adding the entries
-        done = HOOK.processCommit(before, after, CommitInfo.EMPTY); 
-        
+        done = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
         // re-apply the changes
-        done = HOOK.processCommit(done, after, CommitInfo.EMPTY); 
+        done = HOOK.processCommit(done, after, CommitInfo.EMPTY);
     }
 
     @Test
@@ -668,13 +668,13 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, true, ImmutableSet.of("foo"),
-                ImmutableSet.of("typeFoo"));
+            "fooIndex", true, true, ImmutableSet.of("foo"),
+            ImmutableSet.of("typeFoo"));
         NodeState before = builder.getNodeState();
         builder.child("a").setProperty(JCR_PRIMARYTYPE, "typeFoo", Type.NAME)
-                .setProperty("foo", "abc");
+               .setProperty("foo", "abc");
         builder.child("b").setProperty(JCR_PRIMARYTYPE, "typeBar", Type.NAME)
-                .setProperty("foo", "abc");
+               .setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
 
         HOOK.processCommit(before, after, CommitInfo.EMPTY); // should not throw
@@ -687,13 +687,13 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, true, ImmutableSet.of("foo"),
-                ImmutableSet.of("typeFoo"));
+            "fooIndex", true, true, ImmutableSet.of("foo"),
+            ImmutableSet.of("typeFoo"));
         NodeState before = builder.getNodeState();
         builder.child("a").setProperty(JCR_PRIMARYTYPE, "typeFoo", Type.NAME)
-                .setProperty("foo", "abc");
+               .setProperty("foo", "abc");
         builder.child("b").setProperty(JCR_PRIMARYTYPE, "typeFoo", Type.NAME)
-                .setProperty("foo", "abc");
+               .setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
 
         HOOK.processCommit(before, after, CommitInfo.EMPTY); // should throw
@@ -706,12 +706,12 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, true, ImmutableSet.of("foo"),
-                ImmutableSet.of("typeFoo"));
+            "fooIndex", true, true, ImmutableSet.of("foo"),
+            ImmutableSet.of("typeFoo"));
         builder.child("a").setProperty(JCR_PRIMARYTYPE, "typeFoo", Type.NAME)
-                .setProperty("foo", "abc");
+               .setProperty("foo", "abc");
         builder.child("b").setProperty(JCR_PRIMARYTYPE, "typeBar", Type.NAME)
-                .setProperty("foo", "abc");
+               .setProperty("foo", "abc");
         NodeState before = builder.getNodeState();
         builder.getChildNode("b").remove();
         NodeState after = builder.getNodeState();
@@ -734,7 +734,7 @@ public class PropertyIndexTest {
         indexed = createTestData(100);
         assertEquals(testDataSize, getResultSize(indexed, "foo", "bar"));
         assertTrue("Warning should not be logged for traversing " + testDataSize,
-                appender.list.isEmpty());
+            appender.list.isEmpty());
         deregisterAppender(appender);
     }
 
@@ -745,7 +745,7 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+            true, false, ImmutableSet.of("foo"), null);
         index.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/test/a"), Type.STRINGS));
         NodeState before = builder.getNodeState();
 
@@ -770,7 +770,7 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+            true, false, ImmutableSet.of("foo"), null);
         index.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/test/a"), Type.STRINGS));
         NodeState before = builder.getNodeState();
 
@@ -810,7 +810,7 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+            true, false, ImmutableSet.of("foo"), null);
         index.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/test/a"), Type.STRINGS));
         index.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/test/a/b"), Type.STRINGS));
         NodeState before = builder.getNodeState();
@@ -847,17 +847,18 @@ public class PropertyIndexTest {
         f.setPath("/test/a");
         plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
         assertTrue(Double.POSITIVE_INFINITY == plan.getCost());
-}
+    }
 
     @Test
-    public void testPathExcludeInclude() throws Exception{
-        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName()).enable(Level.ERROR).create();
+    public void testPathExcludeInclude() throws Exception {
+        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName())
+                                                .enable(Level.ERROR).create();
         NodeState root = INITIAL_CONTENT;
 
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+            true, false, ImmutableSet.of("foo"), null);
         index.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/test/a/b"), Type.STRINGS));
         index.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/test/a"), Type.STRINGS));
         NodeState before = builder.getNodeState();
@@ -869,14 +870,16 @@ public class PropertyIndexTest {
 
         try {
             customLogs.starting();
-            String expectedLogMessage = "Unable to get Index Editor for index at /oak:index/foo . " +
+            String expectedLogMessage =
+                "Unable to get Index Editor for index at /oak:index/foo . " +
                     "Please correct the index definition and reindex after correction. " +
                     "Additional Info : No valid include provided. Includes [/test/a/b], Excludes [/test/a]";
             HOOK.processCommit(before, after, CommitInfo.EMPTY);
-            Assert.assertThat(customLogs.getLogs(), IsCollectionContaining.hasItems(expectedLogMessage));
+            Assert.assertThat(customLogs.getLogs(),
+                IsCollectionContaining.hasItems(expectedLogMessage));
         } catch (IllegalStateException unexpected) {
-                // IllegalStateException not expected here now <OAK-8328>
-                assertTrue(false);            
+            // IllegalStateException not expected here now <OAK-8328>
+            assertTrue(false);
         } finally {
             customLogs.finished();
         }
@@ -889,7 +892,7 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+            true, false, ImmutableSet.of("foo"), null);
         index.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/test/a"), Type.STRINGS));
         index.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/test/a/b"), Type.STRINGS));
         NodeState before = builder.getNodeState();
@@ -914,7 +917,7 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+            true, false, ImmutableSet.of("foo"), null);
         index.setProperty("entryCount", -1);
         NodeState before = builder.getNodeState();
 
@@ -929,58 +932,69 @@ public class PropertyIndexTest {
         NodeState after = builder.getNodeState();
 
         MountInfoProvider mip = Mounts.newBuilder()
-                .mount("foo", "/a", "/m/n")
-                .build();
+                                      .mount("foo", "/a", "/m/n")
+                                      .build();
 
         Mount fooMount = mip.getMountByName("foo");
         Mount defMount = mip.getDefaultMount();
 
         EditorHook hook = new EditorHook(
-                new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip)));
+            new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip)));
 
         NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
 
         FilterImpl f = createFilter(indexed, NT_BASE);
 
         // Query the index
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed,mip);
-        assertEquals(ImmutableSet.of("a", "b/x", "a/x", "m", "m/n", "m/n/o"), find(lookup, "foo", "abc", f));
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed, mip);
+        assertEquals(ImmutableSet.of("a", "b/x", "a/x", "m", "m/n", "m/n/o"),
+            find(lookup, "foo", "abc", f));
         assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi", f));
 
         assertTrue(getNode(indexed, "/oak:index/foo/:index").exists());
 
         //Separate node for mount
-        assertTrue(getNode(indexed, "/oak:index/foo/"+ getNodeForMount(fooMount)).exists());
+        assertTrue(getNode(indexed, "/oak:index/foo/" + getNodeForMount(fooMount)).exists());
 
         //Index entries for paths in foo mount should go to :oak:foo-index
         assertTrue(getNode(indexed, pathInIndex(fooMount, "/oak:index/foo", "/a", "abc")).exists());
-        assertTrue(getNode(indexed, pathInIndex(fooMount, "/oak:index/foo", "/a/x", "abc")).exists());
-        assertTrue(getNode(indexed, pathInIndex(fooMount, "/oak:index/foo", "/m/n", "abc")).exists());
-        assertTrue(getNode(indexed, pathInIndex(fooMount, "/oak:index/foo", "/m/n/o", "abc")).exists());
-        assertFalse(getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/a", "abc")).exists());
-        assertFalse(getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/a/x", "abc")).exists());
-        assertFalse(getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/m/n", "abc")).exists());
-        assertFalse(getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/m/n/o", "abc")).exists());
+        assertTrue(
+            getNode(indexed, pathInIndex(fooMount, "/oak:index/foo", "/a/x", "abc")).exists());
+        assertTrue(
+            getNode(indexed, pathInIndex(fooMount, "/oak:index/foo", "/m/n", "abc")).exists());
+        assertTrue(
+            getNode(indexed, pathInIndex(fooMount, "/oak:index/foo", "/m/n/o", "abc")).exists());
+        assertFalse(
+            getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/a", "abc")).exists());
+        assertFalse(
+            getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/a/x", "abc")).exists());
+        assertFalse(
+            getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/m/n", "abc")).exists());
+        assertFalse(
+            getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/m/n/o", "abc")).exists());
 
         //All other index entries should go to :index
         assertTrue(getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/b", "abc")).exists());
-        assertTrue(getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/b/x", "abc")).exists());
+        assertTrue(
+            getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/b/x", "abc")).exists());
         assertTrue(getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/m", "abc")).exists());
-        assertFalse(getNode(indexed, pathInIndex(fooMount, "/oak:index/foo", "/b", "abc")).exists());
-        assertFalse(getNode(indexed, pathInIndex(fooMount, "/oak:index/foo", "/b/x", "abc")).exists());
+        assertFalse(
+            getNode(indexed, pathInIndex(fooMount, "/oak:index/foo", "/b", "abc")).exists());
+        assertFalse(
+            getNode(indexed, pathInIndex(fooMount, "/oak:index/foo", "/b/x", "abc")).exists());
 
         //System.out.println(NodeStateUtils.toString(getNode(indexed, "/oak:index/foo")));
 
     }
 
     @Test
-    public void mountWithCommitInWritableMount() throws Exception{
+    public void mountWithCommitInWritableMount() throws Exception {
         NodeState root = INITIAL_CONTENT;
 
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+            true, false, ImmutableSet.of("foo"), null);
         index.setProperty("entryCount", -1);
         NodeState before = builder.getNodeState();
 
@@ -989,32 +1003,34 @@ public class PropertyIndexTest {
         NodeState after = builder.getNodeState();
 
         MountInfoProvider mip = Mounts.newBuilder()
-                .readOnlyMount("foo",  "/readOnly")
-                .build();
+                                      .readOnlyMount("foo", "/readOnly")
+                                      .build();
 
         CompositeHook hook = new CompositeHook(
-                new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip))),
-                new EditorHook(new ValidatorProvider(){
-                    protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
-                        return new PrivateStoreValidator("/", mip);
-                    }
-                })
+            new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip))),
+            new EditorHook(new ValidatorProvider() {
+                protected Validator getRootValidator(NodeState before, NodeState after,
+                    CommitInfo info) {
+                    return new PrivateStoreValidator("/", mip);
+                }
+            })
         );
 
         NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
 
         Mount defMount = mip.getDefaultMount();
-        assertTrue(getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/content", "abc")).exists());
+        assertTrue(
+            getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/content", "abc")).exists());
     }
 
     @Test
-    public void mountWithCommitInWritableMountForUniqueIndex() throws Exception{
+    public void mountWithCommitInWritableMountForUniqueIndex() throws Exception {
         NodeState root = INITIAL_CONTENT;
 
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, true, ImmutableSet.of("foo"), null);
+            true, true, ImmutableSet.of("foo"), null);
         index.setProperty("entryCount", -1);
         NodeState before = builder.getNodeState();
 
@@ -1023,22 +1039,24 @@ public class PropertyIndexTest {
         NodeState after = builder.getNodeState();
 
         MountInfoProvider mip = Mounts.newBuilder()
-                .readOnlyMount("foo",  "/readOnly")
-                .build();
+                                      .readOnlyMount("foo", "/readOnly")
+                                      .build();
 
         CompositeHook hook = new CompositeHook(
-                new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip))),
-                new EditorHook(new ValidatorProvider(){
-                    protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
-                        return new PrivateStoreValidator("/", mip);
-                    }
-                })
+            new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip))),
+            new EditorHook(new ValidatorProvider() {
+                protected Validator getRootValidator(NodeState before, NodeState after,
+                    CommitInfo info) {
+                    return new PrivateStoreValidator("/", mip);
+                }
+            })
         );
 
         NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
 
         Mount defMount = mip.getDefaultMount();
-        NodeState indexedState = getNode(indexed, "/oak:index/foo/" + getNodeForMount(defMount) + "/abc");
+        NodeState indexedState = getNode(indexed,
+            "/oak:index/foo/" + getNodeForMount(defMount) + "/abc");
         assertTrue(indexedState.exists());
         Iterable<String> values = indexedState.getStrings("entry");
         assertEquals(1, Iterables.size(values));
@@ -1055,27 +1073,27 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, true, ImmutableSet.of("foo"), null);
+            true, true, ImmutableSet.of("foo"), null);
         index.setProperty("entryCount", -1);
         NodeState before = builder.getNodeState();
 
         MountInfoProvider mip = Mounts.newBuilder()
-                .mount("foo", "/a")
-                .build();
+                                      .mount("foo", "/a")
+                                      .build();
 
         builder.child("a").setProperty("foo", "abc");
         builder.child("b").setProperty("foo", Arrays.asList("abc", "def"),
-                Type.STRINGS);
+            Type.STRINGS);
         NodeState after = builder.getNodeState();
 
         EditorHook hook = new EditorHook(
-                new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip)));
+            new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip)));
         // should throw
         hook.processCommit(before, after, CommitInfo.EMPTY);
     }
 
     private static String pathInIndex(Mount mount,
-                                      String indexPath, String indexedPath, String indexedValue){
+        String indexPath, String indexedPath, String indexedValue) {
         return indexPath + "/" + getNodeForMount(mount) + "/" + indexedValue + indexedPath;
     }
 
@@ -1083,7 +1101,7 @@ public class PropertyIndexTest {
         return Multiplexers.getNodeForMount(mount, INDEX_CONTENT_NODE_NAME);
     }
 
-    private int getResultSize(NodeState indexed, String name, String value){
+    private int getResultSize(NodeState indexed, String name, String value) {
         FilterImpl f = createFilter(indexed, NT_BASE);
 
         // Query the index
@@ -1098,7 +1116,7 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+            true, false, ImmutableSet.of("foo"), null);
         // disable the estimation
         index.setProperty("entryCount", -1);
         NodeState before = builder.getNodeState();
@@ -1107,7 +1125,7 @@ public class PropertyIndexTest {
         int depth = ContentMirrorStoreStrategy.TRAVERSING_WARN / entryCount + 10;
         for (int i = 0; i < entryCount; i++) {
             NodeBuilder parentNode = builder.child("n" + i);
-            for (int j = 0; j < depth ; j++) {
+            for (int j = 0; j < depth; j++) {
                 parentNode = parentNode.child("c" + j);
             }
             parentNode.setProperty("foo", "bar");
@@ -1129,11 +1147,11 @@ public class PropertyIndexTest {
         return appender;
     }
 
-    private void deregisterAppender(Appender<ILoggingEvent> appender){
+    private void deregisterAppender(Appender<ILoggingEvent> appender) {
         rootLogger().detachAppender(appender);
     }
 
-    private static LoggerContext getContext(){
+    private static LoggerContext getContext() {
         return (LoggerContext) LoggerFactory.getILoggerFactory();
     }
 
@@ -1141,12 +1159,13 @@ public class PropertyIndexTest {
         return getContext().getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
     }
 
-    private static class TraversingWarningFilter extends ch.qos.logback.core.filter.Filter<ILoggingEvent> {
+    private static class TraversingWarningFilter extends
+        ch.qos.logback.core.filter.Filter<ILoggingEvent> {
 
         @Override
         public FilterReply decide(ILoggingEvent event) {
             if (event.getLevel().isGreaterOrEqual(Level.WARN)
-                    && event.getMessage().contains("Traversed")) {
+                && event.getMessage().contains("Traversed")) {
                 return FilterReply.ACCEPT;
             } else {
                 return FilterReply.DENY;
@@ -1155,6 +1174,7 @@ public class PropertyIndexTest {
     }
 
     private class PrivateStoreValidator extends DefaultValidator {
+
         private final String path;
         private final MountInfoProvider mountInfoProvider;
 
@@ -1167,19 +1187,21 @@ public class PropertyIndexTest {
             return checkPrivateStoreCommit(getCommitPath(name));
         }
 
-        public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+        public Validator childNodeChanged(String name, NodeState before, NodeState after)
+            throws CommitFailedException {
             return checkPrivateStoreCommit(getCommitPath(name));
         }
 
-        public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
+        public Validator childNodeDeleted(String name, NodeState before)
+            throws CommitFailedException {
             return checkPrivateStoreCommit(getCommitPath(name));
         }
 
         private Validator checkPrivateStoreCommit(String commitPath) throws CommitFailedException {
             Mount mountInfo = mountInfoProvider.getMountByPath(commitPath);
             if (mountInfo.isReadOnly()) {
-                    throw new CommitFailedException(CommitFailedException.UNSUPPORTED, 0,
-                            "Unsupported commit to a read-only store "+ commitPath);
+                throw new CommitFailedException(CommitFailedException.UNSUPPORTED, 0,
+                    "Unsupported commit to a read-only store " + commitPath);
             }
 
             return new PrivateStoreValidator(commitPath, mountInfoProvider);

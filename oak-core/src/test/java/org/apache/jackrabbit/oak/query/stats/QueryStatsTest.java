@@ -35,7 +35,7 @@ public class QueryStatsTest {
 
     @Before
     public void setup() {
-        systemProperties =(Properties) System.getProperties().clone();
+        systemProperties = (Properties) System.getProperties().clone();
         System.setProperty("oak.query.maxQuerySize", "" + maxQuerySize);
     }
 
@@ -55,13 +55,13 @@ public class QueryStatsTest {
         }
         assertEquals(1, bean.getEvictionCount());
         // remain around 5000
-        
+
         Thread.sleep(5);
         for (int i = 0; i < 10; i++) {
             bean.getQueryExecution("slow" + i, "").execute(10000);
         }
         Thread.sleep(5);
-        
+
         assertEquals(1, bean.getEvictionCount());
         for (int i = 0; i < 10010; i++) {
             bean.getQueryExecution("new" + i, "");
@@ -87,11 +87,11 @@ public class QueryStatsTest {
         String data = bean.getPopularQueries().values().iterator().next().toString();
         assertFalse(data.contains(generatedString));
         String statLog = new StringBuilder()
-                .append("Truncated query: ")
-                .append(generatedString.substring(0, maxQuerySize >> 1))
-                .append(" ...... ")
-                .append(generatedString.substring(generatedString.length() - (maxQuerySize >> 1)))
-                .toString();
+            .append("Truncated query: ")
+            .append(generatedString.substring(0, maxQuerySize >> 1))
+            .append(" ...... ")
+            .append(generatedString.substring(generatedString.length() - (maxQuerySize >> 1)))
+            .toString();
         assertTrue(data.contains(statLog));
     }
 }

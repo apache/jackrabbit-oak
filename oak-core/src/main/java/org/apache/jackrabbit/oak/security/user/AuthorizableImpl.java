@@ -60,7 +60,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants, TreeAwar
     private int hashCode;
 
     AuthorizableImpl(@NotNull String id, @NotNull Tree tree,
-                     @NotNull UserManagerImpl userManager) throws RepositoryException {
+        @NotNull UserManagerImpl userManager) throws RepositoryException {
         checkValidTree(tree);
 
         this.id = id;
@@ -128,12 +128,14 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants, TreeAwar
     }
 
     @Override
-    public void setProperty(@NotNull String relPath, @Nullable Value value) throws RepositoryException {
+    public void setProperty(@NotNull String relPath, @Nullable Value value)
+        throws RepositoryException {
         getAuthorizableProperties().setProperty(relPath, value);
     }
 
     @Override
-    public void setProperty(@NotNull String relPath, @Nullable Value[] values) throws RepositoryException {
+    public void setProperty(@NotNull String relPath, @Nullable Value[] values)
+        throws RepositoryException {
         getAuthorizableProperties().setProperty(relPath, values);
     }
 
@@ -170,7 +172,8 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants, TreeAwar
         }
         if (obj instanceof AuthorizableImpl) {
             AuthorizableImpl otherAuth = (AuthorizableImpl) obj;
-            return isGroup() == otherAuth.isGroup() && id.equals(otherAuth.id) && userManager.equals(otherAuth.userManager);
+            return isGroup() == otherAuth.isGroup() && id.equals(otherAuth.id)
+                && userManager.equals(otherAuth.userManager);
         }
         return false;
     }
@@ -180,7 +183,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants, TreeAwar
         String typeStr = (isGroup()) ? "Group '" : "User '";
         return new StringBuilder().append(typeStr).append(id).append('\'').toString();
     }
-    
+
     //----------------------------------------------------------< TreeAware >---
     @Override
     @NotNull
@@ -188,13 +191,14 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants, TreeAwar
         if (tree.exists()) {
             return tree;
         } else {
-            throw new IllegalStateException("Authorizable " + id + ": underlying tree has been disconnected.");
+            throw new IllegalStateException(
+                "Authorizable " + id + ": underlying tree has been disconnected.");
         }
     }
 
     //--------------------------------------------------------------------------
 
-    @Nullable 
+    @Nullable
     String getPrincipalNameOrNull() {
         if (principalName == null) {
             PropertyState pNameProp = tree.getProperty(REP_PRINCIPAL_NAME);
@@ -204,7 +208,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants, TreeAwar
         }
         return principalName;
     }
-    
+
     @NotNull
     String getPrincipalName() throws RepositoryException {
         String pName = getPrincipalNameOrNull();
@@ -240,8 +244,8 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants, TreeAwar
     /**
      * Returns {@code true} if this authorizable represents the 'everyone' group.
      *
-     * @return {@code true} if this authorizable represents the group everyone
-     * is member of; {@code false} otherwise.
+     * @return {@code true} if this authorizable represents the group everyone is member of;
+     * {@code false} otherwise.
      */
     boolean isEveryone() {
         return Utils.isEveryone(this);
@@ -270,10 +274,9 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants, TreeAwar
     /**
      * Retrieve the group membership of this authorizable.
      *
-     * @param includeInherited Flag indicating whether the resulting iterator only
-     * contains groups this authorizable is declared member of or if inherited
-     * group membership is respected.
-     *
+     * @param includeInherited Flag indicating whether the resulting iterator only contains groups
+     *                         this authorizable is declared member of or if inherited group
+     *                         membership is respected.
      * @return Iterator of groups this authorizable is (declared) member of.
      * @throws RepositoryException If an error occurs.
      */
@@ -285,15 +288,17 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants, TreeAwar
 
         DynamicMembershipProvider dmp = userManager.getDynamicMembershipProvider();
         Iterator<Group> dynamicGroups = dmp.getMembership(this, includeInherited);
-        
+
         MembershipProvider mMgr = getMembershipProvider();
         Iterator<Tree> trees = mMgr.getMembership(getTree(), includeInherited);
 
         if (!trees.hasNext()) {
             return new RangeIteratorAdapter(AuthorizableIterator.create(true, dynamicGroups));
         } else {
-            AuthorizableIterator groups = AuthorizableIterator.create(trees, userManager, AuthorizableType.GROUP);
-            AuthorizableIterator allGroups = AuthorizableIterator.create(true, dynamicGroups, groups);
+            AuthorizableIterator groups = AuthorizableIterator.create(trees, userManager,
+                AuthorizableType.GROUP);
+            AuthorizableIterator allGroups = AuthorizableIterator.create(true, dynamicGroups,
+                groups);
             return new RangeIteratorAdapter(allGroups);
         }
     }

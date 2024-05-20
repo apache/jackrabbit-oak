@@ -39,7 +39,7 @@ import org.slf4j.event.Level;
  * Tests the query validator.
  */
 public class QueryValidatorTest {
-    
+
     @Test
     public void empty() throws ParseException {
         QueryValidator v = new QueryValidator();
@@ -55,25 +55,27 @@ public class QueryValidatorTest {
         QueryValidator v = new QueryValidator();
         v.setPattern("x", "x.*", "all", false);
         assertEquals("[\n" +
-                "{\n" +
-                "\"key\":\"x\"\n" +
-                ",\"pattern\":\"x.*\"\n" +
-                ",\"comment\":\"all\"\n" + 
-                ",\"failQuery\":false\n" +
-                ",\"executedLast\":\"\"\n" +
-                ",\"executedCount\":0\n" +
-                "}]", v.getJson());
-        LogCustomizer customLogs = LogCustomizer.forLogger(QueryValidator.class.getName()).enable(Level.WARN).create();
+            "{\n" +
+            "\"key\":\"x\"\n" +
+            ",\"pattern\":\"x.*\"\n" +
+            ",\"comment\":\"all\"\n" +
+            ",\"failQuery\":false\n" +
+            ",\"executedLast\":\"\"\n" +
+            ",\"executedCount\":0\n" +
+            "}]", v.getJson());
+        LogCustomizer customLogs = LogCustomizer.forLogger(QueryValidator.class.getName())
+                                                .enable(Level.WARN).create();
         try {
             customLogs.starting();
             v.checkStatement("x1");
             v.checkStatement("x2");
             v.checkStatement("y");
             List<String> logs = customLogs.getLogs();
-            assertEquals("[Query is questionable, but executed: statement=x1 pattern=x.*]", logs.toString());
+            assertEquals("[Query is questionable, but executed: statement=x1 pattern=x.*]",
+                logs.toString());
         } finally {
             customLogs.finished();
-        }        
+        }
     }
 
     @Test
@@ -88,11 +90,11 @@ public class QueryValidatorTest {
         }
         v.checkStatement("y");
         assertTrue(v.getJson().startsWith("[\n" +
-                "{\n" +
-                "\"key\":\"x\"\n" +
-                ",\"pattern\":\"x.*\"\n" +
-                ",\"comment\":\"all\"\n" + 
-                ",\"failQuery\":true\n"));
+            "{\n" +
+            "\"key\":\"x\"\n" +
+            ",\"pattern\":\"x.*\"\n" +
+            ",\"comment\":\"all\"\n" +
+            ",\"failQuery\":true\n"));
         assertTrue(v.getJson().indexOf("\"executedCount\":1") >= 0);
         v.checkStatement("y");
         try {
@@ -103,7 +105,7 @@ public class QueryValidatorTest {
         }
         assertTrue(v.getJson().indexOf("\"executedCount\":2") >= 0);
     }
-    
+
     @Test
     public void initFromNodeStore() throws CommitFailedException {
         QueryValidator v = new QueryValidator();
@@ -113,9 +115,9 @@ public class QueryValidatorTest {
         NodeBuilder rootBuilder = ns.getRoot().builder();
         NodeBuilder b;
         b = rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).
-                child(QueryValidator.QUERY_VALIDATOR).child("ignored");
+                       child(QueryValidator.QUERY_VALIDATOR).child("ignored");
         b = rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).
-            child(QueryValidator.QUERY_VALIDATOR).child("test");
+                       child(QueryValidator.QUERY_VALIDATOR).child("test");
         b.setProperty("pattern", "testPattern");
         b.setProperty("comment", "testComment");
         b.setProperty("failQuery", "true");
@@ -125,29 +127,29 @@ public class QueryValidatorTest {
                 "{\n" +
                 "\"key\":\"test\"\n" +
                 ",\"pattern\":\"testPattern\"\n" +
-                ",\"comment\":\"testComment\"\n" + 
+                ",\"comment\":\"testComment\"\n" +
                 ",\"failQuery\":true\n" +
                 ",\"executedLast\":\"\"\n" +
                 ",\"executedCount\":0\n" +
                 "}]",
-                v.getJson());
+            v.getJson());
         b = rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).
-                child(QueryValidator.QUERY_VALIDATOR).child("test");
-            b.setProperty("pattern",  asList("select", "order by @x"), Type.STRINGS);
-            b.setProperty("comment", "testComment");
-            b.setProperty("failQuery", "true");
-            ns.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-            v.init(ns);
-            assertEquals("[\n" +
-                    "{\n" +
-                    "\"key\":\"test\"\n" +
-                    ",\"pattern\":\"\\\\Qselect\\\\E.*\\\\Qorder by @x\\\\E\"\n" + 
-                    ",\"comment\":\"testComment\"\n" + 
-                    ",\"failQuery\":true\n" +
-                    ",\"executedLast\":\"\"\n" +
-                    ",\"executedCount\":0\n" +
-                    "}]",
-                    v.getJson());        
+                       child(QueryValidator.QUERY_VALIDATOR).child("test");
+        b.setProperty("pattern", asList("select", "order by @x"), Type.STRINGS);
+        b.setProperty("comment", "testComment");
+        b.setProperty("failQuery", "true");
+        ns.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        v.init(ns);
+        assertEquals("[\n" +
+                "{\n" +
+                "\"key\":\"test\"\n" +
+                ",\"pattern\":\"\\\\Qselect\\\\E.*\\\\Qorder by @x\\\\E\"\n" +
+                ",\"comment\":\"testComment\"\n" +
+                ",\"failQuery\":true\n" +
+                ",\"executedLast\":\"\"\n" +
+                ",\"executedCount\":0\n" +
+                "}]",
+            v.getJson());
     }
-    
+
 }

@@ -18,19 +18,17 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
 import java.util.List;
 import java.util.Set;
-
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
-
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * The function "upper(..)".
@@ -56,12 +54,12 @@ public class UpperCaseImpl extends DynamicOperandImpl {
     public String toString() {
         return "upper(" + operand + ')';
     }
-    
+
     @Override
     public PropertyExistenceImpl getPropertyExistence() {
         return operand.getPropertyExistence();
     }
-    
+
     @Override
     public Set<SelectorImpl> getSelectors() {
         return operand.getSelectors();
@@ -86,20 +84,20 @@ public class UpperCaseImpl extends DynamicOperandImpl {
         if (operator == Operator.NOT_EQUAL && v != null) {
             // not supported
             return;
-        }        
+        }
         String fn = getFunction(f.getSelector());
         if (fn != null) {
-            f.restrictProperty(QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn, 
-                    operator, v, PropertyType.STRING);
+            f.restrictProperty(QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn,
+                operator, v, PropertyType.STRING);
         }
     }
-    
+
     @Override
     public void restrictList(FilterImpl f, List<PropertyValue> list) {
         // "UPPER(x) IN (A, B)" implies x is not null
         operand.restrict(f, Operator.NOT_EQUAL, null);
     }
-    
+
     @Override
     public String getFunction(SelectorImpl s) {
         String f = operand.getFunction(s);
@@ -113,7 +111,7 @@ public class UpperCaseImpl extends DynamicOperandImpl {
     public boolean canRestrictSelector(SelectorImpl s) {
         return operand.canRestrictSelector(s);
     }
-    
+
     @Override
     int getPropertyType() {
         return PropertyType.STRING;
@@ -123,18 +121,18 @@ public class UpperCaseImpl extends DynamicOperandImpl {
     public DynamicOperandImpl createCopy() {
         return new UpperCaseImpl(operand.createCopy());
     }
-    
+
     @Override
     public OrderEntry getOrderEntry(SelectorImpl s, OrderingImpl o) {
         String fn = getFunction(s);
         if (fn != null) {
             return new OrderEntry(
-                QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn,                     
-                Type.STRING, 
-                o.isDescending() ? 
-                OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
+                QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn,
+                Type.STRING,
+                o.isDescending() ?
+                    OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
         }
         return null;
-    }    
+    }
 
 }

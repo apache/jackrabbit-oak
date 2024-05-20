@@ -37,11 +37,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Restriction provider implementation used for editing access control by
- * principal. It wraps the configured base provider and adds a mandatory
- * restriction definition with name {@link #REP_NODE_PATH} and type {@link Type#PATH PATH}
- * which stores the path of the access controlled node to which a given
- * access control entry will be applied.
+ * Restriction provider implementation used for editing access control by principal. It wraps the
+ * configured base provider and adds a mandatory restriction definition with name
+ * {@link #REP_NODE_PATH} and type {@link Type#PATH PATH} which stores the path of the access
+ * controlled node to which a given access control entry will be applied.
  */
 public class PrincipalRestrictionProvider implements RestrictionProvider, AccessControlConstants {
 
@@ -54,14 +53,16 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
     @NotNull
     @Override
     public Set<RestrictionDefinition> getSupportedRestrictions(@Nullable String oakPath) {
-        Set<RestrictionDefinition> definitions = new HashSet<>(base.getSupportedRestrictions(oakPath));
+        Set<RestrictionDefinition> definitions = new HashSet<>(
+            base.getSupportedRestrictions(oakPath));
         definitions.add(new RestrictionDefinitionImpl(REP_NODE_PATH, Type.PATH, true));
         return definitions;
     }
 
     @NotNull
     @Override
-    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value value) throws RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName,
+        @NotNull Value value) throws RepositoryException {
         if (REP_NODE_PATH.equals(oakName)) {
             PropertyState property;
             if (value.getString().isEmpty()) {
@@ -77,7 +78,8 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
 
     @NotNull
     @Override
-    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value... values) throws RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName,
+        @NotNull Value... values) throws RepositoryException {
         return base.createRestriction(oakPath, oakName, values);
     }
 
@@ -96,14 +98,16 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
     }
 
     @Override
-    public void writeRestrictions(@Nullable String oakPath, @NotNull Tree aceTree, @NotNull Set<Restriction> restrictions) throws RepositoryException {
+    public void writeRestrictions(@Nullable String oakPath, @NotNull Tree aceTree,
+        @NotNull Set<Restriction> restrictions) throws RepositoryException {
         Set<Restriction> rs = Sets.newHashSet(restrictions);
         rs.removeIf(r -> REP_NODE_PATH.equals(r.getDefinition().getName()));
         base.writeRestrictions(oakPath, aceTree, rs);
     }
 
     @Override
-    public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) throws RepositoryException {
+    public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree)
+        throws RepositoryException {
         base.validateRestrictions(oakPath, aceTree);
     }
 
@@ -115,7 +119,8 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
 
     @NotNull
     @Override
-    public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
+    public RestrictionPattern getPattern(@Nullable String oakPath,
+        @NotNull Set<Restriction> restrictions) {
         return base.getPattern(oakPath, restrictions);
     }
 }

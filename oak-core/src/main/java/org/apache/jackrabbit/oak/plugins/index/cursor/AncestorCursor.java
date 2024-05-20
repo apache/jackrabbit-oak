@@ -39,19 +39,19 @@ class AncestorCursor extends PathCursor {
 
     private static Iterator<String> transform(Cursor cursor, final int level) {
         Iterator<String> unfiltered = Iterators.transform(cursor,
-                new Function<IndexRow, String>() {
-            @Override
-            public String apply(@Nullable IndexRow input) {
-                return input != null ? input.getPath() : null;
-            }
-        });
+            new Function<IndexRow, String>() {
+                @Override
+                public String apply(@Nullable IndexRow input) {
+                    return input != null ? input.getPath() : null;
+                }
+            });
         Iterator<String> filtered = Iterators.filter(unfiltered,
-                new Predicate<String>() {
-            @Override
-            public boolean apply(@Nullable String input) {
-                return input != null && PathUtils.getDepth(input) >= level;
-            }
-        });
+            new Predicate<String>() {
+                @Override
+                public boolean apply(@Nullable String input) {
+                    return input != null && PathUtils.getDepth(input) >= level;
+                }
+            });
         return Iterators.transform(filtered, new Function<String, String>() {
             @Override
             public String apply(String input) {

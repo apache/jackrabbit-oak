@@ -25,13 +25,15 @@ import org.jetbrains.annotations.Nullable;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 public class AsyncIndexInfo {
+
     private final String name;
     private final long lastIndexedTo;
     private final long leaseExpiryTime;
     private final boolean running;
     private final IndexStatsMBean statsMBean;
 
-    public AsyncIndexInfo(String name, long lastIndexedTo, long leaseExpiryTime, boolean running, @Nullable IndexStatsMBean statsMBean) {
+    public AsyncIndexInfo(String name, long lastIndexedTo, long leaseExpiryTime, boolean running,
+        @Nullable IndexStatsMBean statsMBean) {
         this.name = checkNotNull(name);
         this.lastIndexedTo = lastIndexedTo;
         this.leaseExpiryTime = leaseExpiryTime;
@@ -44,17 +46,15 @@ public class AsyncIndexInfo {
     }
 
     /**
-     * Time in millis upto which the repository state is indexed via
-     * this indexer
+     * Time in millis upto which the repository state is indexed via this indexer
      */
     public long getLastIndexedTo() {
         return lastIndexedTo;
     }
 
     /**
-     * Time in millis at which the current help lease would expire if
-     * indexing is in progress. If indexing is not in progress then its
-     * value would be -1
+     * Time in millis at which the current help lease would expire if indexing is in progress. If
+     * indexing is not in progress then its value would be -1
      */
     public long getLeaseExpiryTime() {
         return leaseExpiryTime;
@@ -68,10 +68,9 @@ public class AsyncIndexInfo {
     }
 
     /**
-     * IndexStatsMBean for current indexer. The MBean would be
-     * returning valid values only for that cluster node where
-     * the async indexer is active. For other cluster nodes
-     * the values may not reflect the current state
+     * IndexStatsMBean for current indexer. The MBean would be returning valid values only for that
+     * cluster node where the async indexer is active. For other cluster nodes the values may not
+     * reflect the current state
      */
     @Nullable
     public IndexStatsMBean getStatsMBean() {
@@ -81,6 +80,6 @@ public class AsyncIndexInfo {
     @Override
     public String toString() {
         return String.format("%s : lastIndexedTo :%tc, leaseExpiryTime :%tc, running :%s",
-                name, lastIndexedTo, leaseExpiryTime, running);
+            name, lastIndexedTo, leaseExpiryTime, running);
     }
 }

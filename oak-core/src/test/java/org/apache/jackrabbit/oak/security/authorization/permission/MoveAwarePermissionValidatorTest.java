@@ -108,17 +108,20 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
         }
     }
 
-    private void grant(@NotNull String path, @NotNull Principal principal, @NotNull String... privilegeNames) throws Exception {
+    private void grant(@NotNull String path, @NotNull Principal principal,
+        @NotNull String... privilegeNames) throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
-        acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), true);
+        acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames),
+            true);
         acMgr.setPolicy(path, acl);
         root.commit();
         this.acl = acl;
     }
 
     @NotNull
-    private MoveAwarePermissionValidator createRootValidator(@NotNull Set<Principal> principals, @NotNull MoveTracker tracker) {
+    private MoveAwarePermissionValidator createRootValidator(@NotNull Set<Principal> principals,
+        @NotNull MoveTracker tracker) {
         ProviderCtx ctx = mock(ProviderCtx.class);
         when(ctx.getSecurityProvider()).thenReturn(getSecurityProvider());
         when(ctx.getTreeProvider()).thenReturn(getTreeProvider());
@@ -128,9 +131,12 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
         String wspName = root.getContentSession().getWorkspaceName();
         Root readonlyRoot = getRootProvider().createReadOnlyRoot(root);
         t = readonlyRoot.getTree(PathUtils.ROOT_PATH);
-        pp = spy(new PermissionProviderImpl(readonlyRoot, wspName, principals, RestrictionProvider.EMPTY, ConfigurationParameters.EMPTY, Context.DEFAULT, ctx));
+        pp = spy(
+            new PermissionProviderImpl(readonlyRoot, wspName, principals, RestrictionProvider.EMPTY,
+                ConfigurationParameters.EMPTY, Context.DEFAULT, ctx));
 
-        PermissionValidatorProvider pvp = new PermissionValidatorProvider(wspName, principals, tracker, ctx);
+        PermissionValidatorProvider pvp = new PermissionValidatorProvider(wspName, principals,
+            tracker, ctx);
         NodeState ns = getTreeProvider().asNodeState(t);
         return new MoveAwarePermissionValidator(ns, ns, pp, pvp, tracker);
     }
@@ -138,11 +144,13 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
 
     @Test
     public void testChildNodeAddedNoMatchingMove() throws Exception {
-        MoveAwarePermissionValidator maValidator = spy(createRootValidator(adminSession.getAuthInfo().getPrincipals(), new MoveTracker()));
+        MoveAwarePermissionValidator maValidator = spy(
+            createRootValidator(adminSession.getAuthInfo().getPrincipals(), new MoveTracker()));
         Validator validator = maValidator.childNodeAdded("name", mock(NodeState.class));
 
         assertTrue(validator instanceof VisibleValidator);
-        verify(maValidator, times(1)).checkPermissions(t.getChild("name"), false, Permissions.ADD_NODE);
+        verify(maValidator, times(1)).checkPermissions(t.getChild("name"), false,
+            Permissions.ADD_NODE);
         verifyNoInteractions(monitor);
     }
 
@@ -151,11 +159,13 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
         MoveTracker moveTracker = new MoveTracker();
         moveTracker.addMove("/srcNonExisting", "/dest");
 
-        MoveAwarePermissionValidator maValidator = spy(createRootValidator(adminSession.getAuthInfo().getPrincipals(), moveTracker));
+        MoveAwarePermissionValidator maValidator = spy(
+            createRootValidator(adminSession.getAuthInfo().getPrincipals(), moveTracker));
         Validator validator = maValidator.childNodeAdded("dest", mock(NodeState.class));
 
         assertTrue(validator instanceof VisibleValidator);
-        verify(maValidator, times(1)).checkPermissions(t.getChild("dest"), false, Permissions.ADD_NODE);
+        verify(maValidator, times(1)).checkPermissions(t.getChild("dest"), false,
+            Permissions.ADD_NODE);
         verify(pp, never()).isGranted(t.getChild("src"), null, Permissions.REMOVE_NODE);
         verifyNoInteractions(monitor);
     }
@@ -165,11 +175,13 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
         MoveTracker moveTracker = new MoveTracker();
         moveTracker.addMove("/src", "/dest");
 
-        MoveAwarePermissionValidator maValidator = spy(createRootValidator(adminSession.getAuthInfo().getPrincipals(), moveTracker));
+        MoveAwarePermissionValidator maValidator = spy(
+            createRootValidator(adminSession.getAuthInfo().getPrincipals(), moveTracker));
         Validator validator = maValidator.childNodeAdded("dest", mock(NodeState.class));
 
         assertNull(validator);
-        verify(maValidator, times(1)).checkPermissions(t.getChild("dest"), false, Permissions.ADD_NODE|Permissions.NODE_TYPE_MANAGEMENT);
+        verify(maValidator, times(1)).checkPermissions(t.getChild("dest"), false,
+            Permissions.ADD_NODE | Permissions.NODE_TYPE_MANAGEMENT);
         verify(pp, times(1)).isGranted(t.getChild("src"), null, Permissions.REMOVE_NODE);
         verifyNoInteractions(monitor);
     }
@@ -179,29 +191,34 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
         MoveTracker moveTracker = new MoveTracker();
         moveTracker.addMove("/src", "/dest");
 
-        MoveAwarePermissionValidator maValidator = spy(createRootValidator(adminSession.getAuthInfo().getPrincipals(), moveTracker));
+        MoveAwarePermissionValidator maValidator = spy(
+            createRootValidator(adminSession.getAuthInfo().getPrincipals(), moveTracker));
         when(maValidator.getParentAfter()).thenReturn(null);
 
         Validator validator = maValidator.childNodeAdded("dest", mock(NodeState.class));
 
         assertTrue(validator instanceof VisibleValidator);
-        verify(maValidator, times(1)).checkPermissions(t.getChild("dest"), false, Permissions.ADD_NODE);
+        verify(maValidator, times(1)).checkPermissions(t.getChild("dest"), false,
+            Permissions.ADD_NODE);
         verify(pp, never()).isGranted(t.getChild("src"), null, Permissions.REMOVE_NODE);
         verifyNoInteractions(monitor);
     }
 
     @Test(expected = CommitFailedException.class)
     public void testChildNodeAddedMissingPermissionAtSrc() throws Exception {
-        grant("/", EveryonePrincipal.getInstance(), PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT);
+        grant("/", EveryonePrincipal.getInstance(), PrivilegeConstants.JCR_ADD_CHILD_NODES,
+            PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT);
 
         MoveTracker moveTracker = new MoveTracker();
         moveTracker.addMove("/src", "/dest");
 
-        MoveAwarePermissionValidator maValidator = spy(createRootValidator(ImmutableSet.of(EveryonePrincipal.getInstance()), moveTracker));
+        MoveAwarePermissionValidator maValidator = spy(
+            createRootValidator(ImmutableSet.of(EveryonePrincipal.getInstance()), moveTracker));
         try {
             maValidator.childNodeAdded("dest", mock(NodeState.class));
-        } catch (CommitFailedException e){
-            verify(maValidator, times(1)).checkPermissions(t.getChild("dest"), false, Permissions.ADD_NODE|Permissions.NODE_TYPE_MANAGEMENT);
+        } catch (CommitFailedException e) {
+            verify(maValidator, times(1)).checkPermissions(t.getChild("dest"), false,
+                Permissions.ADD_NODE | Permissions.NODE_TYPE_MANAGEMENT);
             verify(pp, times(1)).isGranted(t.getChild("src"), null, Permissions.REMOVE_NODE);
             assertTrue(e.isAccessViolation());
             assertEquals(0, e.getCode());
@@ -215,11 +232,13 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
 
     @Test
     public void testChildNodeDeletedNoMatchingMove() throws Exception {
-        MoveAwarePermissionValidator maValidator = spy(createRootValidator(adminSession.getAuthInfo().getPrincipals(), new MoveTracker()));
+        MoveAwarePermissionValidator maValidator = spy(
+            createRootValidator(adminSession.getAuthInfo().getPrincipals(), new MoveTracker()));
         Validator validator = maValidator.childNodeDeleted("name", mock(NodeState.class));
 
         assertNull(validator);
-        verify(maValidator, times(1)).checkPermissions(t.getChild("name"), true, Permissions.REMOVE_NODE);
+        verify(maValidator, times(1)).checkPermissions(t.getChild("name"), true,
+            Permissions.REMOVE_NODE);
         verifyNoInteractions(monitor);
     }
 
@@ -228,12 +247,15 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
         MoveTracker moveTracker = new MoveTracker();
         moveTracker.addMove("/src", "/nonExistingDest");
 
-        MoveAwarePermissionValidator maValidator = spy(createRootValidator(adminSession.getAuthInfo().getPrincipals(), moveTracker));
+        MoveAwarePermissionValidator maValidator = spy(
+            createRootValidator(adminSession.getAuthInfo().getPrincipals(), moveTracker));
         Validator validator = maValidator.childNodeDeleted("src", mock(NodeState.class));
 
         assertNull(validator);
-        verify(maValidator, times(1)).checkPermissions(t.getChild("src"), true, Permissions.REMOVE_NODE);
-        verify(pp, never()).isGranted(t.getChild("nonExistingDest"), null, Permissions.ADD_NODE|Permissions.NODE_TYPE_MANAGEMENT);
+        verify(maValidator, times(1)).checkPermissions(t.getChild("src"), true,
+            Permissions.REMOVE_NODE);
+        verify(pp, never()).isGranted(t.getChild("nonExistingDest"), null,
+            Permissions.ADD_NODE | Permissions.NODE_TYPE_MANAGEMENT);
         verifyNoInteractions(monitor);
     }
 
@@ -242,12 +264,15 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
         MoveTracker moveTracker = new MoveTracker();
         moveTracker.addMove("/src", "/dest");
 
-        MoveAwarePermissionValidator maValidator = spy(createRootValidator(adminSession.getAuthInfo().getPrincipals(), moveTracker));
+        MoveAwarePermissionValidator maValidator = spy(
+            createRootValidator(adminSession.getAuthInfo().getPrincipals(), moveTracker));
         Validator validator = maValidator.childNodeDeleted("src", mock(NodeState.class));
 
         assertNull(validator);
-        verify(maValidator, times(1)).checkPermissions(t.getChild("src"), true, Permissions.REMOVE_NODE);
-        verify(pp, times(1)).isGranted(t.getChild("dest"), null, Permissions.ADD_NODE|Permissions.NODE_TYPE_MANAGEMENT);
+        verify(maValidator, times(1)).checkPermissions(t.getChild("src"), true,
+            Permissions.REMOVE_NODE);
+        verify(pp, times(1)).isGranted(t.getChild("dest"), null,
+            Permissions.ADD_NODE | Permissions.NODE_TYPE_MANAGEMENT);
         verifyNoInteractions(monitor);
     }
 
@@ -256,30 +281,37 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
         MoveTracker moveTracker = new MoveTracker();
         moveTracker.addMove("/src", "/dest");
 
-        MoveAwarePermissionValidator maValidator = spy(createRootValidator(adminSession.getAuthInfo().getPrincipals(), moveTracker));
+        MoveAwarePermissionValidator maValidator = spy(
+            createRootValidator(adminSession.getAuthInfo().getPrincipals(), moveTracker));
         when(maValidator.getParentBefore()).thenReturn(null);
 
         Validator validator = maValidator.childNodeDeleted("src", mock(NodeState.class));
 
         assertNull(validator);
-        verify(maValidator, times(1)).checkPermissions(t.getChild("src"), true, Permissions.REMOVE_NODE);
-        verify(pp, never()).isGranted(t.getChild("dest"), null, Permissions.ADD_NODE|Permissions.NODE_TYPE_MANAGEMENT);
+        verify(maValidator, times(1)).checkPermissions(t.getChild("src"), true,
+            Permissions.REMOVE_NODE);
+        verify(pp, never()).isGranted(t.getChild("dest"), null,
+            Permissions.ADD_NODE | Permissions.NODE_TYPE_MANAGEMENT);
         verifyNoInteractions(monitor);
     }
 
     @Test(expected = CommitFailedException.class)
     public void testChildNodeDeletedMissingPermissionAtDestination() throws Exception {
-        grant(PathUtils.ROOT_PATH, EveryonePrincipal.getInstance(), PrivilegeConstants.JCR_REMOVE_CHILD_NODES, PrivilegeConstants.JCR_REMOVE_NODE);
+        grant(PathUtils.ROOT_PATH, EveryonePrincipal.getInstance(),
+            PrivilegeConstants.JCR_REMOVE_CHILD_NODES, PrivilegeConstants.JCR_REMOVE_NODE);
 
         MoveTracker moveTracker = new MoveTracker();
         moveTracker.addMove("/src", "/dest");
 
-        MoveAwarePermissionValidator maValidator = spy(createRootValidator(ImmutableSet.of(EveryonePrincipal.getInstance()), moveTracker));
+        MoveAwarePermissionValidator maValidator = spy(
+            createRootValidator(ImmutableSet.of(EveryonePrincipal.getInstance()), moveTracker));
         try {
             maValidator.childNodeDeleted("src", mock(NodeState.class));
-        } catch (CommitFailedException e){
-            verify(maValidator, times(1)).checkPermissions(t.getChild("src"), true, Permissions.REMOVE_NODE);
-            verify(pp, times(1)).isGranted(t.getChild("dest"), null, Permissions.ADD_NODE|Permissions.NODE_TYPE_MANAGEMENT);
+        } catch (CommitFailedException e) {
+            verify(maValidator, times(1)).checkPermissions(t.getChild("src"), true,
+                Permissions.REMOVE_NODE);
+            verify(pp, times(1)).isGranted(t.getChild("dest"), null,
+                Permissions.ADD_NODE | Permissions.NODE_TYPE_MANAGEMENT);
             assertTrue(e.isAccessViolation());
             assertEquals(0, e.getCode());
             throw e;
@@ -296,15 +328,18 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
         mv.addMove("/src", "/dest");
         mv.addMove("/dest", "/otherPath");
 
-        CommitFailedException exp = new CommitFailedException("error", 0, CommitFailedException.OAK);
+        CommitFailedException exp = new CommitFailedException("error", 0,
+            CommitFailedException.OAK);
 
-        MoveAwarePermissionValidator maValidator = spy(createRootValidator(adminSession.getAuthInfo().getPrincipals(), mv));
-        doReturn(maValidator).when(maValidator).createValidator(any(Tree.class), any(Tree.class), eq(TreePermission.ALL), eq(maValidator));
+        MoveAwarePermissionValidator maValidator = spy(
+            createRootValidator(adminSession.getAuthInfo().getPrincipals(), mv));
+        doReturn(maValidator).when(maValidator).createValidator(any(Tree.class), any(Tree.class),
+            eq(TreePermission.ALL), eq(maValidator));
         doThrow(exp).when(maValidator).enter(any(NodeState.class), any(NodeState.class));
 
         try {
             maValidator.childNodeAdded("dest", mock(NodeState.class));
-        } catch (CommitFailedException e){
+        } catch (CommitFailedException e) {
             assertSame(exp, e);
             throw e;
         } finally {

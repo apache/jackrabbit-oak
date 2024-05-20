@@ -51,7 +51,7 @@ import org.apache.jackrabbit.guava.common.collect.Lists;
  * Plan for querying a given property index using a given filter.
  */
 public class PropertyIndexPlan {
-    
+
     static final Logger LOG = LoggerFactory.getLogger(PropertyIndexPlan.class);
 
     /**
@@ -87,16 +87,16 @@ public class PropertyIndexPlan {
     private final PathFilter pathFilter;
 
     private final boolean unique;
-    
+
     private final boolean deprecated;
-    
+
     PropertyIndexPlan(String name, NodeState root, NodeState definition,
-                      Filter filter){
+        Filter filter) {
         this(name, root, definition, filter, Mounts.defaultMountInfoProvider());
     }
 
     PropertyIndexPlan(String name, NodeState root, NodeState definition,
-                      Filter filter, MountInfoProvider mountInfoProvider) {
+        Filter filter, MountInfoProvider mountInfoProvider) {
         this.name = name;
         this.unique = definition.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME);
         this.definition = definition;
@@ -110,7 +110,7 @@ public class PropertyIndexPlan {
         this.matchesAllTypes = !definition.hasProperty(DECLARING_NODE_TYPES);
         this.deprecated = definition.getBoolean(IndexConstants.INDEX_DEPRECATED);
         this.matchesNodeTypes =
-                matchesAllTypes || any(types, in(filter.getSupertypes()));
+            matchesAllTypes || any(types, in(filter.getSupertypes()));
 
         ValuePattern valuePattern = new ValuePattern(definition);
 
@@ -119,10 +119,10 @@ public class PropertyIndexPlan {
         int bestDepth = 1;
 
         if (matchesNodeTypes &&
-                pathFilter.areAllDescendantsIncluded(filter.getPath())) {
+            pathFilter.areAllDescendantsIncluded(filter.getPath())) {
             for (String property : properties) {
                 PropertyRestriction restriction =
-                        filter.getPropertyRestriction(property);
+                    filter.getPropertyRestriction(property);
                 int depth = 1;
 
                 if (restriction == null) {
@@ -130,7 +130,7 @@ public class PropertyIndexPlan {
                     // TODO: avoid repeated scans through the restrictions
                     String suffix = "/" + property;
                     for (PropertyRestriction relative
-                            : filter.getPropertyRestrictions()) {
+                        : filter.getPropertyRestrictions()) {
                         if (relative.propertyName.endsWith(suffix)) {
                             restriction = relative;
                             depth = PathUtils.getDepth(relative.propertyName);
@@ -150,7 +150,8 @@ public class PropertyIndexPlan {
                         // of the child node (well, we could, for some node types)
                         continue;
                     }
-                    Set<String> values = ValuePatternUtil.getValues(restriction, new ValuePattern());
+                    Set<String> values = ValuePatternUtil.getValues(restriction,
+                        new ValuePattern());
                     if (valuePattern.matchesAll()) {
                         // matches all values: not a problem
                     } else if (values == null) {
@@ -172,7 +173,7 @@ public class PropertyIndexPlan {
                     double cost = strategies.isEmpty() ? MAX_COST : 0;
                     for (IndexStoreStrategy strategy : strategies) {
                         cost += strategy.count(filter, root, definition,
-                                values, MAX_COST);
+                            values, MAX_COST);
                     }
                     if (unique && cost <= 1) {
                         // for unique index, for the normal case
@@ -211,14 +212,14 @@ public class PropertyIndexPlan {
         if (deprecated) {
             final String caller = IndexUtils.getCaller(settings.getIgnoredClassNamesInCallTrace());
             LOG.warn("This index is deprecated: {}; it is used for query {} called by {}. " +
-                    "Please change the query or the index definitions.", name, filter, caller);
+                "Please change the query or the index definitions.", name, filter, caller);
         }
         List<Iterable<String>> iterables = Lists.newArrayList();
         for (IndexStoreStrategy s : strategies) {
             iterables.add(s.query(filter, name, definition, values));
         }
         Cursor cursor = Cursors.newPathCursor(Iterables.concat(iterables),
-                settings);
+            settings);
         if (depth > 1) {
             cursor = Cursors.newAncestorCursor(cursor, depth - 1, settings);
         }
@@ -230,9 +231,9 @@ public class PropertyIndexPlan {
     }
 
     Set<IndexStoreStrategy> getStrategies(NodeState definition,
-            MountInfoProvider mountInfoProvider) {
+        MountInfoProvider mountInfoProvider) {
         return Multiplexers.getStrategies(unique, mountInfoProvider,
-                definition, INDEX_CONTENT_NODE_NAME);
+            definition, INDEX_CONTENT_NODE_NAME);
     }
 
     //------------------------------------------------------------< Object >--

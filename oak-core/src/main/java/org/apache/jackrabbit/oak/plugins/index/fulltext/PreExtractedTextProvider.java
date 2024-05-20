@@ -32,10 +32,8 @@ public interface PreExtractedTextProvider {
      * Get pre extracted text for given blob at given path
      *
      * @param propertyPath path of the binary property
-     * @param blob binary property value
-     *
-     * @return pre extracted text or null if no
-     * pre extracted text found for given blob
+     * @param blob         binary property value
+     * @return pre extracted text or null if no pre extracted text found for given blob
      */
     @Nullable
     ExtractedText getText(String propertyPath, Blob blob) throws IOException;

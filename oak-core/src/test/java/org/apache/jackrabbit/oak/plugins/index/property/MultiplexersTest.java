@@ -32,38 +32,38 @@ import org.junit.Test;
 
 public class MultiplexersTest {
 
-	private MountInfoProvider mip;
+    private MountInfoProvider mip;
 
-	@Before
-	public void setUp() {
+    @Before
+    public void setUp() {
         mip = Mounts.defaultMountInfoProvider();
-	}
-	
+    }
+
     @Test
     public void defaultSetup() throws Exception {
-		assertEquals(
-                INDEX_CONTENT_NODE_NAME,
-                getIndexNodeName(mip, "/foo",
-                        INDEX_CONTENT_NODE_NAME));
+        assertEquals(
+            INDEX_CONTENT_NODE_NAME,
+            getIndexNodeName(mip, "/foo",
+                INDEX_CONTENT_NODE_NAME));
         assertEquals(INDEX_CONTENT_NODE_NAME,
-                getNodeForMount(mip.getDefaultMount(), INDEX_CONTENT_NODE_NAME));
+            getNodeForMount(mip.getDefaultMount(), INDEX_CONTENT_NODE_NAME));
     }
 
     @Test
     public void customNodeName() throws Exception {
         MountInfoProvider mip = Mounts.newBuilder()
-                .mount("foo", "/a", "/b").build();
+                                      .mount("foo", "/a", "/b").build();
 
         Mount m = mip.getMountByName("foo");
 
         assertEquals(":index",
-                getIndexNodeName(mip, "/foo", INDEX_CONTENT_NODE_NAME));
+            getIndexNodeName(mip, "/foo", INDEX_CONTENT_NODE_NAME));
         assertEquals(":index",
-                getNodeForMount(mip.getDefaultMount(), INDEX_CONTENT_NODE_NAME));
+            getNodeForMount(mip.getDefaultMount(), INDEX_CONTENT_NODE_NAME));
 
         assertEquals(":" + m.getPathFragmentName() + "-index",
-                getIndexNodeName(mip, "/a", INDEX_CONTENT_NODE_NAME));
+            getIndexNodeName(mip, "/a", INDEX_CONTENT_NODE_NAME));
         assertEquals(":" + m.getPathFragmentName() + "-index",
-                getNodeForMount(m, INDEX_CONTENT_NODE_NAME));
+            getNodeForMount(m, INDEX_CONTENT_NODE_NAME));
     }
 }

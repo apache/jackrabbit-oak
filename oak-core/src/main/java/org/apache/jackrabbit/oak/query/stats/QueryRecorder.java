@@ -23,7 +23,6 @@ import java.io.LineNumberReader;
 import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.TreeSet;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,29 +30,29 @@ public class QueryRecorder {
 
     private static final Logger LOG = LoggerFactory.getLogger(QueryRecorder.class);
     private static final HashMap<String, Integer> RECORD_QUERIES_MAP = new HashMap<String, Integer>();
-    private final static int QUERIES_MAX =  Integer.getInteger("oak.query.record", 5000);
-    
+    private final static int QUERIES_MAX = Integer.getInteger("oak.query.record", 5000);
+
     public static void main(String... args) throws IOException {
         // command line version: read from a file
         LineNumberReader reader = new LineNumberReader(
-                new BufferedReader(new FileReader(args[0])));
+            new BufferedReader(new FileReader(args[0])));
         TreeSet<String> sorted = new TreeSet<String>();
         int lineCount = 0;
-        while(true) {
+        while (true) {
             String line = reader.readLine();
-            if(line == null) {
+            if (line == null) {
                 break;
             }
             sorted.add(simplify(line));
             lineCount++;
         }
         reader.close();
-        for(String s : sorted) {
+        for (String s : sorted) {
             System.out.println(s);
         }
         System.out.println("sorted: " + sorted.size() + " original: " + lineCount);
     }
-    
+
     public static void record(String query, boolean internal) {
         if (internal) {
             return;
@@ -78,7 +77,7 @@ public class QueryRecorder {
             return query;
         }
     }
-    
+
     public static String simplify(String query) {
 
         // numbers
@@ -99,11 +98,11 @@ public class QueryRecorder {
         // usage of [/path] inside ISDESCENDANTNODE and so on
         // (case insensitive)
         query = query.replaceAll(
-                "(?i)(ISDESCENDANTNODE|ISCHILDNODE|ISSAMENODE)\\s*\\(.*,\\s*\\[/[^]]*\\]\\)",
-                "$1('x')");
+            "(?i)(ISDESCENDANTNODE|ISCHILDNODE|ISSAMENODE)\\s*\\(.*,\\s*\\[/[^]]*\\]\\)",
+            "$1('x')");
         query = query.replaceAll(
-                "(?i)(ISDESCENDANTNODE|ISCHILDNODE|ISSAMENODE)\\s*\\(\\[/[^]]*\\]\\)",
-                "$1('x')");
+            "(?i)(ISDESCENDANTNODE|ISCHILDNODE|ISSAMENODE)\\s*\\(\\[/[^]]*\\]\\)",
+            "$1('x')");
 
         // the beginning of xpath queries, including xpath union
         int startIndex = 0;
@@ -115,7 +114,7 @@ public class QueryRecorder {
             startIndex = pathIndex + 1;
             int start = pathIndex + "/jcr:root/".length();
             int end = getFirstOccurance(query, start,
-                    " ", "/element(", "/text(", "/*", "/(", "/jcr:deref(");
+                " ", "/element(", "/text(", "/*", "/(", "/jcr:deref(");
             String path = query.substring(start, end);
             int first = path.indexOf('/');
             if (first > 0) {
@@ -124,15 +123,17 @@ public class QueryRecorder {
                     path = path.substring(0, first + 1) + "...";
                 }
             }
-            String newQuery = query.substring(0, pathIndex) + "/jcr:root/" + path + query.substring(end, query.length());
+            String newQuery =
+                query.substring(0, pathIndex) + "/jcr:root/" + path + query.substring(end,
+                    query.length());
             query = newQuery;
         }
         return query;
     }
-    
+
     static int getFirstOccurance(String text, int start, String... strings) {
         int first = text.length();
-        for(String s : strings) {
+        for (String s : strings) {
             int index = text.indexOf(s, start + 1);
             if (index > 0 && index < first) {
                 first = index;
@@ -140,7 +141,7 @@ public class QueryRecorder {
         }
         return first;
     }
-    
+
     private static void record(String query) {
         HashMap<String, Integer> map = RECORD_QUERIES_MAP;
         if (map.size() > QUERIES_MAX) {
@@ -149,7 +150,7 @@ public class QueryRecorder {
                 old = new HashMap<>(map);
                 map.clear();
             }
-            for(Entry<String, Integer> e : old.entrySet()) {
+            for (Entry<String, Integer> e : old.entrySet()) {
                 log(e.getKey(), e.getValue());
             }
         }

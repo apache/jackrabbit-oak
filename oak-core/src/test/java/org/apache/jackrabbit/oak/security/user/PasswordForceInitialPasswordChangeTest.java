@@ -57,7 +57,7 @@ public class PasswordForceInitialPasswordChangeTest extends AbstractSecurityTest
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         ConfigurationParameters userConfig = ConfigurationParameters.of(
-                UserConstants.PARAM_PASSWORD_INITIAL_CHANGE, true);
+            UserConstants.PARAM_PASSWORD_INITIAL_CHANGE, true);
         return ConfigurationParameters.of(UserConfiguration.NAME, userConfig);
     }
 
@@ -99,11 +99,13 @@ public class PasswordForceInitialPasswordChangeTest extends AbstractSecurityTest
     @Test
     public void testChangePassword() throws Exception {
         User user = getTestUser();
-        PropertyState p1 = getUserTree(user).getChild(REP_PWD).getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED);
+        PropertyState p1 = getUserTree(user).getChild(REP_PWD)
+                                            .getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED);
         assertNull(p1);
         user.changePassword(userId);
         root.commit();
-        PropertyState p2 = getUserTree(user).getChild(REP_PWD).getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED);
+        PropertyState p2 = getUserTree(user).getChild(REP_PWD)
+                                            .getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED);
         assertNotNull(p2);
         assertTrue(p2.getValue(Type.LONG) > 0);
 
@@ -113,7 +115,8 @@ public class PasswordForceInitialPasswordChangeTest extends AbstractSecurityTest
     }
 
     /**
-     * rep:passwordLastModified must NOT be created otherwise the user might never be forced to change pw upon first login.
+     * rep:passwordLastModified must NOT be created otherwise the user might never be forced to
+     * change pw upon first login.
      */
     @Test
     public void testSetPasswordImportExistingUser() throws Exception {

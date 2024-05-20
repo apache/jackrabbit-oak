@@ -28,11 +28,11 @@ public class PropertyIndexQueryTestSQL2OptimisationsTest extends PropertyIndexQu
     @Override
     Oak getOakRepositoryInstance() {
         return super.getOakRepositoryInstance()
-            .with(new QueryEngineSettings() {
-                @Override
-                public boolean isSql2Optimisation() {
-                    return true;
-                }
-            });
+                    .with(new QueryEngineSettings() {
+                        @Override
+                        public boolean isSql2Optimisation() {
+                            return true;
+                        }
+                    });
     }
 }

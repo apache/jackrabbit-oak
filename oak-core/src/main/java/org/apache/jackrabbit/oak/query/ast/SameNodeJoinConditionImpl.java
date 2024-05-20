@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -36,7 +35,7 @@ public class SameNodeJoinConditionImpl extends JoinConditionImpl {
     private SelectorImpl selector2;
 
     public SameNodeJoinConditionImpl(String selector1Name, String selector2Name,
-            String selector2Path) {
+        String selector2Path) {
         this.selector1Name = selector1Name;
         this.selector2Name = selector2Name;
         this.selector2Path = selector2Path;
@@ -115,12 +114,12 @@ public class SameNodeJoinConditionImpl extends JoinConditionImpl {
     public void restrictPushDown(SelectorImpl s) {
         // nothing to do
     }
-    
+
     @Override
     public boolean isParent(SourceImpl source) {
         return false;
     }
-    
+
     @Override
     public boolean canEvaluate(Set<SourceImpl> available) {
         return available.contains(selector1) && available.contains(selector2);

@@ -31,8 +31,8 @@ import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONSTORAGE;
 
 /**
  * This editor puts UUIDs of all processed versionables into
- * {@link VersionableCollector#existingVersionables} set. The main purpose
- * is to handle moved/renamed versionable nodes in the {@link OrphanedVersionCleaner}.
+ * {@link VersionableCollector#existingVersionables} set. The main purpose is to handle
+ * moved/renamed versionable nodes in the {@link OrphanedVersionCleaner}.
  */
 class VersionableCollector extends DefaultEditor {
 
@@ -58,7 +58,8 @@ class VersionableCollector extends DefaultEditor {
     }
 
     @Override
-    public Editor childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+    public Editor childNodeChanged(String name, NodeState before, NodeState after)
+        throws CommitFailedException {
         return this;
     }
 
@@ -76,7 +77,8 @@ class VersionableCollector extends DefaultEditor {
         }
 
         @Override
-        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info) throws CommitFailedException {
+        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder,
+            CommitInfo info) throws CommitFailedException {
             if (!builder.hasChildNode(JCR_SYSTEM)) {
                 return null;
             }

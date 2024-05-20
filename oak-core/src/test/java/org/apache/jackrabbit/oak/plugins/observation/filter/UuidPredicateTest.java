@@ -32,7 +32,7 @@ public class UuidPredicateTest {
 
     @Test
     public void emptyUuidList() {
-        UuidPredicate p = new UuidPredicate(new String[] {});
+        UuidPredicate p = new UuidPredicate(new String[]{});
         NodeState tree = createNodeWithUuid(UUIDUtils.generateUUID());
         assertFalse(p.test(tree));
     }
@@ -40,14 +40,14 @@ public class UuidPredicateTest {
     @Test
     public void singleUuidMatch() {
         String uuid = UUIDUtils.generateUUID();
-        UuidPredicate p = new UuidPredicate(new String[] {uuid});
+        UuidPredicate p = new UuidPredicate(new String[]{uuid});
         NodeState tree = createNodeWithUuid(uuid);
         assertTrue(p.test(tree));
     }
 
     @Test
     public void singleUuidMiss() {
-        UuidPredicate p = new UuidPredicate(new String[] {UUIDUtils.generateUUID()});
+        UuidPredicate p = new UuidPredicate(new String[]{UUIDUtils.generateUUID()});
         NodeState tree = createNodeWithUuid(UUIDUtils.generateUUID());
         assertFalse(p.test(tree));
     }
@@ -56,7 +56,7 @@ public class UuidPredicateTest {
     public void multipleUuidsMatch() {
         String uuid = UUIDUtils.generateUUID();
         UuidPredicate p = new UuidPredicate(
-                new String[] {UUIDUtils.generateUUID(), UUIDUtils.generateUUID(), uuid});
+            new String[]{UUIDUtils.generateUUID(), UUIDUtils.generateUUID(), uuid});
         NodeState tree = createNodeWithUuid(uuid);
         assertTrue(p.test(tree));
     }
@@ -64,14 +64,15 @@ public class UuidPredicateTest {
     @Test
     public void multipleUuidsMiss() {
         UuidPredicate p = new UuidPredicate(
-                new String[] {UUIDUtils.generateUUID(), UUIDUtils.generateUUID(), UUIDUtils.generateUUID()});
+            new String[]{UUIDUtils.generateUUID(), UUIDUtils.generateUUID(),
+                UUIDUtils.generateUUID()});
         NodeState tree = createNodeWithUuid(UUIDUtils.generateUUID());
         assertFalse(p.test(tree));
     }
 
     private static NodeState createNodeWithUuid(String uuid) {
         return EMPTY_NODE.builder()
-                .setProperty(JCR_UUID, uuid)
-                .getNodeState();
+                         .setProperty(JCR_UUID, uuid)
+                         .getNodeState();
     }
 }

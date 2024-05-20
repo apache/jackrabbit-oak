@@ -24,12 +24,12 @@ import org.junit.Before;
  * should be executing the {@link MultiPropertyOrTest} by forcing the optimisation in place.
  */
 public class MultiPropertyOrTestOptimisationTest extends MultiPropertyOrTest {
-    
+
     @Override
     @Before
     public void before() throws Exception {
         super.before();
         setQuerySelectionMode(ALTERNATIVE);
         setTraversalEnabled(false);
-    }    
+    }
 }

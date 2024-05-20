@@ -105,14 +105,16 @@ public class PrincipalConfigurationImplTest extends AbstractSecurityTest {
         pc1.setSecurityProvider(getSecurityProvider());
         PrincipalProvider pp = pc1.getPrincipalProvider(root, NamePathMapper.DEFAULT);
         assertNotNull(pp);
-        assertEquals(getUserConfiguration().getUserPrincipalProvider(root, NamePathMapper.DEFAULT).getClass(), pp.getClass());
+        assertEquals(getUserConfiguration().getUserPrincipalProvider(root, NamePathMapper.DEFAULT)
+                                           .getClass(), pp.getClass());
     }
 
     @Test
     public void testGetPrincipalProvider3() {
         PrincipalProvider pp = pc2.getPrincipalProvider(root, NamePathMapper.DEFAULT);
         assertNotNull(pp);
-        assertEquals(getUserConfiguration().getUserPrincipalProvider(root, NamePathMapper.DEFAULT).getClass(), pp.getClass());
+        assertEquals(getUserConfiguration().getUserPrincipalProvider(root, NamePathMapper.DEFAULT)
+                                           .getClass(), pp.getClass());
     }
 
     @Test
@@ -138,7 +140,8 @@ public class PrincipalConfigurationImplTest extends AbstractSecurityTest {
                     return (T) new UserConfigurationImpl(this) {
                         @Nullable
                         @Override
-                        public PrincipalProvider getUserPrincipalProvider(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
+                        public PrincipalProvider getUserPrincipalProvider(@NotNull Root root,
+                            @NotNull NamePathMapper namePathMapper) {
                             return null;
                         }
                     };
@@ -161,17 +164,19 @@ public class PrincipalConfigurationImplTest extends AbstractSecurityTest {
 
             @NotNull
             @Override
-            public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
+            public PrincipalProvider getPrincipalProvider(Root root,
+                NamePathMapper namePathMapper) {
                 return pp;
             }
         };
 
         ConfigurationParameters params = ConfigurationParameters.EMPTY;
         pc.setParameters(params);
-        SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().with(params).build();
+        SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().with(params)
+                                                                   .build();
 
         CompositeConfiguration<PrincipalConfiguration> composite = (CompositeConfiguration) securityProvider
-                .getConfiguration(PrincipalConfiguration.class);
+            .getConfiguration(PrincipalConfiguration.class);
         PrincipalConfiguration defConfig = composite.getDefaultConfig();
 
         pc.setSecurityProvider(securityProvider);

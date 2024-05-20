@@ -28,20 +28,20 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Predicate on property values. This property holds if and only if
- * the node has a property of the given {@code name} and the given
- * {@code propertyPredicate} holds on that property.
+ * Predicate on property values. This property holds if and only if the node has a property of the
+ * given {@code name} and the given {@code propertyPredicate} holds on that property.
  */
 public class PropertyPredicate implements Predicate<NodeState> {
+
     private final String name;
     private final Predicate<PropertyState> propertyPredicate;
 
     /**
-     * @param name               name of the property
-     * @param propertyPredicate  predicate on the named property
+     * @param name              name of the property
+     * @param propertyPredicate predicate on the named property
      */
     public PropertyPredicate(
-            @NotNull String name, @NotNull Predicate<PropertyState> propertyPredicate) {
+        @NotNull String name, @NotNull Predicate<PropertyState> propertyPredicate) {
         this.name = checkNotNull(name);
         this.propertyPredicate = checkNotNull(propertyPredicate);
     }

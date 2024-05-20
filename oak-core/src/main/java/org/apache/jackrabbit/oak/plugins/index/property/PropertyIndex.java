@@ -53,7 +53,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
  * </p>
  * <p>
  * Optionally you can specify
- * <ul> 
+ * <ul>
  * <li> a uniqueness constraint on a property index by setting the <code>unique</code> flag to <code>true</code></li>
  * <li> that the property index only applies to a certain node type by setting the <code>declaringNodeTypes</code> property</li>
  * </ul>
@@ -65,7 +65,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
  * <li> <code>reindex</code> is a property that when set to <code>true</code>, triggers a full content reindex.</li>
  * </ul>
  * </p>
- * 
+ *
  * <pre>
  * <code>
  * {
@@ -80,7 +80,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
  * }
  * </code>
  * </pre>
- * 
+ *
  * @see QueryIndex
  * @see PropertyIndexLookup
  */
@@ -117,7 +117,7 @@ class PropertyIndex implements QueryIndex {
     }
 
     private static PropertyIndexPlan createPlan(NodeState root, Filter filter,
-                                                MountInfoProvider mountInfoProvider) {
+        MountInfoProvider mountInfoProvider) {
         PropertyIndexPlan bestPlan = null;
 
         // TODO support indexes on a path
@@ -129,12 +129,12 @@ class PropertyIndex implements QueryIndex {
                 continue;
             }
             if (PROPERTY.equals(definition.getString(TYPE_PROPERTY_NAME))
-                    && definition.hasChildNode(INDEX_CONTENT_NODE_NAME)) {
+                && definition.hasChildNode(INDEX_CONTENT_NODE_NAME)) {
                 PropertyIndexPlan plan = new PropertyIndexPlan(
-                        entry.getName(), root, definition, filter, mountInfoProvider);
+                    entry.getName(), root, definition, filter, mountInfoProvider);
                 if (plan.getCost() != Double.POSITIVE_INFINITY) {
                     LOG.debug("property cost for {} is {}",
-                            plan.getName(), plan.getCost());
+                        plan.getName(), plan.getCost());
                     if (bestPlan == null || plan.getCost() < bestPlan.getCost()) {
                         bestPlan = plan;
                         // Stop comparing if the costs are the minimum
@@ -148,7 +148,7 @@ class PropertyIndex implements QueryIndex {
 
         return bestPlan;
     }
-    
+
     private static boolean wrongIndex(ChildNodeEntry entry, Filter filter, NodeState root) {
         // REMARK: similar code is used in oak-lucene, IndexPlanner
         // skip index if "option(index ...)" doesn't match
@@ -156,7 +156,8 @@ class PropertyIndex implements QueryIndex {
         if (!isEnabled(definition, root)) {
             return true;
         }
-        PropertyRestriction indexName = filter.getPropertyRestriction(IndexConstants.INDEX_NAME_OPTION);
+        PropertyRestriction indexName = filter.getPropertyRestriction(
+            IndexConstants.INDEX_NAME_OPTION);
         boolean wrong = false;
         if (indexName != null && indexName.first != null) {
             String name = indexName.first.getValue(Type.STRING);
@@ -167,7 +168,8 @@ class PropertyIndex implements QueryIndex {
             }
             wrong = true;
         }
-        PropertyRestriction indexTag = filter.getPropertyRestriction(IndexConstants.INDEX_TAG_OPTION);
+        PropertyRestriction indexTag = filter.getPropertyRestriction(
+            IndexConstants.INDEX_TAG_OPTION);
         if (indexTag != null && indexTag.first != null) {
             // index tag specified
             String[] tags = getOptionalStrings(definition, IndexConstants.INDEX_TAGS);
@@ -176,7 +178,7 @@ class PropertyIndex implements QueryIndex {
                 return true;
             }
             String tag = indexTag.first.getValue(Type.STRING);
-            for(String t : tags) {
+            for (String t : tags) {
                 if (t.equals(tag)) {
                     // tag matches
                     return false;
@@ -184,14 +186,15 @@ class PropertyIndex implements QueryIndex {
             }
             // no tag matches
             return true;
-        } else if (IndexSelectionPolicy.TAG.equals(definition.getString(IndexConstants.INDEX_SELECTION_POLICY))) {
+        } else if (IndexSelectionPolicy.TAG.equals(
+            definition.getString(IndexConstants.INDEX_SELECTION_POLICY))) {
             // index tags are not specified in query, but required by the "tag" index selection policy
             return true;
         }
         // no tag specified
         return wrong;
     }
-    
+
     private static boolean isEnabled(NodeState definition, NodeState root) {
         String useIfExists = definition.getString(IndexConstants.USE_IF_EXISTS);
         if (useIfExists == null) {
@@ -212,7 +215,7 @@ class PropertyIndex implements QueryIndex {
         }
         return true;
     }
-    
+
     private static String[] getOptionalStrings(NodeState defn, String propertyName) {
         PropertyState ps = defn.getProperty(propertyName);
         if (ps != null) {
@@ -232,7 +235,7 @@ class PropertyIndex implements QueryIndex {
     public String getIndexName() {
         return PROPERTY;
     }
-    
+
     @Override
     public String getIndexName(Filter filter, NodeState root) {
         PropertyIndexPlan plan = getPlan(root, filter);
@@ -265,7 +268,7 @@ class PropertyIndex implements QueryIndex {
     public Cursor query(Filter filter, NodeState root) {
         PropertyIndexPlan plan = getPlan(root, filter);
         checkState(plan != null,
-                "Property index is used even when no index"
+            "Property index is used even when no index"
                 + " is available for filter " + filter);
         return plan.execute();
     }

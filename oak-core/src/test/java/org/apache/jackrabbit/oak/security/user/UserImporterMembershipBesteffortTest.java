@@ -33,7 +33,8 @@ public class UserImporterMembershipBesteffortTest extends UserImporterMembership
 
     @Test
     public void testUnknownMember() throws Exception {
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, unknownContentId)));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES),
+            ImmutableList.of(createPropInfo(REP_MEMBERS, unknownContentId)));
         importer.processReferences();
 
         assertTrue(groupTree.hasProperty(REP_MEMBERS));
@@ -41,7 +42,8 @@ public class UserImporterMembershipBesteffortTest extends UserImporterMembership
 
     @Test
     public void testMixedMembers() throws Exception {
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, unknownContentId, knownMemberContentId)));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES),
+            ImmutableList.of(createPropInfo(REP_MEMBERS, unknownContentId, knownMemberContentId)));
         importer.processReferences();
 
         assertTrue(groupTree.hasProperty(REP_MEMBERS));

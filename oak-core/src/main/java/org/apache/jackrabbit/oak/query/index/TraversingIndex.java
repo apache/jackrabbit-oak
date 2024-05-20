@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.index;
 
+import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_FACET;
+
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.index.cursor.Cursors;
@@ -27,8 +29,6 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_FACET;
 
 /**
  * An index that traverses over a given subtree.
@@ -44,7 +44,7 @@ public class TraversingIndex implements QueryIndex {
     public Cursor query(Filter filter, NodeState rootState) {
         return Cursors.newTraversingCursor(filter, rootState);
     }
-    
+
     public boolean isPotentiallySlow(Filter filter, NodeState rootState) {
         if (filter.getFullTextConstraint() != null) {
             // not an appropriate index for full-text search
@@ -59,15 +59,15 @@ public class TraversingIndex implements QueryIndex {
         }
         PathRestriction restriction = filter.getPathRestriction();
         switch (restriction) {
-        case EXACT:
-        case PARENT:
-        case DIRECT_CHILDREN:
-            return false;
-        case NO_RESTRICTION:
-        case ALL_CHILDREN:
-            return true;
-        default:
-            throw new IllegalArgumentException("Unknown restriction: " + restriction);
+            case EXACT:
+            case PARENT:
+            case DIRECT_CHILDREN:
+                return false;
+            case NO_RESTRICTION:
+            case ALL_CHILDREN:
+                return true;
+            default:
+                throw new IllegalArgumentException("Unknown restriction: " + restriction);
         }
     }
 
@@ -95,21 +95,21 @@ public class TraversingIndex implements QueryIndex {
         PathRestriction restriction = filter.getPathRestriction();
         // the simple cases
         switch (restriction) {
-        case EXACT:
-            return 1;
-        case PARENT:
-            if (PathUtils.denotesRoot(path)) {
-                return 0;
-            }
-            return 1;
-        case NO_RESTRICTION:
-        case ALL_CHILDREN:
-        case DIRECT_CHILDREN:
-            break;
-        default:
-            throw new IllegalArgumentException("Unknown restriction: " + restriction);
+            case EXACT:
+                return 1;
+            case PARENT:
+                if (PathUtils.denotesRoot(path)) {
+                    return 0;
+                }
+                return 1;
+            case NO_RESTRICTION:
+            case ALL_CHILDREN:
+            case DIRECT_CHILDREN:
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown restriction: " + restriction);
         }
-        
+
         if (!path.startsWith(JoinConditionImpl.SPECIAL_PATH_PREFIX)) {
             String testPath = path;
             if (restriction == PathRestriction.NO_RESTRICTION) {
@@ -123,36 +123,36 @@ public class TraversingIndex implements QueryIndex {
                 return count;
             }
         }
-        
+
         // worst case 100 million descendant nodes
         double nodeCount = 100000000;
         // worst case 100 thousand children
         double nodeCountChildren = 100000;
         switch (restriction) {
-        case NO_RESTRICTION:
-            break;
-        case ALL_CHILDREN:
-            if (!PathUtils.denotesRoot(path)) {
-                int depth = PathUtils.getDepth(path);
-                for (int i = depth; i > 0; i--) {
-                    // estimate 10 child nodes per node,
-                    // but higher than the cost for DIRECT_CHILDREN
-                    // (about 100'000)
-                    // in any case, the higher the depth of the path,
-                    // the lower the cost
-                    nodeCount = Math.max(nodeCountChildren * 2 - depth, nodeCount / 10);
+            case NO_RESTRICTION:
+                break;
+            case ALL_CHILDREN:
+                if (!PathUtils.denotesRoot(path)) {
+                    int depth = PathUtils.getDepth(path);
+                    for (int i = depth; i > 0; i--) {
+                        // estimate 10 child nodes per node,
+                        // but higher than the cost for DIRECT_CHILDREN
+                        // (about 100'000)
+                        // in any case, the higher the depth of the path,
+                        // the lower the cost
+                        nodeCount = Math.max(nodeCountChildren * 2 - depth, nodeCount / 10);
+                    }
                 }
-            }
-            break;
-        case DIRECT_CHILDREN:
-            // estimate 100'000 children for now, 
-            // to ensure an index is used if there is one
-            // TODO we need to have better estimates, see also OAK-1898
-             nodeCount = nodeCountChildren;
-            break;
-        default:
-            throw new IllegalArgumentException("Unknown restriction: " + restriction);
-        }        
+                break;
+            case DIRECT_CHILDREN:
+                // estimate 100'000 children for now,
+                // to ensure an index is used if there is one
+                // TODO we need to have better estimates, see also OAK-1898
+                nodeCount = nodeCountChildren;
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown restriction: " + restriction);
+        }
         return nodeCount;
     }
 
@@ -163,21 +163,21 @@ public class TraversingIndex implements QueryIndex {
         PathRestriction restriction = filter.getPathRestriction();
         String path = filter.getPath();
         switch (restriction) {
-        case EXACT:
-            buff.append("    oneNode: ").append(path);
-            break;
-        case PARENT:
-            buff.append("    parent: ").append(path);
-            break;
-        case NO_RESTRICTION:
-            buff.append("    allNodes (warning: slow)");
-            break;
-        case ALL_CHILDREN:
-            buff.append("    allDescendents: ").append(path);
-            break;
-        case DIRECT_CHILDREN:
-            buff.append("    onlyDirectChildren: ").append(path);
-            break;
+            case EXACT:
+                buff.append("    oneNode: ").append(path);
+                break;
+            case PARENT:
+                buff.append("    parent: ").append(path);
+                break;
+            case NO_RESTRICTION:
+                buff.append("    allNodes (warning: slow)");
+                break;
+            case ALL_CHILDREN:
+                buff.append("    allDescendents: ").append(path);
+                break;
+            case DIRECT_CHILDREN:
+                buff.append("    onlyDirectChildren: ").append(path);
+                break;
         }
         buff.append("\n").append("    estimatedEntries: ").append(getCost(filter, rootState));
         buff.append("\n");

@@ -38,7 +38,8 @@ public class LikePatternTest {
         pattern("%\\_%", "A_A", "AAA", null, null);
     }
 
-    private static void pattern(String pattern, String match, String noMatch, String lower, String upper) {
+    private static void pattern(String pattern, String match, String noMatch, String lower,
+        String upper) {
         LikePattern p = new LikePattern(pattern);
         if (match != null) {
             assertTrue(p.matches(match));

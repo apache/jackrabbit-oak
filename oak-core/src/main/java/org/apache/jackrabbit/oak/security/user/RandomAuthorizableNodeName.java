@@ -30,34 +30,36 @@ import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 /**
- * Implementation of the {@code AuthorizableNodeName} that generates a random
- * node name that doesn't reveal the ID of the authorizable.
+ * Implementation of the {@code AuthorizableNodeName} that generates a random node name that doesn't
+ * reveal the ID of the authorizable.
  */
 @Component(
-        configurationPolicy = ConfigurationPolicy.REQUIRE,
-        service = AuthorizableNodeName.class,
-        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.security.user.RandomAuthorizableNodeName"
+    configurationPolicy = ConfigurationPolicy.REQUIRE,
+    service = AuthorizableNodeName.class,
+    property = OAK_SECURITY_NAME
+        + "=org.apache.jackrabbit.oak.security.user.RandomAuthorizableNodeName"
 )
 @Designate(ocd = RandomAuthorizableNodeName.Configuration.class)
 public class RandomAuthorizableNodeName implements AuthorizableNodeName {
 
     @ObjectClassDefinition(
-            name = "Apache Jackrabbit Oak Random Authorizable Node Name",
-            description = "Generates a random name for the authorizable node."
+        name = "Apache Jackrabbit Oak Random Authorizable Node Name",
+        description = "Generates a random name for the authorizable node."
     )
     @interface Configuration {
 
         @AttributeDefinition(
-                name = "Name Length",
-                description = "Length of the generated node name.")
+            name = "Name Length",
+            description = "Length of the generated node name.")
         int length() default DEFAULT_LENGTH;
     }
 
     /**
-     * Characters used to encode the random data. This matches the Base64URL
-     * characters, which is both filename- and URL-safe.
+     * Characters used to encode the random data. This matches the Base64URL characters, which is
+     * both filename- and URL-safe.
      */
     private static final char[] VALID_CHARS;
+
     static {
         StringBuilder sb = new StringBuilder();
         char i;
@@ -73,12 +75,11 @@ public class RandomAuthorizableNodeName implements AuthorizableNodeName {
         sb.append("-_");
         VALID_CHARS = sb.toString().toCharArray();
     }
-    
+
     /**
-     * 21 characters, each character with 6 bit of entropy (64 possible
-     * characters), results in 126 bits of entropy. With regards to probability
-     * of duplicates, this is even better than standard UUIDs, which have 122
-     * bits of entropy and are 36 characters long.
+     * 21 characters, each character with 6 bit of entropy (64 possible characters), results in 126
+     * bits of entropy. With regards to probability of duplicates, this is even better than standard
+     * UUIDs, which have 122 bits of entropy and are 36 characters long.
      */
     public static final int DEFAULT_LENGTH = 21;
 

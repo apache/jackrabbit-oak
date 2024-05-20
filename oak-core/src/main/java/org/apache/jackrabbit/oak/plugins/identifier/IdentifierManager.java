@@ -68,7 +68,8 @@ public class IdentifierManager {
 
     public IdentifierManager(Root root) {
         this.root = root;
-        this.effectiveNodeTypeProvider = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT);
+        this.effectiveNodeTypeProvider = ReadOnlyNodeTypeManager.getInstance(root,
+            NamePathMapper.DEFAULT);
     }
 
     /**
@@ -97,8 +98,8 @@ public class IdentifierManager {
     /**
      * Return the identifier of a tree.
      *
-     * @param tree  a tree
-     * @return  identifier of {@code tree}
+     * @param tree a tree
+     * @return identifier of {@code tree}
      */
     @NotNull
     public static String getIdentifier(Tree tree) {
@@ -114,11 +115,11 @@ public class IdentifierManager {
     }
 
     /**
-     * The possibly non existing tree identified by the specified {@code identifier} or {@code null}.
+     * The possibly non existing tree identified by the specified {@code identifier} or
+     * {@code null}.
      *
      * @param identifier The identifier of the tree such as exposed by {@link #getIdentifier(Tree)}
-     * @return The tree with the given {@code identifier} or {@code null} if no
-     *         such tree exists.
+     * @return The tree with the given {@code identifier} or {@code null} if no such tree exists.
      */
     @Nullable
     public Tree getTree(String identifier) {
@@ -127,10 +128,11 @@ public class IdentifierManager {
         } else {
             int k = identifier.indexOf('/');
             String uuid = k == -1
-                    ? identifier
-                    : identifier.substring(0, k);
+                ? identifier
+                : identifier.substring(0, k);
 
-            checkArgument(UUIDUtils.isValidUUID(uuid), "Not a valid identifier '" + identifier + '\'');
+            checkArgument(UUIDUtils.isValidUUID(uuid),
+                "Not a valid identifier '" + identifier + '\'');
 
             Tree tree = resolveUUIDToTree(createPropertyValue(uuid));
             if (tree == null) {
@@ -152,13 +154,13 @@ public class IdentifierManager {
         checkType(referenceValue.getType());
         return resolveUUIDToTree(referenceValue);
     }
-    
+
     /**
      * The path of the tree identified by the specified {@code identifier} or {@code null}.
      *
      * @param identifier The identifier of the tree such as exposed by {@link #getIdentifier(Tree)}
-     * @return The path of the tree with the given {@code identifier} or {@code null} if no
-     *         such tree exists or if the tree is not accessible.
+     * @return The path of the tree with the given {@code identifier} or {@code null} if no such
+     * tree exists or if the tree is not accessible.
      */
     @Nullable
     public String getPath(String identifier) {
@@ -169,12 +171,12 @@ public class IdentifierManager {
     }
 
     /**
-     * Returns the path of the tree references by the specified (weak)
-     * reference {@code PropertyState}.
+     * Returns the path of the tree references by the specified (weak) reference
+     * {@code PropertyState}.
      *
      * @param referenceValue A (weak) reference value.
-     * @return The tree with the given {@code identifier} or {@code null} if no
-     *         such tree exists or isn't accessible to the content session.
+     * @return The tree with the given {@code identifier} or {@code null} if no such tree exists or
+     * isn't accessible to the content session.
      */
     @Nullable
     public String getPath(PropertyState referenceValue) {
@@ -183,12 +185,12 @@ public class IdentifierManager {
     }
 
     /**
-     * Returns the path of the tree references by the specified (weak)
-     * reference {@code PropertyState}.
+     * Returns the path of the tree references by the specified (weak) reference
+     * {@code PropertyState}.
      *
      * @param referenceValue A (weak) reference value.
-     * @return The tree with the given {@code identifier} or {@code null} if no
-     *         such tree exists or isn't accessible to the content session.
+     * @return The tree with the given {@code identifier} or {@code null} if no such tree exists or
+     * isn't accessible to the content session.
      */
     @Nullable
     public String getPath(PropertyValue referenceValue) {
@@ -197,33 +199,37 @@ public class IdentifierManager {
     }
 
     /**
-     * Searches all reference properties to the specified {@code tree} that match
-     * the given name and node type constraints.
+     * Searches all reference properties to the specified {@code tree} that match the given name and
+     * node type constraints.
      *
-     * @param weak          if {@code true} only weak references are returned. Otherwise only
-     *                      hard references are returned.
-     * @param tree          The tree for which references should be searched.
-     * @param propertyName  A name constraint for the reference properties;
-     *                      {@code null} if no constraint should be enforced.
-     * @return A set of oak paths of those reference properties referring to the
-     *         specified {@code tree} and matching the constraints.
+     * @param weak         if {@code true} only weak references are returned. Otherwise only hard
+     *                     references are returned.
+     * @param tree         The tree for which references should be searched.
+     * @param propertyName A name constraint for the reference properties; {@code null} if no
+     *                     constraint should be enforced.
+     * @return A set of oak paths of those reference properties referring to the specified
+     * {@code tree} and matching the constraints.
      */
     @NotNull
-    public Iterable<String> getReferences(boolean weak, @NotNull Tree tree, @Nullable final String propertyName) {
+    public Iterable<String> getReferences(boolean weak, @NotNull Tree tree,
+        @Nullable final String propertyName) {
         if (!effectiveNodeTypeProvider.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
             return Collections.emptySet(); // shortcut
         }
 
         final String uuid = getIdentifier(tree);
-        String reference = weak ? PropertyType.TYPENAME_WEAKREFERENCE : PropertyType.TYPENAME_REFERENCE;
+        String reference =
+            weak ? PropertyType.TYPENAME_WEAKREFERENCE : PropertyType.TYPENAME_REFERENCE;
         String pName = propertyName == null ? "*" : QueryUtils.escapeForQuery(propertyName);
-        Map<String, ? extends PropertyValue> bindings = Collections.singletonMap("uuid", PropertyValues.newString(uuid));
+        Map<String, ? extends PropertyValue> bindings = Collections.singletonMap("uuid",
+            PropertyValues.newString(uuid));
 
         try {
             Result result = root.getQueryEngine().executeQuery(
-                    "SELECT * FROM [nt:base] WHERE PROPERTY([" + pName + "], '" + reference + "') = $uuid" +
+                "SELECT * FROM [nt:base] WHERE PROPERTY([" + pName + "], '" + reference
+                    + "') = $uuid" +
                     QueryEngine.INTERNAL_SQL2_QUERY,
-                    Query.JCR_SQL2, bindings, NO_MAPPINGS);
+                Query.JCR_SQL2, bindings, NO_MAPPINGS);
             return findPaths(result, uuid, propertyName, weak);
         } catch (ParseException e) {
             log.error("query failed", e);
@@ -233,7 +239,7 @@ public class IdentifierManager {
 
     @NotNull
     private Iterable<String> findPaths(@NotNull final Result result, @NotNull final String uuid,
-                                       @Nullable final String propertyName, final boolean weak) {
+        @Nullable final String propertyName, final boolean weak) {
         return new Iterable<String>() {
             @Override
             public Iterator<String> iterator() {
@@ -241,11 +247,13 @@ public class IdentifierManager {
             }
 
             class RowToPaths implements Function<ResultRow, Iterator<String>> {
+
                 @Override
                 public Iterator<String> apply(ResultRow row) {
                     final String rowPath = row.getPath();
 
                     class PropertyToPath implements Function<PropertyState, String> {
+
                         @Override
                         public String apply(PropertyState pState) {
                             if (pState.isArray()) {
@@ -259,7 +267,8 @@ public class IdentifierManager {
                                 }
                             } else {
                                 Type<?> type = (weak) ? Type.WEAKREFERENCE : Type.REFERENCE;
-                                if (pState.getType() == type && uuid.equals(pState.getValue(Type.STRING))) {
+                                if (pState.getType() == type && uuid.equals(
+                                    pState.getValue(Type.STRING))) {
                                     return PathUtils.concat(rowPath, pState.getName());
                                 }
                             }
@@ -269,15 +278,16 @@ public class IdentifierManager {
 
                     // skip references from the version storage (OAK-1196)
                     if (!rowPath.startsWith(VersionConstants.VERSION_STORE_PATH)) {
-                            if (propertyName == null) {
-                                return filter(
-                                        transform(root.getTree(rowPath).getProperties().iterator(), new PropertyToPath()),
-                                        notNull());
-                            } else {
-                                // for a fixed property name, we don't need to look for it, but just assume that
-                                // the search found the correct one
-                                return singletonIterator(PathUtils.concat(rowPath, propertyName));
-                            }
+                        if (propertyName == null) {
+                            return filter(
+                                transform(root.getTree(rowPath).getProperties().iterator(),
+                                    new PropertyToPath()),
+                                notNull());
+                        } else {
+                            // for a fixed property name, we don't need to look for it, but just assume that
+                            // the search found the correct one
+                            return singletonIterator(PathUtils.concat(rowPath, propertyName));
+                        }
                     }
                     return Collections.emptyIterator();
                 }
@@ -286,40 +296,45 @@ public class IdentifierManager {
     }
 
     /**
-     * Searches all reference properties to the specified {@code tree} that match
-     * the given {@code propertyName} and the specified, mandatory node type
-     * constraint ({@code ntName}). In contrast to {@link #getReferences} this
-     * method requires all parameters to be specified, which eases the handling
-     * of the result set and doesn't require the trees associated with the
-     * result set to be resolved.
+     * Searches all reference properties to the specified {@code tree} that match the given
+     * {@code propertyName} and the specified, mandatory node type constraint ({@code ntName}). In
+     * contrast to {@link #getReferences} this method requires all parameters to be specified, which
+     * eases the handling of the result set and doesn't require the trees associated with the result
+     * set to be resolved.
      *
-     * @param tree The tree for which references should be searched.
+     * @param tree         The tree for which references should be searched.
      * @param propertyName The name of the reference properties.
-     * @param ntName The node type name to be used for the query.
-     * @param weak if {@code true} only weak references are returned. Otherwise on hard references are returned.
-     * @return A set of oak trees containing reference properties referring to the
-     *         specified {@code tree} and matching the constraints.
+     * @param ntName       The node type name to be used for the query.
+     * @param weak         if {@code true} only weak references are returned. Otherwise on hard
+     *                     references are returned.
+     * @return A set of oak trees containing reference properties referring to the specified
+     * {@code tree} and matching the constraints.
      */
     @NotNull
     public Iterable<Tree> getReferences(@NotNull Tree tree, @NotNull final String propertyName,
-                                          @NotNull String ntName, boolean weak) {
+        @NotNull String ntName, boolean weak) {
         if (!effectiveNodeTypeProvider.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
             return Collections.emptySet(); // shortcut
         }
 
         final String uuid = getIdentifier(tree);
-        String reference = weak ? PropertyType.TYPENAME_WEAKREFERENCE : PropertyType.TYPENAME_REFERENCE;
-        Map<String, ? extends PropertyValue> bindings = Collections.singletonMap("uuid", PropertyValues.newString(uuid));
+        String reference =
+            weak ? PropertyType.TYPENAME_WEAKREFERENCE : PropertyType.TYPENAME_REFERENCE;
+        Map<String, ? extends PropertyValue> bindings = Collections.singletonMap("uuid",
+            PropertyValues.newString(uuid));
 
         try {
             String escapedPropName = QueryUtils.escapeForQuery(propertyName);
             Result result = root.getQueryEngine().executeQuery(
-                    "SELECT * FROM [" + ntName + "] WHERE PROPERTY([" + escapedPropName + "], '" + reference + "') = $uuid" +
-                            QueryEngine.INTERNAL_SQL2_QUERY,
-                    Query.JCR_SQL2, bindings, NO_MAPPINGS);
+                "SELECT * FROM [" + ntName + "] WHERE PROPERTY([" + escapedPropName + "], '"
+                    + reference + "') = $uuid" +
+                    QueryEngine.INTERNAL_SQL2_QUERY,
+                Query.JCR_SQL2, bindings, NO_MAPPINGS);
 
-            Iterable<Tree> resultTrees = Iterables.transform(result.getRows(), (Function<ResultRow, Tree>) row -> row.getTree(null));
-            return Iterables.filter(resultTrees, tree1 -> !tree1.getPath().startsWith(VersionConstants.VERSION_STORE_PATH)
+            Iterable<Tree> resultTrees = Iterables.transform(result.getRows(),
+                (Function<ResultRow, Tree>) row -> row.getTree(null));
+            return Iterables.filter(resultTrees,
+                tree1 -> !tree1.getPath().startsWith(VersionConstants.VERSION_STORE_PATH)
             );
         } catch (ParseException e) {
             log.error("query failed", e);
@@ -331,7 +346,7 @@ public class IdentifierManager {
     public String resolveUUID(String uuid) {
         return resolveUUID(createPropertyValue(uuid));
     }
-    
+
     @Nullable
     private String resolveUUID(@NotNull PropertyValue uuid) {
         Tree tree = resolveUUIDToTree(uuid);
@@ -343,16 +358,17 @@ public class IdentifierManager {
         try {
             Map<String, PropertyValue> bindings = Collections.singletonMap("id", uuid);
             Result result = root.getQueryEngine().executeQuery(
-                    "SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id " + 
+                "SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id " +
                     "OPTION(INDEX NAME [uuid], INDEX TAG [uuid])" +
-                    QueryEngine.INTERNAL_SQL2_QUERY, 
-                    Query.JCR_SQL2,
-                    bindings, NO_MAPPINGS);
+                    QueryEngine.INTERNAL_SQL2_QUERY,
+                Query.JCR_SQL2,
+                bindings, NO_MAPPINGS);
 
             Tree tree = null;
             for (ResultRow rr : result.getRows()) {
                 if (tree != null) {
-                    log.error("multiple results for identifier lookup: " + tree.getPath() + " vs. " + rr.getPath());
+                    log.error("multiple results for identifier lookup: " + tree.getPath() + " vs. "
+                        + rr.getPath());
                     return null;
                 } else {
                     tree = rr.getTree(null);
@@ -364,12 +380,12 @@ public class IdentifierManager {
             return null;
         }
     }
-    
+
     @NotNull
     private static PropertyValue createPropertyValue(@NotNull String uuid) {
         return PropertyValues.create(StringPropertyState.stringProperty("", uuid));
     }
-    
+
     private static void checkType(@NotNull Type propertyType) {
         int type = propertyType.tag();
         if (!(type == PropertyType.REFERENCE || type == PropertyType.WEAKREFERENCE)) {

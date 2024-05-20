@@ -33,6 +33,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
 public class MetricImplTest {
+
     private MetricRegistry registry = new MetricRegistry();
 
 
@@ -97,7 +98,7 @@ public class MetricImplTest {
     }
 
     @Test
-    public void timerContext() throws Exception{
+    public void timerContext() throws Exception {
         VirtualClock clock = new VirtualClock();
         Timer time = new Timer(new ExponentiallyDecayingReservoir(), clock);
 
@@ -112,7 +113,9 @@ public class MetricImplTest {
     }
 
     private static class VirtualClock extends com.codahale.metrics.Clock {
+
         long tick;
+
         @Override
         public long getTick() {
             return tick;

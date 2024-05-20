@@ -52,6 +52,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 
 @Component
 public class IndexPathServiceImpl implements IndexPathService {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final QueryEngineSettings settings = new QueryEngineSettings();
@@ -82,22 +83,26 @@ public class IndexPathServiceImpl implements IndexPathService {
         NodeState nodeType = NodeStateUtils.getNode(nodeStore.getRoot(), "/oak:index/nodetype");
 
         checkState("property".equals(nodeType.getString("type")), "nodetype index at " +
-                "/oak:index/nodetype is found to be disabled. Cannot determine the paths of all indexes");
+            "/oak:index/nodetype is found to be disabled. Cannot determine the paths of all indexes");
 
         //Check if oak:QueryIndexDefinition is indexed as part of nodetype index
-        boolean indxDefnTypeIndexed = Iterables.contains(nodeType.getNames(DECLARING_NODE_TYPES), INDEX_DEFINITIONS_NODE_TYPE);
+        boolean indxDefnTypeIndexed = Iterables.contains(nodeType.getNames(DECLARING_NODE_TYPES),
+            INDEX_DEFINITIONS_NODE_TYPE);
 
         if (!indxDefnTypeIndexed) {
-            log.warn("{} is not found to be indexed as part of nodetype index. Non root indexes would " +
+            log.warn(
+                "{} is not found to be indexed as part of nodetype index. Non root indexes would " +
                     "not be listed", INDEX_DEFINITIONS_NODE_TYPE);
             NodeState oakIndex = nodeStore.getRoot().getChildNode("oak:index");
             return transform(filter(oakIndex.getChildNodeEntries(),
-                    cne -> INDEX_DEFINITIONS_NODE_TYPE.equals(cne.getNodeState().getName(JCR_PRIMARYTYPE))),
-                    cne -> PathUtils.concat("/oak:index", cne.getName()));
+                    cne -> INDEX_DEFINITIONS_NODE_TYPE.equals(
+                        cne.getNodeState().getName(JCR_PRIMARYTYPE))),
+                cne -> PathUtils.concat("/oak:index", cne.getName()));
         }
 
         return () -> {
-            Iterator<IndexRow> itr = getIndex().query(createFilter(INDEX_DEFINITIONS_NODE_TYPE), nodeStore.getRoot());
+            Iterator<IndexRow> itr = getIndex().query(createFilter(INDEX_DEFINITIONS_NODE_TYPE),
+                nodeStore.getRoot());
             return transform(itr, input -> input.getPath());
         };
     }

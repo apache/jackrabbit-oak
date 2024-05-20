@@ -28,9 +28,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The {@code CacheConflictHandler} takes care of merging the {@code rep:expiration} property
- * during parallel updates.
- *<p>
+ * The {@code CacheConflictHandler} takes care of merging the {@code rep:expiration} property during
+ * parallel updates.
+ * <p>
  * The conflict handler deals with the following conflicts:
  * <ul>
  *     <li>{@code addExistingProperty}  : {@code Resolution.IGNORED}, We should not have add conflints, since the {@code rep:{@code rep:expiration}} node is created with the user</li>
@@ -53,17 +53,19 @@ class CacheConflictHandler extends DefaultThreeWayConflictHandler {
 
     }
 
-    private Resolution resolveRepExpirationConflict(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs,
-                                         PropertyState base) {
-        if (CacheConstants.REP_EXPIRATION.equals(ours.getName()) && CacheConstants.REP_EXPIRATION.equals(theirs.getName())){
+    private Resolution resolveRepExpirationConflict(@NotNull NodeBuilder parent,
+        @NotNull PropertyState ours, @NotNull PropertyState theirs,
+        PropertyState base) {
+        if (CacheConstants.REP_EXPIRATION.equals(ours.getName())
+            && CacheConstants.REP_EXPIRATION.equals(theirs.getName())) {
 
             PropertyBuilder<Long> merged = PropertyBuilder.scalar(Type.LONG);
             merged.setName(CacheConstants.REP_EXPIRATION);
 
             //if base is bigger than ours and theirs, then use base. This should never happens
             if (base != null &&
-                    base.getValue(Type.LONG) > ours.getValue(Type.LONG)  &&
-                    base.getValue(Type.LONG) > theirs.getValue(Type.LONG)){
+                base.getValue(Type.LONG) > ours.getValue(Type.LONG) &&
+                base.getValue(Type.LONG) > theirs.getValue(Type.LONG)) {
                 merged.setValue(base.getValue(Type.LONG));
                 LOG.warn("base is bigger than ours and theirs. This was supposed to never happens");
                 return Resolution.MERGED;
@@ -71,13 +73,16 @@ class CacheConflictHandler extends DefaultThreeWayConflictHandler {
 
             //if ours is bigger than theirs, then use ours
             //otherwise use theirs
-            if (ours.getValue(Type.LONG) > theirs.getValue(Type.LONG)){
+            if (ours.getValue(Type.LONG) > theirs.getValue(Type.LONG)) {
                 merged.setValue(ours.getValue(Type.LONG));
             } else {
                 merged.setValue(theirs.getValue(Type.LONG));
             }
             parent.setProperty(merged.getPropertyState());
-            LOG.debug("Resolved conflict for property {} our value: {}, their value {}, merged value: {}", CacheConstants.REP_EXPIRATION, ours.getValue(Type.LONG), theirs.getValue(Type.LONG), merged.getValue(0));
+            LOG.debug(
+                "Resolved conflict for property {} our value: {}, their value {}, merged value: {}",
+                CacheConstants.REP_EXPIRATION, ours.getValue(Type.LONG), theirs.getValue(Type.LONG),
+                merged.getValue(0));
             return Resolution.MERGED;
         }
         return Resolution.IGNORED;
@@ -85,8 +90,9 @@ class CacheConflictHandler extends DefaultThreeWayConflictHandler {
     }
 
     @Override
-    public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs,
-                                            @NotNull PropertyState base) {
+    public Resolution changeChangedProperty(@NotNull NodeBuilder parent,
+        @NotNull PropertyState ours, @NotNull PropertyState theirs,
+        @NotNull PropertyState base) {
 
         return resolveRepExpirationConflict(parent, ours, theirs, base);
     }

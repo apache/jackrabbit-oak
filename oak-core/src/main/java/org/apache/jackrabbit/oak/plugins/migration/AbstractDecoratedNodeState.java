@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+
 import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 
@@ -47,7 +48,8 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
 
     private final boolean useNativeEquals;
 
-    protected AbstractDecoratedNodeState(@NotNull final NodeState delegate, boolean useNativeEquals) {
+    protected AbstractDecoratedNodeState(@NotNull final NodeState delegate,
+        boolean useNativeEquals) {
         this.delegate = delegate;
         this.useNativeEquals = useNativeEquals;
     }
@@ -56,12 +58,14 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
         return delegate;
     }
 
-    protected boolean hideChild(@NotNull final String name, @NotNull final NodeState delegateChild) {
+    protected boolean hideChild(@NotNull final String name,
+        @NotNull final NodeState delegateChild) {
         return false;
     }
 
     @NotNull
-    protected abstract NodeState decorateChild(@NotNull final String name, @NotNull final NodeState delegateChild);
+    protected abstract NodeState decorateChild(@NotNull final String name,
+        @NotNull final NodeState delegateChild);
 
     @NotNull
     private NodeState decorate(@NotNull final String name, @NotNull final NodeState child) {
@@ -78,38 +82,41 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
     }
 
     @Nullable
-    protected abstract PropertyState decorateProperty(@NotNull final PropertyState delegatePropertyState);
+    protected abstract PropertyState decorateProperty(
+        @NotNull final PropertyState delegatePropertyState);
 
     @Nullable
     private PropertyState decorate(@Nullable final PropertyState property) {
-        return property == null || hideProperty(property.getName()) ? null : decorateProperty(property);
+        return property == null || hideProperty(property.getName()) ? null
+            : decorateProperty(property);
     }
 
     /**
-     * Convenience method to help implementations that hide nodes set the
-     * :childOrder (OAK_CHILD_ORDER) property to its correct value.
+     * Convenience method to help implementations that hide nodes set the :childOrder
+     * (OAK_CHILD_ORDER) property to its correct value.
      * <br>
      * Intended to be used to implement {@link #decorateProperty(PropertyState)}.
      *
-     * @param nodeState The current node state.
+     * @param nodeState     The current node state.
      * @param propertyState The property that chould be checked.
      * @return The original propertyState, unless the property is called {@code :childOrder}.
      */
-    protected static PropertyState fixChildOrderPropertyState(NodeState nodeState, PropertyState propertyState) {
+    protected static PropertyState fixChildOrderPropertyState(NodeState nodeState,
+        PropertyState propertyState) {
         if (propertyState != null && OAK_CHILD_ORDER.equals(propertyState.getName())) {
             final Collection<String> childNodeNames = new ArrayList<String>();
             Iterables.addAll(childNodeNames, nodeState.getChildNodeNames());
             final Iterable<String> values = Iterables.filter(
-                    propertyState.getValue(Type.NAMES), Predicates.in(childNodeNames));
+                propertyState.getValue(Type.NAMES), Predicates.in(childNodeNames));
             return PropertyStates.createProperty(OAK_CHILD_ORDER, values, Type.NAMES);
         }
         return propertyState;
     }
 
     /**
-     * The AbstractDecoratedNodeState implementation returns a ReadOnlyBuilder, which
-     * will fail for any mutable operation.
-     *
+     * The AbstractDecoratedNodeState implementation returns a ReadOnlyBuilder, which will fail for
+     * any mutable operation.
+     * <p>
      * This method can be overridden to return a different NodeBuilder implementation.
      *
      * @return a NodeBuilder instance corresponding to this NodeState.
@@ -140,21 +147,21 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
     @NotNull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         final Iterable<ChildNodeEntry> transformed = Iterables.transform(
-                delegate.getChildNodeEntries(),
-                new Function<ChildNodeEntry, ChildNodeEntry>() {
-                    @Nullable
-                    @Override
-                    public ChildNodeEntry apply(@Nullable final ChildNodeEntry childNodeEntry) {
-                        if (childNodeEntry != null) {
-                            final String name = childNodeEntry.getName();
-                            final NodeState nodeState = decorate(name, childNodeEntry.getNodeState());
-                            if (nodeState.exists()) {
-                                return new MemoryChildNodeEntry(name, nodeState);
-                            }
+            delegate.getChildNodeEntries(),
+            new Function<ChildNodeEntry, ChildNodeEntry>() {
+                @Nullable
+                @Override
+                public ChildNodeEntry apply(@Nullable final ChildNodeEntry childNodeEntry) {
+                    if (childNodeEntry != null) {
+                        final String name = childNodeEntry.getName();
+                        final NodeState nodeState = decorate(name, childNodeEntry.getNodeState());
+                        if (nodeState.exists()) {
+                            return new MemoryChildNodeEntry(name, nodeState);
                         }
-                        return null;
                     }
+                    return null;
                 }
+            }
         );
         return Iterables.filter(transformed, notNull());
     }
@@ -178,23 +185,24 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
     @NotNull
     public Iterable<? extends PropertyState> getProperties() {
         final Iterable<PropertyState> propertyStates = Iterables.transform(
-                delegate.getProperties(),
-                new Function<PropertyState, PropertyState>() {
-                    @Override
-                    @Nullable
-                    public PropertyState apply(@Nullable final PropertyState propertyState) {
-                        return decorate(propertyState);
-                    }
+            delegate.getProperties(),
+            new Function<PropertyState, PropertyState>() {
+                @Override
+                @Nullable
+                public PropertyState apply(@Nullable final PropertyState propertyState) {
+                    return decorate(propertyState);
                 }
+            }
         );
-        return Iterables.filter(Iterables.concat(propertyStates, getNewPropertyStates()), notNull());
+        return Iterables.filter(Iterables.concat(propertyStates, getNewPropertyStates()),
+            notNull());
     }
 
     /**
-     * Note that any implementation-specific optimizations of wrapped NodeStates
-     * will not work if a AbstractDecoratedNodeState is passed into their {@code #equals()}
-     * method. This implementation will compare the wrapped NodeState, however. So
-     * optimizations work when calling {@code #equals()} on a ReportingNodeState.
+     * Note that any implementation-specific optimizations of wrapped NodeStates will not work if a
+     * AbstractDecoratedNodeState is passed into their {@code #equals()} method. This implementation
+     * will compare the wrapped NodeState, however. So optimizations work when calling
+     * {@code #equals()} on a ReportingNodeState.
      *
      * @param other Object to compare with this NodeState.
      * @return true if the given object is equal to this NodeState, false otherwise.
@@ -260,7 +268,8 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
 
         private AbstractDecoratedNodeState nodeState;
 
-        private DecoratingDiff(final NodeStateDiff diff, final AbstractDecoratedNodeState nodeState) {
+        private DecoratingDiff(final NodeStateDiff diff,
+            final AbstractDecoratedNodeState nodeState) {
             this.diff = diff;
             this.nodeState = nodeState;
         }
@@ -271,7 +280,8 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
         }
 
         @Override
-        public boolean childNodeChanged(final String name, final NodeState before, final NodeState after) {
+        public boolean childNodeChanged(final String name, final NodeState before,
+            final NodeState after) {
             return diff.childNodeChanged(name, before, nodeState.decorate(name, after));
         }
 

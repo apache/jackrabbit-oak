@@ -44,7 +44,8 @@ final class PrivilegeContext implements Context, PrivilegeConstants {
 
     @Override
     public boolean definesContextRoot(@NotNull Tree tree) {
-        return REP_PRIVILEGES.equals(tree.getName()) && NT_REP_PRIVILEGES.equals(TreeUtil.getPrimaryTypeName(tree));
+        return REP_PRIVILEGES.equals(tree.getName()) && NT_REP_PRIVILEGES.equals(
+            TreeUtil.getPrimaryTypeName(tree));
     }
 
     @Override

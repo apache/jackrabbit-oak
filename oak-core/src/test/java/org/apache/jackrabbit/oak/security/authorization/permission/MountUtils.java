@@ -26,13 +26,16 @@ import org.junit.Assert;
 
 final class MountUtils {
 
-    private MountUtils() {}
+    private MountUtils() {
+    }
 
-    static AuthorizationConfiguration bindMountInfoProvider(@NotNull SecurityProvider securityProvider, @NotNull MountInfoProvider mountInfoProvider) {
-        AuthorizationConfiguration acConfig = securityProvider.getConfiguration(AuthorizationConfiguration.class);
-                Assert.assertTrue(acConfig instanceof CompositeAuthorizationConfiguration);
-                ((AuthorizationConfigurationImpl) ((CompositeAuthorizationConfiguration) acConfig).getDefaultConfig())
-                        .bindMountInfoProvider(mountInfoProvider);
+    static AuthorizationConfiguration bindMountInfoProvider(
+        @NotNull SecurityProvider securityProvider, @NotNull MountInfoProvider mountInfoProvider) {
+        AuthorizationConfiguration acConfig = securityProvider.getConfiguration(
+            AuthorizationConfiguration.class);
+        Assert.assertTrue(acConfig instanceof CompositeAuthorizationConfiguration);
+        ((AuthorizationConfigurationImpl) ((CompositeAuthorizationConfiguration) acConfig).getDefaultConfig())
+            .bindMountInfoProvider(mountInfoProvider);
         return acConfig;
     }
 }

@@ -55,12 +55,14 @@ public class IntermediatePathTest extends AbstractSecurityTest {
         }
     }
 
-    private Authorizable createAuthorizable(boolean createGroup, @Nullable String intermediatePath) throws RepositoryException {
+    private Authorizable createAuthorizable(boolean createGroup, @Nullable String intermediatePath)
+        throws RepositoryException {
         String id = UUID.randomUUID().toString();
         if (createGroup) {
             return getUserManager(root).createGroup(id, new PrincipalImpl(id), intermediatePath);
         } else {
-            return getUserManager(root).createUser(id, null, new PrincipalImpl(id), intermediatePath);
+            return getUserManager(root).createUser(id, null, new PrincipalImpl(id),
+                intermediatePath);
         }
     }
 
@@ -77,14 +79,16 @@ public class IntermediatePathTest extends AbstractSecurityTest {
     @Test
     public void testUserEmptyPath() throws Exception {
         Authorizable authorizable = createAuthorizable(false, "");
-        assertNotEquals(UserConstants.DEFAULT_USER_PATH, PathUtils.getAncestorPath(authorizable.getPath(), 1));
+        assertNotEquals(UserConstants.DEFAULT_USER_PATH,
+            PathUtils.getAncestorPath(authorizable.getPath(), 1));
         assertTrue(authorizable.getPath().startsWith(UserConstants.DEFAULT_USER_PATH));
     }
 
     @Test
     public void testGroupEmptyPath() throws Exception {
         Authorizable authorizable = createAuthorizable(true, "");
-        assertNotEquals(UserConstants.DEFAULT_GROUP_PATH, PathUtils.getAncestorPath(authorizable.getPath(), 1));
+        assertNotEquals(UserConstants.DEFAULT_GROUP_PATH,
+            PathUtils.getAncestorPath(authorizable.getPath(), 1));
         assertTrue(authorizable.getPath().startsWith(UserConstants.DEFAULT_GROUP_PATH));
     }
 
@@ -102,27 +106,31 @@ public class IntermediatePathTest extends AbstractSecurityTest {
 
     @Test
     public void testUserAbsolutePath() throws Exception {
-        Authorizable authorizable = createAuthorizable(false, UserConstants.DEFAULT_USER_PATH + "/a/b/c");
+        Authorizable authorizable = createAuthorizable(false,
+            UserConstants.DEFAULT_USER_PATH + "/a/b/c");
         assertTrue(authorizable.getPath().startsWith(UserConstants.DEFAULT_USER_PATH + "/a/b/c"));
     }
 
     @Test
     public void testGroupAbsolutePath() throws Exception {
-        Authorizable authorizable = createAuthorizable(true, UserConstants.DEFAULT_GROUP_PATH + "/a/b/c");
+        Authorizable authorizable = createAuthorizable(true,
+            UserConstants.DEFAULT_GROUP_PATH + "/a/b/c");
         assertTrue(authorizable.getPath().startsWith(UserConstants.DEFAULT_GROUP_PATH + "/a/b/c"));
     }
 
     @Test
     public void testUserRootPath() throws Exception {
         Authorizable authorizable = createAuthorizable(false, UserConstants.DEFAULT_USER_PATH);
-        assertNotEquals(UserConstants.DEFAULT_USER_PATH, PathUtils.getAncestorPath(authorizable.getPath(), 1));
+        assertNotEquals(UserConstants.DEFAULT_USER_PATH,
+            PathUtils.getAncestorPath(authorizable.getPath(), 1));
         assertTrue(authorizable.getPath().startsWith(UserConstants.DEFAULT_USER_PATH));
     }
 
     @Test
     public void testGroupRootPath() throws Exception {
         Authorizable authorizable = createAuthorizable(true, UserConstants.DEFAULT_GROUP_PATH);
-        assertNotEquals(UserConstants.DEFAULT_GROUP_PATH, PathUtils.getAncestorPath(authorizable.getPath(), 1));
+        assertNotEquals(UserConstants.DEFAULT_GROUP_PATH,
+            PathUtils.getAncestorPath(authorizable.getPath(), 1));
         assertTrue(authorizable.getPath().startsWith(UserConstants.DEFAULT_GROUP_PATH));
     }
 
@@ -138,13 +146,14 @@ public class IntermediatePathTest extends AbstractSecurityTest {
 
     @Test
     public void testInvalidAbsolutePaths() throws Exception {
-        TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "testNode", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "testNode",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         List<String> invalidPaths = ImmutableList.of(
-                "/",
-                PathUtils.getAncestorPath(UserConstants.DEFAULT_GROUP_PATH, 1),
-                PathUtils.getAncestorPath(UserConstants.DEFAULT_GROUP_PATH, 2),
-                "/testNode",
-                "/nonExisting");
+            "/",
+            PathUtils.getAncestorPath(UserConstants.DEFAULT_GROUP_PATH, 1),
+            PathUtils.getAncestorPath(UserConstants.DEFAULT_GROUP_PATH, 2),
+            "/testNode",
+            "/nonExisting");
         for (String absPath : invalidPaths) {
             try {
                 createAuthorizable(false, absPath);
@@ -159,7 +168,8 @@ public class IntermediatePathTest extends AbstractSecurityTest {
 
     @Test
     public void testAbsolutePathsWithParentElements() throws Exception {
-        Authorizable authorizable = createAuthorizable(true, UserConstants.DEFAULT_GROUP_PATH + "/a/../b");
+        Authorizable authorizable = createAuthorizable(true,
+            UserConstants.DEFAULT_GROUP_PATH + "/a/../b");
         assertTrue(authorizable.getPath().startsWith(UserConstants.DEFAULT_GROUP_PATH + "/b"));
     }
 
@@ -168,7 +178,8 @@ public class IntermediatePathTest extends AbstractSecurityTest {
         try {
             String invalidPath = UserConstants.DEFAULT_GROUP_PATH + "/../a";
             Authorizable authorizable = createAuthorizable(true, invalidPath);
-            assertTrue(authorizable.getPath().startsWith(PathUtils.getAncestorPath(UserConstants.DEFAULT_GROUP_PATH, 1) + "/a"));
+            assertTrue(authorizable.getPath().startsWith(
+                PathUtils.getAncestorPath(UserConstants.DEFAULT_GROUP_PATH, 1) + "/a"));
             root.commit();
             fail("Invalid path " + invalidPath + " outside of configured scope.");
         } catch (CommitFailedException e) {
@@ -182,8 +193,10 @@ public class IntermediatePathTest extends AbstractSecurityTest {
 
     @Test
     public void testRelativePaths() throws Exception {
-        TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "testNode", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        List<String> invalidPaths = ImmutableList.of("..", "../..", "../../..", "../../../testNode","a/b/../../../c");
+        TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "testNode",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        List<String> invalidPaths = ImmutableList.of("..", "../..", "../../..", "../../../testNode",
+            "a/b/../../../c");
         for (String relPath : invalidPaths) {
             try {
                 createAuthorizable(false, relPath);
@@ -203,6 +216,7 @@ public class IntermediatePathTest extends AbstractSecurityTest {
     @Test
     public void testCurrentRelativePath() throws Exception {
         Authorizable authorizable = createAuthorizable(false, ".");
-        assertEquals(UserConstants.DEFAULT_USER_PATH, PathUtils.getAncestorPath(authorizable.getPath(), 1));
+        assertEquals(UserConstants.DEFAULT_USER_PATH,
+            PathUtils.getAncestorPath(authorizable.getPath(), 1));
     }
 }

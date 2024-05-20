@@ -17,31 +17,29 @@
 package org.apache.jackrabbit.oak.query.plan;
 
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
-import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
-import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 
 /**
- * An execution plan for one selector in a query. The conditions of the given
- * selectors are compiled into a filter, and the execution plan for the selector
- * is to use a certain query index, which will result in an estimated cost to
- * use that index to retrieve nodes for this index.
+ * An execution plan for one selector in a query. The conditions of the given selectors are compiled
+ * into a filter, and the execution plan for the selector is to use a certain query index, which
+ * will result in an estimated cost to use that index to retrieve nodes for this index.
  */
 public class SelectorExecutionPlan implements ExecutionPlan {
-    
+
     private final SelectorImpl selector;
     private final double estimatedCost;
     private final QueryIndex index;
     private final IndexPlan plan;
 
-    public SelectorExecutionPlan(SelectorImpl selector, QueryIndex index, IndexPlan plan, double estimatedCost) {
+    public SelectorExecutionPlan(SelectorImpl selector, QueryIndex index, IndexPlan plan,
+        double estimatedCost) {
         this.selector = selector;
         this.index = index;
         this.estimatedCost = estimatedCost;
         this.plan = plan;
     }
-    
+
     @Override
     public double getEstimatedCost() {
         return estimatedCost;
@@ -54,14 +52,14 @@ public class SelectorExecutionPlan implements ExecutionPlan {
     public QueryIndex getIndex() {
         return index;
     }
-    
+
     public IndexPlan getIndexPlan() {
         return plan;
     }
-    
+
     /**
      * Get the index name, or index type (may not always be the exact index name).
-     * 
+     *
      * @return the name
      */
     public String getIndexPlanName() {

@@ -31,9 +31,9 @@ public class FilterBuilderTest {
     public void allShortcutsExcludeAll() {
         FilterBuilder builder = new FilterBuilder();
         Condition condition = builder.all(
-                builder.path("path"),
-                builder.excludeAll(),
-                builder.path("path"));
+            builder.path("path"),
+            builder.excludeAll(),
+            builder.path("path"));
         assertEquals(ConstantFilter.EXCLUDE_ALL, condition.createFilter(EMPTY_NODE, EMPTY_NODE));
     }
 
@@ -48,9 +48,9 @@ public class FilterBuilderTest {
     public void anyShortcutsIncludeAll() {
         FilterBuilder builder = new FilterBuilder();
         Condition condition = builder.any(
-                builder.path("path"),
-                builder.includeAll(),
-                builder.path("path"));
+            builder.path("path"),
+            builder.includeAll(),
+            builder.path("path"));
         assertEquals(ConstantFilter.INCLUDE_ALL, condition.createFilter(EMPTY_NODE, EMPTY_NODE));
     }
 

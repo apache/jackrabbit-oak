@@ -38,12 +38,13 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
- * {@code CommitHook} implementation that processes any modification made to
- * access control content and updates persisted permission store associated
- * with access control related data stored in the repository.
+ * {@code CommitHook} implementation that processes any modification made to access control content
+ * and updates persisted permission store associated with access control related data stored in the
+ * repository.
  * <p>
- * The permission entries are grouped by principal and stored below the store root based on the hash value of the
- * access controllable path. hash collisions are handled by adding subnodes accordingly.
+ * The permission entries are grouped by principal and stored below the store root based on the hash
+ * value of the access controllable path. hash collisions are handled by adding subnodes
+ * accordingly.
  * <pre>
  *   /jcr:system/rep:permissionStore/workspace-name
  *      /everyone
@@ -60,7 +61,8 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
  *                  /2      [rep:Permissions]
  * </pre>
  */
-public class PermissionHook implements PostValidationHook, AccessControlConstants, PermissionConstants {
+public class PermissionHook implements PostValidationHook, AccessControlConstants,
+    PermissionConstants {
 
     private final RestrictionProvider restrictionProvider;
     private final String workspaceName;
@@ -76,8 +78,9 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     private Map<String, PermissionStoreEditor> modified = new HashMap<>();
     private Map<String, PermissionStoreEditor> deleted = new HashMap<>();
 
-    public PermissionHook(@NotNull String workspaceName, @NotNull RestrictionProvider restrictionProvider,
-                          @NotNull ProviderCtx providerCtx) {
+    public PermissionHook(@NotNull String workspaceName,
+        @NotNull RestrictionProvider restrictionProvider,
+        @NotNull ProviderCtx providerCtx) {
         this.workspaceName = workspaceName;
         this.restrictionProvider = restrictionProvider;
         this.providerCtx = providerCtx;
@@ -90,7 +93,8 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         NodeBuilder rootAfter = after.builder();
 
         permissionStore = getPermissionStore(rootAfter);
-        bitsProvider = new PrivilegeBitsProvider(providerCtx.getRootProvider().createReadOnlyRoot(after));
+        bitsProvider = new PrivilegeBitsProvider(
+            providerCtx.getRootProvider().createReadOnlyRoot(after));
 
         isACL = new TypePredicate(after, NT_REP_ACL);
         isACE = new TypePredicate(after, NT_REP_ACE);
@@ -130,7 +134,8 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     @NotNull
     private NodeBuilder getPermissionRoot(@NotNull String path) {
         Mount m = providerCtx.getMountInfoProvider().getMountByPath(path);
-        return permissionStore.getChildNode(MountPermissionProvider.getPermissionRootName(m, workspaceName));
+        return permissionStore.getChildNode(
+            MountPermissionProvider.getPermissionRootName(m, workspaceName));
     }
 
     private final class Diff extends DefaultNodeStateDiff {
@@ -206,8 +211,11 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         }
 
         @NotNull
-        private PermissionStoreEditor createPermissionStoreEditor(@NotNull String nodeName, @NotNull NodeState nodeState) {
-            return new PermissionStoreEditor(parentPath, nodeName, nodeState, getPermissionRoot(parentPath), isACE, isGrantACE, bitsProvider, restrictionProvider, providerCtx);
+        private PermissionStoreEditor createPermissionStoreEditor(@NotNull String nodeName,
+            @NotNull NodeState nodeState) {
+            return new PermissionStoreEditor(parentPath, nodeName, nodeState,
+                getPermissionRoot(parentPath), isACE, isGrantACE, bitsProvider, restrictionProvider,
+                providerCtx);
         }
     }
 }

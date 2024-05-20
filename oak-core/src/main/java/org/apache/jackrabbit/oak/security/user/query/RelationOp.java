@@ -17,9 +17,8 @@
 package org.apache.jackrabbit.oak.security.user.query;
 
 /**
- * Relational operators for comparing a property to a value. Correspond
- * to the general comparison operators as define in JSR-170.
- * The {@link #EX} tests for existence of a property.
+ * Relational operators for comparing a property to a value. Correspond to the general comparison
+ * operators as define in JSR-170. The {@link #EX} tests for existence of a property.
  */
 enum RelationOp {
 

@@ -21,7 +21,6 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Optional;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.QueryOptions;
@@ -37,21 +36,20 @@ import org.slf4j.LoggerFactory;
 public class XPathToSQL2Converter {
 
     /**
-     * Optimize queries of the form "from [nt:base] where [jcr:primaryType] = 'x'"
-     * to "from [x] where [jcr:primaryType] = 'x'".
-     * Enabled by default.
+     * Optimize queries of the form "from [nt:base] where [jcr:primaryType] = 'x'" to "from [x]
+     * where [jcr:primaryType] = 'x'". Enabled by default.
      */
     public static final boolean NODETYPE_OPTIMIZATION = Boolean.parseBoolean(
-            System.getProperty("oak.xpathNodeTypeOptimization", "true"));
+        System.getProperty("oak.xpathNodeTypeOptimization", "true"));
 
     /**
-     * Convert queries of the form "where [jcr:primaryType] = 'x' or [jcr:primaryType] = 'y'"
-     * to "select ... where [jcr:primaryType] = 'x' union select ... where [jcr:primaryType] = 'y'".
-     * If disabled, only one query with "where [jcr:primaryType] in ('x', 'y') is used.
-     * Enabled by default.
+     * Convert queries of the form "where [jcr:primaryType] = 'x' or [jcr:primaryType] = 'y'" to
+     * "select ... where [jcr:primaryType] = 'x' union select ... where [jcr:primaryType] = 'y'". If
+     * disabled, only one query with "where [jcr:primaryType] in ('x', 'y') is used. Enabled by
+     * default.
      */
     public static final boolean NODETYPE_UNION = Boolean.parseBoolean(
-            System.getProperty("oak.xpathNodeTypeUnion", "true"));
+        System.getProperty("oak.xpathNodeTypeUnion", "true"));
 
     static final Logger LOG = LoggerFactory.getLogger(XPathToSQL2Converter.class);
 
@@ -220,7 +218,8 @@ public class XPathToSQL2Converter {
                         if (currentSelector.isDescendant) {
                             currentSelector.nodeName = "jcr:xmltext";
                         } else {
-                            currentSelector.path = PathUtils.concat(currentSelector.path, "jcr:xmltext");
+                            currentSelector.path = PathUtils.concat(currentSelector.path,
+                                "jcr:xmltext");
                         }
                     } else if ("element".equals(identifier)) {
                         // "...element(..."
@@ -261,7 +260,7 @@ public class XPathToSQL2Converter {
                             String property = prop.getColumnAliasName();
                             rewindSelector();
                             p = new Expression.Property(currentSelector,
-                                    "rep:excerpt(" + property + ")", false);
+                                "rep:excerpt(" + property + ")", false);
                             read(")");
                         }
 
@@ -302,7 +301,7 @@ public class XPathToSQL2Converter {
                             Expression.Property prop = (Expression.Property) e;
                             String property = prop.getColumnAliasName();
                             p = new Expression.Property(currentSelector,
-                                    "rep:excerpt(" + property + ")", false);
+                                "rep:excerpt(" + property + ")", false);
                             read(")");
                         }
 
@@ -311,11 +310,13 @@ public class XPathToSQL2Converter {
                         // only rep:spellcheck() is currently supported
                         read("(");
                         read(")");
-                        Expression.Property p = new Expression.Property(currentSelector, "rep:spellcheck()", false);
+                        Expression.Property p = new Expression.Property(currentSelector,
+                            "rep:spellcheck()", false);
                         statement.addSelectColumn(p);
                     } else if (readIf("rep:suggest")) {
                         readOpenDotClose(true);
-                        Expression.Property p = new Expression.Property(currentSelector, "rep:suggest()", false);
+                        Expression.Property p = new Expression.Property(currentSelector,
+                            "rep:suggest()", false);
                         statement.addSelectColumn(p);
                     } else if (readIf("rep:facet")) {
                         // this will also deal with relative properties
@@ -330,7 +331,7 @@ public class XPathToSQL2Converter {
                         read(")");
                         rewindSelector();
                         Expression.Property p = new Expression.Property(currentSelector,
-                                "rep:facet(" + property + ")", false);
+                            "rep:facet(" + property + ")", false);
                         statement.addSelectColumn(p);
                     }
                 } while (readIf("|"));
@@ -401,7 +402,8 @@ public class XPathToSQL2Converter {
             if (settings == null) {
                 options = new QueryOptions();
             } else {
-                QueryOptions defaultOptions = settings.getAutomaticQueryOptions().getDefaultValues(query);
+                QueryOptions defaultOptions = settings.getAutomaticQueryOptions()
+                                                      .getDefaultValues(query);
                 options = new QueryOptions(defaultOptions);
             }
             while (true) {
@@ -469,10 +471,9 @@ public class XPathToSQL2Converter {
     }
 
     /**
-     * Switch back to the old selector when reading a property. This occurs
-     * after reading a "/", but then reading a property or a list of properties.
-     * For example ".../(@prop)" is actually not a child node, but the same node
-     * (selector) as before.
+     * Switch back to the old selector when reading a property. This occurs after reading a "/", but
+     * then reading a property or a list of properties. For example ".../(@prop)" is actually not a
+     * child node, but the same node (selector) as before.
      */
     private void rewindSelector() {
         if (selectors.size() > 0) {
@@ -497,8 +498,8 @@ public class XPathToSQL2Converter {
             // encode again, because it will be decoded again
             n = ISO9075.encode(n);
             Expression.Condition c = new Expression.Condition(f, "=",
-                    Expression.Literal.newString(n),
-                    Expression.PRECEDENCE_CONDITION);
+                Expression.Literal.newString(n),
+                Expression.PRECEDENCE_CONDITION);
             condition = Expression.and(condition, c);
         }
         if (currentSelector.isDescendant) {
@@ -563,7 +564,8 @@ public class XPathToSQL2Converter {
             Selector nextSelector = new Selector();
             nextSelector.name = nextSelectorName;
             currentSelector.condition = condition;
-            currentSelector.joinCondition = Expression.and(currentSelector.joinCondition, joinCondition);
+            currentSelector.joinCondition = Expression.and(currentSelector.joinCondition,
+                joinCondition);
             selectors.add(currentSelector);
             currentSelector = nextSelector;
         }
@@ -594,10 +596,12 @@ public class XPathToSQL2Converter {
         if (readIf("fn:not") || readIf("not")) {
             read("(");
             a = parseConstraint();
-            if (a instanceof Expression.Condition && ((Expression.Condition) a).operator.equals("is not null")) {
+            if (a instanceof Expression.Condition && ((Expression.Condition) a).operator.equals(
+                "is not null")) {
                 // not(@property) -> @property is null
                 Expression.Condition c = (Expression.Condition) a;
-                c = new Expression.Condition(c.left, "is null", null, Expression.PRECEDENCE_CONDITION);
+                c = new Expression.Condition(c.left, "is null", null,
+                    Expression.PRECEDENCE_CONDITION);
                 a = c;
             } else {
                 Expression.Function f = new Expression.Function("not");
@@ -621,24 +625,32 @@ public class XPathToSQL2Converter {
     private Expression.Condition parseCondition(Expression left) throws ParseException {
         Expression.Condition c;
         if (readIf("=")) {
-            c = new Expression.Condition(left, "=", parseExpression(), Expression.PRECEDENCE_CONDITION);
+            c = new Expression.Condition(left, "=", parseExpression(),
+                Expression.PRECEDENCE_CONDITION);
         } else if (readIf("<>")) {
-            c = new Expression.Condition(left, "<>", parseExpression(), Expression.PRECEDENCE_CONDITION);
+            c = new Expression.Condition(left, "<>", parseExpression(),
+                Expression.PRECEDENCE_CONDITION);
         } else if (readIf("!=")) {
-            c = new Expression.Condition(left, "<>", parseExpression(), Expression.PRECEDENCE_CONDITION);
+            c = new Expression.Condition(left, "<>", parseExpression(),
+                Expression.PRECEDENCE_CONDITION);
         } else if (readIf("<")) {
-            c = new Expression.Condition(left, "<", parseExpression(), Expression.PRECEDENCE_CONDITION);
+            c = new Expression.Condition(left, "<", parseExpression(),
+                Expression.PRECEDENCE_CONDITION);
         } else if (readIf(">")) {
-            c = new Expression.Condition(left, ">", parseExpression(), Expression.PRECEDENCE_CONDITION);
+            c = new Expression.Condition(left, ">", parseExpression(),
+                Expression.PRECEDENCE_CONDITION);
         } else if (readIf("<=")) {
-            c = new Expression.Condition(left, "<=", parseExpression(), Expression.PRECEDENCE_CONDITION);
+            c = new Expression.Condition(left, "<=", parseExpression(),
+                Expression.PRECEDENCE_CONDITION);
         } else if (readIf(">=")) {
-            c = new Expression.Condition(left, ">=", parseExpression(), Expression.PRECEDENCE_CONDITION);
-        // TODO support "x eq y"? it seems this only matches for single value properties?
-        // } else if (readIf("eq")) {
-        //    c = new Condition(left, "==", parseExpression(), Expression.PRECEDENCE_CONDITION);
+            c = new Expression.Condition(left, ">=", parseExpression(),
+                Expression.PRECEDENCE_CONDITION);
+            // TODO support "x eq y"? it seems this only matches for single value properties?
+            // } else if (readIf("eq")) {
+            //    c = new Condition(left, "==", parseExpression(), Expression.PRECEDENCE_CONDITION);
         } else {
-            c = new Expression.Condition(left, "is not null", null, Expression.PRECEDENCE_CONDITION);
+            c = new Expression.Condition(left, "is not null", null,
+                Expression.PRECEDENCE_CONDITION);
         }
         return c;
     }
@@ -734,7 +746,7 @@ public class XPathToSQL2Converter {
     private Expression parseFunction(String functionName) throws ParseException {
         if ("jcr:like".equals(functionName)) {
             Expression.Condition c = new Expression.Condition(parseExpression(),
-                    "like", null, Expression.PRECEDENCE_CONDITION);
+                "like", null, Expression.PRECEDENCE_CONDITION);
             read(",");
             c.right = parseExpression();
             read(")");
@@ -811,15 +823,16 @@ public class XPathToSQL2Converter {
             f.params.add(new Expression.SelectorExpr(currentSelector));
             return f;
         } else if ("jcr:deref".equals(functionName)) {
-             // TODO maybe support jcr:deref
-             throw getSyntaxError("jcr:deref is not supported");
+            // TODO maybe support jcr:deref
+            throw getSyntaxError("jcr:deref is not supported");
         } else if ("rep:native".equals(functionName)) {
             String selectorName = currentSelector.name;
             Expression language = parseExpression();
             read(",");
             Expression expr = parseExpression();
             read(")");
-            Expression.NativeFunction f = new Expression.NativeFunction(selectorName, language, expr);
+            Expression.NativeFunction f = new Expression.NativeFunction(selectorName, language,
+                expr);
             return f;
         } else if ("rep:similar".equals(functionName)) {
             Expression property = parseExpression();
@@ -838,7 +851,7 @@ public class XPathToSQL2Converter {
             return new Expression.Suggest(term);
         } else {
             throw getSyntaxError("jcr:like | jcr:contains | jcr:score | xs:dateTime | " +
-                    "fn:lower-case | fn:upper-case | jcr:first | fn:name | fn:local-name | fn:path | rep:similar | rep:spellcheck | rep:suggest");
+                "fn:lower-case | fn:upper-case | jcr:first | fn:name | fn:local-name | fn:path | rep:similar | rep:spellcheck | rep:suggest");
         }
     }
 
@@ -899,8 +912,7 @@ public class XPathToSQL2Converter {
     /**
      * Read open bracket (optional), and optional dot, and close bracket.
      *
-     * @param readOpenBracket whether to read the open bracket (false if this
-     *            was already read)
+     * @param readOpenBracket whether to read the open bracket (false if this was already read)
      * @throws ParseException if close bracket or the dot were not read
      */
     private void readOpenDotClose(boolean readOpenBracket) throws ParseException {
@@ -947,66 +959,66 @@ public class XPathToSQL2Converter {
             char c = command[i];
             int type = 0;
             switch (c) {
-            case '@':
-            case '|':
-            case '/':
-            case '-':
-            case '(':
-            case ')':
-            case '{':
-            case '}':
-            case '*':
-            case ',':
-            case ';':
-            case '+':
-            case '%':
-            case '?':
-            case '$':
-            case '[':
-            case ']':
-                type = CHAR_SPECIAL_1;
-                break;
-            case '!':
-            case '<':
-            case '>':
-            case '=':
-                type = CHAR_SPECIAL_2;
-                break;
-            case '.':
-                type = CHAR_DECIMAL;
-                break;
-            case '\'':
-                type = CHAR_STRING;
-                types[i] = CHAR_STRING;
-                startLoop = i;
-                while (command[++i] != '\'') {
-                    checkRunOver(i, len, startLoop);
-                }
-                break;
-            case '\"':
-                type = CHAR_STRING;
-                types[i] = CHAR_STRING;
-                startLoop = i;
-                while (command[++i] != '\"') {
-                    checkRunOver(i, len, startLoop);
-                }
-                break;
-            case ':':
-            case '_':
-                type = CHAR_NAME;
-                break;
-            default:
-                if (c >= 'a' && c <= 'z') {
-                    type = CHAR_NAME;
-                } else if (c >= 'A' && c <= 'Z') {
-                    type = CHAR_NAME;
-                } else if (c >= '0' && c <= '9') {
-                    type = CHAR_VALUE;
-                } else {
-                    if (Character.isJavaIdentifierPart(c)) {
-                        type = CHAR_NAME;
+                case '@':
+                case '|':
+                case '/':
+                case '-':
+                case '(':
+                case ')':
+                case '{':
+                case '}':
+                case '*':
+                case ',':
+                case ';':
+                case '+':
+                case '%':
+                case '?':
+                case '$':
+                case '[':
+                case ']':
+                    type = CHAR_SPECIAL_1;
+                    break;
+                case '!':
+                case '<':
+                case '>':
+                case '=':
+                    type = CHAR_SPECIAL_2;
+                    break;
+                case '.':
+                    type = CHAR_DECIMAL;
+                    break;
+                case '\'':
+                    type = CHAR_STRING;
+                    types[i] = CHAR_STRING;
+                    startLoop = i;
+                    while (command[++i] != '\'') {
+                        checkRunOver(i, len, startLoop);
                     }
-                }
+                    break;
+                case '\"':
+                    type = CHAR_STRING;
+                    types[i] = CHAR_STRING;
+                    startLoop = i;
+                    while (command[++i] != '\"') {
+                        checkRunOver(i, len, startLoop);
+                    }
+                    break;
+                case ':':
+                case '_':
+                    type = CHAR_NAME;
+                    break;
+                default:
+                    if (c >= 'a' && c <= 'z') {
+                        type = CHAR_NAME;
+                    } else if (c >= 'A' && c <= 'Z') {
+                        type = CHAR_NAME;
+                    } else if (c >= '0' && c <= '9') {
+                        type = CHAR_VALUE;
+                    } else {
+                        if (Character.isJavaIdentifierPart(c)) {
+                            type = CHAR_NAME;
+                        }
+                    }
             }
             types[i] = (byte) type;
         }
@@ -1039,105 +1051,105 @@ public class XPathToSQL2Converter {
         char c = chars[i++];
         currentToken = "";
         switch (type) {
-        case CHAR_NAME:
-            while (true) {
-                type = types[i];
-                // the '-' can be part of a name,
-                // for example in "fn:lower-case"
-                // the '.' can be part of a name,
-                // for example in "@offloading.status"
-                if (type != CHAR_NAME && type != CHAR_VALUE
+            case CHAR_NAME:
+                while (true) {
+                    type = types[i];
+                    // the '-' can be part of a name,
+                    // for example in "fn:lower-case"
+                    // the '.' can be part of a name,
+                    // for example in "@offloading.status"
+                    if (type != CHAR_NAME && type != CHAR_VALUE
                         && chars[i] != '-'
                         && chars[i] != '.') {
-                    break;
-                }
-                i++;
-            }
-            currentToken = statement.substring(start, i);
-            if (currentToken.isEmpty()) {
-                throw getSyntaxError();
-            }
-            currentTokenType = IDENTIFIER;
-            parseIndex = i;
-            return;
-        case CHAR_SPECIAL_2:
-            if (types[i] == CHAR_SPECIAL_2) {
-                i++;
-            }
-            currentToken = statement.substring(start, i);
-            currentTokenType = KEYWORD;
-            parseIndex = i;
-            break;
-        case CHAR_SPECIAL_1:
-            currentToken = statement.substring(start, i);
-            switch (c) {
-            case '+':
-                currentTokenType = PLUS;
-                break;
-            case '-':
-                currentTokenType = MINUS;
-                break;
-            case '(':
-                currentTokenType = OPEN;
-                break;
-            case ')':
-                currentTokenType = CLOSE;
-                break;
-            default:
-                currentTokenType = KEYWORD;
-            }
-            parseIndex = i;
-            return;
-        case CHAR_VALUE:
-            long number = c - '0';
-            while (true) {
-                c = chars[i];
-                if (c < '0' || c > '9') {
-                    if (c == '.') {
-                        readDecimal(start, i);
                         break;
                     }
-                    if (c == 'E' || c == 'e') {
-                        readDecimal(start, i);
-                        break;
-                    }
-                    currentTokenType = VALUE_NUMBER;
-                    currentToken = String.valueOf(number);
-                    parseIndex = i;
-                    break;
+                    i++;
                 }
-                number = number * 10 + (c - '0');
-                if (number > Integer.MAX_VALUE) {
-                    readDecimal(start, i);
-                    break;
+                currentToken = statement.substring(start, i);
+                if (currentToken.isEmpty()) {
+                    throw getSyntaxError();
                 }
-                i++;
-            }
-            return;
-        case CHAR_DECIMAL:
-            if (types[i] != CHAR_VALUE) {
-                currentTokenType = KEYWORD;
-                currentToken = ".";
+                currentTokenType = IDENTIFIER;
                 parseIndex = i;
                 return;
-            }
-            readDecimal(i - 1, i);
-            return;
-        case CHAR_STRING:
-            currentTokenQuoted = true;
-            if (chars[i - 1] == '\'') {
-                readString(i, '\'');
-            } else {
-                readString(i, '\"');
-            }
-            return;
-        case CHAR_END:
-            currentToken = "";
-            currentTokenType = END;
-            parseIndex = i;
-            return;
-        default:
-            throw getSyntaxError();
+            case CHAR_SPECIAL_2:
+                if (types[i] == CHAR_SPECIAL_2) {
+                    i++;
+                }
+                currentToken = statement.substring(start, i);
+                currentTokenType = KEYWORD;
+                parseIndex = i;
+                break;
+            case CHAR_SPECIAL_1:
+                currentToken = statement.substring(start, i);
+                switch (c) {
+                    case '+':
+                        currentTokenType = PLUS;
+                        break;
+                    case '-':
+                        currentTokenType = MINUS;
+                        break;
+                    case '(':
+                        currentTokenType = OPEN;
+                        break;
+                    case ')':
+                        currentTokenType = CLOSE;
+                        break;
+                    default:
+                        currentTokenType = KEYWORD;
+                }
+                parseIndex = i;
+                return;
+            case CHAR_VALUE:
+                long number = c - '0';
+                while (true) {
+                    c = chars[i];
+                    if (c < '0' || c > '9') {
+                        if (c == '.') {
+                            readDecimal(start, i);
+                            break;
+                        }
+                        if (c == 'E' || c == 'e') {
+                            readDecimal(start, i);
+                            break;
+                        }
+                        currentTokenType = VALUE_NUMBER;
+                        currentToken = String.valueOf(number);
+                        parseIndex = i;
+                        break;
+                    }
+                    number = number * 10 + (c - '0');
+                    if (number > Integer.MAX_VALUE) {
+                        readDecimal(start, i);
+                        break;
+                    }
+                    i++;
+                }
+                return;
+            case CHAR_DECIMAL:
+                if (types[i] != CHAR_VALUE) {
+                    currentTokenType = KEYWORD;
+                    currentToken = ".";
+                    parseIndex = i;
+                    return;
+                }
+                readDecimal(i - 1, i);
+                return;
+            case CHAR_STRING:
+                currentTokenQuoted = true;
+                if (chars[i - 1] == '\'') {
+                    readString(i, '\'');
+                } else {
+                    readString(i, '\"');
+                }
+                return;
+            case CHAR_END:
+                currentToken = "";
+                currentTokenType = END;
+                parseIndex = i;
+                return;
+            default:
+                throw getSyntaxError();
         }
     }
 
@@ -1145,7 +1157,7 @@ public class XPathToSQL2Converter {
         char[] chars = statementChars;
         String result = null;
         while (true) {
-            for (int begin = i;; i++) {
+            for (int begin = i; ; i++) {
                 if (chars[i] == end) {
                     if (result == null) {
                         result = statement.substring(begin, i);
@@ -1192,7 +1204,8 @@ public class XPathToSQL2Converter {
         try {
             new BigDecimal(sub);
         } catch (NumberFormatException e) {
-            throw new ParseException("Data conversion error converting " + sub + " to BigDecimal: " + e, i);
+            throw new ParseException(
+                "Data conversion error converting " + sub + " to BigDecimal: " + e, i);
         }
         currentToken = sub;
         currentTokenType = VALUE_NUMBER;
@@ -1223,7 +1236,7 @@ public class XPathToSQL2Converter {
     }
 
     private Statement convertToUnion(String query, Statement statement,
-            int startParseIndex) throws ParseException {
+        int startParseIndex) throws ParseException {
         int start = query.indexOf("(", startParseIndex);
         String begin = query.substring(0, start);
         XPathToSQL2Converter converter = new XPathToSQL2Converter(settings);
@@ -1260,7 +1273,7 @@ public class XPathToSQL2Converter {
         Statement result = null;
         ArrayList<Order> orderList = null;
         QueryOptions queryOptions = null;
-        for(String p : parts) {
+        for (String p : parts) {
             String q = begin + p + end;
             converter = new XPathToSQL2Converter(settings);
             Statement stat = converter.convertToStatement(q);

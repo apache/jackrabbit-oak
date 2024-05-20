@@ -25,13 +25,13 @@ public interface IndexingContext {
 
     /**
      * Path of the index definition in the repository
+     *
      * @return index path in the repository
      */
     String getIndexPath();
 
     /**
-     * Commit info associated with commit as part of which
-     * IndexEditor is being invoked
+     * Commit info associated with commit as part of which IndexEditor is being invoked
      */
     CommitInfo getCommitInfo();
 
@@ -41,20 +41,21 @@ public interface IndexingContext {
     boolean isReindexing();
 
     /**
-     * Flag indicating that indexed is being done
-     * asynchronously
+     * Flag indicating that indexed is being done asynchronously
      */
     boolean isAsync();
 
     /**
      * Invoked by IndexEditor to indicate that update of index has failed
+     *
      * @param e exception stack for failed updated
      */
     void indexUpdateFailed(Exception e);
 
     /**
-     * registers {@code IndexCommitCallback} instance which can then be
-     * notified of how indexing commit progresses.
+     * registers {@code IndexCommitCallback} instance which can then be notified of how indexing
+     * commit progresses.
+     *
      * @param callback
      */
     void registerIndexCommitCallback(IndexCommitCallback callback);

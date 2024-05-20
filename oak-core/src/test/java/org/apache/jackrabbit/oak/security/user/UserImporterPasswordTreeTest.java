@@ -66,21 +66,25 @@ public class UserImporterPasswordTreeTest extends UserImporterBaseTest {
     @Test
     public void testInvalidPropName() throws Exception {
         PropInfo propInfo = createPropInfo(null, "value");
-        PropertyDefinition propDef = when(mock(PropertyDefinition.class).getName()).thenReturn(null).getMock();
+        PropertyDefinition propDef = when(mock(PropertyDefinition.class).getName()).thenReturn(null)
+                                                                                   .getMock();
         assertFalse(importer.handlePropInfo(pwTree, propInfo, propDef));
     }
 
     @Test
     public void testInvalidPropName2() throws Exception {
         PropInfo propInfo = createPropInfo(null, "value");
-        PropertyDefinition propDef = when(mock(PropertyDefinition.class).getName()).thenReturn(NodeTypeConstants.RESIDUAL_NAME).getMock();
+        PropertyDefinition propDef = when(mock(PropertyDefinition.class).getName()).thenReturn(
+            NodeTypeConstants.RESIDUAL_NAME).getMock();
         assertFalse(importer.handlePropInfo(pwTree, propInfo, propDef));
     }
 
     @Test
     public void testLastModifiedUndefinedRequiredType() throws Exception {
         PropInfo propInfo = createPropInfo(REP_PASSWORD_LAST_MODIFIED, "23000");
-        PropertyDefinition propDef = when(mock(PropertyDefinition.class).getRequiredType()).thenReturn(PropertyType.UNDEFINED).getMock();
+        PropertyDefinition propDef = when(
+            mock(PropertyDefinition.class).getRequiredType()).thenReturn(PropertyType.UNDEFINED)
+                                                             .getMock();
         when(propDef.isMultiple()).thenReturn(false);
 
         assertTrue(importer.handlePropInfo(pwTree, propInfo, propDef));
@@ -95,7 +99,9 @@ public class UserImporterPasswordTreeTest extends UserImporterBaseTest {
     @Test
     public void testLastModifiedWithRequiredType() throws Exception {
         PropInfo propInfo = createPropInfo(REP_PASSWORD_LAST_MODIFIED, "23000");
-        PropertyDefinition propDef = when(mock(PropertyDefinition.class).getRequiredType()).thenReturn(PropertyType.LONG).getMock();
+        PropertyDefinition propDef = when(
+            mock(PropertyDefinition.class).getRequiredType()).thenReturn(PropertyType.LONG)
+                                                             .getMock();
         when(propDef.isMultiple()).thenReturn(true);
 
         assertTrue(importer.handlePropInfo(pwTree, propInfo, propDef));
@@ -110,7 +116,9 @@ public class UserImporterPasswordTreeTest extends UserImporterBaseTest {
     @Test
     public void testAnyPropNameUndefinedRequiredType() throws Exception {
         PropInfo propInfo = createPropInfo("any", "value");
-        PropertyDefinition propDef = when(mock(PropertyDefinition.class).getRequiredType()).thenReturn(PropertyType.UNDEFINED).getMock();
+        PropertyDefinition propDef = when(
+            mock(PropertyDefinition.class).getRequiredType()).thenReturn(PropertyType.UNDEFINED)
+                                                             .getMock();
         when(propDef.isMultiple()).thenReturn(true);
 
         assertTrue(importer.handlePropInfo(pwTree, propInfo, propDef));
@@ -125,7 +133,9 @@ public class UserImporterPasswordTreeTest extends UserImporterBaseTest {
     @Test
     public void testAnyPropNameWithRequiredType() throws Exception {
         PropInfo propInfo = createPropInfo("any", "true");
-        PropertyDefinition propDef = when(mock(PropertyDefinition.class).getRequiredType()).thenReturn(PropertyType.BOOLEAN).getMock();
+        PropertyDefinition propDef = when(
+            mock(PropertyDefinition.class).getRequiredType()).thenReturn(PropertyType.BOOLEAN)
+                                                             .getMock();
         when(propDef.isMultiple()).thenReturn(false);
 
         assertTrue(importer.handlePropInfo(pwTree, propInfo, propDef));

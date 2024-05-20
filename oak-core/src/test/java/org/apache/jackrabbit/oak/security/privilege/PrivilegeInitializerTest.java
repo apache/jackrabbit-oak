@@ -57,7 +57,8 @@ public class PrivilegeInitializerTest extends AbstractSecurityTest {
 
     @Test
     public void testAlreadyInitialized() {
-        NodeBuilder nb = when(mock(NodeBuilder.class).hasChildNode(JCR_SYSTEM)).thenReturn(true).getMock();
+        NodeBuilder nb = when(mock(NodeBuilder.class).hasChildNode(JCR_SYSTEM)).thenReturn(true)
+                                                                               .getMock();
         when(nb.getChildNode(JCR_SYSTEM)).thenReturn(nb);
         when(nb.hasChildNode(REP_PRIVILEGES)).thenReturn(true);
 
@@ -70,7 +71,8 @@ public class PrivilegeInitializerTest extends AbstractSecurityTest {
     public void testPrivilegeRegistrationFails() {
         try {
             NodeState ns = mock(NodeState.class);
-            NodeBuilder nb = when(mock(NodeBuilder.class).hasChildNode(JCR_SYSTEM)).thenReturn(true).getMock();
+            NodeBuilder nb = when(mock(NodeBuilder.class).hasChildNode(JCR_SYSTEM)).thenReturn(true)
+                                                                                   .getMock();
             when(nb.getChildNode(anyString())).thenReturn(nb);
             when(nb.child(anyString())).thenReturn(nb);
             when(nb.getNodeState()).thenReturn(ns);
@@ -79,7 +81,8 @@ public class PrivilegeInitializerTest extends AbstractSecurityTest {
             when(t.hasChild(anyString())).thenReturn(true);
 
             Root r = when(mock(Root.class).getTree(anyString())).thenReturn(t).getMock();
-            RootProvider rp = when(mock(RootProvider.class).createSystemRoot(any(NodeStore.class), isNull())).thenReturn(r).getMock();
+            RootProvider rp = when(mock(RootProvider.class).createSystemRoot(any(NodeStore.class),
+                isNull())).thenReturn(r).getMock();
             PrivilegeInitializer pi = new PrivilegeInitializer(rp);
             pi.initialize(nb);
         } catch (RuntimeException e) {

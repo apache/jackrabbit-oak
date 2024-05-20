@@ -42,8 +42,8 @@ import java.util.Collections;
 import java.util.Map;
 
 /**
- * Default implementation of the {@code AuthenticationConfiguration} with the
- * following characteristics:
+ * Default implementation of the {@code AuthenticationConfiguration} with the following
+ * characteristics:
  *
  * <ul>
  * <li>
@@ -51,31 +51,34 @@ import java.util.Map;
  *     {@code LoginContextProvider} that handles standard JAAS based logins and
  *     deals with pre-authenticated subjects.</li>
  * </ul>
- *
  */
 @Component(service = {AuthenticationConfiguration.class, SecurityConfiguration.class})
 @Designate(ocd = AuthenticationConfigurationImpl.Configuration.class)
-public class AuthenticationConfigurationImpl extends ConfigurationBase implements AuthenticationConfiguration {
+public class AuthenticationConfigurationImpl extends ConfigurationBase implements
+    AuthenticationConfiguration {
 
     @ObjectClassDefinition(name = "Apache Jackrabbit Oak AuthenticationConfiguration")
     @interface Configuration {
 
         @AttributeDefinition(
-                name = "Application Name",
-                description = "Application named used for JAAS authentication",
-                defaultValue = AuthenticationConfiguration.DEFAULT_APP_NAME
+            name = "Application Name",
+            description = "Application named used for JAAS authentication",
+            defaultValue = AuthenticationConfiguration.DEFAULT_APP_NAME
         )
         String org_apache_jackrabbit_oak_authentication_appName() default AuthenticationConfiguration.DEFAULT_APP_NAME;
 
         @AttributeDefinition(
-                name = "JAAS Config SPI Name",
-                description = "Name of JAAS Configuration Spi. This needs to be set to JAAS config provider " +
-                        "name if JAAS authentication is managed by Felix JAAS Support with its Global " +
-                        "Configuration Policy set to 'default'.")
+            name = "JAAS Config SPI Name",
+            description =
+                "Name of JAAS Configuration Spi. This needs to be set to JAAS config provider " +
+                    "name if JAAS authentication is managed by Felix JAAS Support with its Global "
+                    +
+                    "Configuration Policy set to 'default'.")
         String org_apache_jackrabbit_oak_authentication_configSpiName();
     }
 
-    private static final Logger log = LoggerFactory.getLogger(AuthenticationConfigurationImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(
+        AuthenticationConfigurationImpl.class);
 
     // stats
     private LoginModuleMonitor lmMonitor = LoginModuleMonitor.NOOP;
@@ -97,6 +100,7 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
 
     /**
      * Constructor for non-OSGi
+     *
      * @param securityProvider The {@code SecurityProvider} this configuration belongs to.
      */
     public AuthenticationConfigurationImpl(@NotNull SecurityProvider securityProvider) {
@@ -118,12 +122,14 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
     }
 
     //----------------------------------------< AuthenticationConfiguration >---
+
     /**
      * Create a {@code LoginContextProvider} using standard
-     * {@link javax.security.auth.login.Configuration#getConfiguration() JAAS}
-     * functionality. In case no login configuration for the specified app name
-     * can be retrieve this implementation uses the default as defined by
-     * {@link org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil#getDefaultConfiguration(org.apache.jackrabbit.oak.spi.security.ConfigurationParameters)}.
+     * {@link javax.security.auth.login.Configuration#getConfiguration() JAAS} functionality. In
+     * case no login configuration for the specified app name can be retrieve this implementation
+     * uses the default as defined by
+     * {@link
+     * org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil#getDefaultConfiguration(org.apache.jackrabbit.oak.spi.security.ConfigurationParameters)}.
      * <p>
      * The {@link LoginContextProvider} implementation is intended to be used with
      * <ul>
@@ -144,7 +150,8 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
      */
     @NotNull
     @Override
-    public LoginContextProvider getLoginContextProvider(@NotNull ContentRepository contentRepository) {
+    public LoginContextProvider getLoginContextProvider(
+        @NotNull ContentRepository contentRepository) {
         String appName = getParameters().getConfigValue(PARAM_APP_NAME, DEFAULT_APP_NAME);
         SecurityProvider provider = getSecurityProvider();
         Whiteboard whiteboard = null;
@@ -153,6 +160,7 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
         } else {
             log.warn("Unable to obtain whiteboard from SecurityProvider");
         }
-        return new LoginContextProviderImpl(appName, getParameters(), contentRepository, provider, whiteboard, lmMonitor);
+        return new LoginContextProviderImpl(appName, getParameters(), contentRepository, provider,
+            whiteboard, lmMonitor);
     }
 }

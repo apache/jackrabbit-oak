@@ -36,14 +36,15 @@ import java.util.List;
 class InheritedMembersIterator extends AbstractLazyIterator<Authorizable> {
 
     private static final Logger log = LoggerFactory.getLogger(InheritedMembersIterator.class);
-    
+
     private final Iterator<Authorizable> members;
     private final DynamicMembershipProvider dynamicMembershipProvider;
     private final List<Group> groups = new ArrayList<>();
-    
+
     private Iterator<Authorizable> dynamicMembers;
 
-    InheritedMembersIterator(@NotNull Iterator<Authorizable> members, @NotNull DynamicMembershipProvider dynamicMembershipProvider) {
+    InheritedMembersIterator(@NotNull Iterator<Authorizable> members,
+        @NotNull DynamicMembershipProvider dynamicMembershipProvider) {
         this.members = members;
         this.dynamicMembershipProvider = dynamicMembershipProvider;
     }
@@ -69,7 +70,7 @@ class InheritedMembersIterator extends AbstractLazyIterator<Authorizable> {
         // all dynamic members have been processed
         return null;
     }
-    
+
     private void rememberGroup(@NotNull Group group) {
         groups.add(group);
     }
@@ -84,7 +85,8 @@ class InheritedMembersIterator extends AbstractLazyIterator<Authorizable> {
                     return it;
                 }
             } catch (RepositoryException e) {
-                log.error("Failed to retrieve dynamic members of group '{}'", Utils.getIdOrNull(group), e);
+                log.error("Failed to retrieve dynamic members of group '{}'",
+                    Utils.getIdOrNull(group), e);
             }
         }
         return Collections.emptyIterator();

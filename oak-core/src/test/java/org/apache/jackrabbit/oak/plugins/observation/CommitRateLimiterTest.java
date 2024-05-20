@@ -38,6 +38,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class CommitRateLimiterTest {
+
     private static final NodeState AFTER = createAfter();
 
     private static NodeState createAfter() {
@@ -69,7 +70,7 @@ public class CommitRateLimiterTest {
                 // this method is called in the 'try' loop, so it
                 // that InterruptedException will be converted
                 // to CommitFailedException as expected
-                // (sure, this is an implementation detail, 
+                // (sure, this is an implementation detail,
                 // but I don't see a good alternative here)
                 latch.countDown();
                 return super.getBlockCommits();
@@ -99,7 +100,7 @@ public class CommitRateLimiterTest {
             try {
                 t.join();
             } catch (InterruptedException e) {
-                // once in a while, we get a spurious 
+                // once in a while, we get a spurious
                 // wakeup in the CommitRateLimiter,
                 // so that the Thresd.interrupt() above
                 // will reach t.join().
@@ -128,7 +129,8 @@ public class CommitRateLimiterTest {
     });
 
     @Test
-    public void delayCommitsWithReset() throws InterruptedException, ExecutionException, TimeoutException {
+    public void delayCommitsWithReset()
+        throws InterruptedException, ExecutionException, TimeoutException {
         limiter.setDelay(10000);
         new Thread(commit).start();
         limiter.setDelay(0);
@@ -136,7 +138,8 @@ public class CommitRateLimiterTest {
     }
 
     @Test(expected = ExecutionException.class)
-    public void delayCommitsWithInterrupt() throws InterruptedException, ExecutionException, TimeoutException {
+    public void delayCommitsWithInterrupt()
+        throws InterruptedException, ExecutionException, TimeoutException {
         limiter.setDelay(10000);
         Thread t = new Thread(commit);
         t.start();

@@ -30,11 +30,11 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
- * Lock implementation for single node setup like for SegmentNodeStore
- * It works by check async indexer status via IndexStatsMBean and
- * then aborting it if found to be running
+ * Lock implementation for single node setup like for SegmentNodeStore It works by check async
+ * indexer status via IndexStatsMBean and then aborting it if found to be running
  */
 public class AbortingIndexerLock implements AsyncIndexerLock<SimpleToken> {
+
     public static final int TIMEOUT_SECONDS = 300;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final AsyncIndexInfoService infoService;
@@ -53,8 +53,9 @@ public class AbortingIndexerLock implements AsyncIndexerLock<SimpleToken> {
     public SimpleToken lock(String asyncIndexerLane) {
         IndexStatsMBean mbean = getIndexStatsMBean(asyncIndexerLane);
 
-        if (IndexStatsMBean.STATUS_RUNNING.equals(mbean.getStatus())){
-            log.info("Aborting current indexing run of async indexer for lane [{}]", asyncIndexerLane);
+        if (IndexStatsMBean.STATUS_RUNNING.equals(mbean.getStatus())) {
+            log.info("Aborting current indexing run of async indexer for lane [{}]",
+                asyncIndexerLane);
         }
 
         mbean.abortAndPause();
@@ -88,8 +89,9 @@ public class AbortingIndexerLock implements AsyncIndexerLock<SimpleToken> {
             }
 
             try {
-                int delta = (int) (timeout -  clock.getTime() / 1000);
-                log.info("Async indexer for lane [{}] found to be running. Would wait for {} seconds " +
+                int delta = (int) (timeout - clock.getTime() / 1000);
+                log.info(
+                    "Async indexer for lane [{}] found to be running. Would wait for {} seconds " +
                         "more for it to stop", mbean.getName(), delta);
                 Thread.sleep(intervalBetweenTriesMsec);
             } catch (InterruptedException e) {
@@ -98,11 +100,13 @@ public class AbortingIndexerLock implements AsyncIndexerLock<SimpleToken> {
             }
         }
 
-        throw new IllegalStateException("RetryLoop failed, condition is false after " + timeoutSeconds + " seconds");
+        throw new IllegalStateException(
+            "RetryLoop failed, condition is false after " + timeoutSeconds + " seconds");
     }
 }
 
 final class SimpleToken implements AsyncIndexerLock.LockToken {
+
     final String laneName;
 
     SimpleToken(String laneName) {

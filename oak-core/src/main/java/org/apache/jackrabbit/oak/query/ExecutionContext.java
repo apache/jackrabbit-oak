@@ -29,9 +29,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * An instance of this class provides the context for the execution of a query,
- * which in essence captures a stable state of the content tree from the time
- * the execution context was created.
+ * An instance of this class provides the context for the execution of a query, which in essence
+ * captures a stable state of the content tree from the time the execution context was created.
  */
 public class ExecutionContext {
 
@@ -43,7 +42,7 @@ public class ExecutionContext {
     private final Root root;
 
     private final QueryEngineSettings settings;
-    
+
     private final QueryIndexProvider indexProvider;
 
     private final PermissionProvider permissionProvider;
@@ -51,11 +50,11 @@ public class ExecutionContext {
     private final PrefetchNodeStore store;
 
     public ExecutionContext(
-            NodeState baseState, Root root,
-            QueryEngineSettings settings,
-            QueryIndexProvider indexProvider,
-            PermissionProvider permissionProvider,
-            PrefetchNodeStore store) {
+        NodeState baseState, Root root,
+        QueryEngineSettings settings,
+        QueryIndexProvider indexProvider,
+        PermissionProvider permissionProvider,
+        PrefetchNodeStore store) {
         this.baseState = baseState;
         this.root = root;
         this.settings = settings;
@@ -69,19 +68,19 @@ public class ExecutionContext {
     }
 
     /**
-     * Used to evaluate the query (ie. read the existing node types, index
-     * definitions), doesn't need to be a secured version of a node state
-     * 
+     * Used to evaluate the query (ie. read the existing node types, index definitions), doesn't
+     * need to be a secured version of a node state
+     *
      * @return base state of the content tree against which the query runs.
      */
     @NotNull
     public NodeState getBaseState() {
         return baseState;
     }
-    
+
     /**
      * Get the nodetype info provider.
-     * 
+     *
      * @return the provider
      */
     public NodeTypeInfoProvider getNodeTypeInfoProvider() {
@@ -89,9 +88,9 @@ public class ExecutionContext {
     }
 
     /**
-     * Used to create the actual query results from the indexed paths, needs to
-     * be a secured version of a tree to take into account ACLs
-     * 
+     * Used to create the actual query results from the indexed paths, needs to be a secured version
+     * of a tree to take into account ACLs
+     *
      * @return root of the content tree against which the query runs.
      */
     @NotNull
@@ -100,14 +99,14 @@ public class ExecutionContext {
     }
 
     /**
-     * @return Index provider for indexes matching the state of the content tree as
-     * returned from {@link #getBaseState()}.
+     * @return Index provider for indexes matching the state of the content tree as returned from
+     * {@link #getBaseState()}.
      */
     @NotNull
     public QueryIndexProvider getIndexProvider() {
         return indexProvider;
     }
-    
+
     public QueryEngineSettings getSettings() {
         return settings;
     }

@@ -56,13 +56,15 @@ public class ResetExpiredPasswordTest extends AbstractSecurityTest implements Us
         userId = testuser.getID();
 
         // set password last modified to beginning of epoch
-        root.getTree(testuser.getPath()).getChild(REP_PWD).setProperty(REP_PASSWORD_LAST_MODIFIED, 0);
+        root.getTree(testuser.getPath()).getChild(REP_PWD)
+            .setProperty(REP_PASSWORD_LAST_MODIFIED, 0);
         root.commit();
     }
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        ConfigurationParameters userConfig = ConfigurationParameters.of(UserConstants.PARAM_PASSWORD_MAX_AGE, 10);
+        ConfigurationParameters userConfig = ConfigurationParameters.of(
+            UserConstants.PARAM_PASSWORD_MAX_AGE, 10);
         return ConfigurationParameters.of(UserConfiguration.NAME, userConfig);
     }
 
@@ -86,7 +88,8 @@ public class ResetExpiredPasswordTest extends AbstractSecurityTest implements Us
         // check that the password has been persisted and has the value of the new password
         Root rootBasedOnSeparateSession = login(getAdminCredentials()).getLatestRoot();
         Tree userTree = rootBasedOnSeparateSession.getTree(getTestUser().getPath());
-        assertTrue(PasswordUtil.isSame(userTree.getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING), "newPw"));
+        assertTrue(PasswordUtil.isSame(
+            userTree.getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING), "newPw"));
         assertCredentials(creds);
     }
 
@@ -105,8 +108,11 @@ public class ResetExpiredPasswordTest extends AbstractSecurityTest implements Us
             // success
         } finally {
             Tree userTree = root.getTree(getTestUser().getPath());
-            assertTrue(PasswordUtil.isSame(userTree.getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING), userId));
-            assertEquals(0, userTree.getChild(UserConstants.REP_PWD).getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED).getValue(Type.LONG).longValue());
+            assertTrue(PasswordUtil.isSame(
+                userTree.getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING), userId));
+            assertEquals(0, userTree.getChild(UserConstants.REP_PWD)
+                                    .getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED)
+                                    .getValue(Type.LONG).longValue());
             assertCredentials(creds);
         }
     }
@@ -120,8 +126,11 @@ public class ResetExpiredPasswordTest extends AbstractSecurityTest implements Us
             // success
         } finally {
             Tree userTree = root.getTree(getTestUser().getPath());
-            assertTrue(PasswordUtil.isSame(userTree.getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING), userId));
-            assertEquals(0, userTree.getChild(UserConstants.REP_PWD).getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED).getValue(Type.LONG).longValue());
+            assertTrue(PasswordUtil.isSame(
+                userTree.getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING), userId));
+            assertEquals(0, userTree.getChild(UserConstants.REP_PWD)
+                                    .getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED)
+                                    .getValue(Type.LONG).longValue());
             assertCredentials(creds);
         }
     }

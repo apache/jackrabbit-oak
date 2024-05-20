@@ -33,8 +33,8 @@ public class RemoveMembersByIdIgnoreTest extends AbstractRemoveMembersByIdTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         return ConfigurationParameters.of(UserConfiguration.NAME,
-                ConfigurationParameters.of(
-                        ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_IGNORE)
+            ConfigurationParameters.of(
+                ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_IGNORE)
         );
     }
 

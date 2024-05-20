@@ -61,13 +61,15 @@ public class AuthorizationContextTest extends AbstractSecurityTest {
         }
     }
 
-    private void createAcl(@Nullable String path, String... privilegeNames) throws RepositoryException {
+    private void createAcl(@Nullable String path, String... privilegeNames)
+        throws RepositoryException {
         AccessControlManager acMgr = getAccessControlManager(root);
 
         AccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
         assertNotNull(acl);
 
-        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(privilegeNames));
+        acl.addAccessControlEntry(EveryonePrincipal.getInstance(),
+            privilegesFromNames(privilegeNames));
         acMgr.setPolicy(path, acl);
     }
 
@@ -77,8 +79,8 @@ public class AuthorizationContextTest extends AbstractSecurityTest {
     @Test
     public void testItemDefinitionsDefinesContextRoot() {
         List<String> paths = Lists.newArrayList(
-                "/jcr:system/jcr:nodeTypes/rep:AccessControllable/rep:namedChildNodeDefinitions/rep:policy",
-                "/jcr:system/jcr:nodeTypes/rep:RepoAccessControllable/rep:namedChildNodeDefinitions/rep:repoPolicy");
+            "/jcr:system/jcr:nodeTypes/rep:AccessControllable/rep:namedChildNodeDefinitions/rep:policy",
+            "/jcr:system/jcr:nodeTypes/rep:RepoAccessControllable/rep:namedChildNodeDefinitions/rep:repoPolicy");
 
         for (String defPath : paths) {
             Tree tree = root.getTree(defPath);
@@ -124,28 +126,32 @@ public class AuthorizationContextTest extends AbstractSecurityTest {
 
         String policyPath = "/rep:policy";
         assertTrue(ctx.definesLocation(TreeLocation.create(root, policyPath + "/allow")));
-        assertTrue(ctx.definesLocation(TreeLocation.create(root, policyPath + "/allow/" + AccessControlConstants.REP_PRINCIPAL_NAME)));
-        assertTrue(ctx.definesLocation(TreeLocation.create(root, policyPath + "/allow/" + AccessControlConstants.REP_PRIVILEGES)));
+        assertTrue(ctx.definesLocation(TreeLocation.create(root,
+            policyPath + "/allow/" + AccessControlConstants.REP_PRINCIPAL_NAME)));
+        assertTrue(ctx.definesLocation(TreeLocation.create(root,
+            policyPath + "/allow/" + AccessControlConstants.REP_PRIVILEGES)));
 
         List<String> existingRegular = ImmutableList.of(
-                "/",
-                "/jcr:system"
+            "/",
+            "/jcr:system"
         );
         for (String path : existingRegular) {
             assertFalse(path, ctx.definesLocation(TreeLocation.create(root, path)));
-            assertFalse(path, ctx.definesLocation(TreeLocation.create(root, PathUtils.concat(path, JcrConstants.JCR_PRIMARYTYPE))));
+            assertFalse(path, ctx.definesLocation(
+                TreeLocation.create(root, PathUtils.concat(path, JcrConstants.JCR_PRIMARYTYPE))));
         }
 
         List<String> nonExistingItem = ImmutableList.of(
-                '/' + AccessControlConstants.REP_REPO_POLICY,
-                "/content/" + AccessControlConstants.REP_POLICY,
-                "/content/" + AccessControlConstants.REP_PRIVILEGES,
-                "/content/" + AccessControlConstants.REP_REPO_POLICY,
-                "/jcr:system/" + AccessControlConstants.REP_POLICY,
-                PermissionConstants.PERMISSIONS_STORE_PATH + "/nonexisting");
+            '/' + AccessControlConstants.REP_REPO_POLICY,
+            "/content/" + AccessControlConstants.REP_POLICY,
+            "/content/" + AccessControlConstants.REP_PRIVILEGES,
+            "/content/" + AccessControlConstants.REP_REPO_POLICY,
+            "/jcr:system/" + AccessControlConstants.REP_POLICY,
+            PermissionConstants.PERMISSIONS_STORE_PATH + "/nonexisting");
         for (String path : nonExistingItem) {
             assertTrue(path, ctx.definesLocation(TreeLocation.create(root, path)));
-            assertTrue(path, ctx.definesLocation(TreeLocation.create(root, PathUtils.concat(path, AccessControlConstants.REP_PRIVILEGES))));
+            assertTrue(path, ctx.definesLocation(TreeLocation.create(root,
+                PathUtils.concat(path, AccessControlConstants.REP_PRIVILEGES))));
         }
     }
 
@@ -161,7 +167,8 @@ public class AuthorizationContextTest extends AbstractSecurityTest {
     public void testGetTypeWithParentType() throws Exception {
         TreeTypeProvider ttp = new TreeTypeProvider(AuthorizationContext.getInstance());
         for (TypeTest test : TypeTest.createTests(root)) {
-            assertEquals(test.path, test.type, ttp.getType(root.getTree(test.path), test.parentType));
+            assertEquals(test.path, test.type,
+                ttp.getType(root.getTree(test.path), test.parentType));
         }
     }
 
@@ -197,33 +204,50 @@ public class AuthorizationContextTest extends AbstractSecurityTest {
 
         private static List<TypeTest> createTests(@NotNull Root root) throws Exception {
             List<TypeTest> tests = new ArrayList<>();
-            tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH + "/rep:AccessControllable/rep:namedChildNodeDefinitions/rep:policy", TreeType.DEFAULT));
-            tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH + "/rep:AccessControllable/rep:namedChildNodeDefinitions/rep:policy/rep:Policy", TreeType.DEFAULT));
-            tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH + "/rep:ACL/rep:residualChildNodeDefinitions/rep:ACE", TreeType.DEFAULT));
-            tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH + "/rep:GrantACE/rep:namedChildNodeDefinitions/rep:restrictions", TreeType.DEFAULT));
-            tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH + "/rep:RepoAccessControllable/rep:namedChildNodeDefinitions/rep:repoPolicy", TreeType.DEFAULT));
-            tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH + "/rep:PermissionStore", TreeType.DEFAULT));
-
+            tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH
+                + "/rep:AccessControllable/rep:namedChildNodeDefinitions/rep:policy",
+                TreeType.DEFAULT));
+            tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH
+                + "/rep:AccessControllable/rep:namedChildNodeDefinitions/rep:policy/rep:Policy",
+                TreeType.DEFAULT));
+            tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH
+                + "/rep:ACL/rep:residualChildNodeDefinitions/rep:ACE", TreeType.DEFAULT));
+            tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH
+                + "/rep:GrantACE/rep:namedChildNodeDefinitions/rep:restrictions",
+                TreeType.DEFAULT));
+            tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH
+                + "/rep:RepoAccessControllable/rep:namedChildNodeDefinitions/rep:repoPolicy",
+                TreeType.DEFAULT));
+            tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH + "/rep:PermissionStore",
+                TreeType.DEFAULT));
 
             tests.add(new TypeTest(PermissionConstants.PERMISSIONS_STORE_PATH, TreeType.INTERNAL));
-            tests.add(new TypeTest(PermissionConstants.PERMISSIONS_STORE_PATH + "/a/b/child", TreeType.INTERNAL, TreeType.INTERNAL));
+            tests.add(new TypeTest(PermissionConstants.PERMISSIONS_STORE_PATH + "/a/b/child",
+                TreeType.INTERNAL, TreeType.INTERNAL));
 
-            Tree testTree = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH),"test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+            Tree testTree = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "test",
+                NodeTypeConstants.NT_OAK_UNSTRUCTURED);
             for (String name : AccessControlConstants.POLICY_NODE_NAMES) {
                 Tree acl = TreeUtil.addChild(testTree, name, AccessControlConstants.NT_REP_ACL);
                 tests.add(new TypeTest(acl.getPath(), TreeType.ACCESS_CONTROL));
 
                 Tree ace = TreeUtil.addChild(acl, "ace", AccessControlConstants.NT_REP_DENY_ACE);
-                tests.add(new TypeTest(ace.getPath(), TreeType.ACCESS_CONTROL, TreeType.ACCESS_CONTROL));
+                tests.add(
+                    new TypeTest(ace.getPath(), TreeType.ACCESS_CONTROL, TreeType.ACCESS_CONTROL));
 
                 Tree ace2 = TreeUtil.addChild(acl, "ace2", AccessControlConstants.NT_REP_GRANT_ACE);
-                tests.add(new TypeTest(ace2.getPath(), TreeType.ACCESS_CONTROL, TreeType.ACCESS_CONTROL));
+                tests.add(
+                    new TypeTest(ace2.getPath(), TreeType.ACCESS_CONTROL, TreeType.ACCESS_CONTROL));
 
-                Tree rest = TreeUtil.addChild(ace2, AccessControlConstants.REP_RESTRICTIONS, AccessControlConstants.NT_REP_RESTRICTIONS);
-                tests.add(new TypeTest(rest.getPath(), TreeType.ACCESS_CONTROL, TreeType.ACCESS_CONTROL));
+                Tree rest = TreeUtil.addChild(ace2, AccessControlConstants.REP_RESTRICTIONS,
+                    AccessControlConstants.NT_REP_RESTRICTIONS);
+                tests.add(
+                    new TypeTest(rest.getPath(), TreeType.ACCESS_CONTROL, TreeType.ACCESS_CONTROL));
 
-                Tree invalid = TreeUtil.addChild(rest, "invalid", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-                tests.add(new TypeTest(invalid.getPath(), TreeType.ACCESS_CONTROL, TreeType.ACCESS_CONTROL));
+                Tree invalid = TreeUtil.addChild(rest, "invalid",
+                    NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+                tests.add(new TypeTest(invalid.getPath(), TreeType.ACCESS_CONTROL,
+                    TreeType.ACCESS_CONTROL));
             }
             return tests;
         }

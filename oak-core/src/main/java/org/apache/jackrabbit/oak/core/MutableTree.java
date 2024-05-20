@@ -51,16 +51,18 @@ final class MutableTree extends AbstractMutableTree {
 
     private NodeBuilder nodeBuilder;
 
-    /** Pointer into the list of pending moves */
+    /**
+     * Pointer into the list of pending moves
+     */
     private Move pendingMoves;
 
     MutableTree(@NotNull MutableRoot root, @NotNull NodeBuilder nodeBuilder,
-            @NotNull Move pendingMoves) {
+        @NotNull Move pendingMoves) {
         this(root, pendingMoves, null, nodeBuilder, "");
     }
 
     private MutableTree(@NotNull MutableRoot root, @NotNull Move pendingMoves,
-            @Nullable MutableTree parent, @NotNull NodeBuilder nodeBuilder, @NotNull String name) {
+        @Nullable MutableTree parent, @NotNull NodeBuilder nodeBuilder, @NotNull String name) {
         this.root = checkNotNull(root);
         this.parent = parent;
         this.name = checkNotNull(name);
@@ -88,7 +90,7 @@ final class MutableTree extends AbstractMutableTree {
     @NotNull
     protected MutableTree createChild(@NotNull String name) throws IllegalArgumentException {
         return new MutableTree(root, pendingMoves, this,
-                nodeBuilder.getChildNode(checkNotNull(name)), name);
+            nodeBuilder.getChildNode(checkNotNull(name)), name);
     }
 
     //------------------------------------------------------------< Tree >---
@@ -247,10 +249,12 @@ final class MutableTree extends AbstractMutableTree {
     }
 
     //---------------------------------------------------------< internal >---
+
     /**
      * Set the parent and name of this tree.
-     * @param parent  parent of this tree
-     * @param name  name of this tree
+     *
+     * @param parent parent of this tree
+     * @param name   name of this tree
      */
     void setParentAndName(@NotNull MutableTree parent, @NotNull String name) {
         this.name = checkNotNull(name);
@@ -258,8 +262,8 @@ final class MutableTree extends AbstractMutableTree {
     }
 
     /**
-     * Move this tree to the parent at {@code destParent} with the new name
-     * {@code newName}.
+     * Move this tree to the parent at {@code destParent} with the new name {@code newName}.
+     *
      * @param newParent new parent for this tree
      * @param newName   new name for this tree
      */
@@ -279,6 +283,7 @@ final class MutableTree extends AbstractMutableTree {
 
     /**
      * Get a possibly non existing tree.
+     *
      * @param path the path to the tree
      * @return a {@link Tree} instance for the child at {@code path}.
      */
@@ -288,7 +293,8 @@ final class MutableTree extends AbstractMutableTree {
         beforeRead();
         MutableTree child = this;
         for (String name : elements(path)) {
-            child = new MutableTree(root, pendingMoves, child, child.nodeBuilder.getChildNode(name), name);
+            child = new MutableTree(root, pendingMoves, child, child.nodeBuilder.getChildNode(name),
+                name);
         }
         return child;
     }
@@ -322,10 +328,9 @@ final class MutableTree extends AbstractMutableTree {
     }
 
     /**
-     * Verifies that this session is still alive and applies any pending
-     * moves that might affect this node. This method needs to be called
-     * at the beginning of all public read-only {@link Tree} methods to
-     * guarantee a consistent view of the tree. See {@link #beforeWrite()}
+     * Verifies that this session is still alive and applies any pending moves that might affect
+     * this node. This method needs to be called at the beginning of all public read-only
+     * {@link Tree} methods to guarantee a consistent view of the tree. See {@link #beforeWrite()}
      * for the equivalent method for write operations.
      *
      * @throws IllegalStateException if this session is closed
@@ -338,20 +343,17 @@ final class MutableTree extends AbstractMutableTree {
     }
 
     /**
-     * Like {@link #beforeRead()} but also checks that (after any pending
-     * moves have been applied) the current node exists and is visible.
-     * This method needs to be called at the beginning of all public
-     * {@link Tree} methods that modify this node to guarantee a consistent
-     * view of the tree and to throw an exception whenever there's an
-     * attempt to modify a missing node.
+     * Like {@link #beforeRead()} but also checks that (after any pending moves have been applied)
+     * the current node exists and is visible. This method needs to be called at the beginning of
+     * all public {@link Tree} methods that modify this node to guarantee a consistent view of the
+     * tree and to throw an exception whenever there's an attempt to modify a missing node.
      *
-     * @throws IllegalStateException if this node does not exist or
-     *                               if this session is closed
+     * @throws IllegalStateException if this node does not exist or if this session is closed
      */
     private void beforeWrite() throws IllegalStateException {
         beforeRead();
         if (!super.exists()) {
-            throw new IllegalStateException("The tree for "  + super.getPath() + " does not exist");
+            throw new IllegalStateException("The tree for " + super.getPath() + " does not exist");
         }
     }
 

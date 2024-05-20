@@ -28,15 +28,19 @@ import static org.junit.Assert.assertEquals;
 public class FormattingUtilsTest {
 
     private static class TestTicker extends Ticker {
+
         private long time = 0;
+
         @Override
         public long read() {
             return time;
         }
+
         public void set(long nanos) {
             time = nanos;
         }
     }
+
     private final TestTicker ticker = new TestTicker();
     private final Stopwatch sw = Stopwatch.createStarted(ticker);
 
@@ -51,9 +55,9 @@ public class FormattingUtilsTest {
         testFormatToSeconds("24:00:00", TimeUnit.HOURS.toNanos(24));
         testFormatToSeconds("48:00:00", TimeUnit.HOURS.toNanos(48));
         testFormatToSeconds("23:59:59", TimeUnit.HOURS.toNanos(23) +
-                TimeUnit.MINUTES.toNanos(59) +
-                TimeUnit.SECONDS.toNanos(59) +
-                TimeUnit.MILLISECONDS.toNanos(999)
+            TimeUnit.MINUTES.toNanos(59) +
+            TimeUnit.SECONDS.toNanos(59) +
+            TimeUnit.MILLISECONDS.toNanos(999)
         );
         testFormatToSeconds("-00:01:00", -TimeUnit.SECONDS.toNanos(60));
     }
@@ -74,9 +78,9 @@ public class FormattingUtilsTest {
         testFormatToMillis("24:00:00.000", TimeUnit.HOURS.toNanos(24));
         testFormatToMillis("48:00:00.000", TimeUnit.HOURS.toNanos(48));
         testFormatToMillis("23:59:59.999", TimeUnit.HOURS.toNanos(23) +
-                TimeUnit.MINUTES.toNanos(59) +
-                TimeUnit.SECONDS.toNanos(59) +
-                TimeUnit.MILLISECONDS.toNanos(999)
+            TimeUnit.MINUTES.toNanos(59) +
+            TimeUnit.SECONDS.toNanos(59) +
+            TimeUnit.MILLISECONDS.toNanos(999)
         );
         testFormatToMillis("-00:01:00.000", -TimeUnit.SECONDS.toNanos(60));
     }

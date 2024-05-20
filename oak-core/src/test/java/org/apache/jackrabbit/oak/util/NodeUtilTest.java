@@ -62,10 +62,10 @@ public class NodeUtilTest extends AbstractSecurityTest {
         assertEqualNodeUtil(node, parent);
 
         Map<String, String> map = ImmutableMap.of(
-                "a/b/c", "/a/b/c",
-                "a/../b/c", "/b/c",
-                "a/b/c/../..", "/a",
-                "a/././././b/c", "/a/b/c"
+            "a/b/c", "/a/b/c",
+            "a/../b/c", "/b/c",
+            "a/b/c/../..", "/a",
+            "a/././././b/c", "/a/b/c"
         );
         for (String relPath : map.keySet()) {
             NodeUtil n = node.getOrAddTree(relPath, NodeTypeConstants.NT_OAK_UNSTRUCTURED);

@@ -31,8 +31,8 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Dummy implementation of {@link CredentialsSupport} that only supports
- * {@link org.apache.jackrabbit.oak.security.authentication.token.TestCredentialsSupport.Creds}
- * and always returns the same user ID upon {@link CredentialsSupport#getUserId(Credentials)}.
+ * {@link org.apache.jackrabbit.oak.security.authentication.token.TestCredentialsSupport.Creds} and
+ * always returns the same user ID upon {@link CredentialsSupport#getUserId(Credentials)}.
  */
 public class TestCredentialsSupport implements CredentialsSupport {
 
@@ -73,7 +73,8 @@ public class TestCredentialsSupport implements CredentialsSupport {
     }
 
     @Override
-    public boolean setAttributes(@NotNull Credentials credentials, @NotNull Map<String, ?> attributes) {
+    public boolean setAttributes(@NotNull Credentials credentials,
+        @NotNull Map<String, ?> attributes) {
         if (credentials instanceof Creds) {
             ((Creds) credentials).attributes.putAll(attributes);
             return true;
@@ -88,7 +89,8 @@ public class TestCredentialsSupport implements CredentialsSupport {
 
         Creds() {
             attributes = Maps.newHashMap();
-            attributes.put(TokenConstants.TOKEN_ATTRIBUTE, TokenConstants.TOKEN_ATTRIBUTE_DO_CREATE);
+            attributes.put(TokenConstants.TOKEN_ATTRIBUTE,
+                TokenConstants.TOKEN_ATTRIBUTE_DO_CREATE);
         }
     }
 }

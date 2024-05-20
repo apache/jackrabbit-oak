@@ -37,17 +37,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * This {@code Filter} implementation supports filtering on paths using
- * simple glob patterns. Such a pattern is a string denoting a path. Each
- * element of the pattern is matched against the corresponding element of
- * a path. Elements of the pattern are matched literally except for the special
- * elements {@code *} and {@code **} where the former matches an arbitrary
- * path element and the latter matches any number of path elements (including none).
+ * This {@code Filter} implementation supports filtering on paths using simple glob patterns. Such a
+ * pattern is a string denoting a path. Each element of the pattern is matched against the
+ * corresponding element of a path. Elements of the pattern are matched literally except for the
+ * special elements {@code *} and {@code **} where the former matches an arbitrary path element and
+ * the latter matches any number of path elements (including none).
  * <p>
  * Note: an empty path pattern matches no path.
  * <p>
- * Note: path patterns only match against the corresponding elements of the path
- * and <em>do not</em> distinguish between absolute and relative paths.
+ * Note: path patterns only match against the corresponding elements of the path and <em>do not</em>
+ * distinguish between absolute and relative paths.
  * <p>
  * Note: there is no way to escape {@code *} and {@code **}.
  * <p>
@@ -65,6 +64,7 @@ import org.jetbrains.annotations.NotNull;
  * </pre>
  */
 public class GlobbingPathFilter implements EventFilter {
+
     public static final String STAR = "*";
     public static final String STAR_STAR = "**";
 
@@ -88,7 +88,9 @@ public class GlobbingPathFilter implements EventFilter {
         this.patternMap = checkNotNull(patternMap);
     }
 
-    /** for testing only - use variant which passes the patternMap for productive code **/
+    /**
+     * for testing only - use variant which passes the patternMap for productive code
+     **/
     public GlobbingPathFilter(@NotNull String pattern) {
         this(pattern, new HashMap<String, Pattern>());
     }
@@ -127,16 +129,16 @@ public class GlobbingPathFilter implements EventFilter {
     public boolean includeReorder(String destName, String name, NodeState reordered) {
         return includeItem(name);
     }
-    
+
     private Pattern getPattern(String wildcardStr) {
         Pattern p = patternMap.get(wildcardStr);
         if (p == null) {
-            p = Pattern.compile("\\Q"+wildcardStr.replace("*", "\\E[^/]*\\Q") + "\\E");
+            p = Pattern.compile("\\Q" + wildcardStr.replace("*", "\\E[^/]*\\Q") + "\\E");
             patternMap.put(wildcardStr, p);
         }
         return p;
     }
-    
+
     private boolean wildcardMatch(String pathElement, String wildcardStr) {
         if (STAR_STAR.equals(wildcardStr) || !wildcardStr.contains(STAR)) {
             return pathElement.equals(wildcardStr);
@@ -165,8 +167,8 @@ public class GlobbingPathFilter implements EventFilter {
                 // match the rest of the pattern against the rest of the path and
                 // match the whole pattern against the rest of the path
                 return Filters.any(
-                        new GlobbingPathFilter(pattern.subList(2, pattern.size()), patternMap),
-                        new GlobbingPathFilter(pattern, patternMap)
+                    new GlobbingPathFilter(pattern.subList(2, pattern.size()), patternMap),
+                    new GlobbingPathFilter(pattern, patternMap)
                 );
             } else {
                 // ** matches name, match the whole pattern against the rest of the path
@@ -180,8 +182,8 @@ public class GlobbingPathFilter implements EventFilter {
     @Override
     public String toString() {
         return toStringHelper(this)
-                .add("path", Joiner.on('/').join(pattern))
-                .toString();
+            .add("path", Joiner.on('/').join(pattern))
+            .toString();
     }
 
     //------------------------------------------------------------< private >---

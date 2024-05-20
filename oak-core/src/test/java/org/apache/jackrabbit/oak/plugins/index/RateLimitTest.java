@@ -47,9 +47,9 @@ public class RateLimitTest {
             assertEquals(1000, sleep);
             now = now.plus(Duration.ofMillis(sleep));
             now = now.plus(Duration.ofSeconds(1));
-        }        
+        }
     }
-    
+
     @Test
     public void rateLimitMaxOneMinute() {
         Instant now = Instant.now();
@@ -61,7 +61,7 @@ public class RateLimitTest {
             assertEquals(60 * 1000, sleep);
             now = now.plus(Duration.ofMillis(sleep));
             now = now.plus(Duration.ofMinutes(10));
-        }        
+        }
     }
-    
+
 }

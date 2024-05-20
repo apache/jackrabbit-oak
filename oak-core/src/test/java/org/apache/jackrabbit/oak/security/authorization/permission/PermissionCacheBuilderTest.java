@@ -46,7 +46,8 @@ public class PermissionCacheBuilderTest extends AbstractCacheTest {
 
     @Test
     public void testBuildForEmptyPrincipals() {
-        assertTrue(permissionCacheBuilder.init(ImmutableSet.of(), createStrategy(Long.MAX_VALUE, 2, false)));
+        assertTrue(permissionCacheBuilder.init(ImmutableSet.of(),
+            createStrategy(Long.MAX_VALUE, 2, false)));
         PermissionCache cache = permissionCacheBuilder.build();
         assertEquals(EMPTY_CLASS_NAME, cache.getClass().getName());
 
@@ -62,7 +63,8 @@ public class PermissionCacheBuilderTest extends AbstractCacheTest {
 
         Set<String> principalNames = Sets.newHashSet("noEntries", "noEntries2", "noEntries3");
 
-        assertTrue(permissionCacheBuilder.init(principalNames, createStrategy(Long.MAX_VALUE, 10, false)));
+        assertTrue(
+            permissionCacheBuilder.init(principalNames, createStrategy(Long.MAX_VALUE, 10, false)));
 
         PermissionCache cache = permissionCacheBuilder.build();
         assertEquals(EMPTY_CLASS_NAME, cache.getClass().getName());
@@ -77,15 +79,18 @@ public class PermissionCacheBuilderTest extends AbstractCacheTest {
 
     @Test
     public void testBuildFewEntriesSamePath() {
-        PrincipalPermissionEntries ppeA = generatedPermissionEntries("/path", false, 0, REP_READ_NODES);
-        PrincipalPermissionEntries ppeB = generatedPermissionEntries("/path",false, 1, REP_READ_NODES);
+        PrincipalPermissionEntries ppeA = generatedPermissionEntries("/path", false, 0,
+            REP_READ_NODES);
+        PrincipalPermissionEntries ppeB = generatedPermissionEntries("/path", false, 1,
+            REP_READ_NODES);
 
         when(store.load("a")).thenReturn(ppeA);
         when(store.load("b")).thenReturn(ppeB);
         when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(1, true));
 
         Set<String> principalNames = Sets.newHashSet("a", "b");
-        assertFalse(permissionCacheBuilder.init(principalNames, createStrategy(Long.MAX_VALUE, 10, true)));
+        assertFalse(
+            permissionCacheBuilder.init(principalNames, createStrategy(Long.MAX_VALUE, 10, true)));
 
         PermissionCache cache = permissionCacheBuilder.build();
         assertEquals(ENTRYMAP_CLASS_NAME, cache.getClass().getName());
@@ -97,12 +102,15 @@ public class PermissionCacheBuilderTest extends AbstractCacheTest {
 
     @Test
     public void testBuildFewEntriesDifferentPaths() {
-        when(store.load("a")).thenReturn(generatedPermissionEntries("/path1", false, 0, REP_READ_NODES));
-        when(store.load("b")).thenReturn(generatedPermissionEntries("/path2", false, 0, REP_READ_NODES));
+        when(store.load("a")).thenReturn(
+            generatedPermissionEntries("/path1", false, 0, REP_READ_NODES));
+        when(store.load("b")).thenReturn(
+            generatedPermissionEntries("/path2", false, 0, REP_READ_NODES));
         when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(1, true));
 
         Set<String> principalNames = Sets.newHashSet("a", "b");
-        assertFalse(permissionCacheBuilder.init(principalNames, createStrategy(Long.MAX_VALUE, 10, false)));
+        assertFalse(
+            permissionCacheBuilder.init(principalNames, createStrategy(Long.MAX_VALUE, 10, false)));
 
         PermissionCache cache = permissionCacheBuilder.build();
         assertEquals(ENTRYMAP_CLASS_NAME, cache.getClass().getName());
@@ -114,12 +122,15 @@ public class PermissionCacheBuilderTest extends AbstractCacheTest {
 
     @Test
     public void testBuildPathEntryMapNonExactCnt() {
-        when(store.load("a")).thenReturn(generatedPermissionEntries("/path1",false, 0, REP_READ_NODES));
-        when(store.load("b")).thenReturn(generatedPermissionEntries("/path2", true, 0, JCR_MODIFY_ACCESS_CONTROL));
+        when(store.load("a")).thenReturn(
+            generatedPermissionEntries("/path1", false, 0, REP_READ_NODES));
+        when(store.load("b")).thenReturn(
+            generatedPermissionEntries("/path2", true, 0, JCR_MODIFY_ACCESS_CONTROL));
         when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(1, false));
 
         Set<String> principalNames = Sets.newHashSet("a", "b");
-        assertFalse(permissionCacheBuilder.init(principalNames, createStrategy(Long.MAX_VALUE, 10, true)));
+        assertFalse(
+            permissionCacheBuilder.init(principalNames, createStrategy(Long.MAX_VALUE, 10, true)));
 
         PermissionCache cache = permissionCacheBuilder.build();
         assertEquals(ENTRYMAP_CLASS_NAME, cache.getClass().getName());
@@ -133,10 +144,12 @@ public class PermissionCacheBuilderTest extends AbstractCacheTest {
     public void testBuildPathEntryMapResultsInEmptyCache() {
         long maxPaths = 10;
         when(store.load(anyString())).thenReturn(new PrincipalPermissionEntries());
-        when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(maxPaths+1, false));
+        when(store.getNumEntries(anyString(), anyLong())).thenReturn(
+            NumEntries.valueOf(maxPaths + 1, false));
 
         Set<String> principalNames = Sets.newHashSet("a", "b");
-        assertFalse(permissionCacheBuilder.init(principalNames, createStrategy(Long.MAX_VALUE, maxPaths, false)));
+        assertFalse(permissionCacheBuilder.init(principalNames,
+            createStrategy(Long.MAX_VALUE, maxPaths, false)));
 
         PermissionCache cache = permissionCacheBuilder.build();
         assertEquals(EMPTY_CLASS_NAME, cache.getClass().getName());
@@ -148,8 +161,10 @@ public class PermissionCacheBuilderTest extends AbstractCacheTest {
 
     @Test
     public void testBuildMaxEntriesReachedAllFullyLoaded() {
-        PrincipalPermissionEntries ppeA = generatedPermissionEntries("/path1",false, 0, REP_READ_NODES);
-        PrincipalPermissionEntries ppeB = generatedPermissionEntries("/path2",false, 0, REP_READ_NODES);
+        PrincipalPermissionEntries ppeA = generatedPermissionEntries("/path1", false, 0,
+            REP_READ_NODES);
+        PrincipalPermissionEntries ppeB = generatedPermissionEntries("/path2", false, 0,
+            REP_READ_NODES);
 
         when(store.load("a")).thenReturn(ppeA);
         when(store.load("b")).thenReturn(ppeB);
@@ -157,7 +172,8 @@ public class PermissionCacheBuilderTest extends AbstractCacheTest {
 
         Set<String> principalNames = Sets.newHashSet("a", "b");
         long maxSize = 1;
-        assertFalse(permissionCacheBuilder.init(principalNames, createStrategy(maxSize, 10, false)));
+        assertFalse(
+            permissionCacheBuilder.init(principalNames, createStrategy(maxSize, 10, false)));
 
         PermissionCache cache = permissionCacheBuilder.build();
         assertEquals(ENTRYMAP_CLASS_NAME, cache.getClass().getName());
@@ -169,17 +185,19 @@ public class PermissionCacheBuilderTest extends AbstractCacheTest {
 
     @Test
     public void testBuildMaxEntriesReachedPartiallyFullyLoaded() {
-        PrincipalPermissionEntries ppeA = generatedPermissionEntries("/path1",false, 0, REP_READ_NODES);
+        PrincipalPermissionEntries ppeA = generatedPermissionEntries("/path1", false, 0,
+            REP_READ_NODES);
 
         long maxSize = 1;
         long maxPaths = 10;
 
         when(store.load("a")).thenReturn(ppeA);
         when(store.getNumEntries("a", maxSize)).thenReturn(NumEntries.valueOf(1, true));
-        when(store.getNumEntries("b", maxSize)).thenReturn(NumEntries.valueOf(maxPaths+1, true));
+        when(store.getNumEntries("b", maxSize)).thenReturn(NumEntries.valueOf(maxPaths + 1, true));
 
         Set<String> principalNames = Sets.newLinkedHashSet(ImmutableSet.of("a", "b"));
-        assertFalse(permissionCacheBuilder.init(principalNames, createStrategy(maxSize, maxPaths, false)));
+        assertFalse(
+            permissionCacheBuilder.init(principalNames, createStrategy(maxSize, maxPaths, false)));
 
         PermissionCache cache = permissionCacheBuilder.build();
         assertEquals(DEFAULT_CLASS_NAME, cache.getClass().getName());
@@ -195,17 +213,19 @@ public class PermissionCacheBuilderTest extends AbstractCacheTest {
 
     @Test
     public void testBuildLazilyLoaded() {
-        PrincipalPermissionEntries ppeA = generatedPermissionEntries("/path1",false, 0, REP_READ_NODES);
+        PrincipalPermissionEntries ppeA = generatedPermissionEntries("/path1", false, 0,
+            REP_READ_NODES);
 
         long maxSize = 1;
         long maxPaths = 0;
 
         when(store.load("a")).thenReturn(ppeA);
-        when(store.getNumEntries("a", maxSize)).thenReturn(NumEntries.valueOf(maxPaths+1, true));
-        when(store.getNumEntries("b", maxSize)).thenReturn(NumEntries.valueOf(maxPaths+1, false));
+        when(store.getNumEntries("a", maxSize)).thenReturn(NumEntries.valueOf(maxPaths + 1, true));
+        when(store.getNumEntries("b", maxSize)).thenReturn(NumEntries.valueOf(maxPaths + 1, false));
 
         Set<String> principalNames = Sets.newLinkedHashSet(ImmutableSet.of("a", "b"));
-        assertFalse(permissionCacheBuilder.init(principalNames, createStrategy(maxSize, maxPaths, false)));
+        assertFalse(
+            permissionCacheBuilder.init(principalNames, createStrategy(maxSize, maxPaths, false)));
 
         PermissionCache cache = permissionCacheBuilder.build();
         assertEquals(DEFAULT_CLASS_NAME, cache.getClass().getName());
@@ -218,9 +238,11 @@ public class PermissionCacheBuilderTest extends AbstractCacheTest {
     @Test
     public void testInitNumEntriesExceedMaxPathExact() {
         long maxPaths = 2;
-        when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(maxPaths+1, true));
+        when(store.getNumEntries(anyString(), anyLong())).thenReturn(
+            NumEntries.valueOf(maxPaths + 1, true));
 
-        assertFalse(permissionCacheBuilder.init(ImmutableSet.of("a", "b", "c"), createStrategy(Long.MAX_VALUE, maxPaths, false)));
+        assertFalse(permissionCacheBuilder.init(ImmutableSet.of("a", "b", "c"),
+            createStrategy(Long.MAX_VALUE, maxPaths, false)));
 
         verify(store, times(3)).getNumEntries(anyString(), anyLong());
         verify(store, never()).load(anyString());
@@ -230,9 +252,11 @@ public class PermissionCacheBuilderTest extends AbstractCacheTest {
     @Test
     public void testInitNumEntriesExceedMaxPathNotExact() {
         long maxPaths = 5;
-        when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(maxPaths+1, false));
+        when(store.getNumEntries(anyString(), anyLong())).thenReturn(
+            NumEntries.valueOf(maxPaths + 1, false));
 
-        assertFalse(permissionCacheBuilder.init(ImmutableSet.of("a", "b", "c"), createStrategy(Long.MAX_VALUE, maxPaths, false)));
+        assertFalse(permissionCacheBuilder.init(ImmutableSet.of("a", "b", "c"),
+            createStrategy(Long.MAX_VALUE, maxPaths, false)));
 
         verify(store, times(3)).getNumEntries(anyString(), anyLong());
         verify(store, never()).load(anyString());
@@ -241,9 +265,11 @@ public class PermissionCacheBuilderTest extends AbstractCacheTest {
 
     @Test
     public void testInitNumEntriesExceedsMaxLong() {
-        when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(Long.MAX_VALUE, false));
+        when(store.getNumEntries(anyString(), anyLong())).thenReturn(
+            NumEntries.valueOf(Long.MAX_VALUE, false));
 
-        assertFalse(permissionCacheBuilder.init(ImmutableSet.of("a", "b", "c"), createStrategy(Long.MAX_VALUE, 25, false)));
+        assertFalse(permissionCacheBuilder.init(ImmutableSet.of("a", "b", "c"),
+            createStrategy(Long.MAX_VALUE, 25, false)));
 
         verify(store, times(3)).getNumEntries(anyString(), anyLong());
         verify(store, never()).load(anyString());

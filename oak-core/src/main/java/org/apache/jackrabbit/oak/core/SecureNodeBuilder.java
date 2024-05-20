@@ -16,6 +16,16 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
 import java.io.IOException;
 import java.io.InputStream;
 import org.apache.jackrabbit.guava.common.base.Predicate;
@@ -33,16 +43,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
-import static java.util.Collections.emptyList;
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-
 class SecureNodeBuilder implements NodeBuilder {
 
     /**
@@ -56,8 +56,7 @@ class SecureNodeBuilder implements NodeBuilder {
     private final SecureNodeBuilder parent;
 
     /**
-     * Name of this child node within the parent builder,
-     * or {@code null} for a root builder.
+     * Name of this child node within the parent builder, or {@code null} for a root builder.
      */
     private final String name;
 
@@ -72,16 +71,14 @@ class SecureNodeBuilder implements NodeBuilder {
     private final NodeBuilder builder;
 
     /**
-     * Security context of this subtree, updated whenever the base revision
-     * changes.
+     * Security context of this subtree, updated whenever the base revision changes.
      */
     private TreePermission treePermission = null; // initialized lazily
 
     /**
-     * Possibly outdated reference to the tree permission of the root
-     * builder. Used to detect when the base state (and thus the security
-     * context) of the root builder has changed, and trigger an update of
-     * the tree permission of this builder.
+     * Possibly outdated reference to the tree permission of the root builder. Used to detect when
+     * the base state (and thus the security context) of the root builder has changed, and trigger
+     * an update of the tree permission of this builder.
      *
      * @see #treePermission
      */
@@ -90,12 +87,12 @@ class SecureNodeBuilder implements NodeBuilder {
     /**
      * Create the {@code SecureNodeBuilder} for the root node.
      *
-     * @param builder The {@code NodeBuilder} of the root node.
+     * @param builder            The {@code NodeBuilder} of the root node.
      * @param permissionProvider The {@code PermissionProvider} used to evaluation read access.
      */
     SecureNodeBuilder(
-            @NotNull NodeBuilder builder,
-            @NotNull LazyValue<PermissionProvider> permissionProvider) {
+        @NotNull NodeBuilder builder,
+        @NotNull LazyValue<PermissionProvider> permissionProvider) {
         this.rootBuilder = this;
         this.parent = null;
         this.name = null;
@@ -111,12 +108,14 @@ class SecureNodeBuilder implements NodeBuilder {
         this.builder = parent.builder.getChildNode(name);
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public NodeState getBaseState() {
         return new SecureNodeState(builder.getBaseState(), getTreePermission());
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public NodeState getNodeState() {
         return new SecureNodeState(builder.getNodeState(), getTreePermission());
     }
@@ -124,20 +123,20 @@ class SecureNodeBuilder implements NodeBuilder {
     @Override
     public boolean exists() {
         return builder.exists()
-                && (builder.isReplaced() || getTreePermission().canRead());
+            && (builder.isReplaced() || getTreePermission().canRead());
     }
 
     @Override
     public boolean isNew() {
         return builder.isNew()
-                || (builder.isReplaced() && !getTreePermission().canRead());
+            || (builder.isReplaced() && !getTreePermission().canRead());
     }
 
     @Override
     public boolean isNew(String name) {
         return builder.isNew(name)
-                || (builder.isReplaced(name)
-                        && !getTreePermission().canRead(builder.getProperty(name)));
+            || (builder.isReplaced(name)
+            && !getTreePermission().canRead(builder.getProperty(name)));
     }
 
     @Override
@@ -194,8 +193,8 @@ class SecureNodeBuilder implements NodeBuilder {
             return builder.getPropertyCount();
         } else {
             return size(filter(
-                    builder.getProperties(),
-                    new ReadablePropertyPredicate()));
+                builder.getProperties(),
+                new ReadablePropertyPredicate()));
         }
     }
 
@@ -206,15 +205,15 @@ class SecureNodeBuilder implements NodeBuilder {
             return builder.getProperties();
         } else {
             return filter(
-                    builder.getProperties(),
-                    new ReadablePropertyPredicate());
+                builder.getProperties(),
+                new ReadablePropertyPredicate());
         }
     }
 
     @Override
     public boolean getBoolean(@NotNull String name) {
         PropertyState property = getProperty(name);
-        return isType(property, BOOLEAN)  && property.getValue(BOOLEAN);
+        return isType(property, BOOLEAN) && property.getValue(BOOLEAN);
     }
 
     @Nullable
@@ -267,7 +266,7 @@ class SecureNodeBuilder implements NodeBuilder {
     @NotNull
     @Override
     public <T> NodeBuilder setProperty(
-            String name, @NotNull T value, Type<T> type) {
+        String name, @NotNull T value, Type<T> type) {
         builder.setProperty(name, value, type);
         return this;
     }
@@ -285,8 +284,8 @@ class SecureNodeBuilder implements NodeBuilder {
     @Override
     public Iterable<String> getChildNodeNames() {
         return filter(
-                builder.getChildNodeNames(),
-                input -> input != null && getChildNode(input).exists());
+            builder.getChildNodeNames(),
+            input -> input != null && getChildNode(input).exists());
     }
 
     @Override
@@ -350,11 +349,12 @@ class SecureNodeBuilder implements NodeBuilder {
     @NotNull
     private TreePermission getTreePermission() {
         if (treePermission == null
-                || rootPermission != rootBuilder.treePermission) {
+            || rootPermission != rootBuilder.treePermission) {
             NodeState base = builder.getBaseState();
             if (parent == null) {
                 Tree baseTree = TreeFactory.createReadOnlyTree(base);
-                treePermission = permissionProvider.get().getTreePermission(baseTree, TreePermission.EMPTY);
+                treePermission = permissionProvider.get().getTreePermission(baseTree,
+                    TreePermission.EMPTY);
                 rootPermission = treePermission;
             } else {
                 treePermission = parent.getTreePermission().getChildPermission(name, base);
@@ -375,13 +375,14 @@ class SecureNodeBuilder implements NodeBuilder {
      * Predicate for testing whether a given property is readable.
      */
     private class ReadablePropertyPredicate implements Predicate<PropertyState> {
+
         @Override
         public boolean apply(@Nullable PropertyState property) {
             if (property != null) {
                 String propertyName = property.getName();
                 return NodeStateUtils.isHidden(propertyName) ||
-                        getTreePermission().canRead(property) ||
-                        isNew(propertyName);
+                    getTreePermission().canRead(property) ||
+                    isNew(propertyName);
             } else {
                 return false;
             }

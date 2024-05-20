@@ -22,12 +22,11 @@ import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Dynamic {@link AuthorizableNodeName} based on the available
- * whiteboard services.
+ * Dynamic {@link AuthorizableNodeName} based on the available whiteboard services.
  */
 public class WhiteboardAuthorizableNodeName
-        extends AbstractServiceTracker<AuthorizableNodeName>
-        implements AuthorizableNodeName {
+    extends AbstractServiceTracker<AuthorizableNodeName>
+    implements AuthorizableNodeName {
 
     public WhiteboardAuthorizableNodeName() {
         super(AuthorizableNodeName.class);

@@ -21,12 +21,10 @@ package org.apache.jackrabbit.oak.query.ast;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
@@ -51,12 +49,12 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
     public String toString() {
         return "score(" + quote(selectorName) + ')';
     }
-    
+
     @Override
     public PropertyExistenceImpl getPropertyExistence() {
         return null;
     }
-    
+
     @Override
     public Set<SelectorImpl> getSelectors() {
         return Collections.singleton(selector);
@@ -86,7 +84,7 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
             f.restrictProperty(QueryConstants.JCR_SCORE, operator, v);
         }
     }
-    
+
     @Override
     public void restrictList(FilterImpl f, List<PropertyValue> list) {
         // optimizations of the type "jcr:score() in(a, b, c)" are not supported
@@ -102,7 +100,7 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
     public boolean canRestrictSelector(SelectorImpl s) {
         return s.equals(selector);
     }
-    
+
     @Override
     int getPropertyType() {
         return PropertyType.DOUBLE;

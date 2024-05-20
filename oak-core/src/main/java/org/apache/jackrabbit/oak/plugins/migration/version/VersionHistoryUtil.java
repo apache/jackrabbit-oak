@@ -58,18 +58,18 @@ public class VersionHistoryUtil {
 
     public static String getRelativeVersionHistoryPath(String versionableUuid) {
         return Joiner.on('/').join(concat(
-                singleton(""),
-                getRelativeVersionHistoryPathSegments(versionableUuid),
-                singleton(versionableUuid)));
+            singleton(""),
+            getRelativeVersionHistoryPathSegments(versionableUuid),
+            singleton(versionableUuid)));
     }
 
     /**
      * Constructs the version history path based on the versionable's UUID.
      *
-     * @param versionStorage below which to look for the version.
+     * @param versionStorage  below which to look for the version.
      * @param versionableUuid The String representation of the versionable's UUID.
-     * @return The NodeState corresponding to the version history, or {@code null}
-     *         if it does not exist.
+     * @return The NodeState corresponding to the version history, or {@code null} if it does not
+     * exist.
      */
     static NodeState getVersionHistoryNodeState(NodeState versionStorage, String versionableUuid) {
         NodeState historyParent = versionStorage;
@@ -79,7 +79,8 @@ public class VersionHistoryUtil {
         return historyParent.getChildNode(versionableUuid);
     }
 
-    public static NodeBuilder getVersionHistoryBuilder(NodeBuilder versionStorage, String versionableUuid) {
+    public static NodeBuilder getVersionHistoryBuilder(NodeBuilder versionStorage,
+        String versionableUuid) {
         NodeBuilder history = versionStorage;
         for (String segment : getRelativeVersionHistoryPathSegments(versionableUuid)) {
             history = history.getChildNode(segment);
@@ -111,19 +112,23 @@ public class VersionHistoryUtil {
         return vs;
     }
 
-    public static List<String> getVersionableNodes(NodeState root, NodeState versionStorage, TypePredicate isVersionable, Calendar olderThan) {
+    public static List<String> getVersionableNodes(NodeState root, NodeState versionStorage,
+        TypePredicate isVersionable, Calendar olderThan) {
         List<String> paths = new ArrayList<>();
-        getVersionableNodes(root, versionStorage, isVersionable, olderThan, PathUtils.ROOT_PATH, paths);
+        getVersionableNodes(root, versionStorage, isVersionable, olderThan, PathUtils.ROOT_PATH,
+            paths);
         return paths;
     }
 
 
-    private static void getVersionableNodes(NodeState node, NodeState versionStorage, TypePredicate isVersionable, Calendar olderThan, String path, List<String> paths) {
+    private static void getVersionableNodes(NodeState node, NodeState versionStorage,
+        TypePredicate isVersionable, Calendar olderThan, String path, List<String> paths) {
         if (isVersionable.test(node)) {
             if (olderThan == null) {
                 paths.add(path);
             } else {
-                NodeState versionHistory = getVersionHistoryNodeState(versionStorage, node.getString(JCR_UUID));
+                NodeState versionHistory = getVersionHistoryNodeState(versionStorage,
+                    node.getString(JCR_UUID));
                 Calendar lastModified = getVersionHistoryLastModified(versionHistory);
                 if (lastModified.before(olderThan)) {
                     paths.add(path);
@@ -131,7 +136,8 @@ public class VersionHistoryUtil {
             }
         }
         for (ChildNodeEntry c : node.getChildNodeEntries()) {
-            getVersionableNodes(c.getNodeState(), versionStorage, isVersionable, olderThan, PathUtils.concat(path, c.getName()), paths);
+            getVersionableNodes(c.getNodeState(), versionStorage, isVersionable, olderThan,
+                PathUtils.concat(path, c.getName()), paths);
         }
     }
 
@@ -141,7 +147,8 @@ public class VersionHistoryUtil {
         for (final ChildNodeEntry entry : versionHistory.getChildNodeEntries()) {
             final NodeState version = entry.getNodeState();
             if (version.hasProperty(JCR_CREATED)) {
-                final Calendar created = ISO8601.parse(version.getProperty(JCR_CREATED).getValue(Type.DATE));
+                final Calendar created = ISO8601.parse(
+                    version.getProperty(JCR_CREATED).getValue(Type.DATE));
                 if (created.after(youngest)) {
                     youngest = created;
                 }
@@ -150,7 +157,8 @@ public class VersionHistoryUtil {
         return youngest;
     }
 
-    public static void removeVersionProperties(NodeBuilder versionableBuilder, TypePredicate isReferenceable) {
+    public static void removeVersionProperties(NodeBuilder versionableBuilder,
+        TypePredicate isReferenceable) {
         assert versionableBuilder.exists();
 
         removeMixin(versionableBuilder, MIX_VERSIONABLE);
@@ -169,7 +177,8 @@ public class VersionHistoryUtil {
 
     static void addMixin(NodeBuilder builder, String name) {
         if (builder.hasProperty(JCR_MIXINTYPES)) {
-            final Set<String> mixins = newHashSet(builder.getProperty(JCR_MIXINTYPES).getValue(Type.NAMES));
+            final Set<String> mixins = newHashSet(
+                builder.getProperty(JCR_MIXINTYPES).getValue(Type.NAMES));
             if (mixins.add(name)) {
                 builder.setProperty(nameProperty(JCR_MIXINTYPES, mixins));
             }
@@ -180,7 +189,8 @@ public class VersionHistoryUtil {
 
     private static void removeMixin(NodeBuilder builder, String name) {
         if (builder.hasProperty(JCR_MIXINTYPES)) {
-            final Set<String> mixins = newHashSet(builder.getProperty(JCR_MIXINTYPES).getValue(Type.NAMES));
+            final Set<String> mixins = newHashSet(
+                builder.getProperty(JCR_MIXINTYPES).getValue(Type.NAMES));
             if (mixins.remove(name)) {
                 if (mixins.isEmpty()) {
                     builder.removeProperty(JCR_MIXINTYPES);
@@ -192,7 +202,7 @@ public class VersionHistoryUtil {
     }
 
     public static NodeBuilder removeVersions(NodeState root,
-                               List<String> toRemove) {
+        List<String> toRemove) {
         NodeBuilder rootBuilder = root.builder();
         TypePredicate isReferenceable = new TypePredicate(root, MIX_REFERENCEABLE);
         NodeBuilder versionStorage = getVersionStorage(rootBuilder);

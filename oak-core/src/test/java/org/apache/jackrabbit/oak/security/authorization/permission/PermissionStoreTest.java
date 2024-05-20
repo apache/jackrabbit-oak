@@ -51,9 +51,10 @@ public class PermissionStoreTest extends AbstractSecurityTest {
         super.before();
 
         AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList  acl = AccessControlUtils.getAccessControlList(acMgr, "/");
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/");
         if (acl != null) {
-            acl.addEntry(getTestUser().getPrincipal(), privilegesFromNames(PrivilegeConstants.JCR_ALL), true);
+            acl.addEntry(getTestUser().getPrincipal(),
+                privilegesFromNames(PrivilegeConstants.JCR_ALL), true);
         }
         acMgr.setPolicy("/", acl);
         root.commit();
@@ -69,7 +70,7 @@ public class PermissionStoreTest extends AbstractSecurityTest {
                 testSession.close();
             }
             AccessControlManager acMgr = getAccessControlManager(root);
-            JackrabbitAccessControlList  acl = AccessControlUtils.getAccessControlList(acMgr, "/");
+            JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/");
             if (acl != null) {
                 for (AccessControlEntry ace : acl.getAccessControlEntries()) {
                     if (getTestUser().getPrincipal().equals(ace.getPrincipal())) {
@@ -85,7 +86,8 @@ public class PermissionStoreTest extends AbstractSecurityTest {
     }
 
     private PermissionProvider createPermissionProvider() {
-        return acConfig.getPermissionProvider(testRoot, testSession.getWorkspaceName(), testSession.getAuthInfo().getPrincipals());
+        return acConfig.getPermissionProvider(testRoot, testSession.getWorkspaceName(),
+            testSession.getAuthInfo().getPrincipals());
     }
 
     @Test
@@ -117,7 +119,8 @@ public class PermissionStoreTest extends AbstractSecurityTest {
         PermissionProvider pp = createPermissionProvider();
 
         assertFalse(pp.isGranted(PermissionConstants.PERMISSIONS_STORE_PATH, Session.ACTION_READ));
-        assertFalse(pp.isGranted(PermissionConstants.PERMISSIONS_STORE_PATH, Session.ACTION_ADD_NODE));
+        assertFalse(
+            pp.isGranted(PermissionConstants.PERMISSIONS_STORE_PATH, Session.ACTION_ADD_NODE));
     }
 
     @Test

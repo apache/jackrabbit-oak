@@ -41,7 +41,8 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
 
 @Component
-public class IndexInfoServiceImpl implements IndexInfoService{
+public class IndexInfoServiceImpl implements IndexInfoService {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Reference
@@ -67,31 +68,36 @@ public class IndexInfoServiceImpl implements IndexInfoService{
         indexPathService.getIndexPaths().forEach(allIndexes::add);
         HashSet<String> activeIndexes = new HashSet<>();
         if (indexPathService.getMountInfoProvider().hasNonDefaultMounts()) {
-            activeIndexes.addAll(IndexName.filterReplacedIndexes(allIndexes, nodeStore.getRoot(), true));
+            activeIndexes.addAll(
+                IndexName.filterReplacedIndexes(allIndexes, nodeStore.getRoot(), true));
         } else {
             activeIndexes.addAll(allIndexes);
         }
-        return Iterables.filter(Iterables.transform(indexPathService.getIndexPaths(), new Function<String, IndexInfo>() {
-            @Override
-            public IndexInfo apply(String indexPath) {
-                try {
-                    IndexInfo info = getInfo(indexPath);
-                    if (info != null) {
-                        info.setActive(activeIndexes.contains(indexPath));
+        return Iterables.filter(Iterables.transform(indexPathService.getIndexPaths(),
+            new Function<String, IndexInfo>() {
+                @Override
+                public IndexInfo apply(String indexPath) {
+                    try {
+                        IndexInfo info = getInfo(indexPath);
+                        if (info != null) {
+                            info.setActive(activeIndexes.contains(indexPath));
+                        }
+                        return info;
+                    } catch (Exception e) {
+                        log.warn("Error occurred while capturing IndexInfo for path {}", indexPath,
+                            e);
+                        return null;
                     }
-                    return info;
-                } catch (Exception e) {
-                    log.warn("Error occurred while capturing IndexInfo for path {}", indexPath, e);
-                    return null;
                 }
-            }
-        }), notNull());
+            }), notNull());
     }
 
     @Override
     public IndexInfo getInfo(String indexPath) throws IOException {
         String type = getIndexType(indexPath);
-        if (type == null) return null;
+        if (type == null) {
+            return null;
+        }
         IndexInfoProvider infoProvider = infoProviders.get(type);
 
         if (infoProvider == null) {
@@ -104,42 +110,44 @@ public class IndexInfoServiceImpl implements IndexInfoService{
     @Override
     public boolean isValid(String indexPath) throws IOException {
         String type = getIndexType(indexPath);
-        if (type == null){
+        if (type == null) {
             log.warn("No type property defined for index definition at path {}", indexPath);
             return false;
         }
         IndexInfoProvider infoProvider = infoProviders.get(type);
-        if (infoProvider == null){
-            log.warn("No IndexInfoProvider for for index definition at path {} of type {}", indexPath, type);
+        if (infoProvider == null) {
+            log.warn("No IndexInfoProvider for for index definition at path {} of type {}",
+                indexPath, type);
             return true; //TODO Reconsider this scenario
         }
         return infoProvider.isValid(indexPath);
     }
 
     @Reference(name = "infoProviders",
-            policy = ReferencePolicy.DYNAMIC,
-            cardinality = ReferenceCardinality.MULTIPLE,
-            policyOption = ReferencePolicyOption.GREEDY,
-            service = IndexInfoProvider.class
+        policy = ReferencePolicy.DYNAMIC,
+        cardinality = ReferenceCardinality.MULTIPLE,
+        policyOption = ReferencePolicyOption.GREEDY,
+        service = IndexInfoProvider.class
     )
-    public void bindInfoProviders(IndexInfoProvider infoProvider){
+    public void bindInfoProviders(IndexInfoProvider infoProvider) {
         infoProviders.put(checkNotNull(infoProvider.getType()), infoProvider);
     }
 
-    public void unbindInfoProviders(IndexInfoProvider infoProvider){
+    public void unbindInfoProviders(IndexInfoProvider infoProvider) {
         infoProviders.remove(infoProvider.getType());
     }
 
     private String getIndexType(String indexPath) {
         NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), indexPath);
         String type = idxState.getString(IndexConstants.TYPE_PROPERTY_NAME);
-        if (type == null || "disabled".equals(type)){
+        if (type == null || "disabled".equals(type)) {
             return null;
         }
         return type;
     }
 
     private static class SimpleIndexInfo implements IndexInfo {
+
         private final String indexPath;
         private final String type;
         private boolean isActive;
@@ -166,7 +174,8 @@ public class IndexInfoServiceImpl implements IndexInfoService{
 
         @Override
         public long getLastUpdatedTime() {
-            return -1;        }
+            return -1;
+        }
 
         @Override
         public long getIndexedUpToTime() {

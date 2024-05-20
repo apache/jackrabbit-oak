@@ -30,6 +30,7 @@ public interface PermissionProviderFactory {
 
     /**
      * Create a new {@code PermissionProvider} instance.
+     *
      * @return
      */
     @NotNull

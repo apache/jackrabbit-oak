@@ -40,8 +40,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class PropertyIndexInfoProviderTest {
+
     private static final CommitHook HOOK = new EditorHook(
-            new IndexUpdateProvider(new PropertyIndexEditorProvider()));
+        new IndexUpdateProvider(new PropertyIndexEditorProvider()));
 
     private NodeStore store = new MemoryNodeStore();
 
@@ -55,10 +56,10 @@ public class PropertyIndexInfoProviderTest {
     }
 
     @Test
-    public void emptyIndexEstimate() throws Exception{
+    public void emptyIndexEstimate() throws Exception {
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+            true, false, ImmutableSet.of("foo"), null);
         store.merge(builder, HOOK, CommitInfo.EMPTY);
 
         IndexInfo info = infoProvider.getInfo("/oak:index/foo");

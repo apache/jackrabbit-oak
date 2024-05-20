@@ -25,21 +25,20 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ExtractedText {
+
     public enum ExtractionResult {
         /**
-         * Indicates that text extraction was successful and some text
-         * was extracted
+         * Indicates that text extraction was successful and some text was extracted
          */
         SUCCESS,
         /**
-         * Indicates that no text was extracted. This can happen if the
-         * mimeType for the binary is part of exclusion list
+         * Indicates that no text was extracted. This can happen if the mimeType for the binary is
+         * part of exclusion list
          */
         EMPTY,
         /**
-         * Indicates that text extraction resulted in an error.
-         * The {@link ExtractedText#getExtractedText()} might contain
-         * more details
+         * Indicates that text extraction resulted in an error. The
+         * {@link ExtractedText#getExtractedText()} might contain more details
          */
         ERROR
     }
@@ -51,11 +50,11 @@ public class ExtractedText {
     private final ExtractionResult extractionResult;
     private final CharSequence extractedText;
 
-    public ExtractedText(@NotNull ExtractionResult extractionResult){
+    public ExtractedText(@NotNull ExtractionResult extractionResult) {
         this(extractionResult, null);
     }
 
-    public ExtractedText(@NotNull ExtractionResult extractionResult,CharSequence extractedText) {
+    public ExtractedText(@NotNull ExtractionResult extractionResult, CharSequence extractedText) {
         this.extractionResult = extractionResult;
         this.extractedText = extractedText;
         checkState();
@@ -72,7 +71,7 @@ public class ExtractedText {
     }
 
     private void checkState() {
-        if (extractionResult == ExtractionResult.SUCCESS){
+        if (extractionResult == ExtractionResult.SUCCESS) {
             checkNotNull(extractedText, "extractedText must not be null for SUCCESS");
         }
     }

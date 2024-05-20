@@ -22,13 +22,13 @@ package org.apache.jackrabbit.oak.plugins.index.importer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 
 /**
- * Lock used to prevent AsyncIndexUpdate from running when Index import
- * is in progress
+ * Lock used to prevent AsyncIndexUpdate from running when Index import is in progress
  */
 public interface AsyncIndexerLock<T extends AsyncIndexerLock.LockToken> {
 
     AsyncIndexerLock NOOP_LOCK = new AsyncIndexerLock() {
-        private final LockToken noopToken = new LockToken() {};
+        private final LockToken noopToken = new LockToken() {
+        };
 
         @Override
         public LockToken lock(String asyncIndexerLane) {
@@ -42,9 +42,8 @@ public interface AsyncIndexerLock<T extends AsyncIndexerLock.LockToken> {
     };
 
     /**
-     * Marker interface. The implementation can return any
-     * opaque implementation which would be handed back in unlock
-     * call
+     * Marker interface. The implementation can return any opaque implementation which would be
+     * handed back in unlock call
      */
     interface LockToken {
 

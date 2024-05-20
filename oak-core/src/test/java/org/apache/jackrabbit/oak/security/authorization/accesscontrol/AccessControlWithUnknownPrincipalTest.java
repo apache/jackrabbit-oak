@@ -50,12 +50,12 @@ public class AccessControlWithUnknownPrincipalTest extends AbstractAccessControl
     @Parameterized.Parameters(name = "ImportBehavior={1}")
     public static Collection<Object[]> parameters() {
         return Lists.newArrayList(
-                new Object[] {ImportBehavior.IGNORE , ImportBehavior.NAME_IGNORE},
-                new Object[] {ImportBehavior.BESTEFFORT, ImportBehavior.NAME_BESTEFFORT},
-                new Object[] {ImportBehavior.ABORT, ImportBehavior.NAME_ABORT}
+            new Object[]{ImportBehavior.IGNORE, ImportBehavior.NAME_IGNORE},
+            new Object[]{ImportBehavior.BESTEFFORT, ImportBehavior.NAME_BESTEFFORT},
+            new Object[]{ImportBehavior.ABORT, ImportBehavior.NAME_ABORT}
         );
     }
-    
+
     private final int importBehavior;
     private final String importBehaviorName;
 
@@ -65,7 +65,7 @@ public class AccessControlWithUnknownPrincipalTest extends AbstractAccessControl
         this.importBehavior = importBehavior;
         this.importBehaviorName = importBehaviorName;
     }
-    
+
     @Before
     public void before() throws Exception {
         super.before();
@@ -75,20 +75,21 @@ public class AccessControlWithUnknownPrincipalTest extends AbstractAccessControl
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        ConfigurationParameters params = ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, importBehaviorName);
+        ConfigurationParameters params = ConfigurationParameters.of(
+            ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, importBehaviorName);
         return ConfigurationParameters.of(AuthorizationConfiguration.NAME, params);
     }
-    
+
     @NotNull
     private String getUnknownPrincipalName() {
         Principal unknown = getPrincipalManager(root).getPrincipal("unknown");
         int i = 0;
         while (unknown != null) {
-            unknown = getPrincipalManager(root).getPrincipal("unknown"+i);
+            unknown = getPrincipalManager(root).getPrincipal("unknown" + i);
         }
-        return "unknown"+i;
+        return "unknown" + i;
     }
-    
+
     private void assertImportBehavior(String message) {
         // success if importBehavior == ABORT
         if (importBehavior != ImportBehavior.ABORT) {
@@ -111,9 +112,11 @@ public class AccessControlWithUnknownPrincipalTest extends AbstractAccessControl
                 case ImportBehavior.ABORT:
                 default:
                     fail("Getting applicable policies for unknown principal should fail");
-            } 
+            }
         } catch (AccessControlException e) {
-            assertImportBehavior("Getting applicable policies for unknown principal with importBehavior "+importBehaviorName+" must not throw AccessControlException");
+            assertImportBehavior(
+                "Getting applicable policies for unknown principal with importBehavior "
+                    + importBehaviorName + " must not throw AccessControlException");
         }
     }
 
@@ -128,21 +131,22 @@ public class AccessControlWithUnknownPrincipalTest extends AbstractAccessControl
         Principal unknown = new InvalidTestPrincipal(getUnknownPrincipalName());
         assertGetPolicies(unknown, 0);
     }
-    
+
     @Test
     public void testGetPoliciesRemovedPrincipal() throws Exception {
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, TEST_PATH);
         assertNotNull(acl);
         acl.addEntry(testPrincipal, privilegesFromNames(JCR_READ), true);
         acMgr.setPolicy(TEST_PATH, acl);
-        
+
         Principal p = () -> testPrincipal.getName();
         removeTestUser();
 
         assertGetPolicies(p, 1);
     }
-    
-    private void assertGetPolicies(@NotNull Principal principal, int expectedBestEffort) throws Exception {
+
+    private void assertGetPolicies(@NotNull Principal principal, int expectedBestEffort)
+        throws Exception {
         try {
             AccessControlPolicy[] policies = acMgr.getPolicies(principal);
             switch (importBehavior) {
@@ -157,10 +161,12 @@ public class AccessControlWithUnknownPrincipalTest extends AbstractAccessControl
                     fail("Getting applicable policies for unknown principal should fail");
             }
         } catch (AccessControlException e) {
-            assertImportBehavior("Getting policies for unknown principal with importBehavior "+importBehaviorName+" must not throw AccessControlException");
+            assertImportBehavior(
+                "Getting policies for unknown principal with importBehavior " + importBehaviorName
+                    + " must not throw AccessControlException");
         }
     }
-    
+
     @Test
     public void testGetPoliciesInternalPrincipal() throws Exception {
         // internal principal implementation is allowed irrespective of import-mode
@@ -172,7 +178,8 @@ public class AccessControlWithUnknownPrincipalTest extends AbstractAccessControl
     public void testGetEffectivePoliciesInvalidPrincipal() throws Exception {
         Principal unknown = new InvalidTestPrincipal(getUnknownPrincipalName());
         try {
-            AccessControlPolicy[] effective = acMgr.getEffectivePolicies(Collections.singleton(unknown));
+            AccessControlPolicy[] effective = acMgr.getEffectivePolicies(
+                Collections.singleton(unknown));
             switch (importBehavior) {
                 case ImportBehavior.IGNORE:
                     assertPolicies(effective, 0, false);
@@ -185,14 +192,17 @@ public class AccessControlWithUnknownPrincipalTest extends AbstractAccessControl
                     fail("Getting effective policies for unknown principal should fail");
             }
         } catch (AccessControlException e) {
-            assertImportBehavior("Getting effective policies for unknown principal with importBehavior "+importBehaviorName+" must not throw AccessControlException");
+            assertImportBehavior(
+                "Getting effective policies for unknown principal with importBehavior "
+                    + importBehaviorName + " must not throw AccessControlException");
         }
     }
 
     @Test
     public void testGetEffectivePoliciesInternalPrincipal() throws Exception {
         Principal unknown = new PrincipalImpl(getUnknownPrincipalName());
-        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(Collections.singleton(unknown));
+        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(
+            Collections.singleton(unknown));
         assertPolicies(effective, 1, true);
     }
 
@@ -201,12 +211,13 @@ public class AccessControlWithUnknownPrincipalTest extends AbstractAccessControl
         Principal unknownPrincipal = new InvalidTestPrincipal("unknown");
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, TEST_PATH);
         try {
-            boolean modified = acl.addAccessControlEntry(unknownPrincipal, privilegesFromNames(JCR_READ));
+            boolean modified = acl.addAccessControlEntry(unknownPrincipal,
+                privilegesFromNames(JCR_READ));
             switch (importBehavior) {
-                case ImportBehavior.IGNORE: 
+                case ImportBehavior.IGNORE:
                     assertFalse(modified);
                     break;
-                case ImportBehavior.BESTEFFORT: 
+                case ImportBehavior.BESTEFFORT:
                     assertTrue(modified);
                     break;
                 case ImportBehavior.ABORT:
@@ -214,7 +225,9 @@ public class AccessControlWithUnknownPrincipalTest extends AbstractAccessControl
                     fail("Adding an ACE with an unknown principal should fail");
             }
         } catch (AccessControlException e) {
-            assertImportBehavior("Adding entry for unknown principal with importBehavior "+importBehaviorName+" must not throw AccessControlException");
+            assertImportBehavior(
+                "Adding entry for unknown principal with importBehavior " + importBehaviorName
+                    + " must not throw AccessControlException");
         }
     }
 
@@ -226,13 +239,13 @@ public class AccessControlWithUnknownPrincipalTest extends AbstractAccessControl
         boolean modified = acl.addAccessControlEntry(internal, privilegesFromNames(JCR_READ));
         assertTrue(modified);
     }
-    
+
     @Test(expected = AccessControlException.class)
     public void testNullPrincipal() throws Exception {
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, TEST_PATH);
         acl.addAccessControlEntry(null, privilegesFromNames(JCR_READ));
     }
-    
+
     @Test(expected = AccessControlException.class)
     public void testEmptyPrincipal() throws Exception {
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, TEST_PATH);

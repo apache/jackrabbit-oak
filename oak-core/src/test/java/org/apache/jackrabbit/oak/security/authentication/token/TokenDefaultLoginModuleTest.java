@@ -46,15 +46,15 @@ public class TokenDefaultLoginModuleTest extends Jackrabbit2ConfigurationTest {
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
                 AppConfigurationEntry tokenEntry = new AppConfigurationEntry(
-                        TokenLoginModule.class.getName(),
-                        AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                        Collections.emptyMap());
+                    TokenLoginModule.class.getName(),
+                    AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                    Collections.emptyMap());
 
                 AppConfigurationEntry defaultEntry = new AppConfigurationEntry(
-                        LoginModuleImpl.class.getName(),
-                        AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                        Collections.emptyMap());
-                return new AppConfigurationEntry[] {tokenEntry, defaultEntry};
+                    LoginModuleImpl.class.getName(),
+                    AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                    Collections.emptyMap());
+                return new AppConfigurationEntry[]{tokenEntry, defaultEntry};
             }
         };
     }

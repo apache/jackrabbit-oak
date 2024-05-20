@@ -34,7 +34,7 @@ public class ApproximateCounterTest {
             assertEquals(i, ApproximateCounter.calculateOffset(i, 1));
         }
     }
-    
+
     @Test
     public void regularResolution() {
         ApproximateCounter.setSeed(0);
@@ -45,7 +45,7 @@ public class ApproximateCounterTest {
             long offset = ApproximateCounter.calculateOffset(1, 1000);
             if (offset != 0) {
                 nonZero++;
-                result += offset; 
+                result += offset;
             }
         }
         // most of the time, 0 needs to be returned
@@ -53,7 +53,7 @@ public class ApproximateCounterTest {
         // the expected result is within a certain range
         assertTrue(Math.abs(result - count) < count / 10);
     }
-    
+
     @Test
     public void addRemove() {
         ApproximateCounter.setSeed(0);
@@ -70,7 +70,7 @@ public class ApproximateCounterTest {
             long offset = ApproximateCounter.calculateOffset(o, 1000);
             if (offset != 0) {
                 nonZero++;
-                result += offset; 
+                result += offset;
             }
         }
         // most of the time, 0 needs to be returned
@@ -78,7 +78,7 @@ public class ApproximateCounterTest {
         // the expected result is within a certain range
         assertTrue(Math.abs(result - exactResult) < sumChange / 10);
     }
-    
+
     @Test
     public void lowResolution() {
         ApproximateCounter.setSeed(0);
@@ -92,7 +92,7 @@ public class ApproximateCounterTest {
             }
             if (offset != 0) {
                 nonZero++;
-                result += offset; 
+                result += offset;
             }
         }
         // most of the time, 0 needs to be returned
@@ -100,13 +100,13 @@ public class ApproximateCounterTest {
         // the expected result is within a certain range
         assertTrue(Math.abs(result - count) < count / 10);
     }
-    
+
     @Test
     public void keepAboveZero() {
         // adjustOffset ensures that the resulting count is larger or equal to 0
         assertEquals(1234, ApproximateCounter.adjustOffset(-1234, -100, 10));
     }
-    
+
     @Test
     public void highResolutionAdjust() {
         // adjustOffset with resolution of 1 should not affect the result
@@ -114,5 +114,5 @@ public class ApproximateCounterTest {
             assertEquals(123, ApproximateCounter.adjustOffset(i, 123, 1));
         }
     }
-    
+
 }

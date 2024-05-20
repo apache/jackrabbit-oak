@@ -31,8 +31,8 @@ import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * JcrAllCommitHook is responsible for updating the jcr:all privilege definition
- * upon successful registration of a new privilege.
+ * JcrAllCommitHook is responsible for updating the jcr:all privilege definition upon successful
+ * registration of a new privilege.
  */
 class JcrAllCommitHook implements PostValidationHook, PrivilegeConstants {
 
@@ -55,8 +55,9 @@ class JcrAllCommitHook implements PostValidationHook, PrivilegeConstants {
             this.path = ROOT_PATH;
             this.nodeBuilder = nodeBuilder;
         }
-        
-        private PrivilegeDiff(@NotNull PrivilegeDiff parentDiff, @NotNull String nodeName, @NotNull NodeBuilder nodeBuilder) {
+
+        private PrivilegeDiff(@NotNull PrivilegeDiff parentDiff, @NotNull String nodeName,
+            @NotNull NodeBuilder nodeBuilder) {
             this.path = parentDiff.path + '/' + nodeName;
             this.nodeBuilder = nodeBuilder;
         }
@@ -69,14 +70,15 @@ class JcrAllCommitHook implements PostValidationHook, PrivilegeConstants {
                     updateJcrAll(name, after);
                 } // else: jcr:all privilege has been added -> ignore
             } else {
-                String p = path  + '/' + name;
+                String p = path + '/' + name;
                 if (Text.isDescendantOrEqual(p, PRIVILEGES_PATH)) {
-                    EmptyNodeState.compareAgainstEmptyState(after, new PrivilegeDiff(this, name, nodeBuilder.child(name)));
+                    EmptyNodeState.compareAgainstEmptyState(after,
+                        new PrivilegeDiff(this, name, nodeBuilder.child(name)));
                 }
             }
             return true;
         }
-        
+
         private void updateJcrAll(@NotNull String name, @NotNull NodeState after) {
             NodeBuilder jcrAll = nodeBuilder.child(JCR_ALL);
             PropertyState aggregates = jcrAll.getProperty(REP_AGGREGATES);
@@ -97,14 +99,16 @@ class JcrAllCommitHook implements PostValidationHook, PrivilegeConstants {
             if (!after.hasProperty(REP_AGGREGATES)) {
                 PrivilegeBits bits = PrivilegeBits.getInstance(after.getProperty(REP_BITS));
                 PrivilegeBits all = PrivilegeBits.getInstance(jcrAll.getProperty(REP_BITS));
-                jcrAll.setProperty(PrivilegeBits.getInstance(all).add(bits).asPropertyState(REP_BITS));
+                jcrAll.setProperty(
+                    PrivilegeBits.getInstance(all).add(bits).asPropertyState(REP_BITS));
             }
         }
 
         @Override
         public boolean childNodeChanged(String name, NodeState before, NodeState after) {
             if (ROOT_PATH.equals(path) || Text.isDescendant(path, PRIVILEGES_PATH)) {
-                after.compareAgainstBaseState(before, new PrivilegeDiff(this, name, nodeBuilder.child(name)));
+                after.compareAgainstBaseState(before,
+                    new PrivilegeDiff(this, name, nodeBuilder.child(name)));
             }
             return true;
         }

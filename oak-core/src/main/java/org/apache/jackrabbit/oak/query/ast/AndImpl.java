@@ -30,14 +30,12 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-
-import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 
 /**
  * An AND condition.
@@ -108,7 +106,7 @@ public class AndImpl extends ConstraintImpl {
         }
         return result;
     }
-    
+
     @Override
     public FullTextExpression getFullTextConstraint(SelectorImpl s) {
         List<FullTextExpression> list = newArrayList();
@@ -119,15 +117,15 @@ public class AndImpl extends ConstraintImpl {
             }
         }
         switch (list.size()) {
-        case 0:
-            return null;
-        case 1:
-            return list.iterator().next();
-        default:
-            return new FullTextAnd(list);
+            case 0:
+                return null;
+            case 1:
+                return list.iterator().next();
+            default:
+                return new FullTextAnd(list);
         }
     }
-    
+
     @Override
     public Set<SelectorImpl> getSelectors() {
         Set<SelectorImpl> result = newHashSet();
@@ -146,7 +144,7 @@ public class AndImpl extends ConstraintImpl {
         }
         return true;
     }
-    
+
     @Override
     public boolean evaluateStop() {
         // the logic is reversed here:
@@ -220,7 +218,7 @@ public class AndImpl extends ConstraintImpl {
         }
         return new AndImpl(clone);
     }
-    
+
     public void addToUnionList(Set<ConstraintImpl> target) {
         // conditions of type
         // @a = 1 and (@x = 1 or @y = 2)
@@ -231,7 +229,7 @@ public class AndImpl extends ConstraintImpl {
         if (last instanceof OrImpl) {
             OrImpl or = (OrImpl) last;
             // same as above, but with the added "and"
-            for(ConstraintImpl c : or.getConstraints()) {
+            for (ConstraintImpl c : or.getConstraints()) {
                 ArrayList<ConstraintImpl> list = and.getFirstConstraints();
                 list.add(c);
                 new AndImpl(list).addToUnionList(target);
@@ -240,17 +238,17 @@ public class AndImpl extends ConstraintImpl {
         }
         target.add(this);
     }
-    
+
     private ArrayList<ConstraintImpl> getFirstConstraints() {
         ArrayList<ConstraintImpl> list = new ArrayList<ConstraintImpl>(constraints.size() - 1);
         list.addAll(constraints.subList(0, constraints.size() - 1));
         return list;
     }
-    
+
     private ConstraintImpl getLastConstraint() {
         return constraints.get(constraints.size() - 1);
     }
-    
+
     public AndImpl pullOrRight() {
         if (getLastConstraint() instanceof OrImpl) {
             return this;
@@ -268,10 +266,10 @@ public class AndImpl extends ConstraintImpl {
         }
         return this;
     }
-    
+
     private ArrayList<ConstraintImpl> getAllAndConditions() {
         ArrayList<ConstraintImpl> list = new ArrayList<ConstraintImpl>();
-        for(ConstraintImpl c : constraints) {
+        for (ConstraintImpl c : constraints) {
             if (c instanceof AndImpl) {
                 list.addAll(((AndImpl) c).getAllAndConditions());
             } else {
@@ -279,7 +277,7 @@ public class AndImpl extends ConstraintImpl {
             }
         }
         return list;
-    }    
+    }
 
     @Override
     public Set<ConstraintImpl> convertToUnion() {
@@ -289,7 +287,7 @@ public class AndImpl extends ConstraintImpl {
         Set<ConstraintImpl> union = Sets.newLinkedHashSet();
         Set<ConstraintImpl> result = Sets.newLinkedHashSet();
         Set<ConstraintImpl> nonUnion = Sets.newHashSet();
-        
+
         for (ConstraintImpl c : constraints) {
             Set<ConstraintImpl> converted = c.convertToUnion();
             if (converted.isEmpty()) {
@@ -324,7 +322,7 @@ public class AndImpl extends ConstraintImpl {
         }
         return result;
     }
-    
+
     @Override
     public boolean requiresFullTextIndex() {
         for (ConstraintImpl c : constraints) {

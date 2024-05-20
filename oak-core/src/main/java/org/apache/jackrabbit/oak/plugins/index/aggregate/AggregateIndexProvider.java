@@ -30,20 +30,21 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQuer
  * A provider for aggregate indexes. It wraps all full-text query indexes.
  */
 public class AggregateIndexProvider implements QueryIndexProvider {
-    
+
     private final QueryIndexProvider baseProvider;
-    
+
     AggregateIndexProvider(QueryIndexProvider baseProvider) {
         this.baseProvider = baseProvider;
     }
-    
+
     @NotNull
     public static QueryIndexProvider wrap(
-            @NotNull QueryIndexProvider baseProvider) {
+        @NotNull QueryIndexProvider baseProvider) {
         return new AggregateIndexProvider(baseProvider);
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public List<? extends QueryIndex> getQueryIndexes(NodeState state) {
         List<? extends QueryIndex> list = baseProvider.getQueryIndexes(state);
         List<QueryIndex> newList = new ArrayList<QueryIndex>();

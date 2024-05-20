@@ -29,10 +29,12 @@ final class InternalTreePermission implements TreePermission {
 
     static final TreePermission INSTANCE = new InternalTreePermission();
 
-    private InternalTreePermission() {}
+    private InternalTreePermission() {
+    }
 
     @Override
-    public @NotNull TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
+    public @NotNull TreePermission getChildPermission(@NotNull String childName,
+        @NotNull NodeState childState) {
         return INSTANCE;
     }
 

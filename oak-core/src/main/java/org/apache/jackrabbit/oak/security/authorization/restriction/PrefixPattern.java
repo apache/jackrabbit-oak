@@ -29,19 +29,22 @@ import org.jetbrains.annotations.Nullable;
 /**
  * <p>Implementation of the
  * {@link org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern}
- * interface that returns {@code true} if the name of the target property or tree
- * starts with any of the configured namespace prefixes.
+ * interface that returns {@code true} if the name of the target property or tree starts with any of
+ * the configured namespace prefixes.
  * </p>s
- * Note: an empty string prefix will match qualified item names defined with the 
- * {@link javax.jcr.NamespaceRegistry#NAMESPACE_EMPTY empty namespace}. 
- * See also sections 
- * <a href="https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.5.2%20Qualified%20Form">3.2.5.2 Qualified Form</a>
- * and 
- * <a href="https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.5.3%20Qualified%20Form%20with%20the%20Empty%20Namespace">3.2.5.3 Qualified Form with the Empty Namespace</a>
+ * Note: an empty string prefix will match qualified item names defined with the
+ * {@link javax.jcr.NamespaceRegistry#NAMESPACE_EMPTY empty namespace}. See also sections
+ * <a
+ * href="https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.5.2%20Qualified%20Form">3.2.5.2
+ * Qualified Form</a>
+ * and
+ * <a
+ * href="https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.5.3%20Qualified%20Form%20with%20the%20Empty%20Namespace">3.2.5.3
+ * Qualified Form with the Empty Namespace</a>
  * of the JCR v2.0 specification.
  */
 class PrefixPattern implements RestrictionPattern {
-    
+
     private final Set<String> prefixes;
 
     PrefixPattern(@NotNull Iterable<String> prefixes) {
@@ -58,7 +61,7 @@ class PrefixPattern implements RestrictionPattern {
     public boolean matches(@NotNull String path) {
         return matchesPrefix(PathUtils.getName(path));
     }
-    
+
     private boolean matchesPrefix(String name) {
         String prefix = Text.getNamespacePrefix(name);
         return prefixes.contains(prefix);

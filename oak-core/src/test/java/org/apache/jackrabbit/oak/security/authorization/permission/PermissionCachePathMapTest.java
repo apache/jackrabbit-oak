@@ -45,8 +45,10 @@ public class PermissionCachePathMapTest extends AbstractCacheTest {
     public void before() {
         super.before();
 
-        when(store.load("a")).thenReturn(generatedPermissionEntries("/path1",false, 0, REP_READ_NODES));
-        when(store.load("b")).thenReturn(generatedPermissionEntries("/path2", true, 0, JCR_MODIFY_ACCESS_CONTROL));
+        when(store.load("a")).thenReturn(
+            generatedPermissionEntries("/path1", false, 0, REP_READ_NODES));
+        when(store.load("b")).thenReturn(
+            generatedPermissionEntries("/path2", true, 0, JCR_MODIFY_ACCESS_CONTROL));
         when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(1, true));
 
         Set<String> principalNames = Sets.newHashSet("a", "b");
@@ -71,7 +73,8 @@ public class PermissionCachePathMapTest extends AbstractCacheTest {
 
     @Test
     public void testGetEntriesByTree() {
-        Tree t = when(mock(Tree.class).getPath()).thenReturn("/path1", "/path2", "/any/other/path").getMock();
+        Tree t = when(mock(Tree.class).getPath()).thenReturn("/path1", "/path2", "/any/other/path")
+                                                 .getMock();
         assertEquals(1, cache.getEntries(t).size());
         assertEquals(1, cache.getEntries(t).size());
         assertTrue(cache.getEntries(t).isEmpty());

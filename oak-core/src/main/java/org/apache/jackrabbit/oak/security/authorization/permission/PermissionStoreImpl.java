@@ -55,8 +55,9 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
     private Tree permissionsTree;
     private PrivilegeBitsProvider bitsProvider;
 
-    PermissionStoreImpl(@NotNull Root root, @NotNull String permissionRootName, @NotNull RestrictionProvider restrictionProvider,
-                        @NotNull AuthorizationMonitor monitor) {
+    PermissionStoreImpl(@NotNull Root root, @NotNull String permissionRootName,
+        @NotNull RestrictionProvider restrictionProvider,
+        @NotNull AuthorizationMonitor monitor) {
         this.permissionRootName = permissionRootName;
         this.restrictionProvider = restrictionProvider;
         this.monitor = monitor;
@@ -114,7 +115,8 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
             // mechanism and use child-cnt with a max value to get a rough idea
             // about the magnitude (note: this approximation ignores the hash-collisions)
             long l = TreeUtil.getLong(tree, REP_NUM_PERMISSIONS, -1);
-            return (l >= 0) ? NumEntries.valueOf(l, true) : NumEntries.valueOf(tree.getChildrenCount(max), false);
+            return (l >= 0) ? NumEntries.valueOf(l, true)
+                : NumEntries.valueOf(tree.getChildrenCount(max), false);
         }
     }
 
@@ -130,7 +132,7 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
             }
         }
         ret.setFullyLoaded(true);
-        long t = System.nanoTime()-t0;
+        long t = System.nanoTime() - t0;
         monitor.permissionAllLoaded(t);
         log.debug("loaded {} entries in {}us for {}.", ret.getSize(), t / 1000.0, principalName);
         return ret;
@@ -152,7 +154,7 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
     }
 
     private void loadPermissionEntries(@NotNull Tree tree,
-                                       @NotNull PrincipalPermissionEntries principalPermissionEntries) {
+        @NotNull PrincipalPermissionEntries principalPermissionEntries) {
         String path = TreeUtil.getString(tree, PermissionConstants.REP_ACCESS_CONTROLLED_PATH);
         if (path != null) {
             Collection<PermissionEntry> entries = principalPermissionEntries.getEntriesByPath(path);
@@ -169,13 +171,14 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
             }
         } else {
             monitor.permissionError();
-            log.error("Permission entry at '{}' without rep:accessControlledPath property.", tree.getPath());
+            log.error("Permission entry at '{}' without rep:accessControlledPath property.",
+                tree.getPath());
         }
     }
 
     @NotNull
     private Collection<PermissionEntry> loadPermissionEntries(@NotNull String path,
-                                                              @NotNull Tree tree) {
+        @NotNull Tree tree) {
         Collection<PermissionEntry> ret = new TreeSet<>();
         for (Tree ace : tree.getChildren()) {
             if (ace.getName().charAt(0) != 'c') {
@@ -187,14 +190,14 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
 
     @NotNull
     private PermissionEntry createPermissionEntry(@NotNull String path,
-                                                  @NotNull Tree entryTree) {
+        @NotNull Tree entryTree) {
         PropertyState ps = entryTree.getProperty(REP_PRIVILEGE_BITS);
         PrivilegeBits bits = JcrAllUtil.getPrivilegeBits(ps, bitsProvider);
         boolean isAllow = TreeUtil.getBoolean(entryTree, REP_IS_ALLOW);
         return new PermissionEntry(path,
-                isAllow,
-                Integer.parseInt(entryTree.getName()),
-                bits,
-                restrictionProvider.getPattern(path, entryTree));
+            isAllow,
+            Integer.parseInt(entryTree.getName()),
+            bits,
+            restrictionProvider.getPattern(path, entryTree));
     }
 }

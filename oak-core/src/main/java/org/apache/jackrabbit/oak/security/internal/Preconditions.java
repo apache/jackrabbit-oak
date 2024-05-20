@@ -21,20 +21,18 @@ import java.util.Set;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 
 /**
- * Represents a preconditions set that may be satisfied by adding the right
+ * Represents a preconditions set that may be satisfied by adding the right candidates.
+ * <p/>
+ * Initially, a set of preconditions is empty. An empty set of preconditions is always satisfied. If
+ * candidates are added, but the precondition set is empty, the preconditions are considered
+ * satisfied.
+ * <p/>
+ * When some preconditions are added, the preconditions set may enter into the unsatisfied state. In
+ * this case, the preconditions set may be come satisfied again only with the addition of the right
  * candidates.
  * <p/>
- * Initially, a set of preconditions is empty. An empty set of preconditions is
- * always satisfied. If candidates are added, but the precondition set is empty,
- * the preconditions are considered satisfied.
- * <p/>
- * When some preconditions are added, the preconditions set may enter into the
- * unsatisfied state. In this case, the preconditions set may be come satisfied
- * again only with the addition of the right candidates.
- * <p/>
- * This class doesn't admit duplicates for preconditions or candidates. Adding
- * the same precondition (or candidate) twice doesn't have any effect on the
- * state of the preconditions set.
+ * This class doesn't admit duplicates for preconditions or candidates. Adding the same precondition
+ * (or candidate) twice doesn't have any effect on the state of the preconditions set.
  */
 class Preconditions {
 
@@ -47,8 +45,8 @@ class Preconditions {
     private boolean satisfied = true;
 
     /**
-     * Add a precondition to this preconditions set. If the precondition already
-     * belongs to this set, this operation has no effect.
+     * Add a precondition to this preconditions set. If the precondition already belongs to this
+     * set, this operation has no effect.
      *
      * @param precondition The precondition to be added.
      */
@@ -59,8 +57,8 @@ class Preconditions {
     }
 
     /**
-     * Remove all the preconditions to this set. This makes the set of
-     * preconditions empty and, as such, satisfied.
+     * Remove all the preconditions to this set. This makes the set of preconditions empty and, as
+     * such, satisfied.
      */
     public void clearPreconditions() {
         preconditions.clear();
@@ -69,8 +67,8 @@ class Preconditions {
     }
 
     /**
-     * Add a candidate to this preconditions set. If the candidate already
-     * belongs to this set, this operation has no effect.
+     * Add a candidate to this preconditions set. If the candidate already belongs to this set, this
+     * operation has no effect.
      *
      * @param candidate The candidate to be added.
      */
@@ -81,8 +79,8 @@ class Preconditions {
     }
 
     /**
-     * Remove a candidate from this preconditions set. If the candidate doesn't
-     * belong to this set, this operation has no effect.
+     * Remove a candidate from this preconditions set. If the candidate doesn't belong to this set,
+     * this operation has no effect.
      *
      * @param candidate The candidate to be removed.
      */
@@ -95,8 +93,7 @@ class Preconditions {
     /**
      * Check if the preconditions set are satisfied.
      *
-     * @return {@code true} if the preconditions set is satisfied, {@code false}
-     * otherwise.
+     * @return {@code true} if the preconditions set is satisfied, {@code false} otherwise.
      */
     public boolean areSatisfied() {
         if (dirty) {
@@ -109,7 +106,8 @@ class Preconditions {
 
     @Override
     public String toString() {
-        return String.format("Preconditions(preconditions = %s, candidates = %s)", preconditions, candidates);
+        return String.format("Preconditions(preconditions = %s, candidates = %s)", preconditions,
+            candidates);
     }
 
 }

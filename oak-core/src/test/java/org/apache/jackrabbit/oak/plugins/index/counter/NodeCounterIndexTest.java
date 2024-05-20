@@ -59,14 +59,14 @@ public class NodeCounterIndexTest {
     Root root;
     QueryEngine qe;
     ContentSession session;
-    
+
     @Before
     public void before() throws Exception {
         session = createRepository().login(null, null);
         root = session.getLatestRoot();
         qe = root.getQueryEngine();
     }
-    
+
     @Test
     public void testNotUsedBeforeValid() throws Exception {
         root.getTree("/oak:index/counter").setProperty("resolution", 100);
@@ -75,14 +75,14 @@ public class NodeCounterIndexTest {
         assertFalse(nodeExists("oak:index/counter/:index"));
         // so, cost for traversal is high
         assertTrue(getCost("/jcr:root//*") >= 1.0E8);
-        
+
         runAsyncIndex();
         // sometimes, the :index node doesn't exist because there are very few
         // nodes (randomly, because the seed value of the node counter is random
         // by design) - so we create nodes until the index exists
         // (we could use a fixed seed to ensure this is not the case,
         // but creating nodes has the same effect)
-        for(int i=0; !nodeExists("oak:index/counter/:index"); i++) {
+        for (int i = 0; !nodeExists("oak:index/counter/:index"); i++) {
             assertTrue("index not ready after 100 iterations", i < 100);
             Tree t = root.getTree("/").addChild("test" + i);
             for (int j = 0; j < 100; j++) {
@@ -103,7 +103,7 @@ public class NodeCounterIndexTest {
         // so, cost for traversal is high again
         assertTrue(getCost("/jcr:root//*") >= 1.0E8);
     }
-    
+
     private double getCost(String xpath) throws ParseException {
         String plan = executeXPathQuery("explain measure " + xpath);
         String cost = plan.substring(plan.lastIndexOf('{'));
@@ -111,43 +111,43 @@ public class NodeCounterIndexTest {
         double c = Double.parseDouble(json.getProperties().get("a"));
         return c;
     }
-    
+
     private static JsonObject parseJson(String json) {
         JsopTokenizer t = new JsopTokenizer(json);
         t.read('{');
         return JsonObject.create(t);
     }
-    
+
     private boolean nodeExists(String path) {
         return NodeStateUtils.getNode(nodeStore.getRoot(), path).exists();
     }
-    
+
     protected String executeXPathQuery(String statement) throws ParseException {
         Result result = qe.executeQuery(statement, "xpath", null, NO_MAPPINGS);
         StringBuilder buff = new StringBuilder();
         for (ResultRow row : result.getRows()) {
-            for(PropertyValue v : row.getValues()) {
+            for (PropertyValue v : row.getValues()) {
                 buff.append(v);
             }
         }
         return buff.toString();
     }
-    
+
     protected ContentRepository createRepository() {
         nodeStore = new MemoryNodeStore();
         Oak oak = new Oak(nodeStore)
-                .with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .with(new PropertyIndexEditorProvider())
-                .with(new NodeCounterEditorProvider())
-                //Effectively disable async indexing auto run
-                //such that we can control run timing as per test requirement
-                .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
+            .with(new InitialContent())
+            .with(new OpenSecurityProvider())
+            .with(new PropertyIndexEditorProvider())
+            .with(new NodeCounterEditorProvider())
+            //Effectively disable async indexing auto run
+            //such that we can control run timing as per test requirement
+            .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
 
         wb = oak.getWhiteboard();
         return oak.createContentRepository();
     }
-    
+
     private void runAsyncIndex() {
         Runnable async = WhiteboardUtils.getService(wb, Runnable.class, new Predicate<Runnable>() {
             @Override

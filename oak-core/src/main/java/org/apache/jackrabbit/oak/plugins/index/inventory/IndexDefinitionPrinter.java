@@ -34,12 +34,12 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
 @Component(
-        service = InventoryPrinter.class,
-        property = {
-                "felix.inventory.printer.name=oak-index-defn",
-                "felix.inventory.printer.title=Oak Index Definitions",
-                "felix.inventory.printer.format=JSON"
-        })
+    service = InventoryPrinter.class,
+    property = {
+        "felix.inventory.printer.name=oak-index-defn",
+        "felix.inventory.printer.title=Oak Index Definitions",
+        "felix.inventory.printer.format=JSON"
+    })
 public class IndexDefinitionPrinter implements InventoryPrinter {
 
     @Reference
@@ -47,8 +47,9 @@ public class IndexDefinitionPrinter implements InventoryPrinter {
 
     @Reference
     private NodeStore nodeStore;
-    
-    private String filter = "{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:*\"]}";;
+
+    private String filter = "{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:*\"]}";
+    ;
 
     public IndexDefinitionPrinter() {
     }

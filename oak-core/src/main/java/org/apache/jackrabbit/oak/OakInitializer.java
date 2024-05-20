@@ -40,8 +40,8 @@ public final class OakInitializer {
     }
 
     public static void initialize(@NotNull NodeStore store,
-                                  @NotNull RepositoryInitializer initializer,
-                                  @NotNull CommitHook hook) {
+        @NotNull RepositoryInitializer initializer,
+        @NotNull CommitHook hook) {
         try {
             NodeBuilder builder = store.getRoot().builder();
             initializer.initialize(builder);
@@ -52,9 +52,9 @@ public final class OakInitializer {
     }
 
     public static void initialize(@NotNull Iterable<WorkspaceInitializer> initializer,
-                                  @NotNull NodeStore store,
-                                  @NotNull String workspaceName,
-                                  @NotNull CommitHook hook) {
+        @NotNull NodeStore store,
+        @NotNull String workspaceName,
+        @NotNull CommitHook hook) {
         NodeBuilder builder = store.getRoot().builder();
         for (WorkspaceInitializer wspInit : initializer) {
             wspInit.initialize(builder, workspaceName);
@@ -66,8 +66,9 @@ public final class OakInitializer {
         }
     }
 
-    private static CommitInfo createCommitInfo(){
-        Map<String, Object> infoMap = ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext());
+    private static CommitInfo createCommitInfo() {
+        Map<String, Object> infoMap = ImmutableMap.<String, Object>of(CommitContext.NAME,
+            new SimpleCommitContext());
         return new CommitInfo(SESSION_ID, null, infoMap);
     }
 }

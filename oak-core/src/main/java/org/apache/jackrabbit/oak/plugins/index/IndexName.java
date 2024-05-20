@@ -32,27 +32,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * An index name, which possibly contains two version numbers: the product
- * version number, and the customer version number.
- *
- * The format of an index node name is:
- * - The name of the index,
- * - optionally a dash ('-') and the product version number,
- * - optionally "-custom-" and the customer version number.
- *
- * If the node name doesn't contain version numbers / dashes, then version 0 is
- * assumed (for both the product version number and customer version number).
+ * An index name, which possibly contains two version numbers: the product version number, and the
+ * customer version number.
+ * <p>
+ * The format of an index node name is: - The name of the index, - optionally a dash ('-') and the
+ * product version number, - optionally "-custom-" and the customer version number.
+ * <p>
+ * If the node name doesn't contain version numbers / dashes, then version 0 is assumed (for both
+ * the product version number and customer version number).
  */
 public class IndexName implements Comparable<IndexName> {
 
     private final static Logger LOG = LoggerFactory.getLogger(IndexName.class);
 
     /**
-     * The maximum number of recursion levels when checking whether an index is
-     * active or not. We stop at a certain point, because there is a risk that the
-     * configuration contains a loop. If we use a very high value (e.g. 1000), then
-     * Java will throw a StackOverflowError. So using a maximum depth of 50 seems
-     * save.
+     * The maximum number of recursion levels when checking whether an index is active or not. We
+     * stop at a certain point, because there is a risk that the configuration contains a loop. If
+     * we use a very high value (e.g. 1000), then Java will throw a StackOverflowError. So using a
+     * maximum depth of 50 seems save.
      */
     private static final int MAX_ACTIVE_CHECK_RECURSION_DEPTH = 50;
 
@@ -69,8 +66,7 @@ public class IndexName implements Comparable<IndexName> {
     private final boolean isLegal;
 
     /**
-     * Parse the node name. Both node names with version and without version are
-     * supported.
+     * Parse the node name. Both node names with version and without version are supported.
      *
      * @param nodeName the node name (starting from root; e.g. "/oak:index/lucene")
      * @return the index name object
@@ -89,7 +85,7 @@ public class IndexName implements Comparable<IndexName> {
                 return new IndexName(nodeName, baseName, v1, 0);
             }
             baseName = baseName.substring(0,
-                    baseName.length() - "-custom".length());
+                baseName.length() - "-custom".length());
             index = baseName.lastIndexOf('-');
             if (index < 0) {
                 return new IndexName(nodeName, baseName, 0, v1);
@@ -134,11 +130,11 @@ public class IndexName implements Comparable<IndexName> {
 
     public String toString() {
         return nodeName +
-                " base=" + baseName +
-                (isVersioned ? " versioned": "") +
-                " product=" + productVersion +
-                " custom=" + customerVersion +
-                (isLegal ? "" : " illegal");
+            " base=" + baseName +
+            (isVersioned ? " versioned" : "") +
+            " product=" + productVersion +
+            " custom=" + customerVersion +
+            (isLegal ? "" : " illegal");
     }
 
     @Override
@@ -155,8 +151,7 @@ public class IndexName implements Comparable<IndexName> {
     }
 
     /**
-     * Get the latest index name object that matches this index base name, and
-     * is customized.
+     * Get the latest index name object that matches this index base name, and is customized.
      *
      * @param all the list of all indexes
      * @return the lastest customized index, or null if none
@@ -196,20 +191,21 @@ public class IndexName implements Comparable<IndexName> {
     }
 
     /**
-     * Filter out index that are replaced by another index with the same base
-     * name but newer version.
-     *
-     * Indexes without a version number in the name are always used, except if
-     * there is an active index with the same base name but a newer version.
-     *
-     * Active indexes have a hidden ":oak:mount-" node, which means they are
-     * indexed in the read-only node store.
+     * Filter out index that are replaced by another index with the same base name but newer
+     * version.
+     * <p>
+     * Indexes without a version number in the name are always used, except if there is an active
+     * index with the same base name but a newer version.
+     * <p>
+     * Active indexes have a hidden ":oak:mount-" node, which means they are indexed in the
+     * read-only node store.
      *
      * @param indexPaths the set of index paths
-     * @param rootState the root node state (used to find hidden nodes)
+     * @param rootState  the root node state (used to find hidden nodes)
      * @return the filtered list
      */
-    public static Collection<String> filterReplacedIndexes(Collection<String> indexPaths, NodeState rootState, boolean checkIsActive) {
+    public static Collection<String> filterReplacedIndexes(Collection<String> indexPaths,
+        NodeState rootState, boolean checkIsActive) {
         HashMap<String, IndexName> latestVersions = new HashMap<String, IndexName>();
         for (String p : indexPaths) {
             IndexName indexName = IndexName.parse(p);
@@ -242,12 +238,14 @@ public class IndexName implements Comparable<IndexName> {
         return isIndexActive(indexPath, rootState, 0);
     }
 
-    private static boolean isIndexActive(String indexPath, NodeState rootState, int recursionDepth) {
+    private static boolean isIndexActive(String indexPath, NodeState rootState,
+        int recursionDepth) {
         // An index is active if it has a hidden child node that starts with ":oak:mount-",
         // OR if it is an active merged index
         if (recursionDepth > MAX_ACTIVE_CHECK_RECURSION_DEPTH) {
-            LOG.warn("Fail to check index activeness for {} due to high recursion depth: {}", indexPath,
-                    recursionDepth);
+            LOG.warn("Fail to check index activeness for {} due to high recursion depth: {}",
+                indexPath,
+                recursionDepth);
             return true;
         }
         NodeState indexNode = rootState;
@@ -271,7 +269,8 @@ public class IndexName implements Comparable<IndexName> {
         return isIndexActiveMerged(indexNode, rootState, recursionDepth);
     }
 
-    private static boolean isIndexActiveMerged(NodeState indexNode, NodeState rootState, int recursionDepth) {
+    private static boolean isIndexActiveMerged(NodeState indexNode, NodeState rootState,
+        int recursionDepth) {
         // An index is an active merged index if it has the property "merges",
         // and that property points to index definitions,
         // and each of those indexes is either active, disabled, or removed.

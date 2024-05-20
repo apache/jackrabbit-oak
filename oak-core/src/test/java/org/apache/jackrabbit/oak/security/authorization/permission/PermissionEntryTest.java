@@ -42,10 +42,12 @@ public class PermissionEntryTest {
 
     private final String path = "/path";
     private final int index = 15;
-    private final PermissionEntry entry = new PermissionEntry(path, true, index, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_READ_NODES), RestrictionPattern.EMPTY);
+    private final PermissionEntry entry = new PermissionEntry(path, true, index,
+        PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_READ_NODES), RestrictionPattern.EMPTY);
 
     private final RestrictionPattern pattern = mock(RestrictionPattern.class);
-    private final PermissionEntry entryWithNonEmptyPattern = new PermissionEntry(path, false, index, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_ADD_PROPERTIES), pattern);
+    private final PermissionEntry entryWithNonEmptyPattern = new PermissionEntry(path, false, index,
+        PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_ADD_PROPERTIES), pattern);
 
     @Test
     public void testMatchesEmptyPattern() {
@@ -97,7 +99,8 @@ public class PermissionEntryTest {
 
     @Test
     public void testMatchesPath() {
-        String[] paths = new String[] {path, PathUtils.getParentPath(path), PathUtils.concat(path, "some", "child"), "/some/other/path", ""};
+        String[] paths = new String[]{path, PathUtils.getParentPath(path),
+            PathUtils.concat(path, "some", "child"), "/some/other/path", ""};
         when(pattern.matches(anyString())).thenReturn(true);
         for (String p : paths) {
             assertTrue(entryWithNonEmptyPattern.matches(p));
@@ -129,7 +132,8 @@ public class PermissionEntryTest {
         when(pattern.matches(anyString())).thenReturn(true);
         when(pattern.matches(anyString(), anyBoolean())).thenReturn(true);
         assertTrue(entryWithNonEmptyPattern.matchesParent(path));
-        assertTrue(entryWithNonEmptyPattern.matchesParent(PathUtils.concat(path, "parent", "of", "target")));
+        assertTrue(entryWithNonEmptyPattern.matchesParent(
+            PathUtils.concat(path, "parent", "of", "target")));
         assertFalse(entryWithNonEmptyPattern.matchesParent(PathUtils.getParentPath(path)));
         assertFalse(entryWithNonEmptyPattern.matchesParent("/another/path"));
 
@@ -137,11 +141,12 @@ public class PermissionEntryTest {
         when(pattern.matches(anyString())).thenReturn(false);
         when(pattern.matches(anyString(), anyBoolean())).thenReturn(false);
         assertFalse(entryWithNonEmptyPattern.matchesParent(path));
-        assertFalse(entryWithNonEmptyPattern.matchesParent(PathUtils.concat(path, "parent", "of", "target")));
+        assertFalse(entryWithNonEmptyPattern.matchesParent(
+            PathUtils.concat(path, "parent", "of", "target")));
         assertFalse(entryWithNonEmptyPattern.matchesParent(PathUtils.getParentPath(path)));
         assertFalse(entryWithNonEmptyPattern.matchesParent("/another/path"));
     }
-    
+
     @Test
     public void testMatchesIsProperty() {
         // empty restriction pattern
@@ -151,7 +156,7 @@ public class PermissionEntryTest {
         // pattern always returns false
         assertFalse(entryWithNonEmptyPattern.matches(path, true));
         assertFalse(entryWithNonEmptyPattern.matches(path, false));
-        
+
         // mock pattern
         when(pattern.matches(path, true)).thenReturn(true);
         assertTrue(entryWithNonEmptyPattern.matches(path, true));
@@ -161,9 +166,12 @@ public class PermissionEntryTest {
     @Test
     public void testCompareToEqualPath() {
         assertEquals(0, entry.compareTo(entry));
-        assertEquals(0, entry.compareTo(new PermissionEntry(path, entry.isAllow, index, entry.privilegeBits, entry.restriction)));
+        assertEquals(0, entry.compareTo(
+            new PermissionEntry(path, entry.isAllow, index, entry.privilegeBits,
+                entry.restriction)));
 
-        PermissionEntry higherIndexEntry = new PermissionEntry(path, entry.isAllow, index + 1, entry.privilegeBits, entry.restriction);
+        PermissionEntry higherIndexEntry = new PermissionEntry(path, entry.isAllow, index + 1,
+            entry.privilegeBits, entry.restriction);
         assertEquals(1, entry.compareTo(higherIndexEntry));
         assertEquals(-1, higherIndexEntry.compareTo(entry));
     }
@@ -171,8 +179,11 @@ public class PermissionEntryTest {
     @Test
     public void testCompareToDifferentPathSameDepth() {
         String sameDepthPath = "/another";
-        PermissionEntry anotherEntry = new PermissionEntry(sameDepthPath, entry.isAllow, index, entry.privilegeBits, entry.restriction);
-        PermissionEntry anotherEntry2 = new PermissionEntry(sameDepthPath, !entry.isAllow, 3, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_LOCK_MANAGEMENT), mock(RestrictionPattern.class));
+        PermissionEntry anotherEntry = new PermissionEntry(sameDepthPath, entry.isAllow, index,
+            entry.privilegeBits, entry.restriction);
+        PermissionEntry anotherEntry2 = new PermissionEntry(sameDepthPath, !entry.isAllow, 3,
+            PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_LOCK_MANAGEMENT),
+            mock(RestrictionPattern.class));
 
         assertEquals(path.compareTo(sameDepthPath), entry.compareTo(anotherEntry));
         assertEquals(path.compareTo(sameDepthPath), entry.compareTo(anotherEntry2));
@@ -184,7 +195,8 @@ public class PermissionEntryTest {
     @Test
     public void testCompareToDifferentPathHigherDepth() {
         String higherDepthPath = PathUtils.concat(path, "to", "higher", "depth");
-        PermissionEntry higherDepthEntry = new PermissionEntry(higherDepthPath, entry.isAllow, index, entry.privilegeBits, entry.restriction);
+        PermissionEntry higherDepthEntry = new PermissionEntry(higherDepthPath, entry.isAllow,
+            index, entry.privilegeBits, entry.restriction);
 
         assertEquals(1, entry.compareTo(higherDepthEntry));
     }
@@ -192,7 +204,8 @@ public class PermissionEntryTest {
     @Test
     public void testCompareToDifferentPathLowerDepth() {
         String lowerDepthPath = PathUtils.getParentPath(path);
-        PermissionEntry lowerDepthEntry = new PermissionEntry(lowerDepthPath, entry.isAllow, index, entry.privilegeBits, entry.restriction);
+        PermissionEntry lowerDepthEntry = new PermissionEntry(lowerDepthPath, entry.isAllow, index,
+            entry.privilegeBits, entry.restriction);
 
         assertEquals(-1, entry.compareTo(lowerDepthEntry));
     }
@@ -200,27 +213,36 @@ public class PermissionEntryTest {
     @Test
     public void testEquals() {
         assertTrue(entry.equals(entry));
-        assertTrue(entry.equals(new PermissionEntry(path, entry.isAllow, index, entry.privilegeBits, entry.restriction)));
-        assertTrue(entry.equals(new PermissionEntry(path, entry.isAllow, index, PrivilegeBits.getInstance(entry.privilegeBits).unmodifiable(), entry.restriction)));
+        assertTrue(entry.equals(new PermissionEntry(path, entry.isAllow, index, entry.privilegeBits,
+            entry.restriction)));
+        assertTrue(entry.equals(new PermissionEntry(path, entry.isAllow, index,
+            PrivilegeBits.getInstance(entry.privilegeBits).unmodifiable(), entry.restriction)));
     }
 
     @Test
     public void testNotEqual() {
         // path different
-        assertNotEquals(entry, new PermissionEntry("/", entry.isAllow, index, entry.privilegeBits, entry.restriction));
-        assertNotEquals(entry, new PermissionEntry("/path2", entry.isAllow, index, entry.privilegeBits, entry.restriction));
+        assertNotEquals(entry,
+            new PermissionEntry("/", entry.isAllow, index, entry.privilegeBits, entry.restriction));
+        assertNotEquals(entry,
+            new PermissionEntry("/path2", entry.isAllow, index, entry.privilegeBits,
+                entry.restriction));
 
         // isAllow different
-        assertNotEquals(entry, new PermissionEntry(path, !entry.isAllow, index, entry.privilegeBits, entry.restriction));
+        assertNotEquals(entry, new PermissionEntry(path, !entry.isAllow, index, entry.privilegeBits,
+            entry.restriction));
 
         // index different
-        assertNotEquals(entry, new PermissionEntry(path, entry.isAllow, 2, entry.privilegeBits, entry.restriction));
+        assertNotEquals(entry,
+            new PermissionEntry(path, entry.isAllow, 2, entry.privilegeBits, entry.restriction));
 
         // privbits different
-        assertNotEquals(entry, new PermissionEntry(path, entry.isAllow, index, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), entry.restriction));
+        assertNotEquals(entry, new PermissionEntry(path, entry.isAllow, index,
+            PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), entry.restriction));
 
         // restrictions different
-        assertNotEquals(entry, new PermissionEntry(path, entry.isAllow, index, entry.privilegeBits, mock(RestrictionPattern.class)));
+        assertNotEquals(entry, new PermissionEntry(path, entry.isAllow, index, entry.privilegeBits,
+            mock(RestrictionPattern.class)));
 
         assertFalse(entry.equals(null));
     }

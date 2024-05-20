@@ -27,16 +27,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * This class is responsible for importing the index
- * data from the file system into the repository.
+ * This class is responsible for importing the index data from the file system into the repository.
  */
 public interface IndexImporterProvider {
 
     /**
-     * Import the index data from given directory into the
-     * NodeBuilder created for the index at given path
+     * Import the index data from given directory into the NodeBuilder created for the index at
+     * given path
      */
-    void importIndex(NodeState root, NodeBuilder defn, File indexDir) throws IOException, CommitFailedException;
+    void importIndex(NodeState root, NodeBuilder defn, File indexDir)
+        throws IOException, CommitFailedException;
 
     /**
      * Index type for this implementation

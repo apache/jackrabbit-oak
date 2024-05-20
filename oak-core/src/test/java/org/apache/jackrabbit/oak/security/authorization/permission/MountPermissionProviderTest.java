@@ -43,7 +43,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class MountPermissionProviderTest extends AbstractSecurityTest
-        implements AccessControlConstants, PrivilegeConstants, PermissionConstants {
+    implements AccessControlConstants, PrivilegeConstants, PermissionConstants {
 
     private MountInfoProvider mountInfoProvider;
     private String testNode = "MultiplexingProviderTest";
@@ -86,7 +86,8 @@ public class MountPermissionProviderTest extends AbstractSecurityTest
         String wsName = adminSession.getWorkspaceName();
         assertTrue(permStore.hasChild(wsName));
         for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
-            assertTrue(permStore.hasChild(MountPermissionProvider.getPermissionRootName(m, wsName)));
+            assertTrue(
+                permStore.hasChild(MountPermissionProvider.getPermissionRootName(m, wsName)));
         }
 
         Tree rootNode = root.getTree("/");
@@ -138,12 +139,14 @@ public class MountPermissionProviderTest extends AbstractSecurityTest
     @Test
     public void testPermissionProviderName() {
         assertEquals("oak.default",
-                MountPermissionProvider.getPermissionRootName(mountInfoProvider.getDefaultMount(), "oak.default"));
+            MountPermissionProvider.getPermissionRootName(mountInfoProvider.getDefaultMount(),
+                "oak.default"));
         assertEquals("oak:mount-testMount-oak.default", MountPermissionProvider
-                .getPermissionRootName(mountInfoProvider.getMountByName("testMount"), "oak.default"));
+            .getPermissionRootName(mountInfoProvider.getMountByName("testMount"), "oak.default"));
     }
 
-    private void setPrivileges(Principal principal, String path, boolean allow, String... privileges) throws Exception {
+    private void setPrivileges(Principal principal, String path, boolean allow,
+        String... privileges) throws Exception {
         AccessControlManager acm = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acm, path);
         acl.addEntry(principal, privilegesFromNames(privileges), allow);

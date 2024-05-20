@@ -27,6 +27,7 @@ import org.osgi.annotation.versioning.ProviderType;
  */
 @ProviderType
 public interface IndexInfo {
+
     /**
      * Returns paths of index definition in the repository
      */
@@ -38,8 +39,8 @@ public interface IndexInfo {
     String getType();
 
     /**
-     * Returns name of the async index lane to which this index is bound to
-     * or null if it's not an async index
+     * Returns name of the async index lane to which this index is bound to or null if it's not an
+     * async index
      */
     @Nullable
     String getAsyncLaneName();
@@ -52,13 +53,12 @@ public interface IndexInfo {
     long getLastUpdatedTime();
 
     /**
-     * Returns time in millis of the repository state up to which index is up-to-date.
-     * This may or may not be same as {@code #getLastUpdatedTime}. For e.g.
-     * consider an index at /oak:index/fooIndex bound to async lane "async".
-     * The index might have got updated 2 cycle ago when async indexer traversed content
-     * node which were indexed by this index and it was not updated in last index cycle.
-     * Then {@code indexedUptoTime} is the time of last complete cycle while
-     * {@code lastUpdatedTime} is the time of 2nd last cycle
+     * Returns time in millis of the repository state up to which index is up-to-date. This may or
+     * may not be same as {@code #getLastUpdatedTime}. For e.g. consider an index at
+     * /oak:index/fooIndex bound to async lane "async". The index might have got updated 2 cycle ago
+     * when async indexer traversed content node which were indexed by this index and it was not
+     * updated in last index cycle. Then {@code indexedUptoTime} is the time of last complete cycle
+     * while {@code lastUpdatedTime} is the time of 2nd last cycle
      *
      * @return time in millis or -1 if unknown
      */
@@ -71,21 +71,20 @@ public interface IndexInfo {
 
     /**
      * Index data storage size
-
+     *
      * @return storage size or -1 if unknown
      */
     long getSizeInBytes();
 
     /**
-     * Determines if index definition has changed but no reindexing
-     * was done for that change.
+     * Determines if index definition has changed but no reindexing was done for that change.
      */
     boolean hasIndexDefinitionChangedWithoutReindexing();
 
     /**
-     * If the index definition has changed without doing any reindexing
-     * then this method can be used to determine the diff in the index
-     * definition
+     * If the index definition has changed without doing any reindexing then this method can be used
+     * to determine the diff in the index definition
+     *
      * @return diff if the definition change otherwise null
      */
     @Nullable
@@ -93,12 +92,15 @@ public interface IndexInfo {
 
     /**
      * Determines if a hidden oak libs mount node is present
-     * @return true in case of composite node store with indexed content from read-only part of repository, false otherwise
+     *
+     * @return true in case of composite node store with indexed content from read-only part of
+     * repository, false otherwise
      */
     boolean hasHiddenOakLibsMount();
 
     /**
      * Determines if :property-index node is present
+     *
      * @return true if the index is hybrid and has :property-index node, false otherwise.
      */
     boolean hasPropertyIndexNode();
@@ -110,12 +112,14 @@ public interface IndexInfo {
 
     /**
      * Determines if the index is active (can be used for queries)
+     *
      * @return true if yes
      */
     boolean isActive();
 
     /**
      * Index suggest data storage size
+     *
      * @return storage size or -1 if unknown
      */
     long getSuggestSizeInBytes();

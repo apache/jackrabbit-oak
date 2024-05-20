@@ -18,15 +18,13 @@
  */
 package org.apache.jackrabbit.oak.cache.impl;
 
-import java.util.List;
-import java.util.Map;
-
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
+import java.util.List;
+import java.util.Map;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -36,8 +34,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * An OSGi component that binds to all {@link CacheStatsMBean} instances and
- * exposes their counters as {@link Metric}s.
+ * An OSGi component that binds to all {@link CacheStatsMBean} instances and exposes their counters
+ * as {@link Metric}s.
  */
 @Component(immediate = true)
 public class CacheStatsMetrics {
@@ -52,14 +50,14 @@ public class CacheStatsMetrics {
     static final String LOAD_TIME = "loadTime";
 
     private static final List<String> TYPES = ImmutableList.of(
-            REQUEST, HIT, MISS, EVICTION, ELEMENT, LOAD_TIME);
+        REQUEST, HIT, MISS, EVICTION, ELEMENT, LOAD_TIME);
 
     private Map<String, CacheStatsMBean> cacheStatsMBeans = Maps.newHashMap();
     private MetricRegistry registry = new MetricRegistry();
 
     @Reference(
-            cardinality = ReferenceCardinality.AT_LEAST_ONE,
-            policy = ReferencePolicy.DYNAMIC
+        cardinality = ReferenceCardinality.AT_LEAST_ONE,
+        policy = ReferencePolicy.DYNAMIC
     )
     synchronized void addCacheStatsMBean(CacheStatsMBean stats) {
         LOG.debug("addCacheStatsMBean({})", stats.getName());
@@ -74,7 +72,7 @@ public class CacheStatsMetrics {
     }
 
     @Reference(
-            target = "(name=oak)"
+        target = "(name=oak)"
     )
     synchronized void setMetricRegistry(MetricRegistry registry) {
         LOG.debug("setMetricRegistry({})", registry);
@@ -86,7 +84,7 @@ public class CacheStatsMetrics {
     }
 
     private static void registerCacheStatsMBean(MetricRegistry registry,
-                                                CacheStatsMBean stats) {
+        CacheStatsMBean stats) {
         registerMetric(registry, new RequestCounter(stats));
         registerMetric(registry, new HitCounter(stats));
         registerMetric(registry, new MissCounter(stats));
@@ -96,14 +94,14 @@ public class CacheStatsMetrics {
     }
 
     private static void registerMetric(MetricRegistry registry,
-                                       CacheStatsMBeanCounter metric) {
+        CacheStatsMBeanCounter metric) {
         String name = metric.getName();
         registry.remove(name);
         registry.register(name, metric);
     }
 
     private static void unregisterCacheStatsMBean(MetricRegistry registry,
-                                                  CacheStatsMBean stats) {
+        CacheStatsMBean stats) {
         String name = stats.getName();
         for (String t : TYPES) {
             registry.remove(metricName(name, t));
@@ -115,7 +113,7 @@ public class CacheStatsMetrics {
     }
 
     private abstract static class CacheStatsMBeanCounter
-            extends Counter {
+        extends Counter {
 
         protected CacheStatsMBean stats;
         protected String type;

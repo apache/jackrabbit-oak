@@ -29,10 +29,10 @@ public class VersionCopyConfiguration {
     private Calendar copyVersions;
 
     private Calendar copyOrphanedVersions;
-    
+
     // Option to preserve versions not present on source under paths being processed
     private boolean preserveOnTarget;
-    
+
     public VersionCopyConfiguration() {
         final Calendar epoch = Calendar.getInstance();
         epoch.setTimeInMillis(0);
@@ -83,7 +83,8 @@ public class VersionCopyConfiguration {
     }
 
     public boolean isCopyAll() {
-        return copyVersions != null && copyVersions.getTimeInMillis() == 0 && copyOrphanedVersions != null && copyOrphanedVersions.getTimeInMillis() == 0;
+        return copyVersions != null && copyVersions.getTimeInMillis() == 0
+            && copyOrphanedVersions != null && copyOrphanedVersions.getTimeInMillis() == 0;
     }
 
     public boolean preserveOnTarget() {

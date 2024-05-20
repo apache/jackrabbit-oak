@@ -80,7 +80,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
-public class AccessControlValidatorTest extends AbstractSecurityTest implements AccessControlConstants {
+public class AccessControlValidatorTest extends AbstractSecurityTest implements
+    AccessControlConstants {
 
     private final String testName = "testRoot";
     private final String testPath = '/' + testName;
@@ -92,7 +93,8 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
     public void before() throws Exception {
         super.before();
 
-        TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), testName, JcrConstants.NT_UNSTRUCTURED);
+        TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), testName,
+            JcrConstants.NT_UNSTRUCTURED);
         root.commit();
 
         testPrincipal = getTestUser().getPrincipal();
@@ -119,12 +121,16 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
 
     @NotNull
     private AccessControlValidatorProvider createValidatorProvider() {
-        CompositeAuthorizationConfiguration cac = (CompositeAuthorizationConfiguration) getConfig(AuthorizationConfiguration.class);
-        return new AccessControlValidatorProvider((AuthorizationConfigurationImpl) cac.getDefaultConfig());
+        CompositeAuthorizationConfiguration cac = (CompositeAuthorizationConfiguration) getConfig(
+            AuthorizationConfiguration.class);
+        return new AccessControlValidatorProvider(
+            (AuthorizationConfigurationImpl) cac.getDefaultConfig());
     }
 
     @NotNull
-    private AccessControlValidatorProvider createValidatorProvider(@NotNull RestrictionProvider restrictionProvider, @NotNull PrivilegeConfiguration privilegeConfiguration) {
+    private AccessControlValidatorProvider createValidatorProvider(
+        @NotNull RestrictionProvider restrictionProvider,
+        @NotNull PrivilegeConfiguration privilegeConfiguration) {
         ProviderCtx ctx = mock(ProviderCtx.class);
         when(ctx.getRootProvider()).thenReturn(getRootProvider());
         when(ctx.getTreeProvider()).thenReturn(getTreeProvider());
@@ -146,7 +152,8 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
     }
 
     @NotNull
-    private Tree createPolicy(@NotNull Tree tree, boolean createRestrictionNode) throws AccessDeniedException {
+    private Tree createPolicy(@NotNull Tree tree, boolean createRestrictionNode)
+        throws AccessDeniedException {
         tree.setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES);
 
         Tree acl = TreeUtil.addChild(tree, REP_POLICY, NT_REP_ACL);
@@ -159,14 +166,17 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
     }
 
     @NotNull
-    private static Tree createACE(@NotNull Tree acl, @NotNull String aceName, @NotNull String ntName, @NotNull String principalName, @NotNull String... privilegeNames) throws AccessDeniedException {
+    private static Tree createACE(@NotNull Tree acl, @NotNull String aceName,
+        @NotNull String ntName, @NotNull String principalName, @NotNull String... privilegeNames)
+        throws AccessDeniedException {
         Tree ace = TreeUtil.addChild(acl, aceName, ntName);
         ace.setProperty(REP_PRINCIPAL_NAME, principalName);
         ace.setProperty(REP_PRIVILEGES, ImmutableList.copyOf(privilegeNames), Type.NAMES);
         return ace;
     }
 
-    private static CommitFailedException assertCommitFailedException(@NotNull CommitFailedException e, @NotNull String type, int expectedCode) {
+    private static CommitFailedException assertCommitFailedException(
+        @NotNull CommitFailedException e, @NotNull String type, int expectedCode) {
         assertTrue(e.isOfType(type));
         assertEquals(expectedCode, e.getCode());
         return e;
@@ -175,7 +185,8 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
     @Test(expected = CommitFailedException.class)
     public void testPolicyWithOutChildOrder() throws Exception {
         Tree testRoot = getTestTree();
-        testRoot.setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES);
+        testRoot.setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REP_ACCESS_CONTROLLABLE),
+            Type.NAMES);
         TreeUtil.addChild(testRoot, REP_POLICY, NT_REP_ACL);
 
         try {
@@ -188,7 +199,8 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
     @Test(expected = CommitFailedException.class)
     public void testOnlyRootIsRepoAccessControllable() throws Exception {
         Tree testRoot = getTestTree();
-        testRoot.setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REP_REPO_ACCESS_CONTROLLABLE), Type.NAMES);
+        testRoot.setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REP_REPO_ACCESS_CONTROLLABLE),
+            Type.NAMES);
 
         try {
             root.commit();
@@ -200,7 +212,8 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
     @Test(expected = CommitFailedException.class)
     public void testAddInvalidRepoPolicy() throws Exception {
         Tree testRoot = getTestTree();
-        testRoot.setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES);
+        testRoot.setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REP_ACCESS_CONTROLLABLE),
+            Type.NAMES);
         TreeUtil.addChild(testRoot, REP_REPO_POLICY, NT_REP_ACL);
         try {
             root.commit();
@@ -274,7 +287,8 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
 
     @Test(expected = CommitFailedException.class)
     public void testAddIsolatedGrantAce() throws Exception {
-        createACE(getTestTree(), "isolatedACE", NT_REP_GRANT_ACE, testPrincipal.getName(), JCR_READ);
+        createACE(getTestTree(), "isolatedACE", NT_REP_GRANT_ACE, testPrincipal.getName(),
+            JCR_READ);
         try {
             root.commit();
         } catch (CommitFailedException e) {
@@ -304,7 +318,8 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
 
     @Test(expected = CommitFailedException.class)
     public void testInvalidPrivilege() throws Exception {
-        createACE(createPolicy(getTestTree(), false), "aceWithInvalidPrivilege", NT_REP_GRANT_ACE, testPrincipal.getName(), "invalidPrivilegeName");
+        createACE(createPolicy(getTestTree(), false), "aceWithInvalidPrivilege", NT_REP_GRANT_ACE,
+            testPrincipal.getName(), "invalidPrivilegeName");
         try {
             root.commit();
         } catch (CommitFailedException e) {
@@ -317,7 +332,8 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
         PrivilegeManager pMgr = getPrivilegeManager(root);
         pMgr.registerPrivilege("abstractPrivilege", true, new String[0]);
 
-        createACE(createPolicy(getTestTree(), false), "invalid", NT_REP_GRANT_ACE, testPrincipal.getName(), "abstractPrivilege");
+        createACE(createPolicy(getTestTree(), false), "invalid", NT_REP_GRANT_ACE,
+            testPrincipal.getName(), "abstractPrivilege");
         try {
             root.commit();
         } catch (CommitFailedException e) {
@@ -327,23 +343,30 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
 
     @Test(expected = IllegalStateException.class)
     public void testValidatingPrivilegesCausesInternalError() throws Exception {
-        PrivilegeManager privMgr = when(mock(PrivilegeManager.class).getPrivilege(anyString())).thenThrow(new RepositoryException()).getMock();
-        PrivilegeConfiguration pc = when( mock(PrivilegeConfiguration.class).getPrivilegeManager(any(Root.class), any(NamePathMapper.class))).thenReturn(privMgr).getMock();
+        PrivilegeManager privMgr = when(
+            mock(PrivilegeManager.class).getPrivilege(anyString())).thenThrow(
+            new RepositoryException()).getMock();
+        PrivilegeConfiguration pc = when(
+            mock(PrivilegeConfiguration.class).getPrivilegeManager(any(Root.class),
+                any(NamePathMapper.class))).thenReturn(privMgr).getMock();
 
         Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
         Tree policy = createPolicy(rootTree, false);
 
         TreeProvider tp = getTreeProvider();
-        AccessControlValidatorProvider provider = createValidatorProvider(getConfig(AuthorizationConfiguration.class).getRestrictionProvider(), pc);
+        AccessControlValidatorProvider provider = createValidatorProvider(
+            getConfig(AuthorizationConfiguration.class).getRestrictionProvider(), pc);
         NodeState ns = tp.asNodeState(rootTree);
         Validator v = provider.getRootValidator(ns, ns, new CommitInfo("sid", null));
 
-        v.childNodeAdded(policy.getName(), tp.asNodeState(policy)).childNodeAdded(aceName, tp.asNodeState(policy.getChild(aceName)));
+        v.childNodeAdded(policy.getName(), tp.asNodeState(policy))
+         .childNodeAdded(aceName, tp.asNodeState(policy.getChild(aceName)));
     }
 
     @Test(expected = CommitFailedException.class)
     public void testInvalidRestriction() throws Exception {
-        Tree restriction = createPolicy(getTestTree(), true).getChild(aceName).getChild(REP_RESTRICTIONS);
+        Tree restriction = createPolicy(getTestTree(), true).getChild(aceName)
+                                                            .getChild(REP_RESTRICTIONS);
         restriction.setProperty("invalid", "value");
         try {
             root.commit();
@@ -354,7 +377,8 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
 
     @Test(expected = CommitFailedException.class)
     public void testRestrictionWithInvalidType() throws Exception {
-        Tree restriction = createPolicy(getTestTree(), true).getChild(aceName).getChild(REP_RESTRICTIONS);
+        Tree restriction = createPolicy(getTestTree(), true).getChild(aceName)
+                                                            .getChild(REP_RESTRICTIONS);
         restriction.setProperty(REP_GLOB, "rep:glob", Type.NAME);
         try {
             root.commit();
@@ -365,7 +389,8 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
 
     @Test(expected = CommitFailedException.class)
     public void testValidatingRestrictionsCausesInternalError() throws Exception {
-        RestrictionProvider rp = spy(getConfig(AuthorizationConfiguration.class).getRestrictionProvider());
+        RestrictionProvider rp = spy(
+            getConfig(AuthorizationConfiguration.class).getRestrictionProvider());
         doAnswer(invocationOnMock -> {
             throw new RepositoryException();
         }).when(rp).validateRestrictions(anyString(), any(Tree.class));
@@ -376,12 +401,14 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
         entry.setProperty(REP_GLOB, "any");
 
         TreeProvider tp = getTreeProvider();
-        AccessControlValidatorProvider provider = createValidatorProvider(rp, getConfig(PrivilegeConfiguration.class));
+        AccessControlValidatorProvider provider = createValidatorProvider(rp,
+            getConfig(PrivilegeConfiguration.class));
         NodeState ns = tp.asNodeState(rootTree);
         Validator v = provider.getRootValidator(ns, ns, new CommitInfo("sid", null));
 
         try {
-            v.childNodeAdded(policy.getName(), tp.asNodeState(policy)).childNodeAdded(entry.getName(), tp.asNodeState(entry));
+            v.childNodeAdded(policy.getName(), tp.asNodeState(policy))
+             .childNodeAdded(entry.getName(), tp.asNodeState(entry));
         } catch (CommitFailedException e) {
             throw assertCommitFailedException(e, CommitFailedException.OAK, 13);
         }
@@ -391,7 +418,8 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
     public void testDuplicateAce() throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
-        acl.addAccessControlEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES));
+        acl.addAccessControlEntry(testPrincipal,
+            privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES));
         acMgr.setPolicy(testPath, acl);
 
         // add duplicate ac-entry on OAK-API
@@ -408,8 +436,9 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
         ValueFactory vf = getValueFactory(root);
-        acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES), true,
-                Collections.singletonMap(REP_GLOB, vf.createValue("some/glob")));
+        acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES),
+            true,
+            Collections.singletonMap(REP_GLOB, vf.createValue("some/glob")));
         acMgr.setPolicy(testPath, acl);
 
         // add duplicate ac-entry on OAK-API with single and mv restriction
@@ -429,17 +458,20 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
         ValueFactory vf = getValueFactory(root);
-        acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES), true, 
-                Collections.singletonMap(REP_GLOB, vf.createValue("some/glob")),
-                Collections.singletonMap(REP_GLOBS, new Value[] {vf.createValue("glob1"), vf.createValue("glob2")}));
+        acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES),
+            true,
+            Collections.singletonMap(REP_GLOB, vf.createValue("some/glob")),
+            Collections.singletonMap(REP_GLOBS,
+                new Value[]{vf.createValue("glob1"), vf.createValue("glob2")}));
         acMgr.setPolicy(testPath, acl);
 
         // add duplicate ac-entry on OAK-API with single and mv restriction
         Tree ace = createDuplicateAceTree();
         Tree rest = TreeUtil.addChild(ace, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
         rest.setProperty(AccessControlConstants.REP_GLOB, "some/glob", Type.STRING);
-        rest.setProperty(AccessControlConstants.REP_GLOBS, ImmutableList.of("glob1", "glob2"), Type.STRINGS);
-        
+        rest.setProperty(AccessControlConstants.REP_GLOBS, ImmutableList.of("glob1", "glob2"),
+            Type.STRINGS);
+
         try {
             root.commit();
         } catch (CommitFailedException e) {
@@ -449,12 +481,13 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
             throw assertCommitFailedException(e, CommitFailedException.ACCESS_CONTROL, 13);
         }
     }
-    
+
     private @NotNull Tree createDuplicateAceTree() throws AccessDeniedException {
         Tree policy = root.getTree(testPath + "/rep:policy");
         Tree ace = TreeUtil.addChild(policy, "duplicateAce", NT_REP_GRANT_ACE);
         ace.setProperty(REP_PRINCIPAL_NAME, testPrincipal.getName());
-        ace.setProperty(AccessControlConstants.REP_PRIVILEGES, ImmutableList.of(PrivilegeConstants.JCR_ADD_CHILD_NODES), Type.NAMES);
+        ace.setProperty(AccessControlConstants.REP_PRIVILEGES,
+            ImmutableList.of(PrivilegeConstants.JCR_ADD_CHILD_NODES), Type.NAMES);
         return ace;
     }
 
@@ -475,14 +508,18 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
 
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
-        acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES), true,
-                ImmutableMap.of(),
-                ImmutableMap.of(AccessControlConstants.REP_NT_NAMES, new Value[] {vf.createValue(NodeTypeConstants.NT_OAK_UNSTRUCTURED, PropertyType.NAME)}));
+        acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES),
+            true,
+            ImmutableMap.of(),
+            ImmutableMap.of(AccessControlConstants.REP_NT_NAMES, new Value[]{
+                vf.createValue(NodeTypeConstants.NT_OAK_UNSTRUCTURED, PropertyType.NAME)}));
 
         // add ac-entry that only differs by the value of the restriction
-        acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES), true,
-                ImmutableMap.of(),
-                ImmutableMap.of(AccessControlConstants.REP_NT_NAMES, new Value[] {vf.createValue(NodeTypeConstants.NT_UNSTRUCTURED, PropertyType.NAME)}));
+        acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES),
+            true,
+            ImmutableMap.of(),
+            ImmutableMap.of(AccessControlConstants.REP_NT_NAMES,
+                new Value[]{vf.createValue(NodeTypeConstants.NT_UNSTRUCTURED, PropertyType.NAME)}));
         assertEquals(2, acl.getAccessControlEntries().length);
 
         acMgr.setPolicy(testPath, acl);
@@ -501,9 +538,9 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
         NodeBuilder hidden = test.child(":hidden");
 
         Validator validator = provider.getRootValidator(
-                root, builder.getNodeState(), CommitInfo.EMPTY);
+            root, builder.getNodeState(), CommitInfo.EMPTY);
         Validator childValidator = validator.childNodeAdded(
-                "test", test.getNodeState());
+            "test", test.getNodeState());
         assertNotNull(childValidator);
 
         Validator hiddenValidator = childValidator.childNodeAdded(":hidden", hidden.getNodeState());
@@ -523,12 +560,13 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
         hidden.child("added");
 
         Validator validator = provider.getRootValidator(
-                root, builder.getNodeState(), CommitInfo.EMPTY);
+            root, builder.getNodeState(), CommitInfo.EMPTY);
         Validator childValidator = validator.childNodeChanged(
-                "test", root.getChildNode("test"), test.getNodeState());
+            "test", root.getChildNode("test"), test.getNodeState());
         assertNotNull(childValidator);
 
-        Validator hiddenValidator = childValidator.childNodeChanged(":hidden", root.getChildNode("test").getChildNode(":hidden"), hidden.getNodeState());
+        Validator hiddenValidator = childValidator.childNodeChanged(":hidden",
+            root.getChildNode("test").getChildNode(":hidden"), hidden.getNodeState());
         assertNull(hiddenValidator);
     }
 
@@ -545,12 +583,13 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
         test.child(":hidden").remove();
 
         Validator validator = provider.getRootValidator(
-                root, builder.getNodeState(), CommitInfo.EMPTY);
-        Validator childValidator = validator.childNodeChanged("test", root.getChildNode("test"), test.getNodeState());
+            root, builder.getNodeState(), CommitInfo.EMPTY);
+        Validator childValidator = validator.childNodeChanged("test", root.getChildNode("test"),
+            test.getNodeState());
         assertNotNull(childValidator);
 
         Validator hiddenValidator = childValidator.childNodeDeleted(
-                ":hidden", root.getChildNode("test").getChildNode(":hidden"));
+            ":hidden", root.getChildNode("test").getChildNode(":hidden"));
         assertNull(hiddenValidator);
     }
 
@@ -568,19 +607,22 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
             }
         });
         when(sc.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
-        SecurityProviderHelper.updateConfig(getSecurityProvider(), sc, AuthorizationConfiguration.class);
+        SecurityProviderHelper.updateConfig(getSecurityProvider(), sc,
+            AuthorizationConfiguration.class);
 
-        Tree acNode = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "differentAccessControl", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree acNode = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "differentAccessControl",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         RestrictionProvider rp = new RestrictionProviderImpl();
-        Restriction r = rp.createRestriction(PathUtils.ROOT_PATH, REP_ITEM_NAMES, new Value[] {getValueFactory(root).createValue("someName", PropertyType.NAME)});
+        Restriction r = rp.createRestriction(PathUtils.ROOT_PATH, REP_ITEM_NAMES,
+            new Value[]{getValueFactory(root).createValue("someName", PropertyType.NAME)});
         rp.writeRestrictions(PathUtils.ROOT_PATH, acNode, ImmutableSet.of(r));
 
         root.commit();
     }
 
     /**
-     * Test case illustrating OAK-8081, where a given 'aceTree' is not covered by the authorization-context and thus
-     * the AccessControlValidator will still fail.
+     * Test case illustrating OAK-8081, where a given 'aceTree' is not covered by the
+     * authorization-context and thus the AccessControlValidator will still fail.
      */
     @Test(expected = CommitFailedException.class)
     public void testRestrictionsUsedByOtherModule2() throws Exception {
@@ -588,11 +630,14 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
         // new acNode is not covered by Context.definesTree
         when(sc.getContext()).thenReturn(new Context.Default());
         when(sc.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
-        SecurityProviderHelper.updateConfig(getSecurityProvider(), sc, AuthorizationConfiguration.class);
+        SecurityProviderHelper.updateConfig(getSecurityProvider(), sc,
+            AuthorizationConfiguration.class);
 
-        Tree acNode = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "notCoveredByContext", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree acNode = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "notCoveredByContext",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         RestrictionProvider rp = new RestrictionProviderImpl();
-        Restriction r = rp.createRestriction(PathUtils.ROOT_PATH, REP_ITEM_NAMES, new Value[]{getValueFactory(root).createValue("someName", PropertyType.NAME)});
+        Restriction r = rp.createRestriction(PathUtils.ROOT_PATH, REP_ITEM_NAMES,
+            new Value[]{getValueFactory(root).createValue("someName", PropertyType.NAME)});
         rp.writeRestrictions(PathUtils.ROOT_PATH, acNode, ImmutableSet.of(r));
 
         try {
@@ -605,7 +650,8 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
     @Test(expected = CommitFailedException.class)
     public void testAddPolicyTreeWithInvalidName() throws Exception {
         Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
-        rootTree.setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES);
+        rootTree.setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REP_ACCESS_CONTROLLABLE),
+            Type.NAMES);
         TreeUtil.addChild(rootTree, "invalidName", NT_REP_ACL);
 
         Validator v = createRootValidator(rootTree);
@@ -625,7 +671,8 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
 
         Validator v = createRootValidator(rootTree);
         try {
-            v.childNodeAdded(policy.getName(), getTreeProvider().asNodeState(policy)).childNodeAdded(entry.getName(), getTreeProvider().asNodeState(entry));
+            v.childNodeAdded(policy.getName(), getTreeProvider().asNodeState(policy))
+             .childNodeAdded(entry.getName(), getTreeProvider().asNodeState(entry));
         } catch (CommitFailedException e) {
             throw assertCommitFailedException(e, CommitFailedException.ACCESS_CONTROL, 9);
         }
@@ -640,7 +687,8 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
 
         Validator v = createRootValidator(rootTree);
         try {
-            v.childNodeAdded(policy.getName(), getTreeProvider().asNodeState(policy)).childNodeAdded(entry.getName(), getTreeProvider().asNodeState(entry));
+            v.childNodeAdded(policy.getName(), getTreeProvider().asNodeState(policy))
+             .childNodeAdded(entry.getName(), getTreeProvider().asNodeState(entry));
         } catch (CommitFailedException e) {
             throw assertCommitFailedException(e, CommitFailedException.ACCESS_CONTROL, 9);
         }
@@ -655,7 +703,8 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
 
         Validator v = createRootValidator(rootTree);
         try {
-            v.childNodeAdded(policy.getName(), getTreeProvider().asNodeState(policy)).childNodeAdded(entry.getName(), getTreeProvider().asNodeState(entry));
+            v.childNodeAdded(policy.getName(), getTreeProvider().asNodeState(policy))
+             .childNodeAdded(entry.getName(), getTreeProvider().asNodeState(entry));
         } catch (CommitFailedException e) {
             throw assertCommitFailedException(e, CommitFailedException.ACCESS_CONTROL, 8);
         }
@@ -670,7 +719,8 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
 
         Validator v = createRootValidator(rootTree);
         try {
-            v.childNodeAdded(policy.getName(), getTreeProvider().asNodeState(policy)).childNodeAdded(entry.getName(), getTreeProvider().asNodeState(entry));
+            v.childNodeAdded(policy.getName(), getTreeProvider().asNodeState(policy))
+             .childNodeAdded(entry.getName(), getTreeProvider().asNodeState(entry));
         } catch (CommitFailedException e) {
             throw assertCommitFailedException(e, CommitFailedException.ACCESS_CONTROL, 8);
         }

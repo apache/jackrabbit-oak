@@ -38,7 +38,7 @@ public class AsyncLaneSwitcherTest {
     private NodeBuilder builder = EMPTY_NODE.builder();
 
     @Test
-    public void switchNone() throws Exception{
+    public void switchNone() throws Exception {
         AsyncLaneSwitcher.switchLane(builder, "foo");
 
         PropertyState previous = builder.getProperty(AsyncLaneSwitcher.ASYNC_PREVIOUS);
@@ -47,7 +47,7 @@ public class AsyncLaneSwitcherTest {
     }
 
     @Test
-    public void switchSingleAsync() throws Exception{
+    public void switchSingleAsync() throws Exception {
         builder.setProperty(ASYNC_PROPERTY_NAME, "async");
 
         AsyncLaneSwitcher.switchLane(builder, "foo");
@@ -58,7 +58,7 @@ public class AsyncLaneSwitcherTest {
     }
 
     @Test
-    public void switchAsyncArray() throws Exception{
+    public void switchAsyncArray() throws Exception {
         builder.setProperty(ASYNC_PROPERTY_NAME, asList("async", "nrt"), Type.STRINGS);
 
         AsyncLaneSwitcher.switchLane(builder, "foo");
@@ -69,7 +69,7 @@ public class AsyncLaneSwitcherTest {
     }
 
     @Test
-    public void multipleSwitch() throws Exception{
+    public void multipleSwitch() throws Exception {
         builder.setProperty(ASYNC_PROPERTY_NAME, "async");
 
         AsyncLaneSwitcher.switchLane(builder, "foo");
@@ -81,7 +81,7 @@ public class AsyncLaneSwitcherTest {
     }
 
     @Test
-    public void revert() throws Exception{
+    public void revert() throws Exception {
         builder.setProperty(ASYNC_PROPERTY_NAME, "async");
 
         AsyncLaneSwitcher.switchLane(builder, "foo");
@@ -93,7 +93,7 @@ public class AsyncLaneSwitcherTest {
     }
 
     @Test
-    public void revert_Sync() throws Exception{
+    public void revert_Sync() throws Exception {
         AsyncLaneSwitcher.switchLane(builder, "foo");
 
         AsyncLaneSwitcher.revertSwitch(builder, "/fooIndex");
@@ -102,7 +102,7 @@ public class AsyncLaneSwitcherTest {
     }
 
     @Test
-    public void switchAndRevertMulti() throws Exception{
+    public void switchAndRevertMulti() throws Exception {
         builder.setProperty(ASYNC_PROPERTY_NAME, asList("async", "nrt"), Type.STRINGS);
 
         AsyncLaneSwitcher.switchLane(builder, "foo");

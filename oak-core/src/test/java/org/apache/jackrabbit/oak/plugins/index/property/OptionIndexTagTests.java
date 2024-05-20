@@ -35,16 +35,16 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.junit.Test;
 
 public class OptionIndexTagTests extends AbstractQueryTest {
-    
+
     Whiteboard wb;
-    
+
     @Override
     protected ContentRepository createRepository() {
         Oak oak = new Oak().with(new InitialContent())
-            .with(new OpenSecurityProvider())
-            .with(new NodeTypeIndexProvider())
-            .with(new PropertyIndexProvider())
-            .with(new PropertyIndexEditorProvider());
+                           .with(new OpenSecurityProvider())
+                           .with(new NodeTypeIndexProvider())
+                           .with(new PropertyIndexProvider())
+                           .with(new PropertyIndexEditorProvider());
         return oak.createContentRepository();
     }
 
@@ -70,14 +70,14 @@ public class OptionIndexTagTests extends AbstractQueryTest {
         statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1 option(index tag x, index name nodetype)";
         result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
         assertTrue(result, result.indexOf("/* property uuid") >= 0);
-        
+
         statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1 option(index tag y, index name nodetype)";
         result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
         assertTrue(result, result.indexOf("/* nodeType") >= 0);
         statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1 option(index name nodetype)";
         result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
         assertTrue(result, result.indexOf("/* nodeType") >= 0);
-        
+
         statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1 option(index tag y)";
         result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
         assertTrue(result, result.indexOf("/* traverse") >= 0);

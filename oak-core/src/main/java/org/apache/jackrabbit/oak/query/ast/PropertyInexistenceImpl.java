@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Collections;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -28,23 +27,26 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 /**
  * A condition to check if the property does not exist ("is null").
  * <p>
- * For Jackrabbit 2.x compatibility: if the property is relative (as in
- * "child/propertyName"), then this requires that the given child node exists.
+ * For Jackrabbit 2.x compatibility: if the property is relative (as in "child/propertyName"), then
+ * this requires that the given child node exists.
  */
 public class PropertyInexistenceImpl extends ConstraintImpl {
+
     //OAK-6838
-    private final boolean USE_OLD_INEXISTENCE_CHECK = Boolean.getBoolean("oak.useOldInexistenceCheck");
+    private final boolean USE_OLD_INEXISTENCE_CHECK = Boolean.getBoolean(
+        "oak.useOldInexistenceCheck");
 
     private final String selectorName;
     private final String propertyName;
     private SelectorImpl selector;
 
-    public PropertyInexistenceImpl(SelectorImpl selector, String selectorName, String propertyName) {
+    public PropertyInexistenceImpl(SelectorImpl selector, String selectorName,
+        String propertyName) {
         this.selector = selector;
         this.selectorName = selectorName;
         this.propertyName = propertyName;
     }
-    
+
     public PropertyInexistenceImpl(String selectorName, String propertyName) {
         this.selectorName = selectorName;
         this.propertyName = propertyName;
@@ -87,7 +89,7 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
         return Collections.emptySet();
     }
-    
+
     @Override
     public Set<SelectorImpl> getSelectors() {
         return Collections.singleton(selector);
@@ -124,7 +126,7 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
         if (f.getSelector().equals(selector)) {
             String pn = normalizePropertyName(propertyName);
             f.restrictProperty(pn, Operator.EQUAL, null);
-        }        
+        }
     }
 
     @Override
@@ -136,7 +138,7 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
             // for example in:
             // "select * from a left outer join b on a.x = b.y
             // where b.y is null"
-            // must not check for "b.y is null" too early, 
+            // must not check for "b.y is null" too early,
             // because that would alter the result
             return;
         }
@@ -144,12 +146,12 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
             s.restrictSelector(this);
         }
     }
-    
+
     @Override
     public int hashCode() {
         String pn = normalizePropertyName(propertyName);
         return ((selectorName == null) ? 0 : selectorName.hashCode()) * 31 +
-                ((pn == null) ? 0 : pn.hashCode());
+            ((pn == null) ? 0 : pn.hashCode());
     }
 
     @Override
@@ -167,7 +169,7 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
         String pn2 = normalizePropertyName(other.propertyName);
         return equalsStrings(pn, pn2);
     }
-    
+
     private static boolean equalsStrings(String a, String b) {
         return a == null || b == null ? a == b : a.equals(b);
     }

@@ -65,9 +65,9 @@ public class UserQueryManager {
     private final Root root;
 
     public UserQueryManager(@NotNull UserManagerImpl userManager,
-                            @NotNull NamePathMapper namePathMapper,
-                            @NotNull ConfigurationParameters config,
-                            @NotNull Root root) {
+        @NotNull NamePathMapper namePathMapper,
+        @NotNull ConfigurationParameters config,
+        @NotNull Root root) {
         this.userManager = userManager;
         this.namePathMapper = namePathMapper;
         this.config = config;
@@ -82,7 +82,8 @@ public class UserQueryManager {
      * @throws RepositoryException If an error occurs.
      */
     @NotNull
-    public Iterator<Authorizable> findAuthorizables(@NotNull Query query) throws RepositoryException {
+    public Iterator<Authorizable> findAuthorizables(@NotNull Query query)
+        throws RepositoryException {
         XPathQueryBuilder builder = new XPathQueryBuilder();
         query.build(builder);
 
@@ -94,11 +95,13 @@ public class UserQueryManager {
         final String groupId = builder.getGroupID();
         if (groupId == null || isEveryone(groupId)) {
             long offset = builder.getOffset();
-            Iterator<Authorizable> result = findAuthorizables(statement, builder.getMaxCount(), offset, null);
+            Iterator<Authorizable> result = findAuthorizables(statement, builder.getMaxCount(),
+                offset, null);
             if (groupId == null) {
                 return result;
             } else {
-                return Iterators.filter(result, authorizable -> !groupId.equals(getID(authorizable)));
+                return Iterators.filter(result,
+                    authorizable -> !groupId.equals(getID(authorizable)));
             }
         } else {
             // filtering by group name included in query -> enforce offset and limit on the result set.
@@ -110,57 +113,60 @@ public class UserQueryManager {
                 filter = new GroupPredicate(userManager, groupId, false);
 
             }
-            return ResultIterator.create(builder.getOffset(), builder.getMaxCount(), Iterators.filter(result, filter));
+            return ResultIterator.create(builder.getOffset(), builder.getMaxCount(),
+                Iterators.filter(result, filter));
         }
     }
 
     /**
-     * Find the authorizables matching the following search parameters within
-     * the sub-tree defined by an authorizable tree:
+     * Find the authorizables matching the following search parameters within the sub-tree defined
+     * by an authorizable tree:
      *
-     * @param relPath          A relative path (or a name) pointing to properties within
-     *                         the tree defined by a given authorizable node.
+     * @param relPath          A relative path (or a name) pointing to properties within the tree
+     *                         defined by a given authorizable node.
      * @param value            The property value to look for.
-     * @param authorizableType Filter the search results to only return authorizable
-     *                         trees of a given type. Passing {@link org.apache.jackrabbit.oak.spi.security.user.AuthorizableType#AUTHORIZABLE} indicates that
-     *                         no filtering for a specific authorizable type is desired. However, properties
-     *                         might still be search in the complete sub-tree of authorizables depending
-     *                         on the other query parameters.
-     * @return An iterator of authorizable trees that match the specified
-     *         search parameters and filters or an empty iterator if no result can be
-     *         found.
+     * @param authorizableType Filter the search results to only return authorizable trees of a
+     *                         given type. Passing
+     *                         {@link
+     *                         org.apache.jackrabbit.oak.spi.security.user.AuthorizableType#AUTHORIZABLE}
+     *                         indicates that no filtering for a specific authorizable type is
+     *                         desired. However, properties might still be search in the complete
+     *                         sub-tree of authorizables depending on the other query parameters.
+     * @return An iterator of authorizable trees that match the specified search parameters and
+     * filters or an empty iterator if no result can be found.
      * @throws javax.jcr.RepositoryException If an error occurs.
      */
     @NotNull
     public Iterator<Authorizable> findAuthorizables(@NotNull String relPath,
-                                                    @Nullable String value,
-                                                    @NotNull AuthorizableType authorizableType) throws RepositoryException {
+        @Nullable String value,
+        @NotNull AuthorizableType authorizableType) throws RepositoryException {
         return findAuthorizables(relPath, value, authorizableType, true);
     }
 
     /**
-     * Find the authorizables matching the following search parameters within
-     * the sub-tree defined by an authorizable tree:
+     * Find the authorizables matching the following search parameters within the sub-tree defined
+     * by an authorizable tree:
      *
-     * @param relPath          A relative path (or a name) pointing to properties within
-     *                         the tree defined by a given authorizable node.
+     * @param relPath          A relative path (or a name) pointing to properties within the tree
+     *                         defined by a given authorizable node.
      * @param value            The property value to look for.
-     * @param authorizableType Filter the search results to only return authorizable
-     *                         trees of a given type. Passing {@link org.apache.jackrabbit.oak.spi.security.user.AuthorizableType#AUTHORIZABLE} indicates that
-     *                         no filtering for a specific authorizable type is desired. However, properties
-     *                         might still be search in the complete sub-tree of authorizables depending
-     *                         on the other query parameters.
+     * @param authorizableType Filter the search results to only return authorizable trees of a
+     *                         given type. Passing
+     *                         {@link
+     *                         org.apache.jackrabbit.oak.spi.security.user.AuthorizableType#AUTHORIZABLE}
+     *                         indicates that no filtering for a specific authorizable type is
+     *                         desired. However, properties might still be search in the complete
+     *                         sub-tree of authorizables depending on the other query parameters.
      * @param exact            A boolean flag indicating if the value must match exactly or not.s
-     * @return An iterator of authorizable trees that match the specified
-     *         search parameters and filters or an empty iterator if no result can be
-     *         found.
+     * @return An iterator of authorizable trees that match the specified search parameters and
+     * filters or an empty iterator if no result can be found.
      * @throws javax.jcr.RepositoryException If an error occurs.
      */
     @NotNull
     public Iterator<Authorizable> findAuthorizables(@NotNull String relPath,
-                                                    @Nullable String value,
-                                                    @NotNull AuthorizableType authorizableType,
-                                                    boolean exact) throws RepositoryException {
+        @Nullable String value,
+        @NotNull AuthorizableType authorizableType,
+        boolean exact) throws RepositoryException {
         String statement = buildXPathStatement(relPath, value, authorizableType, exact);
         return findAuthorizables(statement, Long.MAX_VALUE, 0, authorizableType);
     }
@@ -168,8 +174,8 @@ public class UserQueryManager {
     //------------------------------------------------------------< private >---
     @NotNull
     private String buildXPathStatement(@NotNull String relPath,
-                                       @Nullable String value,
-                                       @NotNull AuthorizableType type, boolean exact) {
+        @Nullable String value,
+        @NotNull AuthorizableType type, boolean exact) {
         String searchRoot = namePathMapper.getJcrPath(QueryUtil.getSearchRoot(type, config));
         StringBuilder stmt = new StringBuilder().append(searchRoot);
 
@@ -183,7 +189,8 @@ public class UserQueryManager {
             ntName = null;
         } else {
             path = getQueryPath(relPath);
-            ntName = (path == null) ? namePathMapper.getJcrName(QueryUtil.getNodeTypeName(type)) : null;
+            ntName =
+                (path == null) ? namePathMapper.getJcrName(QueryUtil.getNodeTypeName(type)) : null;
         }
 
         stmt.append("//");
@@ -217,7 +224,8 @@ public class UserQueryManager {
     }
 
     @NotNull
-    private String buildXPathStatement(@NotNull XPathQueryBuilder builder) throws RepositoryException {
+    private String buildXPathStatement(@NotNull XPathQueryBuilder builder)
+        throws RepositoryException {
         Condition condition = builder.getCondition();
         String sortCol = builder.getSortProperty();
         QueryBuilder.Direction sortDir = builder.getSortDirection();
@@ -227,7 +235,8 @@ public class UserQueryManager {
             if (sortCol == null) {
                 log.warn("Ignoring bound {} since no sort order is specified", bound);
             } else {
-                Condition boundCondition = builder.property(sortCol, QueryUtil.getCollation(sortDir), bound);
+                Condition boundCondition = builder.property(sortCol,
+                    QueryUtil.getCollation(sortDir), bound);
                 if (condition == null) {
                     condition = boundCondition;
                 } else {
@@ -237,13 +246,16 @@ public class UserQueryManager {
         }
 
         StringBuilder statement = new StringBuilder();
- 
-        String searchRoot = namePathMapper.getJcrPath(QueryUtil.getSearchRoot(builder.getSelectorType(), config));
-        String ntName = namePathMapper.getJcrName(QueryUtil.getNodeTypeName(builder.getSelectorType()));
+
+        String searchRoot = namePathMapper.getJcrPath(
+            QueryUtil.getSearchRoot(builder.getSelectorType(), config));
+        String ntName = namePathMapper.getJcrName(
+            QueryUtil.getNodeTypeName(builder.getSelectorType()));
         statement.append(searchRoot).append("//element(*,").append(ntName).append(')');
 
         if (condition != null) {
-            ConditionVisitor visitor = new XPathConditionVisitor(statement, namePathMapper, userManager);
+            ConditionVisitor visitor = new XPathConditionVisitor(statement, namePathMapper,
+                userManager);
             statement.append('[');
             condition.accept(visitor);
             statement.append(']');
@@ -265,18 +277,19 @@ public class UserQueryManager {
 
     @NotNull
     private Iterator<Authorizable> findAuthorizables(@NotNull String statement,
-                                                     long limit,
-                                                     long offset,
-                                                     @Nullable AuthorizableType type) throws RepositoryException {
+        long limit,
+        long offset,
+        @Nullable AuthorizableType type) throws RepositoryException {
         try {
             Result query = root.getQueryEngine().executeQuery(
-                    statement, javax.jcr.query.Query.XPATH, limit, offset,
-                    NO_BINDINGS, namePathMapper.getSessionLocalMappings());
+                statement, javax.jcr.query.Query.XPATH, limit, offset,
+                NO_BINDINGS, namePathMapper.getSessionLocalMappings());
             Iterable<? extends ResultRow> resultRows = query.getRows();
-            Iterator<Authorizable> authorizables = Iterators.transform(resultRows.iterator(), new ResultRowToAuthorizable(userManager, root, type, query.getSelectorNames()));
+            Iterator<Authorizable> authorizables = Iterators.transform(resultRows.iterator(),
+                new ResultRowToAuthorizable(userManager, root, type, query.getSelectorNames()));
             return Iterators.filter(authorizables, new UniqueResultPredicate());
         } catch (ParseException e) {
-            throw new RepositoryException("Invalid user query "+statement, e);
+            throw new RepositoryException("Invalid user query " + statement, e);
         }
     }
 
@@ -302,7 +315,8 @@ public class UserQueryManager {
     }
 
     private static boolean isReserved(@NotNull String propName) {
-        return UserConstants.GROUP_PROPERTY_NAMES.contains(propName) || UserConstants.USER_PROPERTY_NAMES.contains(propName);
+        return UserConstants.GROUP_PROPERTY_NAMES.contains(propName)
+            || UserConstants.USER_PROPERTY_NAMES.contains(propName);
     }
 
     private boolean isEveryone(@NotNull String groupId) throws RepositoryException {
@@ -316,8 +330,7 @@ public class UserQueryManager {
     }
 
     /**
-     * Predicate asserting that a given user/group is only included once in the
-     * result set.
+     * Predicate asserting that a given user/group is only included once in the result set.
      */
     private static final class UniqueResultPredicate implements Predicate<Authorizable> {
 

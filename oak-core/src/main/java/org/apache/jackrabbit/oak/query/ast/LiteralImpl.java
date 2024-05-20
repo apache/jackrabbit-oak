@@ -19,9 +19,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Locale;
-
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.SQL2Parser;
@@ -56,7 +54,7 @@ public class LiteralImpl extends StaticOperandImpl {
         // TODO namespace remapping?
         return value;
     }
-    
+
     @Override
     int getPropertyType() {
         PropertyValue v = currentValue();

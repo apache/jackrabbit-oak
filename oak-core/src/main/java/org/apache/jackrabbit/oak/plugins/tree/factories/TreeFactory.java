@@ -26,14 +26,14 @@ import org.jetbrains.annotations.NotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 /**
- * Factory to obtain {@code Tree} objects from {@code NodeState}s
- * and {@code NodeBuilder}s.
+ * Factory to obtain {@code Tree} objects from {@code NodeState}s and {@code NodeBuilder}s.
  *
  * @deprecated Please use {@code TreeProvider} instead
  */
 public final class TreeFactory {
 
-    private TreeFactory() {}
+    private TreeFactory() {
+    }
 
     public static Tree createTree(@NotNull NodeBuilder builder) {
         return new NodeBuilderTree("", builder);
@@ -43,7 +43,8 @@ public final class TreeFactory {
         return new ImmutableTree(rootState);
     }
 
-    public static Tree createReadOnlyTree(@NotNull Tree readOnlyParent, @NotNull String childName, @NotNull NodeState childState) {
+    public static Tree createReadOnlyTree(@NotNull Tree readOnlyParent, @NotNull String childName,
+        @NotNull NodeState childState) {
         checkArgument(readOnlyParent instanceof ImmutableTree);
         return new ImmutableTree((ImmutableTree) readOnlyParent, childName, childState);
     }

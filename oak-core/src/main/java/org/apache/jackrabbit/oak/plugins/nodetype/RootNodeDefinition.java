@@ -39,7 +39,7 @@ final class RootNodeDefinition implements NodeDefinition {
     @Override
     public NodeType[] getRequiredPrimaryTypes() {
         try {
-            return new NodeType[] {ntManager.getNodeType(REP_ROOT)};
+            return new NodeType[]{ntManager.getNodeType(REP_ROOT)};
         } catch (RepositoryException e) {
             return new NodeType[0];
         }
@@ -47,7 +47,7 @@ final class RootNodeDefinition implements NodeDefinition {
 
     @Override
     public String[] getRequiredPrimaryTypeNames() {
-        return new String[] {REP_ROOT};
+        return new String[]{REP_ROOT};
     }
 
     @Override

@@ -30,7 +30,8 @@ public class InternalTreePermissonTest {
 
     @Test
     public void testGetChildPermission() {
-        assertSame(InternalTreePermission.INSTANCE, InternalTreePermission.INSTANCE.getChildPermission("name", mock(NodeState.class)));
+        assertSame(InternalTreePermission.INSTANCE,
+            InternalTreePermission.INSTANCE.getChildPermission("name", mock(NodeState.class)));
     }
 
     @Test
@@ -41,27 +42,32 @@ public class InternalTreePermissonTest {
     @Test
     public void testCanReadProperty() {
         PropertyState prop = mock(PropertyState.class);
-        assertEquals(TreePermission.EMPTY.canRead(prop), InternalTreePermission.INSTANCE.canRead(prop));
+        assertEquals(TreePermission.EMPTY.canRead(prop),
+            InternalTreePermission.INSTANCE.canRead(prop));
     }
 
     @Test
     public void testCanReadAll() {
-        assertEquals(TreePermission.EMPTY.canReadAll(), InternalTreePermission.INSTANCE.canReadAll());
+        assertEquals(TreePermission.EMPTY.canReadAll(),
+            InternalTreePermission.INSTANCE.canReadAll());
     }
 
     @Test
     public void testCanReadProperties() {
-        assertEquals(TreePermission.EMPTY.canReadProperties(), InternalTreePermission.INSTANCE.canReadProperties());
+        assertEquals(TreePermission.EMPTY.canReadProperties(),
+            InternalTreePermission.INSTANCE.canReadProperties());
     }
 
     @Test
     public void testIsGranted() {
-        assertEquals(TreePermission.EMPTY.isGranted(Permissions.READ_NODE), InternalTreePermission.INSTANCE.isGranted(Permissions.READ_NODE));
+        assertEquals(TreePermission.EMPTY.isGranted(Permissions.READ_NODE),
+            InternalTreePermission.INSTANCE.isGranted(Permissions.READ_NODE));
     }
 
     @Test
     public void testIsGrantedProperty() {
         PropertyState prop = mock(PropertyState.class);
-        assertEquals(TreePermission.EMPTY.isGranted(Permissions.READ_PROPERTY, prop), InternalTreePermission.INSTANCE.isGranted(Permissions.READ_PROPERTY, prop));
+        assertEquals(TreePermission.EMPTY.isGranted(Permissions.READ_PROPERTY, prop),
+            InternalTreePermission.INSTANCE.isGranted(Permissions.READ_PROPERTY, prop));
     }
 }

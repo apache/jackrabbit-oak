@@ -132,17 +132,18 @@ public class UserInitializerTest extends AbstractSecurityTest {
 
         Tree princName = oakIndex.getChild("principalName");
         assertIndexDefinition(princName, UserConstants.REP_PRINCIPAL_NAME, true);
-        Iterable<String> declaringNtNames = TreeUtil.getStrings(princName, IndexConstants.DECLARING_NODE_TYPES);
+        Iterable<String> declaringNtNames = TreeUtil.getStrings(princName,
+            IndexConstants.DECLARING_NODE_TYPES);
         assertArrayEquals(
-                new String[]{UserConstants.NT_REP_AUTHORIZABLE},
-                Iterables.toArray(declaringNtNames, String.class));
+            new String[]{UserConstants.NT_REP_AUTHORIZABLE},
+            Iterables.toArray(declaringNtNames, String.class));
 
         Tree repMembers = oakIndex.getChild("repMembers");
         assertIndexDefinition(repMembers, UserConstants.REP_MEMBERS, false);
         declaringNtNames = TreeUtil.getStrings(repMembers, IndexConstants.DECLARING_NODE_TYPES);
         assertArrayEquals(
-                new String[]{UserConstants.NT_REP_MEMBER_REFERENCES},
-                Iterables.toArray(declaringNtNames, String.class));
+            new String[]{UserConstants.NT_REP_MEMBER_REFERENCES},
+            Iterables.toArray(declaringNtNames, String.class));
     }
 
     private static void assertIndexDefinition(Tree tree, String propName, boolean isUnique) {
@@ -150,30 +151,32 @@ public class UserInitializerTest extends AbstractSecurityTest {
 
         assertEquals(isUnique, TreeUtil.getBoolean(tree, IndexConstants.UNIQUE_PROPERTY_NAME));
         assertArrayEquals(
-                propName, new String[]{propName},
-                Iterables.toArray(TreeUtil.getStrings(tree, IndexConstants.PROPERTY_NAMES), String.class));
+            propName, new String[]{propName},
+            Iterables.toArray(TreeUtil.getStrings(tree, IndexConstants.PROPERTY_NAMES),
+                String.class));
     }
 
     /**
-     * @since OAK 1.0 The configuration defines if the password of the
-     * admin user is being set.
+     * @since OAK 1.0 The configuration defines if the password of the admin user is being set.
      */
     @Test
     public void testAdminConfiguration() throws Exception {
-        Map<String,Object> userParams = new HashMap<>();
+        Map<String, Object> userParams = new HashMap<>();
         userParams.put(UserConstants.PARAM_ADMIN_ID, "admin");
         userParams.put(UserConstants.PARAM_OMIT_ADMIN_PW, true);
 
-        ConfigurationParameters params = ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams));
+        ConfigurationParameters params = ConfigurationParameters.of(UserConfiguration.NAME,
+            ConfigurationParameters.of(userParams));
         SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(params).build();
         final ContentRepository repo = new Oak().with(new InitialContent())
-                .with(new PropertyIndexEditorProvider())
-                .with(new PropertyIndexProvider())
-                .with(new TypeEditorProvider())
-                .with(sp)
-                .createContentRepository();
+                                                .with(new PropertyIndexEditorProvider())
+                                                .with(new PropertyIndexProvider())
+                                                .with(new TypeEditorProvider())
+                                                .with(sp)
+                                                .createContentRepository();
 
-        try (ContentSession cs = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repo.login(null, null))) {
+        try (ContentSession cs = Subject.doAs(SystemSubject.INSTANCE,
+            (PrivilegedExceptionAction<ContentSession>) () -> repo.login(null, null))) {
             Root root = cs.getLatestRoot();
             UserConfiguration uc = sp.getConfiguration(UserConfiguration.class);
             UserManager umgr = uc.getUserManager(root, NamePathMapper.DEFAULT);
@@ -186,7 +189,8 @@ public class UserInitializerTest extends AbstractSecurityTest {
         }
 
         // login as admin should fail
-        try (ContentSession adminSession = repo.login(new SimpleCredentials("admin", new char[0]), null)) {
+        try (ContentSession adminSession = repo.login(new SimpleCredentials("admin", new char[0]),
+            null)) {
             fail();
         } catch (LoginException e) {
             //success
@@ -198,19 +202,21 @@ public class UserInitializerTest extends AbstractSecurityTest {
      */
     @Test
     public void testAnonymousConfiguration() throws Exception {
-        Map<String,Object> userParams = new HashMap<>();
+        Map<String, Object> userParams = new HashMap<>();
         userParams.put(UserConstants.PARAM_ANONYMOUS_ID, "");
 
-        ConfigurationParameters params = ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams));
+        ConfigurationParameters params = ConfigurationParameters.of(UserConfiguration.NAME,
+            ConfigurationParameters.of(userParams));
         SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(params).build();
         final ContentRepository repo = new Oak().with(new InitialContent())
-                .with(new PropertyIndexEditorProvider())
-                .with(new PropertyIndexProvider())
-                .with(new TypeEditorProvider())
-                .with(sp)
-                .createContentRepository();
+                                                .with(new PropertyIndexEditorProvider())
+                                                .with(new PropertyIndexProvider())
+                                                .with(new TypeEditorProvider())
+                                                .with(sp)
+                                                .createContentRepository();
 
-        try (ContentSession cs = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repo.login(null, null))) {
+        try (ContentSession cs = Subject.doAs(SystemSubject.INSTANCE,
+            (PrivilegedExceptionAction<ContentSession>) () -> repo.login(null, null))) {
             Root root = cs.getLatestRoot();
             UserConfiguration uc = sp.getConfiguration(UserConfiguration.class);
             UserManager umgr = uc.getUserManager(root, NamePathMapper.DEFAULT);
@@ -228,7 +234,8 @@ public class UserInitializerTest extends AbstractSecurityTest {
 
     @Test
     public void testSecondInit() {
-        NodeBuilder builder = spy(getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)).builder());
+        NodeBuilder builder = spy(
+            getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)).builder());
 
         UserInitializer ui = new UserInitializer(getSecurityProvider());
         ui.initialize(builder, adminSession.getWorkspaceName());

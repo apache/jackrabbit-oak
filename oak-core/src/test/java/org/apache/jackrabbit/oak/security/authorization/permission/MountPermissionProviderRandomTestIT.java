@@ -37,7 +37,7 @@ public class MountPermissionProviderRandomTestIT extends AbstractPermissionRando
     public void before() throws Exception {
         super.before();
 
-        String[] mpxs = new String[] { Iterators.get(allowU.iterator(), allowU.size() / 2) };
+        String[] mpxs = new String[]{Iterators.get(allowU.iterator(), allowU.size() / 2)};
         Mounts.Builder builder = Mounts.newBuilder();
         int i = 0;
         for (String p : mpxs) {
@@ -48,11 +48,14 @@ public class MountPermissionProviderRandomTestIT extends AbstractPermissionRando
     }
 
     @Override
-    protected PermissionProvider candidatePermissionProvider(@NotNull Root root, @NotNull String workspaceName,
-            @NotNull Set<Principal> principals) {
+    protected PermissionProvider candidatePermissionProvider(@NotNull Root root,
+        @NotNull String workspaceName,
+        @NotNull Set<Principal> principals) {
         SecurityProvider sp = SecurityProviderBuilder.newBuilder().build();
-        AuthorizationConfiguration acConfig = MountUtils.bindMountInfoProvider(sp, mountInfoProvider);
-        PermissionProvider composite = acConfig.getPermissionProvider(root, workspaceName, principals);
+        AuthorizationConfiguration acConfig = MountUtils.bindMountInfoProvider(sp,
+            mountInfoProvider);
+        PermissionProvider composite = acConfig.getPermissionProvider(root, workspaceName,
+            principals);
         Assert.assertTrue(composite instanceof MountPermissionProvider);
         return composite;
     }

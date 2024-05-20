@@ -32,8 +32,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 /**
- * Additional tests for PrivilegeBitsProvider based on the default privileges
- * installed by {@link PrivilegeInitializer} during the default security setup.
+ * Additional tests for PrivilegeBitsProvider based on the default privileges installed by
+ * {@link PrivilegeInitializer} during the default security setup.
  */
 public class PrivilegeBitsProviderTest extends AbstractSecurityTest implements PrivilegeConstants {
 
@@ -68,9 +68,9 @@ public class PrivilegeBitsProviderTest extends AbstractSecurityTest implements P
     @Test
     public void testAggregation() throws RepositoryException {
         PrivilegeBits writeBits = bitsProvider.getBits(JCR_ADD_CHILD_NODES,
-                JCR_REMOVE_CHILD_NODES,
-                JCR_REMOVE_NODE,
-                JCR_MODIFY_PROPERTIES);
+            JCR_REMOVE_CHILD_NODES,
+            JCR_REMOVE_NODE,
+            JCR_MODIFY_PROPERTIES);
         Set<String> names = bitsProvider.getPrivilegeNames(writeBits);
         assertEquals(1, names.size());
         assertEquals(JCR_WRITE, names.iterator().next());
@@ -106,12 +106,14 @@ public class PrivilegeBitsProviderTest extends AbstractSecurityTest implements P
 
     @Test
     public void testGetAggregatedNamesJcrAll() throws Exception {
-        assertEquals(NON_AGGREGATE_PRIVILEGES, ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames(JCR_ALL)));
+        assertEquals(NON_AGGREGATE_PRIVILEGES,
+            ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames(JCR_ALL)));
     }
 
     @Test
     public void testGetAggregatedNamesIncludingJcrAll() throws Exception {
-        assertEquals(NON_AGGREGATE_PRIVILEGES, ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames(JCR_READ, JCR_WRITE, JCR_ALL)));
+        assertEquals(NON_AGGREGATE_PRIVILEGES, ImmutableSet.copyOf(
+            bitsProvider.getAggregatedPrivilegeNames(JCR_READ, JCR_WRITE, JCR_ALL)));
     }
 
     @Test
@@ -119,12 +121,15 @@ public class PrivilegeBitsProviderTest extends AbstractSecurityTest implements P
         PrivilegeManager pMgr = getPrivilegeManager(root);
         pMgr.registerPrivilege("test1", true, null);
 
-        assertEquals(ImmutableSet.of("test1"), ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames("test1")));
+        assertEquals(ImmutableSet.of("test1"),
+            ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames("test1")));
 
         Set<String> expected = Sets.newHashSet(NON_AGGREGATE_PRIVILEGES);
         expected.add("test1");
-        assertEquals(expected, ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames(JCR_ALL)));
-        assertEquals(expected, ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames(JCR_ALL)));
+        assertEquals(expected,
+            ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames(JCR_ALL)));
+        assertEquals(expected,
+            ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames(JCR_ALL)));
 
     }
 }

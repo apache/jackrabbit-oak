@@ -36,21 +36,27 @@ public class UserImporterImpersonationBestEffortTest extends UserImporterImperso
     }
 
     public void testUnknownImpersonators() throws Exception {
-        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS, "impersonator1", "impersonator2"), mockPropertyDefinition(NT_REP_USER, true)));
+        assertTrue(importer.handlePropInfo(userTree,
+            createPropInfo(REP_IMPERSONATORS, "impersonator1", "impersonator2"),
+            mockPropertyDefinition(NT_REP_USER, true)));
         importer.processReferences();
 
         PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
         assertNotNull(impersonators);
-        assertEquals(ImmutableSet.of("impersonator1", "impersonator2"), ImmutableSet.copyOf(impersonators.getValue(Type.STRINGS)));
+        assertEquals(ImmutableSet.of("impersonator1", "impersonator2"),
+            ImmutableSet.copyOf(impersonators.getValue(Type.STRINGS)));
     }
 
     @Test
     public void testMixedImpersonators() throws Exception {
-        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS, "impersonator1", testUser.getPrincipal().getName()), mockPropertyDefinition(NT_REP_USER, true)));
+        assertTrue(importer.handlePropInfo(userTree,
+            createPropInfo(REP_IMPERSONATORS, "impersonator1", testUser.getPrincipal().getName()),
+            mockPropertyDefinition(NT_REP_USER, true)));
         importer.processReferences();
 
         PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
         assertNotNull(impersonators);
-        assertEquals(ImmutableSet.of("impersonator1", testUser.getPrincipal().getName()), ImmutableSet.copyOf(impersonators.getValue(Type.STRINGS)));
+        assertEquals(ImmutableSet.of("impersonator1", testUser.getPrincipal().getName()),
+            ImmutableSet.copyOf(impersonators.getValue(Type.STRINGS)));
     }
 }

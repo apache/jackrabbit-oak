@@ -27,14 +27,15 @@ public class JoinExecutionPlan implements ExecutionPlan {
     private final JoinImpl join;
     private final ExecutionPlan leftPlan, rightPlan;
     private final double estimatedCost;
-    
-    public JoinExecutionPlan(JoinImpl join, ExecutionPlan leftPlan, ExecutionPlan rightPlan, double estimatedCost) {
+
+    public JoinExecutionPlan(JoinImpl join, ExecutionPlan leftPlan, ExecutionPlan rightPlan,
+        double estimatedCost) {
         this.join = join;
         this.leftPlan = leftPlan;
         this.rightPlan = rightPlan;
         this.estimatedCost = estimatedCost;
     }
-    
+
     @Override
     public double getEstimatedCost() {
         return estimatedCost;

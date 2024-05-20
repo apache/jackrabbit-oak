@@ -46,7 +46,8 @@ public class GroupActionTest extends AbstractSecurityTest {
     private static final String TEST_USER_PREFIX = "testUser";
 
     final GroupAction groupAction = mock(GroupAction.class);
-    private final AuthorizableActionProvider actionProvider = securityProvider -> ImmutableList.of(groupAction);
+    private final AuthorizableActionProvider actionProvider = securityProvider -> ImmutableList.of(
+        groupAction);
 
     private User testUser01;
     private User testUser02;
@@ -85,8 +86,8 @@ public class GroupActionTest extends AbstractSecurityTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         ConfigurationParameters userParams = ConfigurationParameters.of(
-                UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider,
-                ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior()
+            UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider,
+            ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior()
         );
         return ConfigurationParameters.of(UserConfiguration.NAME, userParams);
     }
@@ -100,7 +101,8 @@ public class GroupActionTest extends AbstractSecurityTest {
         testUser01 = getUserManager(root).createUser(TEST_USER_PREFIX + "01", "");
 
         testGroup.addMember(testUser01);
-        verify(groupAction, times(1)).onMemberAdded(testGroup, testUser01, root, getNamePathMapper());
+        verify(groupAction, times(1)).onMemberAdded(testGroup, testUser01, root,
+            getNamePathMapper());
     }
 
     @Test
@@ -110,7 +112,8 @@ public class GroupActionTest extends AbstractSecurityTest {
         root.commit();
 
         testGroup.removeMember(testUser01);
-        verify(groupAction, times(1)).onMemberRemoved(testGroup, testUser01, root, getNamePathMapper());
+        verify(groupAction, times(1)).onMemberRemoved(testGroup, testUser01, root,
+            getNamePathMapper());
     }
 
     @Test
@@ -125,7 +128,8 @@ public class GroupActionTest extends AbstractSecurityTest {
 
         testGroup.addMembers(Iterables.toArray(ids, String.class));
 
-        verify(groupAction, times(1)).onMembersAdded(testGroup, memberIds, failedIds, root, getNamePathMapper());
+        verify(groupAction, times(1)).onMembersAdded(testGroup, memberIds, failedIds, root,
+            getNamePathMapper());
     }
 
     @Test
@@ -133,7 +137,8 @@ public class GroupActionTest extends AbstractSecurityTest {
         Set<String> nonExisting = ImmutableSet.of("blinder", "passagier");
 
         testGroup.addMembers(nonExisting.toArray(new String[0]));
-        verify(groupAction, times(1)).onMembersAdded(testGroup, Collections.emptySet(), nonExisting, root, getNamePathMapper());
+        verify(groupAction, times(1)).onMembersAdded(testGroup, Collections.emptySet(), nonExisting,
+            root, getNamePathMapper());
     }
 
     @Test
@@ -147,7 +152,8 @@ public class GroupActionTest extends AbstractSecurityTest {
         Iterable<String> ids = Iterables.concat(memberIds, failedIds);
 
         testGroup.removeMembers(Iterables.toArray(ids, String.class));
-        verify(groupAction, times(1)).onMembersRemoved(testGroup, memberIds, failedIds, root, getNamePathMapper());
+        verify(groupAction, times(1)).onMembersRemoved(testGroup, memberIds, failedIds, root,
+            getNamePathMapper());
     }
 
     @Test
@@ -155,6 +161,7 @@ public class GroupActionTest extends AbstractSecurityTest {
         Set<String> nonExisting = ImmutableSet.of("blinder", "passagier");
 
         testGroup.removeMembers(nonExisting.toArray(new String[0]));
-        verify(groupAction, times(1)).onMembersRemoved(testGroup, Collections.emptySet(), nonExisting, root, getNamePathMapper());
+        verify(groupAction, times(1)).onMembersRemoved(testGroup, Collections.emptySet(),
+            nonExisting, root, getNamePathMapper());
     }
 }

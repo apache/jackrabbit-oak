@@ -36,8 +36,9 @@ public class WhiteboardUserAuthenticationFactoryTest {
     private final Root root = Mockito.mock(Root.class);
     private final UserConfiguration userConfiguration = Mockito.mock(UserConfiguration.class);
 
-    private WhiteboardUserAuthenticationFactory createFactory(@Nullable final UserAuthenticationFactory defaultFactory,
-                                                              @NotNull final String... userIds) {
+    private WhiteboardUserAuthenticationFactory createFactory(
+        @Nullable final UserAuthenticationFactory defaultFactory,
+        @NotNull final String... userIds) {
         return new WhiteboardUserAuthenticationFactory(defaultFactory) {
             @Override
             protected List<UserAuthenticationFactory> getServices() {
@@ -80,7 +81,8 @@ public class WhiteboardUserAuthenticationFactoryTest {
 
     @Test
     public void testDefault() {
-        WhiteboardUserAuthenticationFactory factory = createFactory(new TestUserAuthenticationFactory("abc"));
+        WhiteboardUserAuthenticationFactory factory = createFactory(
+            new TestUserAuthenticationFactory("abc"));
 
         assertNotNull(factory.getAuthentication(getUserConfiguration(), root, "abc"));
         assertNull(factory.getAuthentication(getUserConfiguration(), root, "test"));
@@ -90,7 +92,8 @@ public class WhiteboardUserAuthenticationFactoryTest {
 
     @Test
     public void testMultipleServiceAndDefault() {
-        WhiteboardUserAuthenticationFactory factory = createFactory(new TestUserAuthenticationFactory("abc"), "test", "test2");
+        WhiteboardUserAuthenticationFactory factory = createFactory(
+            new TestUserAuthenticationFactory("abc"), "test", "test2");
 
         assertNull(factory.getAuthentication(getUserConfiguration(), root, "abc"));
 
@@ -109,7 +112,8 @@ public class WhiteboardUserAuthenticationFactoryTest {
         }
 
         @Override
-        public Authentication getAuthentication(@NotNull UserConfiguration configuration, @NotNull Root root, @Nullable String userId) {
+        public Authentication getAuthentication(@NotNull UserConfiguration configuration,
+            @NotNull Root root, @Nullable String userId) {
             if (this.userId.equals(userId)) {
                 return Mockito.mock(Authentication.class);
             } else {

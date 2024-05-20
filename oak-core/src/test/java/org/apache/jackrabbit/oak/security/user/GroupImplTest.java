@@ -165,7 +165,9 @@ public class GroupImplTest extends AbstractUserTest {
     @Test
     public void testImpactOfOak8054AddingMembers() throws Exception {
         Tree groupTree = root.getTree(group.getPath());
-        groupTree.setProperty(REP_MEMBERS, ImmutableList.of(new UserProvider(root, ConfigurationParameters.EMPTY).getContentID(getTestUser().getID())), Type.STRINGS);
+        groupTree.setProperty(REP_MEMBERS, ImmutableList.of(
+            new UserProvider(root, ConfigurationParameters.EMPTY).getContentID(
+                getTestUser().getID())), Type.STRINGS);
         root.commit();
 
         group.addMember(uMgr.createUser("userid", null));
@@ -182,7 +184,9 @@ public class GroupImplTest extends AbstractUserTest {
         User user = uMgr.createUser("userid", null);
         UserProvider up = new UserProvider(root, ConfigurationParameters.EMPTY);
         Tree groupTree = root.getTree(group.getPath());
-        groupTree.setProperty(REP_MEMBERS, ImmutableList.of(up.getContentID(getTestUser().getID()), up.getContentID(user.getID())), Type.STRINGS);
+        groupTree.setProperty(REP_MEMBERS,
+            ImmutableList.of(up.getContentID(getTestUser().getID()), up.getContentID(user.getID())),
+            Type.STRINGS);
         root.commit();
 
         group.removeMembers(user.getID());

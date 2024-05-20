@@ -30,11 +30,12 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 public class AndImplTest {
+
     @Test
     public void simplifyForUnion() {
         ConstraintImpl and, op1, op2, op3, op4;
         Set<ConstraintImpl> expected;
-        
+
         op1 = mock(ComparisonImpl.class);
         op2 = mock(ComparisonImpl.class);
         and = new AndImpl(op1, op2);
@@ -62,17 +63,17 @@ public class AndImplTest {
             , (ConstraintImpl) new AndImpl(op4, op3)
         );
         assertThat(and.convertToUnion(), is(expected));
-}
-    
+    }
+
     /**
-     * convenience method for having better assertion messages 
-     * 
+     * convenience method for having better assertion messages
+     *
      * @param toString the {@link String#toString()} message to be shown. Cannot be null;
-     * @param clazz the class you want Mockito to generate for you.
+     * @param clazz    the class you want Mockito to generate for you.
      * @return a Mockito instance of the provided ConstraintImpl
      */
-    private static ConstraintImpl mockConstraint(@NotNull String toString, 
-                                                 @NotNull Class<? extends ConstraintImpl> clazz) {
+    private static ConstraintImpl mockConstraint(@NotNull String toString,
+        @NotNull Class<? extends ConstraintImpl> clazz) {
         ConstraintImpl c = mock(checkNotNull(clazz));
         when(c.toString()).thenReturn(checkNotNull(toString));
         return c;

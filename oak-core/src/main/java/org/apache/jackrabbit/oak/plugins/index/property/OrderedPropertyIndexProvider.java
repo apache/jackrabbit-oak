@@ -30,28 +30,29 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Component(
-        configurationPolicy = ConfigurationPolicy.REQUIRE,
-        service = QueryIndexProvider.class)
+    configurationPolicy = ConfigurationPolicy.REQUIRE,
+    service = QueryIndexProvider.class)
 public class OrderedPropertyIndexProvider implements QueryIndexProvider {
+
     private static final Logger LOG = LoggerFactory.getLogger(OrderedPropertyIndexProvider.class);
     private static int hits;
     private static int threshold = OrderedIndex.TRACK_DEPRECATION_EVERY;
-    
+
     @Override
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
         if (getHits() % threshold == 0) {
-            LOG.warn(OrderedIndex.DEPRECATION_MESSAGE);            
+            LOG.warn(OrderedIndex.DEPRECATION_MESSAGE);
         }
         return newArrayList();
     }
-    
+
     private synchronized int getHits() {
         return hits++;
     }
-    
+
     /**
      * used only for testing purposes. Not thread safe.
-     * 
+     *
      * @param t
      */
     static void setThreshold(int t) {

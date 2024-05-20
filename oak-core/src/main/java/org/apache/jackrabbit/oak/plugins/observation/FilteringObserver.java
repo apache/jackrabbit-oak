@@ -30,27 +30,26 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * An observer that implements filtering of content changes
- * while at the same time supporting (wrapping) a BackgroundObserver
- * underneath.
+ * An observer that implements filtering of content changes while at the same time supporting
+ * (wrapping) a BackgroundObserver underneath.
  * <p>
- * The FilteringObserver uses an explicit Filter to decide whether
- * or not to forward a content change to the BackgroundObserver.
- * If the Filter decides to include the change things happen as usual.
- * If the Filter decides to exclude the change, this FilteringObserver
- * does not forward the change, but remembers the fact that the last
- * change was filtered. The first included change after excluded ones
- * will cause a NOOP_CHANGE commitInfo to be passed along to the
- * BackgroundObserver. That NOOP_CHANGE is then used by the
- * FilteringDispatcher: if a CommitInfo is a NOOP_CHANGE then the
- * FilteringDispatcher will not forward anything to the FilteringAwareObserver
- * and only adjust the 'before' state accordingly (which it does also
- * for a NOOP_CHANGE, to exactly achieve the skipping effect).
+ * The FilteringObserver uses an explicit Filter to decide whether or not to forward a content
+ * change to the BackgroundObserver. If the Filter decides to include the change things happen as
+ * usual. If the Filter decides to exclude the change, this FilteringObserver does not forward the
+ * change, but remembers the fact that the last change was filtered. The first included change after
+ * excluded ones will cause a NOOP_CHANGE commitInfo to be passed along to the BackgroundObserver.
+ * That NOOP_CHANGE is then used by the FilteringDispatcher: if a CommitInfo is a NOOP_CHANGE then
+ * the FilteringDispatcher will not forward anything to the FilteringAwareObserver and only adjust
+ * the 'before' state accordingly (which it does also for a NOOP_CHANGE, to exactly achieve the
+ * skipping effect).
  */
 public class FilteringObserver implements Observer, Closeable {
 
-    /** package protected CommitInfo used between FilteringObserver and FilteringDispatcher **/
-    final static CommitInfo NOOP_CHANGE = new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN);
+    /**
+     * package protected CommitInfo used between FilteringObserver and FilteringDispatcher
+     **/
+    final static CommitInfo NOOP_CHANGE = new CommitInfo(CommitInfo.OAK_UNKNOWN,
+        CommitInfo.OAK_UNKNOWN);
 
     private final BackgroundObserver backgroundObserver;
 
@@ -59,27 +58,31 @@ public class FilteringObserver implements Observer, Closeable {
     private NodeState lastNoop;
 
     /**
-     * Default constructor which creates a BackgroundObserver automatically, including
-     * creating a FilteringDispatcher.
-     * @param executor the executor that should be used for the BackgroundObserver
+     * Default constructor which creates a BackgroundObserver automatically, including creating a
+     * FilteringDispatcher.
+     *
+     * @param executor    the executor that should be used for the BackgroundObserver
      * @param queueLength the queue length of the BackgroundObserver
-     * @param filter the Filter to be used for filtering
-     * @param observer the FilteringAwareObserver to which content changes ultimately
-     * are delivered after going through a chain of 
-     * FilteringObserver-&gt;BackgroundObserver-&gt;FilteringDispatcher.
+     * @param filter      the Filter to be used for filtering
+     * @param observer    the FilteringAwareObserver to which content changes ultimately are
+     *                    delivered after going through a chain of
+     *                    FilteringObserver-&gt;BackgroundObserver-&gt;FilteringDispatcher.
      */
     public FilteringObserver(@NotNull Executor executor, int queueLength, @NotNull Filter filter,
-            @NotNull FilteringAwareObserver observer) {
-        this(new BackgroundObserver(new FilteringDispatcher(checkNotNull(observer)), checkNotNull(executor),
-                queueLength), filter);
+        @NotNull FilteringAwareObserver observer) {
+        this(new BackgroundObserver(new FilteringDispatcher(checkNotNull(observer)),
+            checkNotNull(executor),
+            queueLength), filter);
     }
 
     /**
      * Alternative constructor where the BackgroundObserver is created elsewhere
+     *
      * @param backgroundObserver the BackgroundObserver to be used by this FilteringObserver
-     * @param filter the Filter to be used for filtering
+     * @param filter             the Filter to be used for filtering
      */
-    public FilteringObserver(@NotNull BackgroundObserver backgroundObserver, @NotNull Filter filter) {
+    public FilteringObserver(@NotNull BackgroundObserver backgroundObserver,
+        @NotNull Filter filter) {
         this.backgroundObserver = backgroundObserver;
         this.filter = checkNotNull(filter);
     }

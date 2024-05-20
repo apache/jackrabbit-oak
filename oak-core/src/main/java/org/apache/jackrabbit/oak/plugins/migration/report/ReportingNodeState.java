@@ -26,21 +26,18 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A decoration layer for NodeState instances that intercepts
- * all accesses to NodeStates and PropertyStates (getters) and
- * informs a {@link Reporter} via its callbacks that the respective
+ * A decoration layer for NodeState instances that intercepts all accesses to NodeStates and
+ * PropertyStates (getters) and informs a {@link Reporter} via its callbacks that the respective
  * NodeStates or PropertyStates have been accessed.
  * <br>
- * The decoration is deep, i.e. any child NodeStates will be
- * decorated as well and will report to the same {@code Reporter}
- * instance.
+ * The decoration is deep, i.e. any child NodeStates will be decorated as well and will report to
+ * the same {@code Reporter} instance.
  * <br>
- * For convenience, a {@link PeriodicReporter} abstract class exists.
- * This simplifies reporting every nth node/property only.
+ * For convenience, a {@link PeriodicReporter} abstract class exists. This simplifies reporting
+ * every nth node/property only.
  * <br>
- * Note: Multiple accesses to the same node or property are each
- * reported. Therefore if exactly counting unique accesses is a
- * requirement, the reporter needs to take care of de-duplication.
+ * Note: Multiple accesses to the same node or property are each reported. Therefore if exactly
+ * counting unique accesses is a requirement, the reporter needs to take care of de-duplication.
  *
  * @see Reporter
  * @see PeriodicReporter
@@ -53,28 +50,31 @@ public class ReportingNodeState extends AbstractDecoratedNodeState {
     private final Reporter reporter;
 
     /**
-     * Allows wrapping a NodeState as a ReportingNodeState. The wrapped
-     * NodeState is treated as the root of a tree (i.e. path is "/").
+     * Allows wrapping a NodeState as a ReportingNodeState. The wrapped NodeState is treated as the
+     * root of a tree (i.e. path is "/").
      * <br>
-     * Any children accessed via this NodeState are also wrapped. Each
-     * wrapped NodeState is also reported to the provided Reporter.
+     * Any children accessed via this NodeState are also wrapped. Each wrapped NodeState is also
+     * reported to the provided Reporter.
      *
      * @param nodeState The NodeState to be wrapped.
-     * @param reporter The reporter to report to.
+     * @param reporter  The reporter to report to.
      * @return the wrapped NodeState.
      */
     public static NodeState wrap(NodeState nodeState, Reporter reporter) {
         return wrapAndReport(null, "/", nodeState, reporter);
     }
 
-    private static NodeState wrapAndReport(@Nullable ReportingNodeState parent, @NotNull String name,
-                                           @NotNull NodeState delegate, @NotNull Reporter reporter) {
-        final ReportingNodeState nodeState = new ReportingNodeState(parent, name, delegate, reporter);
+    private static NodeState wrapAndReport(@Nullable ReportingNodeState parent,
+        @NotNull String name,
+        @NotNull NodeState delegate, @NotNull Reporter reporter) {
+        final ReportingNodeState nodeState = new ReportingNodeState(parent, name, delegate,
+            reporter);
         reporter.reportNode(nodeState);
         return nodeState;
     }
 
-    private ReportingNodeState(ReportingNodeState parent, String name, NodeState delegate, Reporter reporter) {
+    private ReportingNodeState(ReportingNodeState parent, String name, NodeState delegate,
+        Reporter reporter) {
         super(delegate, true);
         this.parent = parent;
         this.name = name;
@@ -82,12 +82,11 @@ public class ReportingNodeState extends AbstractDecoratedNodeState {
     }
 
     /**
-     * ReportingNodeState instances provide access to their path via their
-     * parent hierarchy. Note that calculating the path on every access may
-     * incur a significant performance penalty.
+     * ReportingNodeState instances provide access to their path via their parent hierarchy. Note
+     * that calculating the path on every access may incur a significant performance penalty.
      *
-     * @return The path of the ReportingNodeState instance, assuming that
-     *         the first wrapped instance is the root node.
+     * @return The path of the ReportingNodeState instance, assuming that the first wrapped instance
+     * is the root node.
      */
     public String getPath() {
         if (parent == null) {
@@ -98,7 +97,8 @@ public class ReportingNodeState extends AbstractDecoratedNodeState {
 
     @NotNull
     @Override
-    protected NodeState decorateChild(@NotNull final String name, @NotNull final NodeState delegateChild) {
+    protected NodeState decorateChild(@NotNull final String name,
+        @NotNull final NodeState delegateChild) {
         return wrapAndReport(this, name, delegateChild, reporter);
     }
 

@@ -20,8 +20,8 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
- * Implements a query result iterator which only returns a maximum number of
- * element from an underlying iterator starting at a given offset.
+ * Implements a query result iterator which only returns a maximum number of element from an
+ * underlying iterator starting at a given offset.
  *
  * @param <T> element type of the query results
  */
@@ -39,9 +39,9 @@ public final class ResultIterator<T> implements Iterator<T> {
     /**
      * Create a new {@code ResultIterator} with a given offset and maximum
      *
-     * @param offset Offset to start iteration at. Must be non negative
-     * @param max Maximum elements this iterator should return.
-     * Set to {@link #MAX_ALL} for all results.
+     * @param offset   Offset to start iteration at. Must be non negative
+     * @param max      Maximum elements this iterator should return. Set to {@link #MAX_ALL} for all
+     *                 results.
      * @param iterator the underlying iterator
      * @throws IllegalArgumentException if offset is negative
      */
@@ -58,8 +58,8 @@ public final class ResultIterator<T> implements Iterator<T> {
      * Returns an iterator respecting the specified {@code offset} and {@code max}.
      *
      * @param offset   offset to start iteration at. Must be non negative
-     * @param max      maximum elements this iterator should return. Set to
-     * {@link #MAX_ALL} for all
+     * @param max      maximum elements this iterator should return. Set to {@link #MAX_ALL} for
+     *                 all
      * @param iterator the underlying iterator
      * @param <T>      element type
      * @return an iterator which only returns the elements in the given bounds

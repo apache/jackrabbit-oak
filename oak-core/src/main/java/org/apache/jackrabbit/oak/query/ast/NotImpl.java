@@ -22,7 +22,6 @@ import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementA
 
 import java.util.Collections;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 /**
@@ -65,12 +64,12 @@ public class NotImpl extends ConstraintImpl {
     public boolean evaluate() {
         return !constraint.evaluate();
     }
-    
+
     @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
         return Collections.emptySet();
     }
-    
+
     @Override
     public Set<SelectorImpl> getSelectors() {
         return constraint.getSelectors();
@@ -128,8 +127,8 @@ public class NotImpl extends ConstraintImpl {
         // then we can not apply it, as in "not contains(., 'x')".
         // Also, if the constraint _contains_ a unfiltered fulltext condition, as in
         // "not (x=1 or contains(., 'x')".
-        return constraint.containsUnfilteredFullTextCondition() || 
-                constraint.requiresFullTextIndex();
+        return constraint.containsUnfilteredFullTextCondition() ||
+            constraint.requiresFullTextIndex();
     }
 
 }

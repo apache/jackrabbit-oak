@@ -30,14 +30,13 @@ import org.osgi.service.component.annotations.Reference;
 
 /**
  * Service that provides PropertyIndex based editors.
- * 
+ *
  * @see PropertyIndexEditor
  * @see IndexEditorProvider
- * 
  */
 @Component(
-        service = IndexEditorProvider.class,
-        property = IndexConstants.TYPE_PROPERTY_NAME + "=property")
+    service = IndexEditorProvider.class,
+    property = IndexConstants.TYPE_PROPERTY_NAME + "=property")
 public class PropertyIndexEditorProvider implements IndexEditorProvider {
 
     public static final String TYPE = "property";
@@ -47,7 +46,8 @@ public class PropertyIndexEditorProvider implements IndexEditorProvider {
 
     @Override
     public Editor getIndexEditor(
-            @NotNull String type, @NotNull NodeBuilder definition, @NotNull NodeState root, @NotNull IndexUpdateCallback callback) {
+        @NotNull String type, @NotNull NodeBuilder definition, @NotNull NodeState root,
+        @NotNull IndexUpdateCallback callback) {
         if (TYPE.equals(type)) {
             return new PropertyIndexEditor(definition, root, callback, mountInfoProvider);
         }

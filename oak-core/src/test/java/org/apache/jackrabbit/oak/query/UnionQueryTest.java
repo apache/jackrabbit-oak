@@ -66,10 +66,10 @@ public class UnionQueryTest extends AbstractQueryTest {
         qeSettings = new QueryEngineSettings();
 
         return new Oak(store)
-                .with(new OpenSecurityProvider())
-                .with(new InitialContent())
-                .with(qeSettings)
-                .createContentRepository();
+            .with(new OpenSecurityProvider())
+            .with(new InitialContent())
+            .with(qeSettings)
+            .createContentRepository();
     }
 
     @Before
@@ -101,7 +101,7 @@ public class UnionQueryTest extends AbstractQueryTest {
     }
 
     @Test
-    public void testMergeSortedVsConcat() throws  Exception {
+    public void testMergeSortedVsConcat() throws Exception {
         String left = "SELECT [jcr:path] FROM [nt:base] AS a WHERE ISDESCENDANTNODE(a, '/UnionQueryTest2')";
         String right = "SELECT [jcr:path] FROM [nt:base] AS a WHERE ISDESCENDANTNODE(a, '/UnionQueryTest/a')";
         String order = "ORDER BY [jcr:path]";
@@ -110,17 +110,17 @@ public class UnionQueryTest extends AbstractQueryTest {
         final int offset = 0;
         // Execute query with ORDER BY clause - This should use mergeSorted and the final result should be sorted across both the subqueries.
         String[] expected = {
-                "/UnionQueryTest/a/b",
-                "/UnionQueryTest/a/b/c",
-                "/UnionQueryTest/a/b/c/d",
-                "/UnionQueryTest/a/b/c/d/e",
-                "/UnionQueryTest2/a"
+            "/UnionQueryTest/a/b",
+            "/UnionQueryTest/a/b/c",
+            "/UnionQueryTest/a/b/c/d",
+            "/UnionQueryTest/a/b/c/d/e",
+            "/UnionQueryTest2/a"
         };
 
         Result result = qe.executeQuery(union, QueryEngineImpl.SQL2, limit, offset,
-                QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
+            QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
         int i = 0;
-        for (ResultRow rr: result.getRows()) {
+        for (ResultRow rr : result.getRows()) {
             assertEquals(rr.getPath(), expected[i++]);
 
         }
@@ -128,29 +128,30 @@ public class UnionQueryTest extends AbstractQueryTest {
         // Now we execute the same union query without the order by clause. Expectation is the subqueries results should simply be concatenated without
         // sorting of the overall result
         String[] expected2 = {
-                "/UnionQueryTest2/a",
-                "/UnionQueryTest/a/b",
-                "/UnionQueryTest/a/b/c",
-                "/UnionQueryTest/a/b/c/d",
-                "/UnionQueryTest/a/b/c/d/e"
+            "/UnionQueryTest2/a",
+            "/UnionQueryTest/a/b",
+            "/UnionQueryTest/a/b/c",
+            "/UnionQueryTest/a/b/c/d",
+            "/UnionQueryTest/a/b/c/d/e"
         };
 
         union = String.format("%s UNION %s", left, right);
 
         result = qe.executeQuery(union, QueryEngineImpl.SQL2, limit, offset,
-                QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
-         i = 0;
-        for (ResultRow rr: result.getRows()) {
+            QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
+        i = 0;
+        for (ResultRow rr : result.getRows()) {
             assertEquals(rr.getPath(), expected2[i++]);
         }
 
     }
+
     // TODO - Write a similar test that might fail with guava's merge sort on some conditions
     @Test
     public void testSortWithOneSubquerySortedByIndexAndOtherNot() throws Exception {
 
-        String left  = "SELECT [jcr:path] FROM [nt:base] AS a WHERE ISDESCENDANTNODE(a, '/UnionQueryTest2')";
-        String right  = "SELECT [jcr:path] FROM [nt:base] AS a WHERE ISDESCENDANTNODE(a, '/UnionQueryTest/a')";
+        String left = "SELECT [jcr:path] FROM [nt:base] AS a WHERE ISDESCENDANTNODE(a, '/UnionQueryTest2')";
+        String right = "SELECT [jcr:path] FROM [nt:base] AS a WHERE ISDESCENDANTNODE(a, '/UnionQueryTest/a')";
 
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(store.getRoot());
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo("nt:base");
@@ -158,10 +159,14 @@ public class UnionQueryTest extends AbstractQueryTest {
         SourceImpl sImpl2 = new SelectorImpl(type, "a");
         SourceImpl sImpl3 = new SelectorImpl(type, "a");
 
-        QueryImpl qImplLeft = createQuery(left, new DescendantNodeImpl("a","/UnionQueryTest2"), sImpl);
-        qImplLeft.setExecutionContext(((QueryEngineImpl)root.getQueryEngine()).getExecutionContext());
-        QueryImpl qImplRight = createQuery(right, new DescendantNodeImpl("a","/UnionQueryTest/a"), sImpl2);
-        qImplRight.setExecutionContext(((QueryEngineImpl)root.getQueryEngine()).getExecutionContext());
+        QueryImpl qImplLeft = createQuery(left, new DescendantNodeImpl("a", "/UnionQueryTest2"),
+            sImpl);
+        qImplLeft.setExecutionContext(
+            ((QueryEngineImpl) root.getQueryEngine()).getExecutionContext());
+        QueryImpl qImplRight = createQuery(right, new DescendantNodeImpl("a", "/UnionQueryTest/a"),
+            sImpl2);
+        qImplRight.setExecutionContext(
+            ((QueryEngineImpl) root.getQueryEngine()).getExecutionContext());
 
         PropertyValueImpl propValImpl = new PropertyValueImpl("a", "jcr:path");
         propValImpl.bindSelector(sImpl);
@@ -178,26 +183,27 @@ public class UnionQueryTest extends AbstractQueryTest {
         Mockito.doReturn(true).when(spyLeft).isSortedByIndex();
         Mockito.doReturn(false).when(spyRight).isSortedByIndex();
 
-        spyLeft.setOrderings(new OrderingImpl[] {new OrderingImpl(propValImpl, Order.DESCENDING)});
-        spyRight.setOrderings(new OrderingImpl[] {new OrderingImpl(propValImpl2, Order.DESCENDING)});
-        UnionQueryImpl unionImpl = new UnionQueryImpl(true, spyLeft, spyRight, new QueryEngineSettings());
-        unionImpl.setOrderings(new OrderingImpl[] {new OrderingImpl(propValImpl3, Order.ASCENDING)});
+        spyLeft.setOrderings(new OrderingImpl[]{new OrderingImpl(propValImpl, Order.DESCENDING)});
+        spyRight.setOrderings(new OrderingImpl[]{new OrderingImpl(propValImpl2, Order.DESCENDING)});
+        UnionQueryImpl unionImpl = new UnionQueryImpl(true, spyLeft, spyRight,
+            new QueryEngineSettings());
+        unionImpl.setOrderings(new OrderingImpl[]{new OrderingImpl(propValImpl3, Order.ASCENDING)});
 
         unionImpl.init();
 
         // Execute query with ORDER BY clause - This should use mergeSorted and the final result should be sorted across both the subqueries.
         String[] expected = {
-                "/UnionQueryTest/a/b",
-                "/UnionQueryTest/a/b/c",
-                "/UnionQueryTest/a/b/c/d",
-                "/UnionQueryTest/a/b/c/d/e",
-                "/UnionQueryTest2/a"
+            "/UnionQueryTest/a/b",
+            "/UnionQueryTest/a/b/c",
+            "/UnionQueryTest/a/b/c/d",
+            "/UnionQueryTest/a/b/c/d/e",
+            "/UnionQueryTest2/a"
         };
 
         Result result = unionImpl.executeQuery();
 
         int i = 0;
-        for (ResultRow rr: result.getRows()) {
+        for (ResultRow rr : result.getRows()) {
             assertEquals(expected[i++], rr.getPath());
         }
 
@@ -214,19 +220,19 @@ public class UnionQueryTest extends AbstractQueryTest {
         final int offset = 2;
 
         String[] expected = {
-                "/UnionQueryTest/a/b/c",
-                "/UnionQueryTest/a/b/c/d",
-                "/UnionQueryTest/a/b/c/d/e"
+            "/UnionQueryTest/a/b/c",
+            "/UnionQueryTest/a/b/c/d",
+            "/UnionQueryTest/a/b/c/d/e"
         };
 
         Result result = qe.executeQuery(union, QueryEngineImpl.SQL2, limit, offset,
-                QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
+            QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
 
         List<ResultRow> rows = Lists.newArrayList(result.getRows());
         assertEquals(expected.length, rows.size());
 
         int i = 0;
-        for (ResultRow rr: result.getRows()) {
+        for (ResultRow rr : result.getRows()) {
             assertEquals(rr.getPath(), expected[i++]);
         }
     }
@@ -236,22 +242,24 @@ public class UnionQueryTest extends AbstractQueryTest {
         String left = "SELECT [jcr:path] FROM [nt:base] AS a WHERE ISDESCENDANTNODE(a, '/UnionQueryTest')";
         String right = "SELECT [jcr:path] FROM [nt:base] AS a WHERE ISDESCENDANTNODE(a, '/UnionQueryTest')";
         String order = "ORDER BY [jcr:path]";
-        String union = String.format("%s UNION %s %s OPTION(LIMIT 3, OFFSET 2)", left, right, order);
+        String union = String.format("%s UNION %s %s OPTION(LIMIT 3, OFFSET 2)", left, right,
+            order);
 
         String[] expected = {
-                "/UnionQueryTest/a/b/c",
-                "/UnionQueryTest/a/b/c/d",
-                "/UnionQueryTest/a/b/c/d/e"
+            "/UnionQueryTest/a/b/c",
+            "/UnionQueryTest/a/b/c/d",
+            "/UnionQueryTest/a/b/c/d/e"
         };
 
-        Result result = qe.executeQuery(union, QueryEngineImpl.SQL2, Optional.empty(), Optional.empty(),
-                QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
+        Result result = qe.executeQuery(union, QueryEngineImpl.SQL2, Optional.empty(),
+            Optional.empty(),
+            QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
 
         List<ResultRow> rows = Lists.newArrayList(result.getRows());
         assertEquals(expected.length, rows.size());
 
         int i = 0;
-        for (ResultRow rr: result.getRows()) {
+        for (ResultRow rr : result.getRows()) {
             assertEquals(rr.getPath(), expected[i++]);
         }
     }
@@ -264,7 +272,8 @@ public class UnionQueryTest extends AbstractQueryTest {
         final String union = String.format("%s UNION %s %s", left, right, order);
         final String explainUnion = "explain " + union;
 
-        Result explainResult = executeQuery(explainUnion, QueryEngineImpl.SQL2, QueryEngine.NO_BINDINGS);
+        Result explainResult = executeQuery(explainUnion, QueryEngineImpl.SQL2,
+            QueryEngine.NO_BINDINGS);
 
         int explainCount = 0;
         ResultRow explainRow = null;
@@ -279,34 +288,34 @@ public class UnionQueryTest extends AbstractQueryTest {
         assertNotNull("explain row should not be null", explainRow);
 
         assertTrue("result should have 'plan' column",
-                Arrays.asList(explainResult.getColumnNames()).contains("plan"));
+            Arrays.asList(explainResult.getColumnNames()).contains("plan"));
         assertTrue("result should have 'statement' column",
-                Arrays.asList(explainResult.getColumnNames()).contains("statement"));
+            Arrays.asList(explainResult.getColumnNames()).contains("statement"));
 
         final String explainedStatement = explainRow.getValue("statement").getValue(Type.STRING);
 
         assertTrue("'statement' should begin with 'select': " + explainedStatement,
-                explainedStatement.startsWith("SELECT"));
+            explainedStatement.startsWith("SELECT"));
         assertTrue("'statement' should contain ' UNION ': " + explainedStatement,
-                explainedStatement.contains(" UNION "));
+            explainedStatement.contains(" UNION "));
 
         final int limit = 3;
         final int offset = 2;
 
         String[] expected = {
-                "/UnionQueryTest/a/b/c",
-                "/UnionQueryTest/a/b/c/d",
-                "/UnionQueryTest/a/b/c/d/e"
+            "/UnionQueryTest/a/b/c",
+            "/UnionQueryTest/a/b/c/d",
+            "/UnionQueryTest/a/b/c/d/e"
         };
 
         Result result = qe.executeQuery(explainedStatement, QueryEngineImpl.SQL2, limit, offset,
-                QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
+            QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
 
         List<ResultRow> rows = Lists.newArrayList(result.getRows());
         assertEquals(expected.length, rows.size());
 
         int i = 0;
-        for (ResultRow rr: result.getRows()) {
+        for (ResultRow rr : result.getRows()) {
             assertEquals(rr.getPath(), expected[i++]);
         }
     }
@@ -316,7 +325,8 @@ public class UnionQueryTest extends AbstractQueryTest {
         final String xpath = "/jcr:root/UnionQueryTest//(element(*, nt:base) | element(*, nt:folder)) order by jcr:path";
         final String explainUnion = "explain " + xpath;
 
-        Result explainResult = executeQuery(explainUnion, QueryEngineImpl.XPATH, QueryEngine.NO_BINDINGS);
+        Result explainResult = executeQuery(explainUnion, QueryEngineImpl.XPATH,
+            QueryEngine.NO_BINDINGS);
 
         int explainCount = 0;
         ResultRow explainRow = null;
@@ -331,42 +341,44 @@ public class UnionQueryTest extends AbstractQueryTest {
         assertNotNull("explain row should not be null", explainRow);
 
         assertTrue("result should have 'plan' column",
-                Arrays.asList(explainResult.getColumnNames()).contains("plan"));
+            Arrays.asList(explainResult.getColumnNames()).contains("plan"));
         assertTrue("result should have 'statement' column",
-                Arrays.asList(explainResult.getColumnNames()).contains("statement"));
+            Arrays.asList(explainResult.getColumnNames()).contains("statement"));
 
         final String explainedStatement = explainRow.getValue("statement").getValue(Type.STRING);
         assertTrue("'statement' should begin with 'select': " + explainedStatement,
-                explainedStatement.startsWith("select"));
+            explainedStatement.startsWith("select"));
         assertTrue("'statement' should contain ' union ': " + explainedStatement,
-                explainedStatement.contains(" union "));
+            explainedStatement.contains(" union "));
 
         final int limit = 3;
         final int offset = 2;
 
         String[] expected = {
-                "/UnionQueryTest/a/b/c",
-                "/UnionQueryTest/a/b/c/d",
-                "/UnionQueryTest/a/b/c/d/e"
+            "/UnionQueryTest/a/b/c",
+            "/UnionQueryTest/a/b/c/d",
+            "/UnionQueryTest/a/b/c/d/e"
         };
 
         Result result = qe.executeQuery(explainedStatement, QueryEngineImpl.SQL2, limit, offset,
-                QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
+            QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
 
         List<ResultRow> rows = Lists.newArrayList(result.getRows());
         assertEquals(expected.length, rows.size());
 
         int i = 0;
-        for (ResultRow rr: result.getRows()) {
+        for (ResultRow rr : result.getRows()) {
             assertEquals(rr.getPath(), expected[i++]);
         }
     }
 
-    private QueryImpl createQuery (String statement, ConstraintImpl c, SourceImpl sImpl) throws Exception {
+    private QueryImpl createQuery(String statement, ConstraintImpl c, SourceImpl sImpl)
+        throws Exception {
 
         NamePathMapper namePathMapper = new NamePathMapperImpl(new GlobalNameMapper(root));
         return new QueryImpl(statement, sImpl, c,
-                new ColumnImpl[]{new ColumnImpl("a", "jcr:path", "jcr:path")}, namePathMapper, qeSettings, new QueryStatsData("", "").new QueryExecutionStats());
+            new ColumnImpl[]{new ColumnImpl("a", "jcr:path", "jcr:path")}, namePathMapper,
+            qeSettings, new QueryStatsData("", "").new QueryExecutionStats());
 
     }
 }

@@ -42,7 +42,7 @@ class NodeTypeIndexLookup implements JcrConstants {
     private final MountInfoProvider mountInfoProvider;
 
     public NodeTypeIndexLookup(NodeState root,
-            MountInfoProvider mountInfoProvider) {
+        MountInfoProvider mountInfoProvider) {
         this.root = root;
         this.mountInfoProvider = mountInfoProvider;
     }
@@ -53,12 +53,12 @@ class NodeTypeIndexLookup implements JcrConstants {
      *
      * @param path the path to check.
      * @return <code>true</code> if a node type index exists; <code>false</code>
-     *         otherwise.
+     * otherwise.
      */
     public boolean isIndexed(String path, Filter f) {
         PropertyIndexLookup lookup = new PropertyIndexLookup(root, mountInfoProvider);
         if (lookup.isIndexed(JCR_PRIMARYTYPE, path, f)
-                && lookup.isIndexed(JCR_MIXINTYPES, path, f)) {
+            && lookup.isIndexed(JCR_MIXINTYPES, path, f)) {
             return true;
         }
 
@@ -72,13 +72,13 @@ class NodeTypeIndexLookup implements JcrConstants {
 
         NodeState child = root.getChildNode(path.substring(0, slash));
         return new NodeTypeIndexLookup(child, mountInfoProvider).isIndexed(
-                path.substring(slash), f);
+            path.substring(slash), f);
     }
 
     public double getCost(Filter filter) {
         PropertyIndexLookup lookup = new PropertyIndexLookup(root, mountInfoProvider);
         return lookup.getCost(filter, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes()))
-                + lookup.getCost(filter, JCR_MIXINTYPES, newName(filter.getMixinTypes()));
+            + lookup.getCost(filter, JCR_MIXINTYPES, newName(filter.getMixinTypes()));
     }
 
     /**
@@ -90,8 +90,8 @@ class NodeTypeIndexLookup implements JcrConstants {
     public Iterable<String> query(Filter filter) {
         PropertyIndexLookup lookup = new PropertyIndexLookup(root, mountInfoProvider);
         return Iterables.concat(
-                lookup.query(filter, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes())),
-                lookup.query(filter, JCR_MIXINTYPES, newName(filter.getMixinTypes())));
+            lookup.query(filter, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes())),
+            lookup.query(filter, JCR_MIXINTYPES, newName(filter.getMixinTypes())));
     }
 
 }

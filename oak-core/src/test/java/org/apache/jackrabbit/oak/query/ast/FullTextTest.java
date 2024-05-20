@@ -32,7 +32,7 @@ import org.junit.Test;
  * Test the fulltext parsing and evaluation.
  */
 public class FullTextTest {
-    
+
     @Test
     public void fulltextChars() {
         for (char c : "a\u00e4\u00dfzAZ\u00c409+\u3360".toCharArray()) {
@@ -88,7 +88,8 @@ public class FullTextTest {
 
     @Test
     public void not() throws ParseException {
-        assertEquals("\"hello\" -\"wonderful world\"", convertPattern("hello -\"wonderful world\""));
+        assertEquals("\"hello\" -\"wonderful world\"",
+            convertPattern("hello -\"wonderful world\""));
         assertTrue(test("hello -\"wonderful world\"", "hello"));
         assertTrue(test("hello -\"wonderful world\"", "hello wonderful"));
         assertTrue(test("hello -\"wonderful world\"", "hello world"));
@@ -152,7 +153,7 @@ public class FullTextTest {
             assertEquals(expectedMessage, msg);
         }
     }
-    
+
     private static String convertPattern(String pattern) throws ParseException {
         FullTextExpression e = FullTextParser.parse(null, pattern);
         return e.toString();

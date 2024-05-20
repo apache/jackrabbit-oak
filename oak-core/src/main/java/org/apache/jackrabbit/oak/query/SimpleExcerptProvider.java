@@ -16,29 +16,27 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import static java.lang.Character.isLetterOrDigit;
+import static org.apache.jackrabbit.util.Text.encodeIllegalXMLCharacters;
+
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.ast.AndImpl;
 import org.apache.jackrabbit.oak.query.ast.ConstraintImpl;
 import org.apache.jackrabbit.oak.query.ast.FullTextSearchImpl;
 import org.apache.jackrabbit.oak.query.ast.LiteralImpl;
 import org.apache.jackrabbit.oak.query.ast.OrImpl;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
-
-import static java.lang.Character.isLetterOrDigit;
-import static org.apache.jackrabbit.util.Text.encodeIllegalXMLCharacters;
 
 /**
  * This class can extract excerpts from node.
@@ -48,8 +46,9 @@ class SimpleExcerptProvider {
     static final String REP_EXCERPT_FN = "rep:excerpt(.)";
     static final String EXCERPT_END = "</span></div>";
     static final String EXCERPT_BEGIN = "<div><span>";
-    
-    private static final boolean CASE_SENSITIVE_HIGHLIGHT = Boolean.getBoolean("oak.query.caseSensitiveHighlight");
+
+    private static final boolean CASE_SENSITIVE_HIGHLIGHT = Boolean.getBoolean(
+        "oak.query.caseSensitiveHighlight");
 
     private static int maxFragmentSize = 150;
 
@@ -57,7 +56,7 @@ class SimpleExcerptProvider {
     }
 
     static String getExcerpt(String path, String columnName,
-                             Query query, boolean highlight) {
+        Query query, boolean highlight) {
         if (path == null) {
             return null;
         }
@@ -68,7 +67,7 @@ class SimpleExcerptProvider {
         columnName = extractExcerptProperty(columnName);
         if (columnName != null && columnName.contains("/")) {
             for (String p : PathUtils.elements(PathUtils
-                    .getParentPath(columnName))) {
+                .getParentPath(columnName))) {
                 if (t.hasChild(p)) {
                     t = t.getChild(p);
                 } else {
@@ -82,8 +81,8 @@ class SimpleExcerptProvider {
         String separator = "";
         for (PropertyState p : t.getProperties()) {
             if (p.getType().tag() == Type.STRING.tag()
-                    && (columnName == null || columnName.equalsIgnoreCase(p
-                    .getName()))) {
+                && (columnName == null || columnName.equalsIgnoreCase(p
+                .getName()))) {
                 text.append(separator);
                 separator = " ";
                 for (String v : p.getValue(Type.STRINGS)) {
@@ -259,9 +258,9 @@ class SimpleExcerptProvider {
             }
 
             boolean isStartOk = (index == 0) || //allow for highlighting for token at the beginning
-                    isDelimeter(text.codePointAt(index - 1)); //else token must follow a delimeter
+                isDelimeter(text.codePointAt(index - 1)); //else token must follow a delimeter
             boolean isEndOk = (endIndex == text.length()) || //token is at the end of string
-                    isDelimeter(text.codePointAt(endIndex)); //else token must precede a delimeter
+                isDelimeter(text.codePointAt(endIndex)); //else token must precede a delimeter
 
             if (isStartOk && isEndOk) {
                 while (index < endIndex) {
@@ -272,14 +271,14 @@ class SimpleExcerptProvider {
             }
         }
     }
-    
+
     private static int indexOfSearchText(String text, String searchStr, int fromIndex) {
         if (CASE_SENSITIVE_HIGHLIGHT) {
             return text.indexOf(searchStr, fromIndex);
         }
         return indexOfIgnoreCase(text, searchStr, fromIndex);
     }
-    
+
     public static int indexOfIgnoreCase(String str, String searchStr, int startPos) {
         // This is not very efficient, specially as we create the pattern each time.
         // An alternative is to use apache commons lang StringUtils.indexOfIgnoreCase,
@@ -287,7 +286,7 @@ class SimpleExcerptProvider {
         String quotedSearchStr = Pattern.quote(searchStr);
         Pattern pattern = Pattern.compile(quotedSearchStr, Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(str);
-        if(matcher.find(startPos)) {
+        if (matcher.find(startPos)) {
             return matcher.start();
         }
         return -1;

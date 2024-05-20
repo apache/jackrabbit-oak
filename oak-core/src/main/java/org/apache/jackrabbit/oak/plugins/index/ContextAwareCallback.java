@@ -20,8 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 /**
- * Extension to IndexUpdateCallback which also provides access to
- * {@link IndexingContext}
+ * Extension to IndexUpdateCallback which also provides access to {@link IndexingContext}
  */
 public interface ContextAwareCallback extends IndexUpdateCallback {
 

@@ -31,6 +31,7 @@ import org.osgi.service.component.annotations.Component;
 
 import java.util.List;
 import java.util.Set;
+
 import static org.apache.jackrabbit.guava.common.collect.Collections2.transform;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
@@ -62,14 +63,14 @@ import static org.apache.jackrabbit.oak.spi.commit.CompositeHook.compose;
  *         empty and have no longer a parent versionable node.
  *     </li>
  * </ol>
- *
  */
 @Component(service = CommitHook.class)
 public class VersionHook implements CommitHook {
 
     @NotNull
     @Override
-    public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
+    public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
+        throws CommitFailedException {
         Set<String> existingVersionables = newHashSet();
 
         List<EditorProvider> providers = newArrayList();

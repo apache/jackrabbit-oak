@@ -77,10 +77,10 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
     @Activate
     private void activate(BundleContext context) {
         reg = registerMBean(new OsgiWhiteboard(context),
-                PropertyIndexStatsMBean.class,
-                this,
-                PropertyIndexStatsMBean.TYPE,
-                "Property Index statistics");
+            PropertyIndexStatsMBean.class,
+            this,
+            PropertyIndexStatsMBean.TYPE,
+            "Property Index statistics");
     }
 
     @Deactivate
@@ -91,17 +91,19 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
     }
 
     @Override
-    public TabularData getStatsForAllIndexes(String path, int maxValueCount, int maxDepth, int maxPathCount)
-            throws OpenDataException {
+    public TabularData getStatsForAllIndexes(String path, int maxValueCount, int maxDepth,
+        int maxPathCount)
+        throws OpenDataException {
         String indexRootPath = concat(path, "oak:index");
         NodeState idxRoot = NodeStateUtils.getNode(store.getRoot(), indexRootPath);
         TabularType tt = new TabularType(PropertyIndexStats.class.getName(),
-                "Property Index Stats", getType(), new String[]{"path"});
+            "Property Index Stats", getType(), new String[]{"path"});
         TabularDataSupport tds = new TabularDataSupport(tt);
-        for(ChildNodeEntry cne : idxRoot.getChildNodeEntries()){
+        for (ChildNodeEntry cne : idxRoot.getChildNodeEntries()) {
             if ("property".equals(cne.getNodeState().getString("type"))) {
-                CompositeData stats = getStatsForIndex(concat(indexRootPath, cne.getName()), cne.getNodeState(),
-                        maxValueCount, maxDepth, maxPathCount);
+                CompositeData stats = getStatsForIndex(concat(indexRootPath, cne.getName()),
+                    cne.getNodeState(),
+                    maxValueCount, maxDepth, maxPathCount);
                 tds.put(stats);
             }
         }
@@ -110,14 +112,16 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
 
 
     @Override
-    public CompositeData getStatsForSpecificIndex(String path, int maxValueCount, int maxDepth, int maxPathCount) throws
-            OpenDataException {
+    public CompositeData getStatsForSpecificIndex(String path, int maxValueCount, int maxDepth,
+        int maxPathCount) throws
+        OpenDataException {
         NodeState idx = NodeStateUtils.getNode(store.getRoot(), path);
         return getStatsForIndex(path, idx, maxValueCount, maxDepth, maxPathCount);
     }
 
-    private CompositeData getStatsForIndex(String path, NodeState idx, int maxValueCount, int maxDepth, int maxPathCount)
-            throws OpenDataException {
+    private CompositeData getStatsForIndex(String path, NodeState idx, int maxValueCount,
+        int maxDepth, int maxPathCount)
+        throws OpenDataException {
         Map<String, Object> result = new HashMap<String, Object>();
 
         //Add placeholder
@@ -138,15 +142,17 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
             } else {
                 long childNodeCount = data.getChildNodeCount(maxValueCount);
                 if (childNodeCount == Long.MAX_VALUE || childNodeCount > maxValueCount) {
-                    status = String.format("stats cannot be determined as number of values exceed the max limit of " +
+                    status = String.format(
+                        "stats cannot be determined as number of values exceed the max limit of " +
                             "[%d]. Estimated value count [%d]", maxValueCount, childNodeCount);
                 } else {
                     String[] values = Iterables.toArray(
-                            Iterables.limit(data.getChildNodeNames(), maxValueCount),
-                            String.class
+                        Iterables.limit(data.getChildNodeNames(), maxValueCount),
+                        String.class
                     );
 
-                    String[] paths = determineIndexedPaths(data.getChildNodeEntries(), maxDepth, maxPathCount);
+                    String[] paths = determineIndexedPaths(data.getChildNodeEntries(), maxDepth,
+                        maxPathCount);
                     result.put("values", values);
                     result.put("paths", paths);
                     result.put("pathCount", paths.length);
@@ -161,7 +167,7 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
     }
 
     private String[] determineIndexedPaths(Iterable<? extends ChildNodeEntry> values,
-                                           final int maxDepth, int maxPathCount) {
+        final int maxDepth, int maxPathCount) {
         Set<String> paths = Sets.newHashSet();
         Set<String> intermediatePaths = Sets.newHashSet();
         int maxPathLimitBreachedAtLevel = -1;
@@ -170,7 +176,7 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
             Tree t = TreeFactory.createReadOnlyTree(cne.getNodeState());
             TreeTraverser<Tree> traverser = new TreeTraverser<Tree>() {
                 @Override
-                public Iterable<Tree> children(@NotNull  Tree root) {
+                public Iterable<Tree> children(@NotNull Tree root) {
                     //Break at maxLevel
                     if (PathUtils.getDepth(root.getPath()) >= maxDepth) {
                         return Collections.emptyList();
@@ -221,21 +227,23 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
     @SuppressWarnings("unchecked")
     private static CompositeType getType() throws OpenDataException {
         return new CompositeType("PropertyIndexStats", "Property index related stats",
-                new String[]{"path", "values", "paths", "valueCount", "status", "pathCount", "maxPathCount",
-                        "maxDepth", "maxValueCount"},
-                new String[]{"path", "values", "paths", "valueCount", "status", "pathCount", "maxPathCount",
-                        "maxDepth", "maxValueCount"},
-                new OpenType[]{
-                        SimpleType.STRING,
-                        new ArrayType(SimpleType.STRING, false),
-                        new ArrayType(SimpleType.STRING, false),
-                        SimpleType.LONG,
-                        SimpleType.STRING,
-                        SimpleType.INTEGER,
-                        SimpleType.INTEGER,
-                        SimpleType.INTEGER,
-                        SimpleType.INTEGER,
-                });
+            new String[]{"path", "values", "paths", "valueCount", "status", "pathCount",
+                "maxPathCount",
+                "maxDepth", "maxValueCount"},
+            new String[]{"path", "values", "paths", "valueCount", "status", "pathCount",
+                "maxPathCount",
+                "maxDepth", "maxValueCount"},
+            new OpenType[]{
+                SimpleType.STRING,
+                new ArrayType(SimpleType.STRING, false),
+                new ArrayType(SimpleType.STRING, false),
+                SimpleType.LONG,
+                SimpleType.STRING,
+                SimpleType.INTEGER,
+                SimpleType.INTEGER,
+                SimpleType.INTEGER,
+                SimpleType.INTEGER,
+            });
 
     }
 }

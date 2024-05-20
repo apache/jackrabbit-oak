@@ -46,25 +46,31 @@ public class PrefixPatternTest extends AbstractSecurityTest {
 
         Tree rootTree = root.getTree("/");
         for (String prefix : prefixes) {
-            Tree testTree = TreeUtil.addChild(rootTree, prefix + ":name", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+            Tree testTree = TreeUtil.addChild(rootTree, prefix + ":name",
+                NodeTypeConstants.NT_OAK_UNSTRUCTURED);
 
             assertTrue(pattern.matches(testTree, null));
-            assertTrue(pattern.matches(testTree, PropertyStates.createProperty(prefix + ":f", "anyval")));
+            assertTrue(
+                pattern.matches(testTree, PropertyStates.createProperty(prefix + ":f", "anyval")));
 
-            assertFalse(pattern.matches(testTree, PropertyStates.createProperty("a", Boolean.FALSE)));
+            assertFalse(
+                pattern.matches(testTree, PropertyStates.createProperty("a", Boolean.FALSE)));
 
             testTree.remove();
         }
 
-        List<String> notMatching = ImmutableList.of(NamespaceRegistry.PREFIX_EMPTY, NamespaceRegistry.PREFIX_MIX, "any");
+        List<String> notMatching = ImmutableList.of(NamespaceRegistry.PREFIX_EMPTY,
+            NamespaceRegistry.PREFIX_MIX, "any");
         for (String prefix : notMatching) {
             String name = (prefix.isEmpty()) ? "name" : prefix + ":name";
-            Tree testTree = TreeUtil.addChild(rootTree, name, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+            Tree testTree = TreeUtil.addChild(rootTree, name,
+                NodeTypeConstants.NT_OAK_UNSTRUCTURED);
 
             assertFalse(pattern.matches(testTree, null));
             assertFalse(pattern.matches(testTree, PropertyStates.createProperty("f", "anyval")));
 
-            assertTrue(pattern.matches(testTree, PropertyStates.createProperty("jcr:a", Boolean.FALSE)));
+            assertTrue(
+                pattern.matches(testTree, PropertyStates.createProperty("jcr:a", Boolean.FALSE)));
 
             testTree.remove();
         }
@@ -79,7 +85,7 @@ public class PrefixPatternTest extends AbstractSecurityTest {
         assertTrue(pattern.matches("/jcr:b"));
         assertTrue(pattern.matches("/a/b/c/d/jcr:b"));
     }
-    
+
     @Test
     public void testEmptyPrefix() throws Exception {
         PrefixPattern pp = new PrefixPattern(ImmutableSet.of("", "prefix"));
@@ -87,7 +93,7 @@ public class PrefixPatternTest extends AbstractSecurityTest {
         assertTrue(pp.matches("/noprefix"));
         assertTrue(pp.matches("/prefix:noprefix"));
         assertFalse(pp.matches("/jcr:namewithnonmatchingprefix"));
-        
+
         Tree rootTree = root.getTree("/");
         assertTrue(pp.matches(rootTree, null));
         assertFalse(pp.matches(rootTree, rootTree.getProperty(JcrConstants.JCR_PRIMARYTYPE)));
@@ -124,8 +130,10 @@ public class PrefixPatternTest extends AbstractSecurityTest {
 
     @Test
     public void testNotEquals() {
-        assertNotEquals(pattern, new PrefixPattern(ImmutableSet.of(NamespaceRegistry.PREFIX_EMPTY)));
-        assertNotEquals(pattern, new PrefixPattern(ImmutableSet.of(NamespaceRegistry.PREFIX_EMPTY, NamespaceRegistry.PREFIX_JCR)));
+        assertNotEquals(pattern,
+            new PrefixPattern(ImmutableSet.of(NamespaceRegistry.PREFIX_EMPTY)));
+        assertNotEquals(pattern, new PrefixPattern(
+            ImmutableSet.of(NamespaceRegistry.PREFIX_EMPTY, NamespaceRegistry.PREFIX_JCR)));
         assertNotEquals(pattern, new PrefixPattern(ImmutableSet.of("oak")));
         assertNotEquals(pattern, new ItemNamePattern(prefixes));
     }

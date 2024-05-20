@@ -51,16 +51,23 @@ abstract class ACL extends AbstractAccessControlList {
 
     private final List<ACE> entries = new ArrayList<>();
 
-    ACL(@Nullable String oakPath, @Nullable List<ACE> entries, @NotNull NamePathMapper namePathMapper) {
+    ACL(@Nullable String oakPath, @Nullable List<ACE> entries,
+        @NotNull NamePathMapper namePathMapper) {
         super(oakPath, namePathMapper);
         if (entries != null) {
             this.entries.addAll(entries);
         }
     }
 
-    abstract @NotNull ACE createACE(@NotNull Principal principal, @NotNull PrivilegeBits privilegeBits, boolean isAllow, @NotNull Set<Restriction> restrictions) throws RepositoryException;
-    abstract boolean checkValidPrincipal(@Nullable Principal principal) throws AccessControlException;
+    abstract @NotNull ACE createACE(@NotNull Principal principal,
+        @NotNull PrivilegeBits privilegeBits, boolean isAllow,
+        @NotNull Set<Restriction> restrictions) throws RepositoryException;
+
+    abstract boolean checkValidPrincipal(@Nullable Principal principal)
+        throws AccessControlException;
+
     abstract @NotNull PrivilegeManager getPrivilegeManager();
+
     abstract @NotNull PrivilegeBits getPrivilegeBits(@NotNull Privilege[] privileges);
 
     //------------------------------------------< AbstractAccessControlList >---
@@ -83,8 +90,8 @@ abstract class ACL extends AbstractAccessControlList {
     //----------------------------------------< JackrabbitAccessControlList >---
     @Override
     public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges,
-                            boolean isAllow, @Nullable Map<String, Value> restrictions,
-                            @Nullable Map<String, Value[]> mvRestrictions) throws RepositoryException {
+        boolean isAllow, @Nullable Map<String, Value> restrictions,
+        @Nullable Map<String, Value[]> mvRestrictions) throws RepositoryException {
         if (privileges == null || privileges.length == 0) {
             throw new AccessControlException("Privileges may not be null nor an empty array");
         }
@@ -99,7 +106,9 @@ abstract class ACL extends AbstractAccessControlList {
             return false;
         }
 
-        Set<Restriction> rs = validateRestrictions((restrictions == null) ? Collections.emptyMap() : restrictions, (mvRestrictions == null) ? Collections.emptyMap() : mvRestrictions);
+        Set<Restriction> rs = validateRestrictions(
+            (restrictions == null) ? Collections.emptyMap() : restrictions,
+            (mvRestrictions == null) ? Collections.emptyMap() : mvRestrictions);
 
         ACE entry = createACE(principal, getPrivilegeBits(privileges), isAllow, rs);
         if (entries.contains(entry)) {
@@ -111,7 +120,8 @@ abstract class ACL extends AbstractAccessControlList {
     }
 
     @Override
-    public void orderBefore(@NotNull AccessControlEntry srcEntry, @Nullable AccessControlEntry destEntry) throws RepositoryException {
+    public void orderBefore(@NotNull AccessControlEntry srcEntry,
+        @Nullable AccessControlEntry destEntry) throws RepositoryException {
         ACE src = checkACE(srcEntry);
         ACE dest = (destEntry == null) ? null : checkACE(destEntry);
 
@@ -122,14 +132,16 @@ abstract class ACL extends AbstractAccessControlList {
 
         int index = (dest == null) ? entries.size() - 1 : entries.indexOf(dest);
         if (index < 0) {
-            throw new AccessControlException("'destEntry' not contained in this AccessControlList.");
+            throw new AccessControlException(
+                "'destEntry' not contained in this AccessControlList.");
         } else {
             if (entries.remove(src)) {
                 // re-insert the srcEntry at the new position.
                 entries.add(index, src);
             } else {
                 // src entry not contained in this list.
-                throw new AccessControlException("srcEntry not contained in this AccessControlList");
+                throw new AccessControlException(
+                    "srcEntry not contained in this AccessControlList");
             }
         }
     }
@@ -165,7 +177,8 @@ abstract class ACL extends AbstractAccessControlList {
         final String principalName = entry.getPrincipal().getName();
         final Set<Restriction> restrictions = entry.getRestrictions();
         List<ACE> subList = Lists.newArrayList(Iterables.filter(entries, ace ->
-                principalName.equals(checkNotNull(ace).getPrincipal().getName()) && restrictions.equals(ace.getRestrictions())));
+            principalName.equals(checkNotNull(ace).getPrincipal().getName()) && restrictions.equals(
+                ace.getRestrictions())));
 
         boolean addEntry = true;
         for (ACE existing : subList) {
@@ -205,13 +218,18 @@ abstract class ACL extends AbstractAccessControlList {
         return true;
     }
 
-    private ACE createACE(@NotNull ACE existing, @NotNull PrivilegeBits newPrivilegeBits) throws RepositoryException {
-        return createACE(existing.getPrincipal(), newPrivilegeBits, existing.isAllow(), existing.getRestrictions());
+    private ACE createACE(@NotNull ACE existing, @NotNull PrivilegeBits newPrivilegeBits)
+        throws RepositoryException {
+        return createACE(existing.getPrincipal(), newPrivilegeBits, existing.isAllow(),
+            existing.getRestrictions());
     }
 
     @NotNull
-    private Set<Restriction> validateRestrictions(@NotNull Map<String, Value> restrictions, @NotNull Map<String, Value[]> mvRestrictions) throws RepositoryException {
-        Iterable<RestrictionDefinition> mandatoryDefs = Iterables.filter(getRestrictionProvider().getSupportedRestrictions(getOakPath()), RestrictionDefinition::isMandatory);
+    private Set<Restriction> validateRestrictions(@NotNull Map<String, Value> restrictions,
+        @NotNull Map<String, Value[]> mvRestrictions) throws RepositoryException {
+        Iterable<RestrictionDefinition> mandatoryDefs = Iterables.filter(
+            getRestrictionProvider().getSupportedRestrictions(getOakPath()),
+            RestrictionDefinition::isMandatory);
         for (RestrictionDefinition def : mandatoryDefs) {
             String jcrName = getNamePathMapper().getJcrName(def.getName());
             boolean mandatoryPresent;
@@ -221,18 +239,21 @@ abstract class ACL extends AbstractAccessControlList {
                 mandatoryPresent = restrictions.containsKey(jcrName);
             }
             if (!mandatoryPresent) {
-                throw new AccessControlException("Mandatory restriction " + jcrName + " is missing.");
+                throw new AccessControlException(
+                    "Mandatory restriction " + jcrName + " is missing.");
             }
         }
 
         Set<Restriction> rs = new HashSet<>();
         for (Map.Entry<String, Value> restrEntry : restrictions.entrySet()) {
             String oakName = getNamePathMapper().getOakName(restrEntry.getKey());
-            rs.add(getRestrictionProvider().createRestriction(getOakPath(), oakName, restrEntry.getValue()));
+            rs.add(getRestrictionProvider().createRestriction(getOakPath(), oakName,
+                restrEntry.getValue()));
         }
         for (Map.Entry<String, Value[]> restrEntry : mvRestrictions.entrySet()) {
             String oakName = getNamePathMapper().getOakName(restrEntry.getKey());
-            rs.add(getRestrictionProvider().createRestriction(getOakPath(), oakName, restrEntry.getValue()));
+            rs.add(getRestrictionProvider().createRestriction(getOakPath(), oakName,
+                restrEntry.getValue()));
         }
         return rs;
     }

@@ -59,7 +59,7 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
     private Principal userPrincipal;
     private Principal nonExisting;
 
-    protected  String groupId;
+    protected String groupId;
     protected Group testGroup;
 
     protected String groupId2;
@@ -99,7 +99,7 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
     public void after() throws Exception {
         try {
             root.refresh();
-            String[] rm = new String[] { groupId, groupId2, groupId3 };
+            String[] rm = new String[]{groupId, groupId2, groupId3};
             for (String id : rm) {
                 Authorizable a = getUserManager(root).getAuthorizable(id);
                 if (a != null) {
@@ -145,13 +145,15 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
     public void testGetItemBasedPrincipal() throws Exception {
         assertTrue(userPrincipal instanceof ItemBasedPrincipal);
         String jcrPath = ((ItemBasedPrincipal) userPrincipal).getPath();
-        assertEquals(userPrincipal, principalProvider.getItemBasedPrincipal(getNamePathMapper().getOakPath(jcrPath)));
+        assertEquals(userPrincipal,
+            principalProvider.getItemBasedPrincipal(getNamePathMapper().getOakPath(jcrPath)));
     }
 
     @Test
     public void testGetItemBasedGroupPrincipal() throws Exception {
         String jcrPath = testGroup.getPath();
-        assertEquals(testGroup.getPrincipal(), principalProvider.getItemBasedPrincipal(getNamePathMapper().getOakPath(jcrPath)));
+        assertEquals(testGroup.getPrincipal(),
+            principalProvider.getItemBasedPrincipal(getNamePathMapper().getOakPath(jcrPath)));
     }
 
     @Test
@@ -165,8 +167,10 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
 
     @Test
     public void testGetItemBasedPrincipalPropertyPath() throws Exception {
-        String propPath = PathUtils.concat(((ItemBasedPrincipal) userPrincipal).getPath(), UserConstants.REP_PRINCIPAL_NAME);
-        assertNull(principalProvider.getItemBasedPrincipal(getNamePathMapper().getOakPath(propPath)));
+        String propPath = PathUtils.concat(((ItemBasedPrincipal) userPrincipal).getPath(),
+            UserConstants.REP_PRINCIPAL_NAME);
+        assertNull(
+            principalProvider.getItemBasedPrincipal(getNamePathMapper().getOakPath(propPath)));
     }
 
     @Test
@@ -209,7 +213,8 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
 
     @Test
     public void testSystemUserPrincipal() throws Exception {
-        User user = getUserManager(root).createSystemUser("testSystemUser" + UUID.randomUUID(), null);
+        User user = getUserManager(root).createSystemUser("testSystemUser" + UUID.randomUUID(),
+            null);
         root.commit();
 
         try {
@@ -255,7 +260,7 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
 
     @Test
     public void testGetGroupMembership() throws Exception {
-        Set<Principal> grPrincipals  = principalProvider.getMembershipPrincipals(userPrincipal);
+        Set<Principal> grPrincipals = principalProvider.getMembershipPrincipals(userPrincipal);
         assertEquals(2, grPrincipals.size());
         assertTrue(grPrincipals.contains(EveryonePrincipal.getInstance()));
         assertTrue(grPrincipals.contains(testGroup.getPrincipal()));
@@ -270,14 +275,16 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
 
     @Test
     public void testGetGroupMembershipEveryonePrincipal() {
-        Set<Principal> grPrincipals = principalProvider.getMembershipPrincipals(EveryonePrincipal.getInstance());
+        Set<Principal> grPrincipals = principalProvider.getMembershipPrincipals(
+            EveryonePrincipal.getInstance());
         assertNotNull(grPrincipals);
         assertTrue(grPrincipals.isEmpty());
     }
 
     @Test
     public void testGetGroupMembershipGroupPrincipal() throws Exception {
-        Set<Principal> grPrincipals = principalProvider.getMembershipPrincipals(testGroup.getPrincipal());
+        Set<Principal> grPrincipals = principalProvider.getMembershipPrincipals(
+            testGroup.getPrincipal());
         assertNotNull(grPrincipals);
         assertEquals(1, grPrincipals.size());
         assertTrue(grPrincipals.contains(EveryonePrincipal.getInstance()));
@@ -285,7 +292,8 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
 
     @Test
     public void testGetGroupMembershipGroupPrincipal2() throws Exception {
-        Set<Principal> grPrincipals = principalProvider.getMembershipPrincipals(testGroup2.getPrincipal());
+        Set<Principal> grPrincipals = principalProvider.getMembershipPrincipals(
+            testGroup2.getPrincipal());
         assertNotNull(grPrincipals);
         assertEquals(2, grPrincipals.size());
         assertTrue(grPrincipals.contains(testGroup.getPrincipal()));
@@ -309,9 +317,12 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
             nameHints.add("User");
             nameHints.add("stUs");
 
-            assertResult(principalProvider, nameHints, principalName, PrincipalManager.SEARCH_TYPE_NOT_GROUP, true);
-            assertResult(principalProvider, nameHints, principalName, PrincipalManager.SEARCH_TYPE_ALL, true);
-            assertResult(principalProvider, nameHints, principalName, PrincipalManager.SEARCH_TYPE_GROUP, false);
+            assertResult(principalProvider, nameHints, principalName,
+                PrincipalManager.SEARCH_TYPE_NOT_GROUP, true);
+            assertResult(principalProvider, nameHints, principalName,
+                PrincipalManager.SEARCH_TYPE_ALL, true);
+            assertResult(principalProvider, nameHints, principalName,
+                PrincipalManager.SEARCH_TYPE_GROUP, false);
         } finally {
             if (testUser != null) {
                 testUser.remove();
@@ -331,9 +342,12 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
         nameHints.add("Group");
         nameHints.add("stGr");
 
-        assertResult(principalProvider, nameHints, principalName, PrincipalManager.SEARCH_TYPE_GROUP, true);
-        assertResult(principalProvider, nameHints, principalName, PrincipalManager.SEARCH_TYPE_ALL, true);
-        assertResult(principalProvider, nameHints, principalName, PrincipalManager.SEARCH_TYPE_NOT_GROUP, false);
+        assertResult(principalProvider, nameHints, principalName,
+            PrincipalManager.SEARCH_TYPE_GROUP, true);
+        assertResult(principalProvider, nameHints, principalName, PrincipalManager.SEARCH_TYPE_ALL,
+            true);
+        assertResult(principalProvider, nameHints, principalName,
+            PrincipalManager.SEARCH_TYPE_NOT_GROUP, false);
     }
 
     @Test
@@ -347,7 +361,8 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
 
         tests.forEach((key, value) -> {
             boolean found = false;
-            Iterator<? extends Principal> it = principalProvider.findPrincipals(EveryonePrincipal.NAME, key);
+            Iterator<? extends Principal> it = principalProvider.findPrincipals(
+                EveryonePrincipal.NAME, key);
             while (it.hasNext()) {
                 Principal p = it.next();
                 if (p.getName().equals(EveryonePrincipal.NAME)) {
@@ -368,9 +383,12 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
         nameHints.add("one");
         nameHints.add("very");
 
-        assertResult(principalProvider, nameHints, EveryonePrincipal.NAME, PrincipalManager.SEARCH_TYPE_ALL, true);
-        assertResult(principalProvider, nameHints, EveryonePrincipal.NAME, PrincipalManager.SEARCH_TYPE_GROUP, true);
-        assertResult(principalProvider, nameHints, EveryonePrincipal.NAME, PrincipalManager.SEARCH_TYPE_NOT_GROUP, false);
+        assertResult(principalProvider, nameHints, EveryonePrincipal.NAME,
+            PrincipalManager.SEARCH_TYPE_ALL, true);
+        assertResult(principalProvider, nameHints, EveryonePrincipal.NAME,
+            PrincipalManager.SEARCH_TYPE_GROUP, true);
+        assertResult(principalProvider, nameHints, EveryonePrincipal.NAME,
+            PrincipalManager.SEARCH_TYPE_NOT_GROUP, false);
     }
 
     @Test
@@ -384,7 +402,8 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
 
             root.commit();
 
-            List<String> resultNames = getNames(principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_ALL));
+            List<String> resultNames = getNames(
+                principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_ALL));
             assertTrue(resultNames.contains(EveryonePrincipal.NAME));
             assertTrue(resultNames.contains("TestUser"));
             assertTrue(resultNames.contains("TestGroup"));
@@ -401,10 +420,11 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
     }
 
     private static void assertResult(PrincipalProvider principalProvider,
-                                     List<String> nameHints, String expectedName,
-                                     int searchType, boolean toBeFound) {
+        List<String> nameHints, String expectedName,
+        int searchType, boolean toBeFound) {
         for (String nameHint : nameHints) {
-            Iterator<? extends Principal> result = principalProvider.findPrincipals(nameHint, searchType);
+            Iterator<? extends Principal> result = principalProvider.findPrincipals(nameHint,
+                searchType);
             boolean found = false;
             while (result.hasNext()) {
                 Principal p = result.next();
@@ -415,7 +435,8 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
             if (toBeFound) {
                 assertTrue("Expected principal to be found by name hint " + expectedName, found);
             } else {
-                assertFalse("Expected principal NOT to be found by name hint " + expectedName, found);
+                assertFalse("Expected principal NOT to be found by name hint " + expectedName,
+                    found);
             }
         }
     }
@@ -432,11 +453,13 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
                     to = Math.min(offset + limit, to);
                 }
                 List<String> sub = expected.subList(offset, to);
-                Iterator<? extends Principal> i1 = principalProvider.findPrincipals("testGroup", false,
-                        PrincipalManager.SEARCH_TYPE_ALL, offset, limit);
+                Iterator<? extends Principal> i1 = principalProvider.findPrincipals("testGroup",
+                    false,
+                    PrincipalManager.SEARCH_TYPE_ALL, offset, limit);
                 assertEquals(sub, getNames(i1));
-                Iterator<? extends Principal> i2 = principalProvider.findPrincipals("testGroup", true,
-                        PrincipalManager.SEARCH_TYPE_ALL, offset, limit);
+                Iterator<? extends Principal> i2 = principalProvider.findPrincipals("testGroup",
+                    true,
+                    PrincipalManager.SEARCH_TYPE_ALL, offset, limit);
                 assertEquals(sub, getNames(i2));
             }
         }
@@ -457,9 +480,9 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
 
         for (int limit = -1; limit < expected.size() + 2; limit++) {
             Iterator<? extends Principal> i1 = principalProvider.findPrincipals("testGroup", false,
-                    PrincipalManager.SEARCH_TYPE_ALL, -1, limit);
+                PrincipalManager.SEARCH_TYPE_ALL, -1, limit);
             Iterator<? extends Principal> i2 = principalProvider.findPrincipals("testGroup", true,
-                    PrincipalManager.SEARCH_TYPE_ALL, 0, limit);
+                PrincipalManager.SEARCH_TYPE_ALL, 0, limit);
             assertTrue(Iterators.elementsEqual(i1, i2));
         }
     }

@@ -41,23 +41,23 @@ import org.apache.jackrabbit.oak.plugins.index.counter.ApproximateCounter;
  * A mechanism to retrieve node counter data.
  */
 public class NodeCounter extends AnnotatedStandardMBean implements NodeCounterMBean {
-    
+
     /**
-     * Approximate count using the hashed name (deterministically, so that after
-     * adding a removing all nodes the count goes back to zero).
+     * Approximate count using the hashed name (deterministically, so that after adding a removing
+     * all nodes the count goes back to zero).
      */
-    public final static boolean COUNT_HASH = 
-            Boolean.parseBoolean(System.getProperty("oak.countHashed", "true"));
-    
+    public final static boolean COUNT_HASH =
+        Boolean.parseBoolean(System.getProperty("oak.countHashed", "true"));
+
     public static final boolean USE_OLD_COUNTER = Boolean.getBoolean("oak.index.useCounterOld");
 
     private final NodeStore store;
-    
+
     public NodeCounter(NodeStore store) {
         super(NodeCounterMBean.class);
         this.store = store;
     }
-    
+
     private static NodeState child(NodeState n, String... path) {
         return child(n, Arrays.asList(path));
     }
@@ -73,7 +73,7 @@ public class NodeCounter extends AnnotatedStandardMBean implements NodeCounterMB
         }
         return n;
     }
-    
+
     @Override
     public long getEstimatedNodeCount(String path) {
         return getEstimatedNodeCount(store.getRoot(), path, false);
@@ -81,14 +81,13 @@ public class NodeCounter extends AnnotatedStandardMBean implements NodeCounterMB
 
     /**
      * Get the estimated number of nodes for a given path.
-     * 
+     *
      * @param root the root
      * @param path the path
-     * @param max whether to get the maximum expected number of nodes (the
-     *            stored value plus the resolution)
-     * @return -1 if unknown, 0 if the node does not exist (or, if max is false,
-     *         if there are probably not many descendant nodes), or the
-     *         (maximum) estimated number of descendant nodes
+     * @param max  whether to get the maximum expected number of nodes (the stored value plus the
+     *             resolution)
+     * @return -1 if unknown, 0 if the node does not exist (or, if max is false, if there are
+     * probably not many descendant nodes), or the (maximum) estimated number of descendant nodes
      */
     public static long getEstimatedNodeCount(NodeState root, String path, boolean max) {
         if (USE_OLD_COUNTER) {
@@ -102,7 +101,7 @@ public class NodeCounter extends AnnotatedStandardMBean implements NodeCounterMB
         // check if there is a property in the node itself
         // (for property index nodes)
         NodeState s = child(root,
-                PathUtils.elements(path));
+            PathUtils.elements(path));
         if (s == null || !s.exists()) {
             // node not found
             return 0;
@@ -118,8 +117,9 @@ public class NodeCounter extends AnnotatedStandardMBean implements NodeCounterMB
         }
         return getEstimatedNodeCountOld(root, s, path, max);
     }
-    
-    private static long getEstimatedNodeCountOld(NodeState root, NodeState s, String path, boolean max) {
+
+    private static long getEstimatedNodeCountOld(NodeState root, NodeState s, String path,
+        boolean max) {
         // old code from here
         PropertyState p = s.getProperty(NodeCounterEditor.COUNT_PROPERTY_NAME);
         if (p != null) {
@@ -132,8 +132,8 @@ public class NodeCounter extends AnnotatedStandardMBean implements NodeCounterMB
         }
         // check in the counter index (if it exists)
         s = child(root,
-                IndexConstants.INDEX_DEFINITIONS_NAME,
-                "counter");
+            IndexConstants.INDEX_DEFINITIONS_NAME,
+            "counter");
         if (s == null || !s.exists()) {
             // no index
             return -1;
@@ -145,17 +145,17 @@ public class NodeCounter extends AnnotatedStandardMBean implements NodeCounterMB
         }
 
         long sum = getIndexingData(s, path)
-                .map(n -> n.getProperty(NodeCounterEditor.COUNT_PROPERTY_NAME))
-                .filter(Objects::nonNull)
-                .mapToLong(v -> v.getValue(Type.LONG))
-                .sum();
+            .map(n -> n.getProperty(NodeCounterEditor.COUNT_PROPERTY_NAME))
+            .filter(Objects::nonNull)
+            .mapToLong(v -> v.getValue(Type.LONG))
+            .sum();
         if (sum == 0) {
             return max ? ApproximateCounter.COUNT_RESOLUTION * 20 : 0;
         } else {
             return sum + (max ? ApproximateCounter.COUNT_RESOLUTION : 0);
         }
     }
-    
+
     private static long getCombinedCount(NodeState root, String path, NodeState s, boolean max) {
         Long value = getCombinedCountIfAvailable(s);
         if (value != null) {
@@ -163,8 +163,8 @@ public class NodeCounter extends AnnotatedStandardMBean implements NodeCounterMB
         }
         // check in the counter index (if it exists)
         s = child(root,
-                IndexConstants.INDEX_DEFINITIONS_NAME,
-                "counter");
+            IndexConstants.INDEX_DEFINITIONS_NAME,
+            "counter");
         if (s == null || !s.exists()) {
             // no index
             return -1;
@@ -176,17 +176,17 @@ public class NodeCounter extends AnnotatedStandardMBean implements NodeCounterMB
         }
 
         long sum = getIndexingData(s, path)
-                .map(NodeCounter::getCombinedCountIfAvailable)
-                .filter(Objects::nonNull)
-                .mapToLong(Long::longValue)
-                .sum();
+            .map(NodeCounter::getCombinedCountIfAvailable)
+            .filter(Objects::nonNull)
+            .mapToLong(Long::longValue)
+            .sum();
         if (sum == 0) {
             return max ? ApproximateCounter.COUNT_RESOLUTION * 20 : 0;
         } else {
             return sum + (max ? ApproximateCounter.COUNT_RESOLUTION : 0);
         }
     }
-    
+
     private static Long getCombinedCountIfAvailable(NodeState s) {
         boolean found = false;
         long x = 0;
@@ -202,14 +202,14 @@ public class NodeCounter extends AnnotatedStandardMBean implements NodeCounterMB
         }
         return found ? x : null;
     }
-    
+
     @Override
     public String getEstimatedChildNodeCounts(String path, int level) {
         StringBuilder buff = new StringBuilder();
         collectCounts(buff, path, level);
         return buff.toString();
     }
-    
+
     private void collectCounts(StringBuilder buff, String path, int level) {
         long count = getEstimatedNodeCount(path);
         if (count > 0) {
@@ -219,7 +219,7 @@ public class NodeCounter extends AnnotatedStandardMBean implements NodeCounterMB
             buff.append(path).append(": ").append(count);
         }
         NodeState s = child(store.getRoot(),
-                PathUtils.elements(path));
+            PathUtils.elements(path));
         if (!s.exists()) {
             return;
         }
@@ -231,7 +231,7 @@ public class NodeCounter extends AnnotatedStandardMBean implements NodeCounterMB
         }
         if (level <= 0) {
             return;
-        }        
+        }
         ArrayList<String> names = new ArrayList<String>();
         for (ChildNodeEntry c : s.getChildNodeEntries()) {
             names.add(c.getName());
@@ -248,23 +248,24 @@ public class NodeCounter extends AnnotatedStandardMBean implements NodeCounterMB
         Iterable<String> pathElements = PathUtils.elements(path);
 
         return StreamSupport.stream(indexDefinition.getChildNodeEntries().spliterator(), false)
-                .filter(NodeCounter::isDataNodeName)
-                .map(ChildNodeEntry::getNodeState)
-                .map(n -> child(n, pathElements))
-                .filter(Objects::nonNull)
-                .filter(NodeState::exists);
+                            .filter(NodeCounter::isDataNodeName)
+                            .map(ChildNodeEntry::getNodeState)
+                            .map(n -> child(n, pathElements))
+                            .filter(Objects::nonNull)
+                            .filter(NodeState::exists);
     }
 
     private static boolean isDataNodeName(ChildNodeEntry childNodeEntry) {
         String name = childNodeEntry.getName();
         return NodeCounterEditor.DATA_NODE_NAME.equals(name)
-                || (name.startsWith(":") && name.endsWith("-" + Multiplexers.stripStartingColon(NodeCounterEditor.DATA_NODE_NAME)));
+            || (name.startsWith(":") && name.endsWith(
+            "-" + Multiplexers.stripStartingColon(NodeCounterEditor.DATA_NODE_NAME)));
     }
 
     private static boolean dataNodeExists(NodeState indexDefinition) {
         return StreamSupport
-                .stream(indexDefinition.getChildNodeEntries().spliterator(), false)
-                .anyMatch(NodeCounter::isDataNodeName);
+            .stream(indexDefinition.getChildNodeEntries().spliterator(), false)
+            .anyMatch(NodeCounter::isDataNodeName);
     }
 
 }

@@ -132,7 +132,8 @@ public class TokenAuthenticationTest extends AbstractTokenTest {
 
     @Test
     public void testAuthenticateNotMatchingToken() {
-        TokenInfo info = tokenProvider.createToken(userId, ImmutableMap.of(TokenConstants.TOKEN_ATTRIBUTE + "_mandatory", "val"));
+        TokenInfo info = tokenProvider.createToken(userId,
+            ImmutableMap.of(TokenConstants.TOKEN_ATTRIBUTE + "_mandatory", "val"));
         assertNotNull(info);
         try {
             authentication.authenticate(new TokenCredentials(info.getToken()));
@@ -146,19 +147,21 @@ public class TokenAuthenticationTest extends AbstractTokenTest {
     @Test
     public void testAuthenticateExpiredToken() {
         TokenProvider tp = new TokenProviderImpl(root,
-                ConfigurationParameters.of(TokenProvider.PARAM_TOKEN_EXPIRATION, 1),
-                getUserConfiguration());
+            ConfigurationParameters.of(TokenProvider.PARAM_TOKEN_EXPIRATION, 1),
+            getUserConfiguration());
 
         TokenInfo info = createTokenInfo(tp, userId);
         waitUntilExpired(info);
 
         try {
-            new TokenAuthentication(tp, monitor).authenticate(new TokenCredentials(info.getToken()));
+            new TokenAuthentication(tp, monitor).authenticate(
+                new TokenCredentials(info.getToken()));
             fail("LoginException expected");
         } catch (LoginException e) {
             // success
             assertTrue(e instanceof TokenCredentialsExpiredException);
-            verify(monitor).loginFailed(any(TokenCredentialsExpiredException.class), any(Credentials.class));
+            verify(monitor).loginFailed(any(TokenCredentialsExpiredException.class),
+                any(Credentials.class));
         }
 
         // expired token must have been removed
@@ -197,7 +200,8 @@ public class TokenAuthenticationTest extends AbstractTokenTest {
         when(info.isExpired(anyLong())).thenReturn(false);
         when(info.matches(any(TokenCredentials.class))).thenReturn(true);
 
-        TokenProvider tp = when(mock(TokenProvider.class).getTokenInfo(anyString())).thenReturn(info).getMock();
+        TokenProvider tp = when(mock(TokenProvider.class).getTokenInfo(anyString())).thenReturn(
+            info).getMock();
         TokenAuthentication ta = new TokenAuthentication(tp, monitor);
 
         assertTrue(ta.authenticate(new TokenCredentials("token")));

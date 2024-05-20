@@ -49,7 +49,8 @@ public class QueryTest {
 
     @Before
     public void setUp() {
-        repository = new Oak().with(new OpenSecurityProvider()).with(new InitialContent()).createContentRepository();
+        repository = new Oak().with(new OpenSecurityProvider()).with(new InitialContent())
+                              .createContentRepository();
     }
 
     @After
@@ -74,13 +75,14 @@ public class QueryTest {
         r.commit();
 
         Result result = r2.getQueryEngine().executeQuery(
-                "test//element(*, nt:base)", Query.XPATH,
-                QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
+            "test//element(*, nt:base)", Query.XPATH,
+            QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
         Set<String> paths = new HashSet<String>();
         for (ResultRow rr : result.getRows()) {
             paths.add(rr.getPath());
         }
-        assertEquals(new HashSet<String>(Arrays.asList("/test/node1", "/test/node2", "/test/node3")), paths);
+        assertEquals(
+            new HashSet<String>(Arrays.asList("/test/node1", "/test/node2", "/test/node3")), paths);
     }
 
 }

@@ -30,29 +30,36 @@ public class CacheStrategyImplTest {
     @Test
     public void testMaxSize() {
         long maxSize = 30L;
-        assertEquals(maxSize, new CacheStrategyImpl(ConfigurationParameters.of(EAGER_CACHE_SIZE_PARAM, maxSize), false).maxSize());
-        assertEquals(maxSize, new CacheStrategyImpl(ConfigurationParameters.of(EAGER_CACHE_SIZE_PARAM, maxSize), true).maxSize());
+        assertEquals(maxSize,
+            new CacheStrategyImpl(ConfigurationParameters.of(EAGER_CACHE_SIZE_PARAM, maxSize),
+                false).maxSize());
+        assertEquals(maxSize,
+            new CacheStrategyImpl(ConfigurationParameters.of(EAGER_CACHE_SIZE_PARAM, maxSize),
+                true).maxSize());
     }
 
     @Test
     public void testDefaultMaxSize() {
         long defaultMaxSize = 250L;
-        assertEquals(defaultMaxSize, new CacheStrategyImpl(ConfigurationParameters.EMPTY, false).maxSize());
-        assertEquals(defaultMaxSize, new CacheStrategyImpl(ConfigurationParameters.EMPTY, true).maxSize());
+        assertEquals(defaultMaxSize,
+            new CacheStrategyImpl(ConfigurationParameters.EMPTY, false).maxSize());
+        assertEquals(defaultMaxSize,
+            new CacheStrategyImpl(ConfigurationParameters.EMPTY, true).maxSize());
     }
 
     @Test
     public void testThreshold() {
         long maxPaths = 5;
-        CacheStrategy cs = new CacheStrategyImpl(ConfigurationParameters.of(EAGER_CACHE_MAXPATHS_PARAM, maxPaths), false);
+        CacheStrategy cs = new CacheStrategyImpl(
+            ConfigurationParameters.of(EAGER_CACHE_MAXPATHS_PARAM, maxPaths), false);
 
-        long[] cnts = new long[] {Long.MIN_VALUE, 0L, 1L, 10L, 1000L, Long.MAX_VALUE-1};
+        long[] cnts = new long[]{Long.MIN_VALUE, 0L, 1L, 10L, 1000L, Long.MAX_VALUE - 1};
         for (long cnt : cnts) {
-            assertTrue(cs.loadFully(maxPaths-1, cnt));
+            assertTrue(cs.loadFully(maxPaths - 1, cnt));
             assertTrue(cs.loadFully(maxPaths, cnt));
-            assertFalse(cs.loadFully(maxPaths+1, cnt));
+            assertFalse(cs.loadFully(maxPaths + 1, cnt));
         }
-        assertFalse(cs.loadFully(maxPaths+1, Long.MAX_VALUE));
+        assertFalse(cs.loadFully(maxPaths + 1, Long.MAX_VALUE));
 
     }
 
@@ -61,19 +68,19 @@ public class CacheStrategyImplTest {
         long maxSize = 10;
         long maxPaths = 5;
         CacheStrategy cs = new CacheStrategyImpl(ConfigurationParameters.of(
-                EAGER_CACHE_SIZE_PARAM, maxSize,
-                EAGER_CACHE_MAXPATHS_PARAM, maxPaths), true);
+            EAGER_CACHE_SIZE_PARAM, maxSize,
+            EAGER_CACHE_MAXPATHS_PARAM, maxPaths), true);
 
-        for (long cnt : new long[] {Long.MIN_VALUE, 0L, 1L, 10L-1}) {
-            assertTrue(cs.loadFully(maxPaths-1, cnt));
+        for (long cnt : new long[]{Long.MIN_VALUE, 0L, 1L, 10L - 1}) {
+            assertTrue(cs.loadFully(maxPaths - 1, cnt));
             assertTrue(cs.loadFully(maxPaths, cnt));
-            assertFalse(cs.loadFully(maxPaths+1, cnt));
+            assertFalse(cs.loadFully(maxPaths + 1, cnt));
         }
 
-        for (long cnt : new long[] {10L, 1000L, Long.MAX_VALUE}) {
-            assertFalse(cs.loadFully(maxPaths-1, cnt));
+        for (long cnt : new long[]{10L, 1000L, Long.MAX_VALUE}) {
+            assertFalse(cs.loadFully(maxPaths - 1, cnt));
             assertFalse(cs.loadFully(maxPaths, cnt));
-            assertFalse(cs.loadFully(maxPaths+1, cnt));
+            assertFalse(cs.loadFully(maxPaths + 1, cnt));
         }
     }
 
@@ -82,8 +89,8 @@ public class CacheStrategyImplTest {
         long maxSize = 100;
         long maxPaths = 1;
         CacheStrategy cs = new CacheStrategyImpl(ConfigurationParameters.of(
-                EAGER_CACHE_SIZE_PARAM, maxSize,
-                EAGER_CACHE_MAXPATHS_PARAM, maxPaths), true);
+            EAGER_CACHE_SIZE_PARAM, maxSize,
+            EAGER_CACHE_MAXPATHS_PARAM, maxPaths), true);
 
         long cnt = 0;
         assertFalse(cs.usePathEntryMap(cnt));
@@ -96,22 +103,22 @@ public class CacheStrategyImplTest {
         long maxSize = 100;
         long maxPaths = 1;
         CacheStrategy cs = new CacheStrategyImpl(ConfigurationParameters.of(
-                EAGER_CACHE_SIZE_PARAM, maxSize,
-                EAGER_CACHE_MAXPATHS_PARAM, maxPaths), true);
+            EAGER_CACHE_SIZE_PARAM, maxSize,
+            EAGER_CACHE_MAXPATHS_PARAM, maxPaths), true);
 
         long numentrysize = maxPaths;
         long cnt = 0;
         assertTrue(cs.loadFully(numentrysize, cnt));
         assertTrue(cs.usePathEntryMap(++cnt));
 
-        cnt=10;
+        cnt = 10;
         assertTrue(cs.loadFully(numentrysize, cnt));
         assertTrue(cs.usePathEntryMap(++cnt));
         assertTrue(cs.usePathEntryMap(maxSize));
 
         numentrysize += 5;
         assertFalse(cs.loadFully(numentrysize, cnt));
-        assertTrue(cs.usePathEntryMap(numentrysize+cnt));
+        assertTrue(cs.usePathEntryMap(numentrysize + cnt));
         assertFalse(cs.usePathEntryMap(maxSize));
     }
 
@@ -120,14 +127,14 @@ public class CacheStrategyImplTest {
         long maxSize = 100;
         long maxPaths = 1;
         CacheStrategy cs = new CacheStrategyImpl(ConfigurationParameters.of(
-                EAGER_CACHE_SIZE_PARAM, maxSize,
-                EAGER_CACHE_MAXPATHS_PARAM, maxPaths), false);
+            EAGER_CACHE_SIZE_PARAM, maxSize,
+            EAGER_CACHE_MAXPATHS_PARAM, maxPaths), false);
 
         assertTrue(cs.loadFully(maxPaths, maxSize));
         assertTrue(cs.usePathEntryMap(maxSize));
 
-        assertFalse(cs.loadFully(maxPaths+1, maxSize));
-        assertTrue(cs.usePathEntryMap(maxSize-1));
+        assertFalse(cs.loadFully(maxPaths + 1, maxSize));
+        assertTrue(cs.usePathEntryMap(maxSize - 1));
         assertFalse(cs.usePathEntryMap(maxSize));
     }
 }

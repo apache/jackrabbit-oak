@@ -78,49 +78,53 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  * Default implementation of the {@code AccessControlConfiguration}.
  */
 @Component(
-        service = {AuthorizationConfiguration.class, SecurityConfiguration.class},
-        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl")
+    service = {AuthorizationConfiguration.class, SecurityConfiguration.class},
+    property = OAK_SECURITY_NAME
+        + "=org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl")
 @Designate(ocd = AuthorizationConfigurationImpl.Configuration.class)
-public class AuthorizationConfigurationImpl extends ConfigurationBase implements AuthorizationConfiguration, ProviderCtx {
+public class AuthorizationConfigurationImpl extends ConfigurationBase implements
+    AuthorizationConfiguration, ProviderCtx {
 
     @ObjectClassDefinition(name = "Apache Jackrabbit Oak AuthorizationConfiguration")
     @interface Configuration {
+
         @AttributeDefinition(
-                name = "Jackrabbit 2.x Permissions",
-                description = "Enforce backwards compatible permission validation with respect to the configurable options.",
-                cardinality = 2,
-                options = {
-                        @Option(label = "USER_MANAGEMENT", value = "USER_MANAGEMENT"),
-                        @Option(label = "REMOVE_NODE", value = "REMOVE_NODE")
-                })
+            name = "Jackrabbit 2.x Permissions",
+            description = "Enforce backwards compatible permission validation with respect to the configurable options.",
+            cardinality = 2,
+            options = {
+                @Option(label = "USER_MANAGEMENT", value = "USER_MANAGEMENT"),
+                @Option(label = "REMOVE_NODE", value = "REMOVE_NODE")
+            })
         String permissionsJr2();
+
         @AttributeDefinition(
-                name = "Import Behavior",
-                description = "Behavior for access control related items upon XML import.",
-                options = {
-                        @Option(label = ImportBehavior.NAME_ABORT, value = ImportBehavior.NAME_ABORT),
-                        @Option(label = ImportBehavior.NAME_BESTEFFORT, value = ImportBehavior.NAME_BESTEFFORT),
-                        @Option(label = ImportBehavior.NAME_IGNORE, value = ImportBehavior.NAME_IGNORE)
-                })
+            name = "Import Behavior",
+            description = "Behavior for access control related items upon XML import.",
+            options = {
+                @Option(label = ImportBehavior.NAME_ABORT, value = ImportBehavior.NAME_ABORT),
+                @Option(label = ImportBehavior.NAME_BESTEFFORT, value = ImportBehavior.NAME_BESTEFFORT),
+                @Option(label = ImportBehavior.NAME_IGNORE, value = ImportBehavior.NAME_IGNORE)
+            })
         String importBehavior() default ImportBehavior.NAME_ABORT;
 
         @AttributeDefinition(
-                name = "Readable Paths",
-                description = "Enable full read access to regular nodes and properties at the specified paths irrespective of other policies that may take effective.")
+            name = "Readable Paths",
+            description = "Enable full read access to regular nodes and properties at the specified paths irrespective of other policies that may take effective.")
         String[] readPaths() default {
-                NamespaceConstants.NAMESPACES_PATH,
-                NodeTypeConstants.NODE_TYPES_PATH,
-                PrivilegeConstants.PRIVILEGES_PATH };
+            NamespaceConstants.NAMESPACES_PATH,
+            NodeTypeConstants.NODE_TYPES_PATH,
+            PrivilegeConstants.PRIVILEGES_PATH};
 
         @AttributeDefinition(
-                name = "Administrative Principals",
-                description = "Allows to specify principals that should be granted full permissions on the complete repository content.",
-                cardinality = 10)
+            name = "Administrative Principals",
+            description = "Allows to specify principals that should be granted full permissions on the complete repository content.",
+            cardinality = 10)
         String[] administrativePrincipals();
 
         @AttributeDefinition(
-                name = "Ranking",
-                description = "Ranking of this configuration in a setup with multiple authorization configurations.")
+            name = "Ranking",
+            description = "Ranking of this configuration in a setup with multiple authorization configurations.")
         int configurationRanking() default 100;
     }
 
@@ -160,17 +164,18 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     @Override
     public List<? extends CommitHook> getCommitHooks(@NotNull String workspaceName) {
         return ImmutableList.of(
-                new VersionablePathHook(workspaceName, this),
-                new PermissionHook(workspaceName, getRestrictionProvider(), this));
+            new VersionablePathHook(workspaceName, this),
+            new PermissionHook(workspaceName, getRestrictionProvider(), this));
     }
 
     @NotNull
     @Override
-    public List<ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
+    public List<ValidatorProvider> getValidators(@NotNull String workspaceName,
+        @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
         return ImmutableList.of(
-                new PermissionStoreValidatorProvider(),
-                new PermissionValidatorProvider(workspaceName, principals, moveTracker, this),
-                new AccessControlValidatorProvider(this));
+            new PermissionStoreValidatorProvider(),
+            new PermissionValidatorProvider(workspaceName, principals, moveTracker, this),
+            new AccessControlValidatorProvider(this));
     }
 
     @NotNull
@@ -195,14 +200,16 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     //-----------------------------------------< AccessControlConfiguration >---
     @NotNull
     @Override
-    public AccessControlManager getAccessControlManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
+    public AccessControlManager getAccessControlManager(@NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) {
         return new AccessControlManagerImpl(root, namePathMapper, getSecurityProvider());
     }
 
     @NotNull
     @Override
     public RestrictionProvider getRestrictionProvider() {
-        RestrictionProvider restrictionProvider = getParameters().getConfigValue(AccessControlConstants.PARAM_RESTRICTION_PROVIDER, null, RestrictionProvider.class);
+        RestrictionProvider restrictionProvider = getParameters().getConfigValue(
+            AccessControlConstants.PARAM_RESTRICTION_PROVIDER, null, RestrictionProvider.class);
         if (restrictionProvider == null) {
             // default
             restrictionProvider = new RestrictionProviderImpl();
@@ -212,19 +219,23 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
 
     @NotNull
     @Override
-    public PermissionProvider getPermissionProvider(@NotNull Root root, @NotNull String workspaceName,
-                                                    @NotNull Set<Principal> principals) {
-        Context ctx = getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getContext();
+    public PermissionProvider getPermissionProvider(@NotNull Root root,
+        @NotNull String workspaceName,
+        @NotNull Set<Principal> principals) {
+        Context ctx = getSecurityProvider().getConfiguration(AuthorizationConfiguration.class)
+                                           .getContext();
         if (PermissionUtil.isAdminOrSystem(principals, getParameters())) {
             return new AllPermissionProviderImpl(root, this);
         }
 
         if (mountInfoProvider.hasNonDefaultMounts()) {
-            return new MountPermissionProvider(root, workspaceName, principals, getRestrictionProvider(),
-                    getParameters(), ctx, this);
+            return new MountPermissionProvider(root, workspaceName, principals,
+                getRestrictionProvider(),
+                getParameters(), ctx, this);
         } else {
-            return new PermissionProviderImpl(root, workspaceName, principals, getRestrictionProvider(),
-                    getParameters(), ctx, this);
+            return new PermissionProviderImpl(root, workspaceName, principals,
+                getRestrictionProvider(),
+                getParameters(), ctx, this);
         }
     }
 

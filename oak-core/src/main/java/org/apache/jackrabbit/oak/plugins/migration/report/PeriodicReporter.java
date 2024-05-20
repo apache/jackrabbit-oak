@@ -22,8 +22,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Abstract class that simplifies development of a Reporter
- * that should only report every nth event (node or property seen).
+ * Abstract class that simplifies development of a Reporter that should only report every nth event
+ * (node or property seen).
  */
 public abstract class PeriodicReporter implements Reporter {
 
@@ -41,8 +41,8 @@ public abstract class PeriodicReporter implements Reporter {
     }
 
     /**
-     * Reset the node and property counts to 0. Inheriting implementations
-     * may reset their own internal state.
+     * Reset the node and property counts to 0. Inheriting implementations may reset their own
+     * internal state.
      */
     protected void reset() {
         nodes.set(0);
@@ -52,21 +52,22 @@ public abstract class PeriodicReporter implements Reporter {
     /**
      * Callback called every nth time a node is accessed.
      *
-     * @param count The count of reported nodes.
+     * @param count     The count of reported nodes.
      * @param nodeState The node that was reported.
      */
     protected abstract void reportPeriodicNode(
-            final long count, @NotNull final ReportingNodeState nodeState);
+        final long count, @NotNull final ReportingNodeState nodeState);
 
     /**
      * Callback called every nth time a property is accessed.
      *
-     * @param count The count of reported properties.
-     * @param parent The parent node of the reported property.
+     * @param count        The count of reported properties.
+     * @param parent       The parent node of the reported property.
      * @param propertyName The name of the reported property.
      */
     protected abstract void reportPeriodicProperty(
-            final long count, @NotNull final ReportingNodeState parent, @NotNull final String propertyName);
+        final long count, @NotNull final ReportingNodeState parent,
+        @NotNull final String propertyName);
 
 
     protected boolean skipNodeState(@NotNull final ReportingNodeState nodeState) {
@@ -90,7 +91,8 @@ public abstract class PeriodicReporter implements Reporter {
     }
 
     @Override
-    public final void reportProperty(@NotNull final ReportingNodeState parent, @NotNull final String propertyName) {
+    public final void reportProperty(@NotNull final ReportingNodeState parent,
+        @NotNull final String propertyName) {
         if (propertyLogInterval == -1) {
             return;
         }

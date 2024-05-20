@@ -52,9 +52,8 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
- * Provides a QueryIndex that does lookups for node references based on a custom
- * index saved on hidden property names
- * 
+ * Provides a QueryIndex that does lookups for node references based on a custom index saved on
+ * hidden property names
  */
 class ReferenceIndex implements QueryIndex {
 
@@ -93,14 +92,14 @@ class ReferenceIndex implements QueryIndex {
         }
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             if (isEqualityRestrictionOnType(pr, REFERENCE) ||
-                    isEqualityRestrictionOnType(pr, WEAKREFERENCE)) {
+                isEqualityRestrictionOnType(pr, WEAKREFERENCE)) {
                 return COST;
             }
         }
         // not an appropriate index
         return POSITIVE_INFINITY;
     }
-    
+
     private static boolean isEqualityRestrictionOnType(PropertyRestriction pr, int propertyType) {
         if (pr.propertyType != propertyType) {
             return false;
@@ -126,16 +125,16 @@ class ReferenceIndex implements QueryIndex {
     }
 
     private Cursor lookup(NodeState root, String uuid,
-            final String name, String index, Filter filter) {
+        final String name, String index, Filter filter) {
         NodeState indexRoot = root.getChildNode(INDEX_DEFINITIONS_NAME)
-                .getChildNode(NAME);
+                                  .getChildNode(NAME);
         if (!indexRoot.exists()) {
             return newPathCursor(new ArrayList<String>(), filter.getQueryLimits());
         }
         List<Iterable<String>> iterables = Lists.newArrayList();
         for (IndexStoreStrategy s : getStrategies(indexRoot, mountInfoProvider, index)) {
             iterables.add(s.query(filter, index + "("
-                    + uuid + ")", indexRoot, ImmutableSet.of(uuid)));
+                + uuid + ")", indexRoot, ImmutableSet.of(uuid)));
         }
         Iterable<String> paths = Iterables.concat(iterables);
 
@@ -157,9 +156,9 @@ class ReferenceIndex implements QueryIndex {
     }
 
     private static Set<IndexStoreStrategy> getStrategies(NodeState definition,
-            MountInfoProvider mountInfoProvider, String index) {
+        MountInfoProvider mountInfoProvider, String index) {
         return Multiplexers.getStrategies(false, mountInfoProvider, definition,
-                index);
+            index);
     }
 
     @Override

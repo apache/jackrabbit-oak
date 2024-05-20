@@ -57,7 +57,8 @@ public class InternalSecurityProviderTest {
 
     @Test
     public void testDefaultPrincipalConfiguration() {
-        PrincipalConfiguration defaultConfig = securityProvider.getConfiguration(PrincipalConfiguration.class);
+        PrincipalConfiguration defaultConfig = securityProvider.getConfiguration(
+            PrincipalConfiguration.class);
         assertNull(defaultConfig);
     }
 

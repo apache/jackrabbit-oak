@@ -55,7 +55,7 @@ public class ChildOrderDiffTest {
     }
 
     @Test
-        public void testAfterEqualsBefore() {
+    public void testAfterEqualsBefore() {
         PropertyState eq = createPropertyState("n1", "n2");
         assertFalse(ChildOrderDiff.isReordered(eq, eq));
     }

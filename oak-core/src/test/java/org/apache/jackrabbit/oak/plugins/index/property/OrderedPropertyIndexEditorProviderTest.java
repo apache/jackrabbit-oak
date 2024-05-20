@@ -46,29 +46,30 @@ import org.junit.Test;
 import ch.qos.logback.classic.Level;
 
 public class OrderedPropertyIndexEditorProviderTest {
+
     private final CommitHook hook = new EditorHook(new IndexUpdateProvider(
         new OrderedPropertyIndexEditorProvider()));
     private final LogCustomizer custom = LogCustomizer
         .forLogger(OrderedPropertyIndexEditorProvider.class.getName()).enable(Level.WARN).create();
-    
+
     private final String indexName = "mickey";
     private final String indexedProperty = "mouse";
 
     private final String DEPRECATION_MESSAGE = OrderedIndex.DEPRECATION_MESSAGE.replace("{}",
-            "/" + INDEX_DEFINITIONS_NAME + "/" + indexName);
-    
+        "/" + INDEX_DEFINITIONS_NAME + "/" + indexName);
+
     private NodeBuilder createIndexDef(NodeBuilder root) throws RepositoryException {
         return IndexUtils.createIndexDefinition(
             root.child(IndexConstants.INDEX_DEFINITIONS_NAME), indexName, false,
             ImmutableList.of(indexedProperty), null, OrderedIndex.TYPE, null);
     }
-    
+
     @Test
     public void withIndexDefSingleNode() throws RepositoryException, CommitFailedException {
         NodeBuilder root = EMPTY_NODE.builder();
-        
+
         createIndexDef(root);
-        
+
         NodeState before = root.getNodeState();
         root.child("n1").setProperty(indexedProperty, "dead");
         NodeState after = root.getNodeState();
@@ -78,12 +79,13 @@ public class OrderedPropertyIndexEditorProviderTest {
         assertEquals(1, custom.getLogs().size());
         assertThat(custom.getLogs(), hasItem(DEPRECATION_MESSAGE));
         custom.finished();
-        
+
         NodeBuilder b = root.getChildNode(IndexConstants.INDEX_DEFINITIONS_NODE_TYPE)
-            .getChildNode(indexName).getChildNode(IndexConstants.INDEX_CONTENT_NODE_NAME);
+                            .getChildNode(indexName)
+                            .getChildNode(IndexConstants.INDEX_CONTENT_NODE_NAME);
         assertFalse("nothing should have been touched under the actual index", b.exists());
     }
-    
+
     @Test
     public void withIndexMultipleNodes() throws RepositoryException, CommitFailedException {
         final int threshold = 5;
@@ -101,17 +103,17 @@ public class OrderedPropertyIndexEditorProviderTest {
             NodeState after = root.getNodeState();
             root = hook.processCommit(before, after, CommitInfo.EMPTY).builder();
         }
-        
+
         assertThat(custom.getLogs(), is(expected));
         custom.finished();
         assertFalse(root.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(indexName)
-            .getChildNode(INDEX_CONTENT_NODE_NAME).exists());
+                        .getChildNode(INDEX_CONTENT_NODE_NAME).exists());
     }
 
     @Test
     public void providerShouldBeAvailable() throws Exception {
         CommitHook hook = new EditorHook(new IndexUpdateProvider(
-                new OrderedPropertyIndexEditorProvider(), null, true));
+            new OrderedPropertyIndexEditorProvider(), null, true));
 
         NodeBuilder root = EMPTY_NODE.builder();
 

@@ -53,10 +53,10 @@ abstract class CompositeTreePermission implements TreePermission {
     private Boolean canReadProperties;
 
     private CompositeTreePermission(@NotNull Tree tree, @NotNull TreeType type,
-                                    @NotNull TreeProvider treeProvider,
-                                    @NotNull TreeTypeProvider typeProvider,
-                                    @NotNull AggregatedPermissionProvider[] providers,
-                                    @NotNull TreePermission[] treePermissions, int cnt) {
+        @NotNull TreeProvider treeProvider,
+        @NotNull TreeTypeProvider typeProvider,
+        @NotNull AggregatedPermissionProvider[] providers,
+        @NotNull TreePermission[] treePermissions, int cnt) {
         this.tree = tree;
         this.type = type;
 
@@ -68,46 +68,57 @@ abstract class CompositeTreePermission implements TreePermission {
     }
 
     static TreePermission create(@NotNull Tree rootTree,
-                                 @NotNull TreeProvider treeProvider,
-                                 @NotNull TreeTypeProvider typeProvider,
-                                 @NotNull AggregatedPermissionProvider[] providers,
-                                 @NotNull CompositionType compositionType) {
+        @NotNull TreeProvider treeProvider,
+        @NotNull TreeTypeProvider typeProvider,
+        @NotNull AggregatedPermissionProvider[] providers,
+        @NotNull CompositionType compositionType) {
         switch (providers.length) {
-            case 0 : return TreePermission.EMPTY;
-            case 1 : return providers[0].getTreePermission(rootTree, TreeType.DEFAULT, TreePermission.EMPTY);
-            default :
+            case 0:
+                return TreePermission.EMPTY;
+            case 1:
+                return providers[0].getTreePermission(rootTree, TreeType.DEFAULT,
+                    TreePermission.EMPTY);
+            default:
                 int cnt = 0;
                 TreePermission[] treePermissions = new TreePermission[providers.length];
                 for (int i = 0; i < providers.length; i++) {
-                    TreePermission tp = providers[i].getTreePermission(rootTree, TreeType.DEFAULT, TreePermission.EMPTY);
+                    TreePermission tp = providers[i].getTreePermission(rootTree, TreeType.DEFAULT,
+                        TreePermission.EMPTY);
                     if (!isValid(tp)) {
                         cnt++;
                     }
                     treePermissions[i] = tp;
                 }
                 if (compositionType == AND) {
-                    return new CompositeTreePermissionAnd(rootTree, TreeType.DEFAULT, treeProvider, typeProvider, providers, treePermissions, cnt);
+                    return new CompositeTreePermissionAnd(rootTree, TreeType.DEFAULT, treeProvider,
+                        typeProvider, providers, treePermissions, cnt);
                 } else {
-                    return new CompositeTreePermissionOr(rootTree, TreeType.DEFAULT, treeProvider, typeProvider, providers, treePermissions, cnt);
+                    return new CompositeTreePermissionOr(rootTree, TreeType.DEFAULT, treeProvider,
+                        typeProvider, providers, treePermissions, cnt);
                 }
         }
     }
 
-    static TreePermission create(@NotNull final Tree tree, @NotNull TreeProvider treeProvider, @NotNull CompositeTreePermission parentPermission) {
-        return create(() -> tree, tree.getName(), treeProvider.asNodeState(tree), parentPermission, null);
+    static TreePermission create(@NotNull final Tree tree, @NotNull TreeProvider treeProvider,
+        @NotNull CompositeTreePermission parentPermission) {
+        return create(() -> tree, tree.getName(), treeProvider.asNodeState(tree), parentPermission,
+            null);
     }
 
-    static TreePermission create(@NotNull final Tree tree, @NotNull TreeProvider treeProvider, @NotNull CompositeTreePermission parentPermission,
-                                 @Nullable TreeType treeType) {
-        return create(() -> tree, tree.getName(), treeProvider.asNodeState(tree), parentPermission, treeType);
+    static TreePermission create(@NotNull final Tree tree, @NotNull TreeProvider treeProvider,
+        @NotNull CompositeTreePermission parentPermission,
+        @Nullable TreeType treeType) {
+        return create(() -> tree, tree.getName(), treeProvider.asNodeState(tree), parentPermission,
+            treeType);
     }
 
     private static TreePermission create(@NotNull Supplier<Tree> lazyTree,
-                                         @NotNull String childName, @NotNull NodeState childState,
-                                         @NotNull CompositeTreePermission parentPermission,
-                                         @Nullable TreeType treeType) {
+        @NotNull String childName, @NotNull NodeState childState,
+        @NotNull CompositeTreePermission parentPermission,
+        @Nullable TreeType treeType) {
         switch (parentPermission.childSize) {
-            case 0: return TreePermission.EMPTY;
+            case 0:
+                return TreePermission.EMPTY;
             case 1:
                 TreePermission parent = null;
                 for (TreePermission tp : parentPermission.treePermissions) {
@@ -116,7 +127,8 @@ abstract class CompositeTreePermission implements TreePermission {
                         break;
                     }
                 }
-                return (parent == null) ? TreePermission.EMPTY : parent.getChildPermission(childName, childState);
+                return (parent == null) ? TreePermission.EMPTY
+                    : parent.getChildPermission(childName, childState);
             default:
                 Tree tree = lazyTree.get();
                 TreeType type;
@@ -143,9 +155,11 @@ abstract class CompositeTreePermission implements TreePermission {
                     }
                 }
                 if (parentPermission.getCompositionType() == AND) {
-                    return new CompositeTreePermissionAnd(tree, type, parentPermission.treeProvider, parentPermission.typeProvider, pvds, tps, cnt);
+                    return new CompositeTreePermissionAnd(tree, type, parentPermission.treeProvider,
+                        parentPermission.typeProvider, pvds, tps, cnt);
                 } else {
-                    return new CompositeTreePermissionOr(tree, type, parentPermission.treeProvider, parentPermission.typeProvider, pvds, tps, cnt);
+                    return new CompositeTreePermissionOr(tree, type, parentPermission.treeProvider,
+                        parentPermission.typeProvider, pvds, tps, cnt);
                 }
         }
     }
@@ -153,8 +167,10 @@ abstract class CompositeTreePermission implements TreePermission {
     //-----------------------------------------------------< TreePermission >---
     @NotNull
     @Override
-    public TreePermission getChildPermission(@NotNull final String childName, @NotNull final NodeState childState) {
-        return create(() -> treeProvider.createReadOnlyTree(tree, childName, childState), childName, childState, this, null);
+    public TreePermission getChildPermission(@NotNull final String childName,
+        @NotNull final NodeState childState) {
+        return create(() -> treeProvider.createReadOnlyTree(tree, childName, childState), childName,
+            childState, this, null);
     }
 
     @Override
@@ -233,7 +249,10 @@ abstract class CompositeTreePermission implements TreePermission {
 
     private static final class CompositeTreePermissionOr extends CompositeTreePermission {
 
-        private CompositeTreePermissionOr(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreeProvider treeProvider, @NotNull TreeTypeProvider typeProvider, @NotNull AggregatedPermissionProvider[] providers, @NotNull TreePermission[] treePermissions, int cnt) {
+        private CompositeTreePermissionOr(@NotNull Tree tree, @NotNull TreeType type,
+            @NotNull TreeProvider treeProvider, @NotNull TreeTypeProvider typeProvider,
+            @NotNull AggregatedPermissionProvider[] providers,
+            @NotNull TreePermission[] treePermissions, int cnt) {
             super(tree, type, treeProvider, typeProvider, providers, treePermissions, cnt);
         }
 
@@ -253,7 +272,8 @@ abstract class CompositeTreePermission implements TreePermission {
                 long supported = provider(i).supportedPermissions(tp, property, permissions);
                 if (doEvaluate(supported)) {
                     for (long p : Permissions.aggregates(supported)) {
-                        boolean aGrant = (property == null) ? tp.isGranted(p) : tp.isGranted(p, property);
+                        boolean aGrant =
+                            (property == null) ? tp.isGranted(p) : tp.isGranted(p, property);
                         if (aGrant) {
                             coveredPermissions |= p;
                             isGranted = true;
@@ -272,7 +292,8 @@ abstract class CompositeTreePermission implements TreePermission {
             boolean readable = false;
             for (int i = 0; i < length(); i++) {
                 TreePermission tp = treePermission(i);
-                long supported = provider(i).supportedPermissions(tp, property, (property == null) ? Permissions.READ_NODE : Permissions.READ_PROPERTY);
+                long supported = provider(i).supportedPermissions(tp, property,
+                    (property == null) ? Permissions.READ_NODE : Permissions.READ_PROPERTY);
                 if (doEvaluate(supported)) {
                     readable = (property == null) ? tp.canRead() : tp.canRead(property);
                     if (readable) {
@@ -288,7 +309,8 @@ abstract class CompositeTreePermission implements TreePermission {
             boolean readable = false;
             for (int i = 0; i < length(); i++) {
                 TreePermission tp = treePermission(i);
-                long supported = provider(i).supportedPermissions(tp, null, Permissions.READ_PROPERTY);
+                long supported = provider(i).supportedPermissions(tp, null,
+                    Permissions.READ_PROPERTY);
                 if (doEvaluate(supported)) {
                     readable = tp.canReadProperties();
                     if (readable) {
@@ -305,9 +327,10 @@ abstract class CompositeTreePermission implements TreePermission {
     private static final class CompositeTreePermissionAnd extends CompositeTreePermission {
 
         private CompositeTreePermissionAnd(@NotNull Tree tree, @NotNull TreeType type,
-                                           @NotNull TreeProvider treeProvider,
-                                           @NotNull TreeTypeProvider typeProvider, @NotNull AggregatedPermissionProvider[] providers,
-                                           @NotNull TreePermission[] treePermissions, int cnt) {
+            @NotNull TreeProvider treeProvider,
+            @NotNull TreeTypeProvider typeProvider,
+            @NotNull AggregatedPermissionProvider[] providers,
+            @NotNull TreePermission[] treePermissions, int cnt) {
             super(tree, type, treeProvider, typeProvider, providers, treePermissions, cnt);
         }
 
@@ -324,7 +347,8 @@ abstract class CompositeTreePermission implements TreePermission {
                 TreePermission tp = treePermission(i);
                 long supported = provider(i).supportedPermissions(tp, property, permissions);
                 if (doEvaluate(supported)) {
-                    isGranted = (property == null) ? tp.isGranted(supported) : tp.isGranted(supported, property);
+                    isGranted = (property == null) ? tp.isGranted(supported)
+                        : tp.isGranted(supported, property);
                     if (!isGranted) {
                         return false;
                     }
@@ -341,7 +365,8 @@ abstract class CompositeTreePermission implements TreePermission {
             boolean readable = false;
             for (int i = 0; i < length(); i++) {
                 TreePermission tp = treePermission(i);
-                long supported = provider(i).supportedPermissions(tp, property, (property == null) ? Permissions.READ_NODE : Permissions.READ_PROPERTY);
+                long supported = provider(i).supportedPermissions(tp, property,
+                    (property == null) ? Permissions.READ_NODE : Permissions.READ_PROPERTY);
                 if (doEvaluate(supported)) {
                     readable = (property == null) ? tp.canRead() : tp.canRead(property);
                     if (!readable) {
@@ -356,7 +381,8 @@ abstract class CompositeTreePermission implements TreePermission {
             boolean readable = false;
             for (int i = 0; i < length(); i++) {
                 TreePermission tp = treePermission(i);
-                long supported = provider(i).supportedPermissions(tp, null, Permissions.READ_PROPERTY);
+                long supported = provider(i).supportedPermissions(tp, null,
+                    Permissions.READ_PROPERTY);
                 if (doEvaluate(supported)) {
                     readable = tp.canReadProperties();
                     if (!readable) {

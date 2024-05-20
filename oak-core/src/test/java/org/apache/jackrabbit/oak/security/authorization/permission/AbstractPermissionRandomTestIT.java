@@ -56,17 +56,15 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
- * Randomized PermissionStore test. It generates a random structure (1110
- * nodes), samples 10% of the paths for setting 'user' allow read, for setting
- * 'user' deny read, 10% for setting 'group' allow read and 10% for setting
- * 'group' deny read.
+ * Randomized PermissionStore test. It generates a random structure (1110 nodes), samples 10% of the
+ * paths for setting 'user' allow read, for setting 'user' deny read, 10% for setting 'group' allow
+ * read and 10% for setting 'group' deny read.
  * <p>
- * For testing a custom implementation against the known evaluation rules,
- * override the {@link #getSecurityConfigParameters()} method.
+ * For testing a custom implementation against the known evaluation rules, override the
+ * {@link #getSecurityConfigParameters()} method.
  * <p>
- * For testing a custom implementation against the default implementation,
- * override the {@link #candidatePermissionProvider(Root, String, Set)}.
- *
+ * For testing a custom implementation against the default implementation, override the
+ * {@link #candidatePermissionProvider(Root, String, Set)}.
  */
 public abstract class AbstractPermissionRandomTestIT extends AbstractSecurityTest {
 
@@ -109,12 +107,14 @@ public abstract class AbstractPermissionRandomTestIT extends AbstractSecurityTes
         return ConfigurationParameters.EMPTY;
     }
 
-    protected PermissionProvider candidatePermissionProvider(@NotNull Root root, @NotNull String workspaceName,
-            @NotNull Set<Principal> principals) {
+    protected PermissionProvider candidatePermissionProvider(@NotNull Root root,
+        @NotNull String workspaceName,
+        @NotNull Set<Principal> principals) {
         return new SetsPP(allowU, denyU, allowG, denyG);
     }
 
-    private static void create(Tree t, int count, int lvl, int maxlvl, List<String> paths) throws Exception {
+    private static void create(Tree t, int count, int lvl, int maxlvl, List<String> paths)
+        throws Exception {
         if (lvl == maxlvl) {
             return;
         }
@@ -162,11 +162,13 @@ public abstract class AbstractPermissionRandomTestIT extends AbstractSecurityTes
         Root testRoot = testSession.getLatestRoot();
 
         AuthorizationConfiguration acConfig = getConfig(AuthorizationConfiguration.class);
-        PermissionProvider pp = acConfig.getPermissionProvider(testRoot, testSession.getWorkspaceName(),
-                testSession.getAuthInfo().getPrincipals());
+        PermissionProvider pp = acConfig.getPermissionProvider(testRoot,
+            testSession.getWorkspaceName(),
+            testSession.getAuthInfo().getPrincipals());
 
-        PermissionProvider candidate = candidatePermissionProvider(testRoot, testSession.getWorkspaceName(),
-                testSession.getAuthInfo().getPrincipals());
+        PermissionProvider candidate = candidatePermissionProvider(testRoot,
+            testSession.getWorkspaceName(),
+            testSession.getAuthInfo().getPrincipals());
         boolean isSetImpl = candidate instanceof SetsPP;
 
         for (String path : paths) {
@@ -175,30 +177,42 @@ public abstract class AbstractPermissionRandomTestIT extends AbstractSecurityTes
             boolean hasPrivileges0 = pp.hasPrivileges(t, JCR_READ);
             boolean isGrantedA0 = pp.isGranted(t.getPath(), Session.ACTION_READ);
             boolean isGrantedP0 = pp.isGranted(t, null, Permissions.READ);
-            String[] privs0 = pp.getPrivileges(t).toArray(new String[] {});
+            String[] privs0 = pp.getPrivileges(t).toArray(new String[]{});
             Arrays.sort(privs0);
 
             boolean hasPrivileges1 = candidate.hasPrivileges(t, JCR_READ);
             boolean isGrantedA1 = candidate.isGranted(t.getPath(), Session.ACTION_READ);
             boolean isGrantedP1 = candidate.isGranted(t, null, Permissions.READ);
-            String[] privs1 = candidate.getPrivileges(t).toArray(new String[] {});
+            String[] privs1 = candidate.getPrivileges(t).toArray(new String[]{});
             Arrays.sort(privs1);
 
             if (isSetImpl) {
-                assertEquals("Unexpected #hasPrivileges on [" + path + "] expecting " + hasPrivileges1 + " got "
+                assertEquals(
+                    "Unexpected #hasPrivileges on [" + path + "] expecting " + hasPrivileges1
+                        + " got "
                         + hasPrivileges0 + ", seed " + seed, hasPrivileges1, hasPrivileges0);
-                assertEquals("Unexpected #isGranted on [" + path + "] expecting " + isGrantedA1 + " got " + isGrantedA0
+                assertEquals(
+                    "Unexpected #isGranted on [" + path + "] expecting " + isGrantedA1 + " got "
+                        + isGrantedA0
                         + ", seed " + seed, isGrantedA1, isGrantedA0);
-                assertEquals("Unexpected #isGranted on [" + path + "] expecting " + isGrantedP1 + " got " + isGrantedP0
+                assertEquals(
+                    "Unexpected #isGranted on [" + path + "] expecting " + isGrantedP1 + " got "
+                        + isGrantedP0
                         + ", seed " + seed, isGrantedP1, isGrantedP0);
                 assertArrayEquals(privs1, privs0);
 
             } else {
-                assertEquals("Unexpected #hasPrivileges on [" + path + "] expecting " + hasPrivileges0 + " got "
+                assertEquals(
+                    "Unexpected #hasPrivileges on [" + path + "] expecting " + hasPrivileges0
+                        + " got "
                         + hasPrivileges1 + ", seed " + seed, hasPrivileges1, hasPrivileges0);
-                assertEquals("Unexpected #isGranted on [" + path + "] expecting " + isGrantedA0 + " got " + isGrantedA1
+                assertEquals(
+                    "Unexpected #isGranted on [" + path + "] expecting " + isGrantedA0 + " got "
+                        + isGrantedA1
                         + ", seed " + seed, isGrantedA1, isGrantedA0);
-                assertEquals("Unexpected #isGranted on [" + path + "] expecting " + isGrantedP0 + " got " + isGrantedP1
+                assertEquals(
+                    "Unexpected #isGranted on [" + path + "] expecting " + isGrantedP0 + " got "
+                        + isGrantedP1
                         + ", seed " + seed, isGrantedP1, isGrantedP0);
                 assertArrayEquals(privs0, privs1);
             }
@@ -219,7 +233,8 @@ public abstract class AbstractPermissionRandomTestIT extends AbstractSecurityTes
         }
     }
 
-    private void setPrivileges(Principal principal, String path, boolean allow, String... privileges) throws Exception {
+    private void setPrivileges(Principal principal, String path, boolean allow,
+        String... privileges) throws Exception {
         AccessControlManager acm = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acm, path);
         acl.addEntry(principal, privilegesFromNames(privileges), allow);
@@ -258,7 +273,7 @@ public abstract class AbstractPermissionRandomTestIT extends AbstractSecurityTes
         @Override
         public boolean hasPrivileges(Tree tree, @NotNull String... privilegeNames) {
             assertTrue("Implemened only for JCR_READ",
-                    privilegeNames.length == 1 && privilegeNames[0].equals(JCR_READ));
+                privilegeNames.length == 1 && privilegeNames[0].equals(JCR_READ));
             return canRead(tree.getPath());
         }
 
@@ -270,20 +285,22 @@ public abstract class AbstractPermissionRandomTestIT extends AbstractSecurityTes
 
         @NotNull
         @Override
-        public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
+        public TreePermission getTreePermission(@NotNull Tree tree,
+            @NotNull TreePermission parentPermission) {
             throw new RuntimeException("unimplemented");
         }
 
         @Override
         public boolean isGranted(@NotNull Tree tree, PropertyState property, long permissions) {
             assertTrue("Implemened only for Permissions.READ on trees",
-                    property == null && permissions == Permissions.READ);
+                property == null && permissions == Permissions.READ);
             return canRead(tree.getPath());
         }
 
         @Override
         public boolean isGranted(@NotNull String oakPath, @NotNull String jcrActions) {
-            assertEquals("Implemened only for Session.ACTION_READ", Session.ACTION_READ, jcrActions);
+            assertEquals("Implemened only for Session.ACTION_READ", Session.ACTION_READ,
+                jcrActions);
             return canRead(oakPath);
         }
 

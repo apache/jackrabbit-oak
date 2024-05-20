@@ -30,7 +30,8 @@ final class AuthorizationContext implements Context, AccessControlConstants, Per
 
     private static final String[] NODE_NAMES = POLICY_NODE_NAMES.toArray(new String[0]);
     private static final String[] PROPERTY_NAMES = ACE_PROPERTY_NAMES.toArray(new String[0]);
-    private static final String[] NT_NAMES = Iterables.toArray(Iterables.concat(AC_NODETYPE_NAMES, PERMISSION_NODETYPE_NAMES), String.class);
+    private static final String[] NT_NAMES = Iterables.toArray(
+        Iterables.concat(AC_NODETYPE_NAMES, PERMISSION_NODETYPE_NAMES), String.class);
 
     private static final Context INSTANCE = new AuthorizationContext();
 
@@ -70,7 +71,8 @@ final class AuthorizationContext implements Context, AccessControlConstants, Per
         if (tree != null) {
             return (p == null) ? definesTree(tree) : definesProperty(tree, p);
         } else {
-            return isItemName(location.getName()) || location.getPath().startsWith(PERMISSIONS_STORE_PATH);
+            return isItemName(location.getName()) || location.getPath()
+                                                             .startsWith(PERMISSIONS_STORE_PATH);
         }
     }
 

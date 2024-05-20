@@ -35,7 +35,8 @@ import org.junit.Test;
  */
 public class SQL2ParserTest {
 
-    private static final NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(INITIAL_CONTENT);
+    private static final NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(
+        INITIAL_CONTENT);
 
     private static final SQL2Parser p = createTestSQL2Parser();
 
@@ -43,11 +44,12 @@ public class SQL2ParserTest {
         return createTestSQL2Parser(NamePathMapper.DEFAULT, nodeTypes, new QueryEngineSettings());
     }
 
-    public static SQL2Parser createTestSQL2Parser(NamePathMapper mappings, NodeTypeInfoProvider nodeTypes2,
-            QueryEngineSettings qeSettings) {
+    public static SQL2Parser createTestSQL2Parser(NamePathMapper mappings,
+        NodeTypeInfoProvider nodeTypes2,
+        QueryEngineSettings qeSettings) {
         QueryStatsData data = new QueryStatsData("", "");
         return new SQL2Parser(mappings, nodeTypes2, new QueryEngineSettings(),
-                data.new QueryExecutionStats());
+            data.new QueryExecutionStats());
     }
 
 
@@ -56,8 +58,8 @@ public class SQL2ParserTest {
         p.parse("select * from [nt:unstructured] /* sql comment */");
         p.parse("select [jcr:path], [jcr:score], * from [nt:base] as a /* xpath: //* */");
         p.parse("/* begin query */ select [jcr:path] /* this is the path */, " +
-                "[jcr:score] /* the score */, * /* everything*/ " +
-                "from [nt:base] /* all node types */ as a /* an identifier */");
+            "[jcr:score] /* the score */, * /* everything*/ " +
+            "from [nt:base] /* all node types */ as a /* an identifier */");
     }
 
     @Test(expected = ParseException.class)
@@ -68,21 +70,21 @@ public class SQL2ParserTest {
     @Test
     public void testTransformAndParse() throws ParseException {
         p.parse(new XPathToSQL2Converter()
-                .convert("/jcr:root/test/*/nt:resource[@jcr:encoding]"));
+            .convert("/jcr:root/test/*/nt:resource[@jcr:encoding]"));
         p.parse(new XPathToSQL2Converter()
-                .convert("/jcr:root/test/*/*/nt:resource[@jcr:encoding]"));
+            .convert("/jcr:root/test/*/*/nt:resource[@jcr:encoding]"));
         String xpath = "/jcr:root/etc/commerce/products//*[@cq:commerceType = 'product' " +
-                "and ((@size = 'M' or */@size= 'M' or */*/@size = 'M' " +
-                "or */*/*/@size = 'M' or */*/*/*/@size = 'M' or */*/*/*/*/@size = 'M'))]";
+            "and ((@size = 'M' or */@size= 'M' or */*/@size = 'M' " +
+            "or */*/*/@size = 'M' or */*/*/*/@size = 'M' or */*/*/*/*/@size = 'M'))]";
         p.parse(new XPathToSQL2Converter()
-                .convert(xpath));
+            .convert(xpath));
     }
 
     // see OAK-OAK-830: XPathToSQL2Converter fails to wrap or clauses
     @Test
     public void testUnwrappedOr() throws ParseException {
         String q = new XPathToSQL2Converter()
-                .convert("/jcr:root/home//test/* [@type='t1' or @type='t2' or @type='t3']");
+            .convert("/jcr:root/home//test/* [@type='t1' or @type='t2' or @type='t3']");
         String token = "and b.[type] in('t1', 't2', 't3')";
         assertTrue(q.contains(token));
     }
@@ -91,20 +93,23 @@ public class SQL2ParserTest {
     public void testCoalesce() throws ParseException {
         p.parse("SELECT * FROM [nt:base] WHERE COALESCE([j:c/m/d:t], [j:c/j:t])='a'");
 
-        p.parse("SELECT * FROM [nt:base] WHERE COALESCE(COALESCE([j:c/m/d:t], name()), [j:c/j:t])='a'");
+        p.parse(
+            "SELECT * FROM [nt:base] WHERE COALESCE(COALESCE([j:c/m/d:t], name()), [j:c/j:t])='a'");
 
-        p.parse("SELECT * FROM [nt:base] WHERE COALESCE(COALESCE([j:c/m/d:t], name()), [j:c/j:t]) in ('a', 'b')");
+        p.parse(
+            "SELECT * FROM [nt:base] WHERE COALESCE(COALESCE([j:c/m/d:t], name()), [j:c/j:t]) in ('a', 'b')");
 
-        p.parse("SELECT * FROM [nt:base] WHERE COALESCE(COALESCE([j:c/a], [b]), COALESCE([c], [c:d])) = 'a'");
-
-        p.parse(new XPathToSQL2Converter()
-                .convert("//*[fn:coalesce(j:c/m/@d:t, j:c/@j:t) = 'a']"));
-
-        p.parse(new XPathToSQL2Converter()
-                .convert("//*[fn:coalesce(fn:coalesce(j:c/m/@d:t, fn:name()), j:c/@j:t) = 'a']"));
+        p.parse(
+            "SELECT * FROM [nt:base] WHERE COALESCE(COALESCE([j:c/a], [b]), COALESCE([c], [c:d])) = 'a'");
 
         p.parse(new XPathToSQL2Converter()
-                .convert("//*[fn:coalesce(fn:coalesce(j:c/@a, b), fn:coalesce(c, c:d)) = 'a']"));
+            .convert("//*[fn:coalesce(j:c/m/@d:t, j:c/@j:t) = 'a']"));
+
+        p.parse(new XPathToSQL2Converter()
+            .convert("//*[fn:coalesce(fn:coalesce(j:c/m/@d:t, fn:name()), j:c/@j:t) = 'a']"));
+
+        p.parse(new XPathToSQL2Converter()
+            .convert("//*[fn:coalesce(fn:coalesce(j:c/@a, b), fn:coalesce(c, c:d)) = 'a']"));
     }
 
     @Test
@@ -116,21 +121,23 @@ public class SQL2ParserTest {
 
     @Test
     public void testLimitOffSet() throws ParseException {
-        QueryImpl parsed = (QueryImpl) p.parse("SELECT * FROM [nt:base] WHERE b=2 OPTION(OFFSET 10, LIMIT 100)");
+        QueryImpl parsed = (QueryImpl) p.parse(
+            "SELECT * FROM [nt:base] WHERE b=2 OPTION(OFFSET 10, LIMIT 100)");
         assertEquals(10L, parsed.getOffset().get().longValue());
         assertEquals(100L, parsed.getLimit().get().longValue());
 
         QueryImpl parsedXPath = (QueryImpl) p.parse(new XPathToSQL2Converter()
-                .convert("/jcr:root/test/*/nt:resource[@jcr:encoding] option(offset 2, limit 75)"));
+            .convert("/jcr:root/test/*/nt:resource[@jcr:encoding] option(offset 2, limit 75)"));
         assertEquals(2L, parsedXPath.getOffset().get().longValue());
         assertEquals(75L, parsedXPath.getLimit().get().longValue());
 
         QueryImpl parsedLimitOnly = (QueryImpl) p.parse(new XPathToSQL2Converter()
-                .convert("/jcr:root/test/*/nt:resource[@jcr:encoding] option(limit 98)"));
+            .convert("/jcr:root/test/*/nt:resource[@jcr:encoding] option(limit 98)"));
         assertFalse(parsedLimitOnly.getOffset().isPresent());
         assertEquals(98L, parsedLimitOnly.getLimit().get().longValue());
 
-        QueryImpl parsedOffsetOnly = (QueryImpl) p.parse("SELECT * FROM [nt:base] WHERE b=2 OPTION(OFFSET 23)");
+        QueryImpl parsedOffsetOnly = (QueryImpl) p.parse(
+            "SELECT * FROM [nt:base] WHERE b=2 OPTION(OFFSET 23)");
         assertEquals(23L, parsedOffsetOnly.getOffset().get().longValue());
         assertFalse(parsedOffsetOnly.getLimit().isPresent());
     }
@@ -143,7 +150,7 @@ public class SQL2ParserTest {
     @Test(expected = ParseException.class)
     public void testLimitNotDouble() throws ParseException {
         p.parse(new XPathToSQL2Converter()
-                .convert("/jcr:root/test/*/nt:resource[@jcr:encoding] option(offset 2, limit 75.0)"));
+            .convert("/jcr:root/test/*/nt:resource[@jcr:encoding] option(offset 2, limit 75.0)"));
     }
 
     @Test(expected = ParseException.class)
@@ -174,18 +181,23 @@ public class SQL2ParserTest {
         String xpath;
 
         xpath = "//(element(*, type1) | element(*, type2)) order by @foo";
-        assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'", c.convert(xpath).endsWith("order by [foo]"));
+        assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'",
+            c.convert(xpath).endsWith("order by [foo]"));
 
         xpath = "//(element(*, type1) | element(*, type2) | element(*, type3)) order by @foo";
-        assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'", c.convert(xpath).endsWith("order by [foo]"));
+        assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'",
+            c.convert(xpath).endsWith("order by [foo]"));
 
         xpath = "//(element(*, type1) | element(*, type2) | element(*, type3) | element(*, type4)) order by @foo";
-        assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'", c.convert(xpath).endsWith("order by [foo]"));
+        assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'",
+            c.convert(xpath).endsWith("order by [foo]"));
 
         xpath = "//(element(*, type1) | element(*, type2))[@a='b'] order by @foo";
-        assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'", c.convert(xpath).endsWith("order by [foo]"));
+        assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'",
+            c.convert(xpath).endsWith("order by [foo]"));
 
         xpath = "//(element(*, type1) | element(*, type2))[@a='b' or @c='d'] order by @foo";
-        assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'", c.convert(xpath).endsWith("order by [foo]"));
+        assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'",
+            c.convert(xpath).endsWith("order by [foo]"));
     }
 }

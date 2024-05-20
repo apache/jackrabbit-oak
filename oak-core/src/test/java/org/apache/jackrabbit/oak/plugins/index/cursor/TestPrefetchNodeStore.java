@@ -23,18 +23,18 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
 
 public class TestPrefetchNodeStore implements PrefetchNodeStore {
-    
+
     private final TreeSet<String> prefetched = new TreeSet<String>();
 
     @Override
     public void prefetch(Collection<String> paths, NodeState rootState) {
         prefetched.addAll(paths);
     }
-    
+
     public void reset() {
         prefetched.clear();
     }
-    
+
     public String toString() {
         return prefetched.toString();
     }

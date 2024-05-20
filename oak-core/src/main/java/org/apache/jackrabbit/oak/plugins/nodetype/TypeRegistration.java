@@ -80,10 +80,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 /**
- * This class is used by the {@link TypeEditorProvider} to check for,
- * validate, and post-process changes to the in-content node type registry
- * under {@code /jcr:system/jcr:nodeTypes}. The post-processing is used to
- * maintain the access-optimized versions of node type information as
+ * This class is used by the {@link TypeEditorProvider} to check for, validate, and post-process
+ * changes to the in-content node type registry under {@code /jcr:system/jcr:nodeTypes}. The
+ * post-processing is used to maintain the access-optimized versions of node type information as
  * defined in {@code rep:NodeType}.
  *
  * <ul>
@@ -103,23 +102,21 @@ class TypeRegistration extends DefaultNodeStateDiff {
     private final Set<String> removedTypes = newHashSet();
 
     /**
-     * Checks whether any node type modifications were detected during
-     * the diff of the type registry.
+     * Checks whether any node type modifications were detected during the diff of the type
+     * registry.
      *
-     * @return {@code true} if there were node type modifications,
-     *         {@code false} if not
+     * @return {@code true} if there were node type modifications, {@code false} if not
      */
     boolean isModified() {
         return !addedTypes.isEmpty()
-                || !changedTypes.isEmpty()
-                || !removedTypes.isEmpty();
+            || !changedTypes.isEmpty()
+            || !removedTypes.isEmpty();
     }
 
     /**
-     * Returns the names of all node types that may have been modified
-     * in backwards-incompatible ways (including being removed entirely),
-     * and thus need to be re-evaluated across the entire content tree.
-     * The names of potentially affected subtypes are also included.
+     * Returns the names of all node types that may have been modified in backwards-incompatible
+     * ways (including being removed entirely), and thus need to be re-evaluated across the entire
+     * content tree. The names of potentially affected subtypes are also included.
      *
      * @param beforeTypes the type registry before the changes
      * @return names of modified or removed node types
@@ -171,7 +168,7 @@ class TypeRegistration extends DefaultNodeStateDiff {
 
     @Override
     public boolean childNodeChanged(
-            String name, NodeState before, NodeState after) {
+        String name, NodeState before, NodeState after) {
         // the NodeState.equals() method is potentially expensive
         // and should generally not be used, but here we can expect
         // the node structures to be small so even a full scan will
@@ -191,10 +188,9 @@ class TypeRegistration extends DefaultNodeStateDiff {
     //-----------------------------------------------------------< private >--
 
     /**
-     * Validates the inheritance hierarchy of the identified node type and
-     * merges supertype information to the pre-compiled type information
-     * fields. This makes full type information directly accessible without
-     * having to traverse up the type hierarchy.
+     * Validates the inheritance hierarchy of the identified node type and merges supertype
+     * information to the pre-compiled type information fields. This makes full type information
+     * directly accessible without having to traverse up the type hierarchy.
      *
      * @param types
      * @param type
@@ -202,7 +198,7 @@ class TypeRegistration extends DefaultNodeStateDiff {
      * @throws CommitFailedException
      */
     private void mergeSupertypes(NodeBuilder types, NodeBuilder type)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (!type.hasProperty(REP_SUPERTYPES)) {
             List<String> empty = Collections.emptyList();
             type.setProperty(REP_SUPERTYPES, empty, NAMES);
@@ -217,36 +213,35 @@ class TypeRegistration extends DefaultNodeStateDiff {
                         mergeSupertype(type, supertype.getNodeState());
                     } else {
                         throw new CommitFailedException(
-                                CONSTRAINT, 35,
-                                "Missing supertype " + supername);
+                            CONSTRAINT, 35,
+                            "Missing supertype " + supername);
                     }
                 }
             }
 
             if (!isMixin(type)
-                    && !contains(getNames(type, REP_SUPERTYPES), NT_BASE)
-                    && !NT_BASE.equals(type.getProperty(JCR_NODETYPENAME).getValue(NAME))) {
+                && !contains(getNames(type, REP_SUPERTYPES), NT_BASE)
+                && !NT_BASE.equals(type.getProperty(JCR_NODETYPENAME).getValue(NAME))) {
                 if (types.hasChildNode(NT_BASE)) {
                     NodeBuilder supertype = types.child(NT_BASE);
                     mergeSupertypes(types, supertype);
                     mergeSupertype(type, supertype.getNodeState());
                 } else {
                     throw new CommitFailedException(
-                            CONSTRAINT, 35,
-                            "Missing supertype " + NT_BASE);
+                        CONSTRAINT, 35,
+                        "Missing supertype " + NT_BASE);
                 }
             }
         }
     }
 
     /**
-     * Ensures a primary node type definition that does not extend from any
-     * other primary node type has {@code nt:base} in the {@code jcr:supertypes}
-     * list. Listing {@code nt:base} in this case is not mandatory in a CND, but
-     * is required in {@code jcr:supertypes}.
+     * Ensures a primary node type definition that does not extend from any other primary node type
+     * has {@code nt:base} in the {@code jcr:supertypes} list. Listing {@code nt:base} in this case
+     * is not mandatory in a CND, but is required in {@code jcr:supertypes}.
      *
      * @param types the parent node for all node type definitions.
-     * @param type the node type definition to process.
+     * @param type  the node type definition to process.
      */
     private void ensureNtBase(NodeBuilder types, NodeBuilder type) {
         if (isMixin(type) || NT_BASE.equals(type.getName(JCR_NODETYPENAME))) {
@@ -293,7 +288,7 @@ class TypeRegistration extends DefaultNodeStateDiff {
 
     private void mergeSupertype(NodeBuilder type, NodeState supertype) {
         String supername =
-                supertype.getProperty(JCR_NODETYPENAME).getValue(NAME);
+            supertype.getProperty(JCR_NODETYPENAME).getValue(NAME);
         addNameToList(type, REP_SUPERTYPES, supername);
         mergeNameList(type, supertype, REP_SUPERTYPES);
         mergeNameList(type, supertype, REP_MANDATORY_PROPERTIES);
@@ -314,11 +309,11 @@ class TypeRegistration extends DefaultNodeStateDiff {
     }
 
     private void mergeNameList(
-            NodeBuilder builder, NodeState state, String listName) {
+        NodeBuilder builder, NodeState state, String listName) {
         LinkedHashSet<String> nameList =
-                newLinkedHashSet(getNames(builder, listName));
+            newLinkedHashSet(getNames(builder, listName));
         Iterables.addAll(
-                nameList, state.getProperty(listName).getValue(NAMES));
+            nameList, state.getProperty(listName).getValue(NAMES));
         builder.setProperty(listName, nameList, NAMES);
     }
 
@@ -340,20 +335,20 @@ class TypeRegistration extends DefaultNodeStateDiff {
      * Validates and pre-compiles the named node type.
      *
      * @param types builder for the /jcr:system/jcr:nodeTypes node
-     * @param name name of the node type to validate and compile
+     * @param name  name of the node type to validate and compile
      * @throws CommitFailedException if type validation fails
      */
     private void validateAndCompileType(NodeBuilder types, String name)
-            throws CommitFailedException {
+        throws CommitFailedException {
         NodeBuilder type = types.child(name);
 
         // - jcr:nodeTypeName (NAME) protected mandatory
         PropertyState nodeTypeName = type.getProperty(JCR_NODETYPENAME);
         if (nodeTypeName == null
-                || !name.equals(nodeTypeName.getValue(NAME))) {
+            || !name.equals(nodeTypeName.getValue(NAME))) {
             throw new CommitFailedException(
-                    CONSTRAINT, 34,
-                    "Unexpected " + JCR_NODETYPENAME + " in type " + name);
+                CONSTRAINT, 34,
+                "Unexpected " + JCR_NODETYPENAME + " in type " + name);
         }
 
         // Prepare the type node pre-compilation of the rep:NodeType info
@@ -397,9 +392,9 @@ class TypeRegistration extends DefaultNodeStateDiff {
     }
 
     private void validateAndCompilePropertyDefinition(
-            NodeBuilder type, String typeName, NodeState definition)
-            throws CommitFailedException {
-        // - jcr:name (NAME) protected 
+        NodeBuilder type, String typeName, NodeState definition)
+        throws CommitFailedException {
+        // - jcr:name (NAME) protected
         PropertyState name = definition.getProperty(JCR_NAME);
         NodeBuilder definitions;
         String propertyName = null;
@@ -415,7 +410,7 @@ class TypeRegistration extends DefaultNodeStateDiff {
             }
             definitions = type.child(REP_NAMED_PROPERTY_DEFINITIONS);
             definitions.setProperty(
-                    JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_NAMED_PROPERTY_DEFINITIONS, NAME);
+                JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_NAMED_PROPERTY_DEFINITIONS, NAME);
             definitions = definitions.child(escapedName);
 
             // - jcr:mandatory (BOOLEAN) protected mandatory
@@ -435,7 +430,7 @@ class TypeRegistration extends DefaultNodeStateDiff {
             }
         }
         definitions.setProperty(
-                JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_PROPERTY_DEFINITIONS, NAME);
+            JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_PROPERTY_DEFINITIONS, NAME);
 
         // - jcr:requiredType (STRING) protected mandatory
         // < 'STRING', 'URI', 'BINARY', 'LONG', 'DOUBLE',
@@ -459,20 +454,21 @@ class TypeRegistration extends DefaultNodeStateDiff {
         }
 
         definitions.setChildNode(key, definition)
-            .setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_PROPERTY_DEFINITION, NAME)
-            .setProperty(REP_DECLARING_NODE_TYPE, typeName, NAME);
+                   .setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_PROPERTY_DEFINITION, NAME)
+                   .setProperty(REP_DECLARING_NODE_TYPE, typeName, NAME);
     }
 
     private void validateAndCompileChildNodeDefinition(
-            NodeBuilder types, NodeBuilder type, String typeName,
-            NodeState definition) throws CommitFailedException {
-        // - jcr:name (NAME) protected 
+        NodeBuilder types, NodeBuilder type, String typeName,
+        NodeState definition) throws CommitFailedException {
+        // - jcr:name (NAME) protected
         PropertyState name = definition.getProperty(JCR_NAME);
         NodeBuilder definitions;
         if (name != null) {
             String childNodeName = name.getValue(NAME);
             definitions = type.child(REP_NAMED_CHILD_NODE_DEFINITIONS);
-            definitions.setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_NAMED_CHILD_NODE_DEFINITIONS, NAME);
+            definitions.setProperty(JCR_PRIMARYTYPE,
+                NodeTypeConstants.NT_REP_NAMED_CHILD_NODE_DEFINITIONS, NAME);
             definitions = definitions.child(childNodeName);
 
             // - jcr:mandatory (BOOLEAN) protected mandatory
@@ -492,22 +488,23 @@ class TypeRegistration extends DefaultNodeStateDiff {
             }
         }
         definitions.setProperty(
-                JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_CHILD_NODE_DEFINITIONS, NAME);
+            JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_CHILD_NODE_DEFINITIONS, NAME);
 
         // - jcr:requiredPrimaryTypes (NAME)
         //   = 'nt:base' protected mandatory multiple
         PropertyState requiredTypes =
-                definition.getProperty(JCR_REQUIREDPRIMARYTYPES);
+            definition.getProperty(JCR_REQUIREDPRIMARYTYPES);
         if (requiredTypes != null) {
             for (String key : requiredTypes.getValue(NAMES)) {
                 if (!types.hasChildNode(key)) {
                     throw new CommitFailedException(
-                            "Constraint", 33,
-                            "Unknown required primary type " + key);
+                        "Constraint", 33,
+                        "Unknown required primary type " + key);
                 } else if (!definitions.hasChildNode(key)) {
                     definitions.setChildNode(key, definition)
-                        .setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_CHILD_NODE_DEFINITION, NAME)
-                        .setProperty(REP_DECLARING_NODE_TYPE, typeName, NAME);
+                               .setProperty(JCR_PRIMARYTYPE,
+                                   NodeTypeConstants.NT_REP_CHILD_NODE_DEFINITION, NAME)
+                               .setProperty(REP_DECLARING_NODE_TYPE, typeName, NAME);
                 }
             }
         }

@@ -30,13 +30,14 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 /**
  * Validator implementation that asserts that the permission store is read-only.
  */
-public class PermissionStoreValidatorProvider extends ValidatorProvider implements PermissionConstants {
+public class PermissionStoreValidatorProvider extends ValidatorProvider implements
+    PermissionConstants {
 
     @NotNull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
         FailingValidator validator = new FailingValidator(
-                "Constraint", 41, "Attempt to modify permission store.");
+            "Constraint", 41, "Attempt to modify permission store.");
         return new SubtreeValidator(validator, JCR_SYSTEM, REP_PERMISSION_STORE);
     }
 }

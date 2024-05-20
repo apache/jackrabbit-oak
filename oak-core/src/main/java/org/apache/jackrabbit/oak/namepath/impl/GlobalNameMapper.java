@@ -46,17 +46,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Name mapper with no local prefix remappings. URI to prefix mappings
- * are read from the repository when for transforming expanded JCR names
- * to prefixed Oak names.
+ * Name mapper with no local prefix remappings. URI to prefix mappings are read from the repository
+ * when for transforming expanded JCR names to prefixed Oak names.
  * <p>
- * Note that even though this class could be used to verify that all prefixed
- * names have valid prefixes, we explicitly don't do that since this is a
- * fairly performance-sensitive part of the codebase and since normally the
- * NameValidator and other consistency checks already ensure that all names
- * being committed or already in the repository should be valid. A separate
- * consistency check can be used if needed to locate and fix any Oak names
- * with invalid namespace prefixes.
+ * Note that even though this class could be used to verify that all prefixed names have valid
+ * prefixes, we explicitly don't do that since this is a fairly performance-sensitive part of the
+ * codebase and since normally the NameValidator and other consistency checks already ensure that
+ * all names being committed or already in the repository should be valid. A separate consistency
+ * check can be used if needed to locate and fix any Oak names with invalid namespace prefixes.
  */
 public class GlobalNameMapper implements NameMapper {
 
@@ -113,7 +110,8 @@ public class GlobalNameMapper implements NameMapper {
         this.nsdata = createReadOnlyTree(reverse.getNodeState());
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public String getJcrName(@NotNull String oakName) {
         // Sanity checks, can be turned to assertions if needed for performance
         checkNotNull(oakName);
@@ -123,7 +121,8 @@ public class GlobalNameMapper implements NameMapper {
         return oakName;
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public String getOakNameOrNull(@NotNull String jcrName) {
         if (jcrName.startsWith("{")) {
             return getOakNameFromExpanded(jcrName);
@@ -132,7 +131,8 @@ public class GlobalNameMapper implements NameMapper {
         return jcrName;
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public String getOakName(@NotNull String jcrName) throws RepositoryException {
         String oakName = getOakNameOrNull(jcrName);
         if (oakName == null) {

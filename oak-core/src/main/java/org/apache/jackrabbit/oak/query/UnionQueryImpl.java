@@ -21,7 +21,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
@@ -38,19 +42,13 @@ import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
-
 /**
  * Represents a union query.
  */
 public class UnionQueryImpl implements Query {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(UnionQueryImpl.class);
-    
+
     private final boolean unionAll;
     private final Query left, right;
     private ColumnImpl[] columns;
@@ -62,9 +60,9 @@ public class UnionQueryImpl implements Query {
     private long size = -1;
     private final QueryEngineSettings settings;
     private boolean isInternal;
-    
+
     UnionQueryImpl(final boolean unionAll, final Query left, final Query right,
-                   final QueryEngineSettings settings) {
+        final QueryEngineSettings settings) {
         this.unionAll = unionAll;
         this.left = left;
         this.right = right;
@@ -109,7 +107,8 @@ public class UnionQueryImpl implements Query {
     }
 
     private void applyLimitOffset() {
-        long subqueryLimit = QueryImpl.saturatedAdd(limit.orElse(Long.MAX_VALUE), offset.orElse(0L));
+        long subqueryLimit = QueryImpl.saturatedAdd(limit.orElse(Long.MAX_VALUE),
+            offset.orElse(0L));
         left.setLimit(subqueryLimit);
         right.setLimit(subqueryLimit);
     }
@@ -125,9 +124,9 @@ public class UnionQueryImpl implements Query {
         left.setTraversalEnabled(traversal);
         right.setTraversalEnabled(traversal);
     }
-    
+
     @Override
-    public  void setQueryOptions(QueryOptions options) {
+    public void setQueryOptions(QueryOptions options) {
         left.setQueryOptions(options);
         right.setQueryOptions(options);
     }
@@ -137,7 +136,7 @@ public class UnionQueryImpl implements Query {
         left.prepare();
         right.prepare();
     }
-    
+
     @Override
     public double getEstimatedCost() {
         // the cost is higher than the cost of both parts, so that
@@ -165,7 +164,7 @@ public class UnionQueryImpl implements Query {
     public String[] getSelectorNames() {
         return left.getSelectorNames();
     }
-    
+
     @Override
     public int getSelectorIndex(String selectorName) {
         return left.getSelectorIndex(selectorName);
@@ -175,7 +174,7 @@ public class UnionQueryImpl implements Query {
     public long getSize() {
         return size;
     }
-    
+
     @Override
     public long getSize(SizePrecision precision, long max) {
         // Note: for "unionAll == false", overlapping entries are counted twice
@@ -195,7 +194,7 @@ public class UnionQueryImpl implements Query {
         long total = QueryImpl.saturatedAdd(a, b);
         return Math.min(localLimit, total);
     }
-    
+
     @Override
     public void setExplain(boolean explain) {
         this.explain = explain;
@@ -213,7 +212,7 @@ public class UnionQueryImpl implements Query {
         left.init();
         right.init();
     }
-    
+
     @Override
     public String toString() {
         StringBuilder buff = new StringBuilder();
@@ -235,12 +234,12 @@ public class UnionQueryImpl implements Query {
         }
         return buff.toString();
     }
-    
+
     @Override
     public Result executeQuery() {
         return new ResultImpl(this);
     }
-    
+
     @Override
     public String getPlan() {
         StringBuilder buff = new StringBuilder();
@@ -252,7 +251,7 @@ public class UnionQueryImpl implements Query {
         buff.append(right.getPlan());
         return buff.toString();
     }
-    
+
     @Override
     public String getIndexCostInfo() {
         StringBuilder buff = new StringBuilder();
@@ -281,24 +280,25 @@ public class UnionQueryImpl implements Query {
         }
         return QueryImpl.getColumnIndex(columns, columnName);
     }
-    
+
     @Override
     public Iterator<ResultRowImpl> getRows() {
         prepare();
         if (explain) {
             String plan = getPlan();
-            columns = new ColumnImpl[] {
-                    new ColumnImpl("explain", "plan", "plan"),
-                    new ColumnImpl("explain", "statement", "statement")
+            columns = new ColumnImpl[]{
+                new ColumnImpl("explain", "plan", "plan"),
+                new ColumnImpl("explain", "statement", "statement")
             };
             ResultRowImpl r = new ResultRowImpl(this,
-                    Tree.EMPTY_ARRAY,
-                    new PropertyValue[] {
-                            PropertyValues.newString(plan),
-                            // retrieve the original statement from either of the unioned subqueries, i.e., the left one
-                            PropertyValues.newString(left.getStatement().replaceFirst("(?i)\\bexplain\\s+", ""))
-                    },
-                    null, null);
+                Tree.EMPTY_ARRAY,
+                new PropertyValue[]{
+                    PropertyValues.newString(plan),
+                    // retrieve the original statement from either of the unioned subqueries, i.e., the left one
+                    PropertyValues.newString(
+                        left.getStatement().replaceFirst("(?i)\\bexplain\\s+", ""))
+                },
+                null, null);
             return Arrays.asList(r).iterator();
         }
         if (LOG.isDebugEnabled()) {
@@ -314,7 +314,8 @@ public class UnionQueryImpl implements Query {
         FacetMerger facetMerger = new FacetMerger(left, right);
 
         Iterator<ResultRowImpl> it;
-        final Iterator<ResultRowImpl> leftRows = facetMerger.getLeftIterator();;
+        final Iterator<ResultRowImpl> leftRows = facetMerger.getLeftIterator();
+        ;
         final Iterator<ResultRowImpl> rightRows = facetMerger.getRightIterator();
         Iterator<ResultRowImpl> leftIter = leftRows;
         Iterator<ResultRowImpl> rightIter = rightRows;
@@ -332,7 +333,8 @@ public class UnionQueryImpl implements Query {
             it = Iterators.mergeSorted(ImmutableList.of(leftIter, rightIter), orderBy);
         }
 
-        it = FilterIterators.newCombinedFilter(it, distinct, limit.orElse(Long.MAX_VALUE), offset.orElse(0L), null, settings);
+        it = FilterIterators.newCombinedFilter(it, distinct, limit.orElse(Long.MAX_VALUE),
+            offset.orElse(0L), null, settings);
 
         if (measure) {
             // return the measuring iterator for the union
@@ -370,7 +372,7 @@ public class UnionQueryImpl implements Query {
             };
         }
 
-        return it;     
+        return it;
     }
 
     @Override
@@ -410,14 +412,14 @@ public class UnionQueryImpl implements Query {
 
     @Override
     public boolean containsUnfilteredFullTextCondition() {
-        return left.containsUnfilteredFullTextCondition() || 
-                right.containsUnfilteredFullTextCondition();
+        return left.containsUnfilteredFullTextCondition() ||
+            right.containsUnfilteredFullTextCondition();
     }
 
     @Override
     public boolean isPotentiallySlow() {
-        return left.isPotentiallySlow() || 
-                right.isPotentiallySlow();
+        return left.isPotentiallySlow() ||
+            right.isPotentiallySlow();
     }
 
     @Override
@@ -425,11 +427,11 @@ public class UnionQueryImpl implements Query {
         left.verifyNotPotentiallySlow();
         right.verifyNotPotentiallySlow();
     }
-    
+
     public Query[] getChildren() {
-        return new Query[] { left, right };
+        return new Query[]{left, right};
     }
-    
+
     public QueryExecutionStats getQueryExecutionStats() {
         return left.getQueryExecutionStats();
     }
@@ -461,14 +463,14 @@ public class UnionQueryImpl implements Query {
             ResultRow rRow = rPeekIter.peek();
 
             FacetResult facetResult = new FacetResult(columnNames,
-                    columnName -> {
-                        PropertyValue value = lRow.getValue(columnName);
-                        return value == null ? null : value.getValue(Type.STRING);
-                    },
-                    columnName -> {
-                        PropertyValue value = rRow.getValue(columnName);
-                        return value == null ? null : value.getValue(Type.STRING);
-            });
+                columnName -> {
+                    PropertyValue value = lRow.getValue(columnName);
+                    return value == null ? null : value.getValue(Type.STRING);
+                },
+                columnName -> {
+                    PropertyValue value = rRow.getValue(columnName);
+                    return value == null ? null : value.getValue(Type.STRING);
+                });
 
             Map<String, String> columnToFacetMap = facetResult.asColumnToFacetJsonMap();
 

@@ -23,21 +23,18 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * A filter is used by the FilteringObserver to decide whether or not a content
- * change should be forwarded.
+ * A filter is used by the FilteringObserver to decide whether or not a content change should be
+ * forwarded.
  */
 public interface Filter {
 
     /**
-     * Whether or not to exclude a particular content change from being
-     * forwarded to downstream observers.
-     * 
-     * @param root
-     *            the new root state
-     * @param info
-     *            the associated CommitInfo
-     * @return true to exclude this content change (not forward), false to
-     *         include it (forward)
+     * Whether or not to exclude a particular content change from being forwarded to downstream
+     * observers.
+     *
+     * @param root the new root state
+     * @param info the associated CommitInfo
+     * @return true to exclude this content change (not forward), false to include it (forward)
      */
     boolean excludes(@NotNull NodeState root, @NotNull CommitInfo info);
 

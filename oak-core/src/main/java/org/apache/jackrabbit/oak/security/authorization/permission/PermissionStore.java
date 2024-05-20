@@ -23,17 +23,18 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * The permission store is used to store and provide access control permissions for principals. It is responsible to
- * load and store the permissions in an optimal form in the repository and must not cache them.
+ * The permission store is used to store and provide access control permissions for principals. It
+ * is responsible to load and store the permissions in an optimal form in the repository and must
+ * not cache them.
  */
 interface PermissionStore {
 
     /**
-     * Loads the permission entries for the given principal and path. If no
-     * entries can be found for the given principal or path, {@code null} is returned.
+     * Loads the permission entries for the given principal and path. If no entries can be found for
+     * the given principal or path, {@code null} is returned.
      *
      * @param principalName name of the principal
-     * @param path access controlled path.
+     * @param path          access controlled path.
      * @return the given {@code entries}, a new collection or {@code null}
      */
     @Nullable

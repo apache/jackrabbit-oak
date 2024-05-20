@@ -55,18 +55,18 @@ public class ItemNameRestrictionTest extends AbstractRestrictionTest {
     @Override
     boolean addEntry(@NotNull JackrabbitAccessControlList acl) throws RepositoryException {
         return acl.addEntry(testPrincipal,
-                privilegesFromNames(
-                        PrivilegeConstants.JCR_READ,
-                        PrivilegeConstants.REP_ADD_PROPERTIES,
-                        PrivilegeConstants.JCR_ADD_CHILD_NODES,
-                        PrivilegeConstants.JCR_REMOVE_NODE), true,
-                Collections.emptyMap(),
-                ImmutableMap.of(AccessControlConstants.REP_ITEM_NAMES, new Value[] {
-                        vf.createValue("a", PropertyType.NAME),
-                        vf.createValue("b", PropertyType.NAME),
-                        vf.createValue("c", PropertyType.NAME)}));
+            privilegesFromNames(
+                PrivilegeConstants.JCR_READ,
+                PrivilegeConstants.REP_ADD_PROPERTIES,
+                PrivilegeConstants.JCR_ADD_CHILD_NODES,
+                PrivilegeConstants.JCR_REMOVE_NODE), true,
+            Collections.emptyMap(),
+            ImmutableMap.of(AccessControlConstants.REP_ITEM_NAMES, new Value[]{
+                vf.createValue("a", PropertyType.NAME),
+                vf.createValue("b", PropertyType.NAME),
+                vf.createValue("c", PropertyType.NAME)}));
     }
-    
+
     @Test
     public void testRead() {
         Root testRoot = testSession.getLatestRoot();
@@ -164,7 +164,8 @@ public class ItemNameRestrictionTest extends AbstractRestrictionTest {
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/a");
 
         acl.addEntry(testPrincipal,
-                privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_REMOVE_CHILD_NODES), true);
+            privilegesFromNames(PrivilegeConstants.JCR_READ,
+                PrivilegeConstants.JCR_REMOVE_CHILD_NODES), true);
         acMgr.setPolicy(acl.getPath(), acl);
         root.commit();
 
@@ -189,16 +190,17 @@ public class ItemNameRestrictionTest extends AbstractRestrictionTest {
     public void testModifyMembersOnly() throws Exception {
         Group testGroup = getUserManager(root).createGroup("testGroup" + UUID.randomUUID());
         root.commit();
-        
+
         AccessControlManager acMgr = getAccessControlManager(root);
         String path = PathUtils.getAncestorPath(UserConstants.DEFAULT_USER_PATH, 1);
         try {
             JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
             acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_READ), true);
-            acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.REP_USER_MANAGEMENT), true,
-                    Collections.emptyMap(),
-                    ImmutableMap.of (AccessControlConstants.REP_ITEM_NAMES, new Value[] {
-                                            vf.createValue(UserConstants.REP_MEMBERS, PropertyType.NAME)}));
+            acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.REP_USER_MANAGEMENT),
+                true,
+                Collections.emptyMap(),
+                ImmutableMap.of(AccessControlConstants.REP_ITEM_NAMES, new Value[]{
+                    vf.createValue(UserConstants.REP_MEMBERS, PropertyType.NAME)}));
             acMgr.setPolicy(acl.getPath(), acl);
             root.commit();
 

@@ -57,7 +57,8 @@ import org.junit.Test;
 /**
  * aim to cover the various aspects of Query.optimise()
  */
-public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
+public class SQL2OptimiseQueryTest extends AbstractQueryTest {
+
     private NodeStore store;
     private QueryEngineSettings qeSettings = new QueryEngineSettings() {
         @Override
@@ -65,11 +66,11 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
             return true;
         }
     };
-    
+
     /**
      * checks the {@code Query#optimise()} calls for the conversion from OR to UNION from a query
      * POV; ensuring that it returns always the same, expected resultset.
-     * 
+     *
      * @throws RepositoryException
      * @throws CommitFailedException
      */
@@ -78,7 +79,7 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
         Tree test, t;
         List<String> original, optimised, cheapest, expected;
         String statement;
-        
+
         test = root.getTree("/").addChild("test");
         test.setProperty(JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, NAME);
         t = addChildWithProperty(test, "a", "p", "a");
@@ -93,7 +94,7 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
         test = root.getTree("/").addChild("test2");
         addChildWithProperty(test, "a", "p", "a");
         root.commit();
-        
+
         statement = String.format("SELECT * FROM [%s] WHERE p = 'a' OR p = 'b'",
             NT_OAK_UNSTRUCTURED);
         expected = of("/test/a", "/test/b", "/test2/a");
@@ -104,7 +105,7 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
         setQuerySelectionMode(CHEAPEST);
         cheapest = executeQuery(statement, JCR_SQL2, true);
         assertOrToUnionResults(expected, original, optimised, cheapest);
-        
+
         statement = String.format(
             "SELECT * FROM [%s] WHERE p = 'a' OR p = 'b' OR p = 'c' OR p = 'd' OR p = 'e' ",
             NT_OAK_UNSTRUCTURED);
@@ -140,11 +141,11 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
         setQuerySelectionMode(CHEAPEST);
         cheapest = executeQuery(statement, JCR_SQL2, true);
         assertOrToUnionResults(expected, original, optimised, cheapest);
-        
+
         statement = "SELECT * FROM [oak:Unstructured] AS c "
             + "WHERE ( c.[p] = 'a' "
-            + "OR c.[p2] = 'a' " 
-            + "OR c.[p3] = 'a') " 
+            + "OR c.[p2] = 'a' "
+            + "OR c.[p3] = 'a') "
             + "AND ISDESCENDANTNODE(c, '/test') "
             + "ORDER BY added DESC";
         expected = of("/test/a", "/test/b", "/test/c");
@@ -156,16 +157,16 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
         cheapest = executeQuery(statement, JCR_SQL2, true);
         assertOrToUnionResults(expected, original, optimised, cheapest);
     }
-    
-    private static void assertOrToUnionResults(@NotNull List<String> expected, 
-                                               @NotNull List<String> original,
-                                               @NotNull List<String> optimised,
-                                               @NotNull List<String> cheapest) {
+
+    private static void assertOrToUnionResults(@NotNull List<String> expected,
+        @NotNull List<String> original,
+        @NotNull List<String> optimised,
+        @NotNull List<String> cheapest) {
         // checks that all the three list are the expected content
-        assertThat(checkNotNull(original), is(checkNotNull(expected)));        
+        assertThat(checkNotNull(original), is(checkNotNull(expected)));
         assertThat(checkNotNull(optimised), is(expected));
         assertThat(checkNotNull(cheapest), is(expected));
-        
+
         // check that all the three lists contains the same. Paranoid but still a fast check
         assertThat(original, is(optimised));
         assertThat(optimised, is(cheapest));
@@ -173,26 +174,26 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
     }
 
     private static Tree addChildWithProperty(@NotNull Tree father, @NotNull String name,
-                                             @NotNull String propName, @NotNull String propValue) {
+        @NotNull String propName, @NotNull String propValue) {
         Tree t = checkNotNull(father).addChild(checkNotNull(name));
         t.setProperty(JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, NAME);
         t.setProperty(checkNotNull(propName), checkNotNull(propValue));
         return t;
     }
-    
+
     /**
      * ensure that an optimisation is available for the provided queries.
-     * 
+     *
      * @throws ParseException
      */
     @Test
     public void optimise() throws ParseException {
         SQL2Parser parser = SQL2ParserTest.createTestSQL2Parser(
-                getMappings(), getNodeTypes(), qeSettings);
+            getMappings(), getNodeTypes(), qeSettings);
         String statement;
         Query original, optimised;
 
-        statement = 
+        statement =
             "SELECT * FROM [nt:unstructured] AS c "
                 + "WHERE "
                 + "(c.[p1]='a' OR c.[p2]='b') ";
@@ -203,7 +204,7 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
         assertNotSame(original, optimised);
         assertTrue(optimised instanceof UnionQueryImpl);
 
-        statement = 
+        statement =
             "SELECT * FROM [nt:unstructured] AS c "
                 + "WHERE "
                 + "(c.[p1]='a' OR c.[p2]='b') "
@@ -214,8 +215,8 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
         optimised = original.buildAlternativeQuery();
         assertNotNull(optimised);
         assertNotSame(original, optimised);
-        
-        statement = 
+
+        statement =
             "SELECT * FROM [nt:unstructured] AS c "
                 + "WHERE "
                 + "(c.[p1]='a' OR c.[p2]='b' OR c.[p3]='c') "
@@ -227,86 +228,86 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
         assertNotNull(optimised);
         assertNotSame(original, optimised);
     }
-    
+
     /**
      * ensure that an optimisation is available for the provided queries.
-     * 
+     *
      * @throws ParseException
      */
     @Test
     public void optimiseAndOrAnd() throws ParseException {
         optimiseAndOrAnd(
-                "select * from [nt:unstructured] as [c] " + 
-                "where isdescendantnode('/tmp') " + 
+            "select * from [nt:unstructured] as [c] " +
+                "where isdescendantnode('/tmp') " +
                 "and ([a]=1 or [b]=2) and ([c]=3 or [d]=4)",
-                "(isdescendantnode(c, /tmp)) and (d = 4) and (b = 2), " + 
-                "(isdescendantnode(c, /tmp)) and (d = 4) and (a = 1), " + 
-                "(isdescendantnode(c, /tmp)) and (c = 3) and (b = 2), " + 
+            "(isdescendantnode(c, /tmp)) and (d = 4) and (b = 2), " +
+                "(isdescendantnode(c, /tmp)) and (d = 4) and (a = 1), " +
+                "(isdescendantnode(c, /tmp)) and (c = 3) and (b = 2), " +
                 "(isdescendantnode(c, /tmp)) and (c = 3) and (a = 1)");
         optimiseAndOrAnd(
-                "select * from [nt:unstructured] as [c] " + 
+            "select * from [nt:unstructured] as [c] " +
                 "where ([a]=1 or [b]=2) and ([x]=3 or [y]=4)",
-                "(y = 4) and (b = 2), " + 
-                "(y = 4) and (a = 1), " + 
-                "(x = 3) and (b = 2), " + 
+            "(y = 4) and (b = 2), " +
+                "(y = 4) and (a = 1), " +
+                "(x = 3) and (b = 2), " +
                 "(x = 3) and (a = 1)");
         optimiseAndOrAnd(
-                "select * from [nt:unstructured] as [c] " + 
+            "select * from [nt:unstructured] as [c] " +
                 "where ([a]=1 or [b]=2 or ([c]=3 and [d]=4)) and ([x]=5 or [y]=6)",
-                "(y = 6) and ((c = 3) and (d = 4)), " + 
-                "(y = 6) and (b = 2), " + 
-                "(y = 6) and (a = 1), " + 
-                "(x = 5) and ((c = 3) and (d = 4)), " + 
-                "(x = 5) and (b = 2), " + 
+            "(y = 6) and ((c = 3) and (d = 4)), " +
+                "(y = 6) and (b = 2), " +
+                "(y = 6) and (a = 1), " +
+                "(x = 5) and ((c = 3) and (d = 4)), " +
+                "(x = 5) and (b = 2), " +
                 "(x = 5) and (a = 1)");
     }
-    
+
     private void optimiseAndOrAnd(String statement, String expected) throws ParseException {
         SQL2Parser parser = SQL2ParserTest.createTestSQL2Parser(
-                getMappings(), getNodeTypes(), qeSettings);
+            getMappings(), getNodeTypes(), qeSettings);
         Query original;
         original = parser.parse(statement, false);
         assertNotNull(original);
         String optimized = original.buildAlternativeQuery().toString();
-        optimized = optimized.replaceAll("\\[", "").replaceAll("\\]","");
+        optimized = optimized.replaceAll("\\[", "").replaceAll("\\]", "");
         optimized = optimized.replaceAll("select c.jcr:primaryType as c.jcr:primaryType ", "");
         optimized = optimized.replaceAll("from nt:unstructured as c where ", "");
         optimized = optimized.replaceAll("c\\.", "");
         optimized = optimized.replaceAll(" union ", ", ");
-        assertEquals(expected,  optimized);
+        assertEquals(expected, optimized);
     }
-    
+
     @Test
     public void optimizeKeepsQueryOptions() throws ParseException {
         SQL2Parser parser = SQL2ParserTest.createTestSQL2Parser(
-                getMappings(), getNodeTypes(), qeSettings);
+            getMappings(), getNodeTypes(), qeSettings);
         Query original;
-        String statement = "select * from [nt:unstructured] as [c] " + 
-                "where [a]=1 or [b]=2 option(index tag x)";
+        String statement = "select * from [nt:unstructured] as [c] " +
+            "where [a]=1 or [b]=2 option(index tag x)";
         original = parser.parse(statement, false);
         assertNotNull(original);
         UnionQueryImpl alt = (UnionQueryImpl) original.buildAlternativeQuery();
-        for(Query c : alt.getChildren()) {
+        for (Query c : alt.getChildren()) {
             assertEquals("x", ((QueryImpl) c).getQueryOptions().indexTag);
         }
     }
-    
+
     private NamePathMapper getMappings() {
         return new NamePathMapperImpl(
             new LocalNameMapper(root, QueryEngine.NO_MAPPINGS));
     }
-    
+
     private static NodeTypeInfoProvider getNodeTypes() {
         return new NodeStateNodeTypeInfoProvider(INITIAL_CONTENT);
     }
-    
+
     @Override
     protected ContentRepository createRepository() {
         store = new MemoryNodeStore();
         return new Oak(store)
-        .with(new OpenSecurityProvider())
-        .with(new InitialContent())
-        .with(qeSettings)
-        .createContentRepository();
+            .with(new OpenSecurityProvider())
+            .with(new InitialContent())
+            .with(qeSettings)
+            .createContentRepository();
     }
 }

@@ -38,9 +38,9 @@ public class UniquePropertyTest {
     public void testUniqueness() throws Exception {
 
         Root root = new Oak()
-                .with(new OpenSecurityProvider())
-                .with(new PropertyIndexEditorProvider())
-                .with(new InitialContent()).createRoot();
+            .with(new OpenSecurityProvider())
+            .with(new PropertyIndexEditorProvider())
+            .with(new InitialContent()).createRoot();
 
         NodeUtil node = new NodeUtil(root.getTree("/"));
         String uuid = UUID.randomUUID().toString();

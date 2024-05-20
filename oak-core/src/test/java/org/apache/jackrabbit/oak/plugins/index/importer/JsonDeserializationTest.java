@@ -43,52 +43,54 @@ public class JsonDeserializationTest {
     @Test
     public void deserialize() {
         String json = "{\n" +
-                "    \"evaluatePathRestrictions\": true,\n" +
-                "    \"compatVersion\": 2,\n" +
-                "    \"type\": \"lucene\",\n" +
-                "    \"includedPaths\": [\"/content\"],\n" +
-                "    \"excludedPaths\": [\"/jcr:system\"],\n" +
-                "    \"async\": \"async\",\n" +
-                "    \"jcr:primaryType\": \"oak:QueryIndexDefinition\",\n" +
-                "    \"indexRules\": {\n" +
-                "        \"jcr:primaryType\": \"nt:unstructured\",\n" +
-                "        \"dam:Asset\": {\n" +
-                "            \"jcr:primaryType\": \"nt:unstructured\",\n" +
-                "            \"properties\": {\n" +
-                "                \"jcr:primaryType\": \"nt:unstructured\",\n" +
-                "                \"valid\": {\n" +
-                "                    \"name\": \"valid\",\n" +
-                "                    \"propertyIndex\": true,\n" +
-                "                    \"jcr:primaryType\": \"nt:unstructured\",\n" +
-                "                    \"notNullCheckEnabled\": true\n" +
-                "                },\n" +
-                "                \"mimetype\": {\n" +
-                "                    \"name\": \"mimetype\",\n" +
-                "                    \"analyzed\": true,\n" +
-                "                    \"jcr:primaryType\": \"nt:unstructured\"\n" +
-                "                },\n" +
-                "                \"lastModified\": {\n" +
-                "                    \"ordered\": true,\n" +
-                "                    \"name\": \"jcr:content/metadata/jcr:lastModified\",\n" +
-                "                    \"jcr:primaryType\": \"nt:unstructured\"\n" +
-                "                },\n" +
-                "                \"status\": {\n" +
-                "                    \"name\": \"jcr:content/metadata/status\",\n" +
-                "                    \"propertyIndex\": true,\n" +
-                "                    \"jcr:primaryType\": \"nt:unstructured\"\n" +
-                "                }\n" +
-                "            }\n" +
-                "        }\n" +
-                "    }\n" +
-                "}";
+            "    \"evaluatePathRestrictions\": true,\n" +
+            "    \"compatVersion\": 2,\n" +
+            "    \"type\": \"lucene\",\n" +
+            "    \"includedPaths\": [\"/content\"],\n" +
+            "    \"excludedPaths\": [\"/jcr:system\"],\n" +
+            "    \"async\": \"async\",\n" +
+            "    \"jcr:primaryType\": \"oak:QueryIndexDefinition\",\n" +
+            "    \"indexRules\": {\n" +
+            "        \"jcr:primaryType\": \"nt:unstructured\",\n" +
+            "        \"dam:Asset\": {\n" +
+            "            \"jcr:primaryType\": \"nt:unstructured\",\n" +
+            "            \"properties\": {\n" +
+            "                \"jcr:primaryType\": \"nt:unstructured\",\n" +
+            "                \"valid\": {\n" +
+            "                    \"name\": \"valid\",\n" +
+            "                    \"propertyIndex\": true,\n" +
+            "                    \"jcr:primaryType\": \"nt:unstructured\",\n" +
+            "                    \"notNullCheckEnabled\": true\n" +
+            "                },\n" +
+            "                \"mimetype\": {\n" +
+            "                    \"name\": \"mimetype\",\n" +
+            "                    \"analyzed\": true,\n" +
+            "                    \"jcr:primaryType\": \"nt:unstructured\"\n" +
+            "                },\n" +
+            "                \"lastModified\": {\n" +
+            "                    \"ordered\": true,\n" +
+            "                    \"name\": \"jcr:content/metadata/jcr:lastModified\",\n" +
+            "                    \"jcr:primaryType\": \"nt:unstructured\"\n" +
+            "                },\n" +
+            "                \"status\": {\n" +
+            "                    \"name\": \"jcr:content/metadata/status\",\n" +
+            "                    \"propertyIndex\": true,\n" +
+            "                    \"jcr:primaryType\": \"nt:unstructured\"\n" +
+            "                }\n" +
+            "            }\n" +
+            "        }\n" +
+            "    }\n" +
+            "}";
 
         NodeBuilder builder = EMPTY_NODE.builder();
         Tree tree = TreeFactory.createTree(builder);
         tree.setProperty("evaluatePathRestrictions", true);
         tree.setProperty("compatVersion", 2);
         tree.setProperty("type", "lucene");
-        tree.setProperty(PathFilter.PROP_INCLUDED_PATHS, Collections.singletonList("/content"), Type.STRINGS);
-        tree.setProperty(PathFilter.PROP_EXCLUDED_PATHS, Collections.singletonList("/jcr:system"), Type.STRINGS);
+        tree.setProperty(PathFilter.PROP_INCLUDED_PATHS, Collections.singletonList("/content"),
+            Type.STRINGS);
+        tree.setProperty(PathFilter.PROP_EXCLUDED_PATHS, Collections.singletonList("/jcr:system"),
+            Type.STRINGS);
         tree.setProperty("async", "async");
         tree.setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME);
 
@@ -130,13 +132,14 @@ public class JsonDeserializationTest {
         return deserializer.deserialize(json);
     }
 
-    private String serialize(NodeState nodeState){
+    private String serialize(NodeState nodeState) {
         JsopBuilder json = new JsopBuilder();
-        new JsonSerializer(json, "{\"properties\":[\"*\", \"-:*\"]}", new BlobSerializer()).serialize(nodeState);
+        new JsonSerializer(json, "{\"properties\":[\"*\", \"-:*\"]}",
+            new BlobSerializer()).serialize(nodeState);
         return json.toString();
     }
 
-    private Tree addUnstructuredChild(Tree tree, String name){
+    private Tree addUnstructuredChild(Tree tree, String name) {
         Tree child = tree.addChild(name);
         child.setOrderableChildren(true);
         child.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);

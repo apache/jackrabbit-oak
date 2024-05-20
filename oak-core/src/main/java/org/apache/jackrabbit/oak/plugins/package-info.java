@@ -16,7 +16,7 @@
  */
 
 /**
- * Oak plugins. This package contains various oak-core extensions that are
- * (still) too small to be placed into their own Maven components.
+ * Oak plugins. This package contains various oak-core extensions that are (still) too small to be
+ * placed into their own Maven components.
  */
 package org.apache.jackrabbit.oak.plugins;

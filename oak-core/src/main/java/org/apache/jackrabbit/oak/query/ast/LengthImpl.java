@@ -20,13 +20,11 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.List;
 import java.util.Set;
-
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
@@ -54,12 +52,12 @@ public class LengthImpl extends DynamicOperandImpl {
     public String toString() {
         return "length(" + operand + ')';
     }
-    
+
     @Override
     public PropertyExistenceImpl getPropertyExistence() {
         return operand.getPropertyExistence();
     }
-    
+
     @Override
     public Set<SelectorImpl> getSelectors() {
         return operand.getSelectors();
@@ -84,21 +82,21 @@ public class LengthImpl extends DynamicOperandImpl {
     public void restrict(FilterImpl f, Operator operator, PropertyValue v) {
         if (v != null) {
             switch (v.getType().tag()) {
-            case PropertyType.LONG:
-            case PropertyType.DECIMAL:
-            case PropertyType.DOUBLE:
-                // ok - comparison with a number
-                break;
-            case PropertyType.BINARY:
-            case PropertyType.STRING:
-            case PropertyType.DATE:
-                // ok - compare with a string literal
-                break;
-            default:
-                throw new IllegalArgumentException(
+                case PropertyType.LONG:
+                case PropertyType.DECIMAL:
+                case PropertyType.DOUBLE:
+                    // ok - comparison with a number
+                    break;
+                case PropertyType.BINARY:
+                case PropertyType.STRING:
+                case PropertyType.DATE:
+                    // ok - compare with a string literal
+                    break;
+                default:
+                    throw new IllegalArgumentException(
                         "Can not compare the length with a constant of type "
-                                + PropertyType.nameFromValue(v.getType().tag()) +
-                                " and value " + v.toString());
+                            + PropertyType.nameFromValue(v.getType().tag()) +
+                            " and value " + v.toString());
             }
         }
         // LENGTH(x) implies x is not null
@@ -106,14 +104,14 @@ public class LengthImpl extends DynamicOperandImpl {
         if (operator == Operator.NOT_EQUAL && v != null) {
             // not supported
             return;
-        }        
+        }
         String fn = getFunction(f.getSelector());
         if (fn != null) {
-            f.restrictProperty(QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn, 
-                    operator, v, PropertyType.LONG);
+            f.restrictProperty(QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn,
+                operator, v, PropertyType.LONG);
         }
     }
-    
+
     @Override
     public void restrictList(FilterImpl f, List<PropertyValue> list) {
         // optimizations of the type "length(x) in(1, 2, 3)" are not supported
@@ -132,12 +130,12 @@ public class LengthImpl extends DynamicOperandImpl {
     public boolean canRestrictSelector(SelectorImpl s) {
         return operand.canRestrictSelector(s);
     }
-    
+
     @Override
     int getPropertyType() {
         return PropertyType.LONG;
     }
-    
+
     @Override
     public DynamicOperandImpl createCopy() {
         return new LengthImpl(operand.createCopy());
@@ -148,10 +146,10 @@ public class LengthImpl extends DynamicOperandImpl {
         String fn = getFunction(s);
         if (fn != null) {
             return new OrderEntry(
-                QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn,                     
-                Type.LONG, 
-                o.isDescending() ? 
-                OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
+                QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn,
+                Type.LONG,
+                o.isDescending() ?
+                    OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
         }
         return null;
     }

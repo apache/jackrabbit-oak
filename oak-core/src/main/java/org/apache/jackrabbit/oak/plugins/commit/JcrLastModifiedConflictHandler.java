@@ -33,9 +33,8 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Conflict Handler that merges concurrent updates to
- * {@code org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED} by picking the
- * older of the 2 conflicting dates and
- * {@code org.apache.jackrabbit.JcrConstants.JCR_CREATED} by picking the newer
+ * {@code org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED} by picking the older of the 2
+ * conflicting dates and {@code org.apache.jackrabbit.JcrConstants.JCR_CREATED} by picking the newer
  * of the 2 conflicting dates.
  */
 public class JcrLastModifiedConflictHandler extends DefaultThreeWayConflictHandler {
@@ -46,7 +45,8 @@ public class JcrLastModifiedConflictHandler extends DefaultThreeWayConflictHandl
 
     @NotNull
     @Override
-    public Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs) {
+    public Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
+        @NotNull PropertyState theirs) {
         if (isModifiedOrCreated(ours.getName()) && merge(parent, ours, theirs)) {
             return Resolution.MERGED;
         } else {
@@ -56,8 +56,9 @@ public class JcrLastModifiedConflictHandler extends DefaultThreeWayConflictHandl
 
     @NotNull
     @Override
-    public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs,
-                                            @NotNull PropertyState base) {
+    public Resolution changeChangedProperty(@NotNull NodeBuilder parent,
+        @NotNull PropertyState ours, @NotNull PropertyState theirs,
+        @NotNull PropertyState base) {
         if (isModifiedOrCreated(ours.getName()) && merge(parent, ours, theirs)) {
             return Resolution.MERGED;
         } else {
@@ -66,16 +67,17 @@ public class JcrLastModifiedConflictHandler extends DefaultThreeWayConflictHandl
     }
 
     /**
-     * Tries to merge two properties. The respective property of the parent is
-     * set if merging is successful. The the earlier value is used if
-     * jcr:created is true; the later is used if it is not jcr:created.
+     * Tries to merge two properties. The respective property of the parent is set if merging is
+     * successful. The the earlier value is used if jcr:created is true; the later is used if it is
+     * not jcr:created.
      *
      * @param parent the parent node
-     * @param ours our value
+     * @param ours   our value
      * @param theirs their value
      * @return if merging is successful
      */
-    private static boolean merge(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs) {
+    private static boolean merge(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
+        @NotNull PropertyState theirs) {
         Calendar o = parse(ours.getValue(Type.DATE));
         Calendar t = parse(theirs.getValue(Type.DATE));
         Calendar value = pick(o, t, JCR_CREATED.equals(ours.getName()));
@@ -88,15 +90,19 @@ public class JcrLastModifiedConflictHandler extends DefaultThreeWayConflictHandl
     }
 
     /**
-     * Pick "a" or "b", depending on which one is earlier (if jcrCreated = true) or later (if jcrCreated = false).
+     * Pick "a" or "b", depending on which one is earlier (if jcrCreated = true) or later (if
+     * jcrCreated = false).
      *
-     * @param ours the property state from our change set to have a conflict resolved.
-     * @param theirs the property state from their change set to have a conflict resolved.
-     * @param jcrCreated if true and 'ours' is before 'theirs', 'ours' is returned, otherwise 'theirs'
-     * @return the calendar; either "ours" or "theirs". It will return {@code null} if both are {@code null}
+     * @param ours       the property state from our change set to have a conflict resolved.
+     * @param theirs     the property state from their change set to have a conflict resolved.
+     * @param jcrCreated if true and 'ours' is before 'theirs', 'ours' is returned, otherwise
+     *                   'theirs'
+     * @return the calendar; either "ours" or "theirs". It will return {@code null} if both are
+     * {@code null}
      */
     @Nullable
-    private static Calendar pick(@Nullable Calendar ours, @Nullable Calendar theirs, boolean jcrCreated) {
+    private static Calendar pick(@Nullable Calendar ours, @Nullable Calendar theirs,
+        boolean jcrCreated) {
         if (ours == null) {
             return theirs;
         }

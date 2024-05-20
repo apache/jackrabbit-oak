@@ -99,17 +99,17 @@ public abstract class AbstractSecurityTest {
         Oak oak = new Oak();
         whiteboard = oak.getWhiteboard();
         oak.with(new InitialContent())
-                .with(new VersionHook())
-                .with(JcrConflictHandler.createJcrConflictHandler())
-                .with(new NamespaceEditorProvider())
-                .with(new ReferenceEditorProvider())
-                .with(new ReferenceIndexProvider())
-                .with(new PropertyIndexEditorProvider())
-                .with(new PropertyIndexProvider())
-                .with(new TypeEditorProvider())
-                .with(new ConflictValidatorProvider())
-                .with(getQueryEngineSettings())
-                .with(getSecurityProvider());
+           .with(new VersionHook())
+           .with(JcrConflictHandler.createJcrConflictHandler())
+           .with(new NamespaceEditorProvider())
+           .with(new ReferenceEditorProvider())
+           .with(new ReferenceIndexProvider())
+           .with(new PropertyIndexEditorProvider())
+           .with(new PropertyIndexProvider())
+           .with(new TypeEditorProvider())
+           .with(new ConflictValidatorProvider())
+           .with(getQueryEngineSettings())
+           .with(getSecurityProvider());
         withEditors(oak);
         contentRepository = oak.createContentRepository();
 
@@ -145,10 +145,10 @@ public abstract class AbstractSecurityTest {
 
     protected SecurityProvider initSecurityProvider() {
         return SecurityProviderBuilder.newBuilder().with(getSecurityConfigParameters())
-                .withRootProvider(rootProvider)
-                .withTreeProvider(treeProvider)
-                .withWhiteboard(whiteboard)
-                .build();
+                                      .withRootProvider(rootProvider)
+                                      .withTreeProvider(treeProvider)
+                                      .withWhiteboard(whiteboard)
+                                      .build();
     }
 
     protected Oak withEditors(Oak oak) {
@@ -172,7 +172,7 @@ public abstract class AbstractSecurityTest {
     }
 
     protected ContentSession login(@Nullable Credentials credentials)
-            throws LoginException, NoSuchWorkspaceException {
+        throws LoginException, NoSuchWorkspaceException {
         return contentRepository.login(credentials, null);
     }
 
@@ -182,7 +182,8 @@ public abstract class AbstractSecurityTest {
     }
 
     @NotNull
-    protected ContentSession createAdminSession(@NotNull ContentRepository repository) throws LoginException, NoSuchWorkspaceException {
+    protected ContentSession createAdminSession(@NotNull ContentRepository repository)
+        throws LoginException, NoSuchWorkspaceException {
         return repository.login(getAdminCredentials(), null);
     }
 
@@ -197,7 +198,8 @@ public abstract class AbstractSecurityTest {
     protected UserManager getUserManager(Root root) {
         if (this.root == root) {
             if (userManager == null) {
-                userManager = getConfig(UserConfiguration.class).getUserManager(root, getNamePathMapper());
+                userManager = getConfig(UserConfiguration.class).getUserManager(root,
+                    getNamePathMapper());
             }
             return userManager;
         } else {
@@ -206,23 +208,28 @@ public abstract class AbstractSecurityTest {
     }
 
     protected PrincipalManager getPrincipalManager(Root root) {
-        return getConfig(PrincipalConfiguration.class).getPrincipalManager(root, getNamePathMapper());
+        return getConfig(PrincipalConfiguration.class).getPrincipalManager(root,
+            getNamePathMapper());
     }
 
     protected JackrabbitAccessControlManager getAccessControlManager(Root root) {
-        AccessControlManager acMgr = getConfig(AuthorizationConfiguration.class).getAccessControlManager(root, getNamePathMapper());
+        AccessControlManager acMgr = getConfig(
+            AuthorizationConfiguration.class).getAccessControlManager(root, getNamePathMapper());
         if (acMgr instanceof JackrabbitAccessControlManager) {
             return (JackrabbitAccessControlManager) acMgr;
         } else {
-            throw new UnsupportedOperationException("Expected JackrabbitAccessControlManager found " + acMgr.getClass());
+            throw new UnsupportedOperationException(
+                "Expected JackrabbitAccessControlManager found " + acMgr.getClass());
         }
     }
 
-    protected Privilege[] privilegesFromNames(@NotNull String... privilegeNames) throws RepositoryException {
+    protected Privilege[] privilegesFromNames(@NotNull String... privilegeNames)
+        throws RepositoryException {
         return privilegesFromNames(Arrays.asList(privilegeNames));
     }
 
-    protected Privilege[] privilegesFromNames(Iterable<String> privilegeNames) throws RepositoryException {
+    protected Privilege[] privilegesFromNames(Iterable<String> privilegeNames)
+        throws RepositoryException {
         PrivilegeManager manager = getPrivilegeManager(root);
         List<Privilege> privs = newArrayList();
         for (String name : privilegeNames) {
@@ -232,7 +239,8 @@ public abstract class AbstractSecurityTest {
     }
 
     protected PrivilegeManager getPrivilegeManager(Root root) {
-        return getConfig(PrivilegeConfiguration.class).getPrivilegeManager(root, getNamePathMapper());
+        return getConfig(PrivilegeConfiguration.class).getPrivilegeManager(root,
+            getNamePathMapper());
     }
 
     protected ValueFactory getValueFactory() {
@@ -262,7 +270,7 @@ public abstract class AbstractSecurityTest {
         }
         return testUser;
     }
-    
+
     protected void removeTestUser() throws Exception {
         if (testUser != null) {
             testUser.remove();

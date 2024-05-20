@@ -30,8 +30,7 @@ import java.util.Set;
 class PermissionEntryProviderImpl implements PermissionEntryProvider {
 
     /**
-     * The set of principal names for which this {@code PermissionEntryProvider}
-     * has been created.
+     * The set of principal names for which this {@code PermissionEntryProvider} has been created.
      */
     private final Set<String> principalNames;
 
@@ -40,8 +39,8 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
     private final ConfigurationParameters options;
 
     /**
-     * Flag to indicate if the the store contains any permission entries for the
-     * given set of principal names.
+     * Flag to indicate if the the store contains any permission entries for the given set of
+     * principal names.
      */
     private boolean noExistingNames;
 
@@ -50,7 +49,8 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
 
     private PermissionCache permissionCache;
 
-    PermissionEntryProviderImpl(@NotNull PermissionStore store, @NotNull Set<String> principalNames, @NotNull ConfigurationParameters options) {
+    PermissionEntryProviderImpl(@NotNull PermissionStore store, @NotNull Set<String> principalNames,
+        @NotNull ConfigurationParameters options) {
         this.store = store;
         this.principalNames = Collections.unmodifiableSet(principalNames);
         this.options = options;
@@ -59,7 +59,8 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
     private void init() {
         if (!initialized) {
             PermissionCacheBuilder builder = new PermissionCacheBuilder(store);
-            noExistingNames = builder.init(principalNames, new CacheStrategyImpl(options, isRefreshed));
+            noExistingNames = builder.init(principalNames,
+                new CacheStrategyImpl(options, isRefreshed));
             permissionCache = builder.build();
             initialized = true;
         }

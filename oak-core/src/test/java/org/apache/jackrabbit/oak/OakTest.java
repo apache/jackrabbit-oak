@@ -69,9 +69,10 @@ public class OakTest {
 
     @Test
     public void testWithDefaultWorkspaceName() throws Exception {
-        ContentRepository repo = new Oak().with("test").with(new OpenSecurityProvider()).createContentRepository();
+        ContentRepository repo = new Oak().with("test").with(new OpenSecurityProvider())
+                                          .createContentRepository();
 
-        String[] valid = new String[] {null, "test"};
+        String[] valid = new String[]{null, "test"};
         for (String wspName : valid) {
             ContentSession cs = null;
             try {
@@ -84,7 +85,7 @@ public class OakTest {
             }
         }
 
-        String[] invalid = new String[] {"", "another", Oak.DEFAULT_WORKSPACE_NAME};
+        String[] invalid = new String[]{"", "another", Oak.DEFAULT_WORKSPACE_NAME};
         for (String wspName : invalid) {
             ContentSession cs = null;
             try {
@@ -149,44 +150,46 @@ public class OakTest {
     }
 
     @Test
-    public void closeAsyncIndexers() throws Exception{
+    public void closeAsyncIndexers() throws Exception {
         final AtomicReference<AsyncIndexUpdate> async = new AtomicReference<AsyncIndexUpdate>();
-        Whiteboard wb = new DefaultWhiteboard(){
+        Whiteboard wb = new DefaultWhiteboard() {
             @Override
             public <T> Registration register(Class<T> type, T service, Map<?, ?> properties) {
-                if (service instanceof AsyncIndexUpdate){
+                if (service instanceof AsyncIndexUpdate) {
                     async.set((AsyncIndexUpdate) service);
                 }
                 return super.register(type, service, properties);
             }
         };
         Oak oak = new Oak()
-                .with(new OpenSecurityProvider())
-                .with(wb)
-                .withAsyncIndexing("foo-async", 5);
+            .with(new OpenSecurityProvider())
+            .with(wb)
+            .withAsyncIndexing("foo-async", 5);
         ContentRepository repo = oak.createContentRepository();
 
-        ((Closeable)repo).close();
+        ((Closeable) repo).close();
         assertNotNull(async.get());
         assertTrue(async.get().isClosed());
         assertNull(WhiteboardUtils.getService(wb, AsyncIndexUpdate.class));
     }
 
     @Test(expected = CommitFailedException.class)
-    public void checkMissingStrategySetting() throws Exception{
+    public void checkMissingStrategySetting() throws Exception {
         Whiteboard wb = new DefaultWhiteboard();
         WhiteboardIndexEditorProvider wbProvider = new WhiteboardIndexEditorProvider();
         wbProvider.start(wb);
 
-        Registration r1 = wb.register(IndexEditorProvider.class, new PropertyIndexEditorProvider(), null);
-        Registration r2 = wb.register(IndexEditorProvider.class, new ReferenceEditorProvider(), null);
+        Registration r1 = wb.register(IndexEditorProvider.class, new PropertyIndexEditorProvider(),
+            null);
+        Registration r2 = wb.register(IndexEditorProvider.class, new ReferenceEditorProvider(),
+            null);
 
         Oak oak = new Oak()
-                .with(new OpenSecurityProvider())
-                .with(new InitialContent())
-                .with(wb)
-                .with(wbProvider)
-                .withFailOnMissingIndexProvider();
+            .with(new OpenSecurityProvider())
+            .with(new InitialContent())
+            .with(wb)
+            .with(wbProvider)
+            .withFailOnMissingIndexProvider();
 
         ContentRepository repo = oak.createContentRepository();
 
@@ -200,28 +203,30 @@ public class OakTest {
 
         root.commit();
         cs.close();
-        ((Closeable)repo).close();
+        ((Closeable) repo).close();
     }
 
     @Test
-    public void commitContextInCommitInfo() throws Exception{
+    public void commitContextInCommitInfo() throws Exception {
         CommitInfoCapturingStore store = new CommitInfoCapturingStore();
         Oak oak = new Oak(store);
 
         ContentRepository repo = oak.with(new OpenSecurityProvider()).createContentRepository();
         assertThat(store.infos, is(not(empty())));
-        for (CommitInfo ci : store.infos){
+        for (CommitInfo ci : store.infos) {
             assertNotNull(ci.getInfo().get(CommitContext.NAME));
         }
-        ((Closeable)repo).close();
+        ((Closeable) repo).close();
     }
 
     private static class CommitInfoCapturingStore extends MemoryNodeStore {
+
         List<CommitInfo> infos = Lists.newArrayList();
 
         @Override
-        public synchronized NodeState merge(@NotNull NodeBuilder builder, @NotNull CommitHook commitHook,
-                                            @NotNull CommitInfo info) throws CommitFailedException {
+        public synchronized NodeState merge(@NotNull NodeBuilder builder,
+            @NotNull CommitHook commitHook,
+            @NotNull CommitInfo info) throws CommitFailedException {
             if (info.getSessionId().equals(OakInitializer.SESSION_ID)) {
                 this.infos.add(info);
             }

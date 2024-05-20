@@ -70,7 +70,8 @@ class UserImpl extends AuthorizableImpl implements User {
     }
 
     @Override
-    public void changePassword(@Nullable String pw, @NotNull String oldPw) throws RepositoryException {
+    public void changePassword(@Nullable String pw, @NotNull String oldPw)
+        throws RepositoryException {
         try {
             getDelegate().changePassword(pw, oldPw);
         } finally {
@@ -122,7 +123,8 @@ class UserImpl extends AuthorizableImpl implements User {
         }
 
         @Override
-        public boolean revokeImpersonation(@NotNull Principal principal) throws RepositoryException {
+        public boolean revokeImpersonation(@NotNull Principal principal)
+            throws RepositoryException {
             try {
                 return dlg.revokeImpersonation(principal);
             } finally {

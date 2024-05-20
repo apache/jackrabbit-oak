@@ -46,96 +46,96 @@ public class FilterTest {
         assertTrue(null == f.getPropertyRestriction("x"));
         f.restrictProperty("x", Operator.LESS_OR_EQUAL, two);
         assertEquals(
-                "Filter(, path=*, property=[x=[..2]]])", 
-                f.toString());
+            "Filter(, path=*, property=[x=[..2]]])",
+            f.toString());
         f.restrictProperty("x", Operator.GREATER_OR_EQUAL, one);
         assertEquals(
-                "Filter(, path=*, property=[x=[..2], [1..]])", 
-                f.toString());
+            "Filter(, path=*, property=[x=[..2], [1..]])",
+            f.toString());
 
         // no change, as the same restrictions already were added
         f.restrictProperty("x", Operator.LESS_OR_EQUAL, two);
         assertEquals(
-                "Filter(, path=*, property=[x=[..2], [1..]])", 
-                f.toString());
+            "Filter(, path=*, property=[x=[..2], [1..]])",
+            f.toString());
         f.restrictProperty("x", Operator.GREATER_OR_EQUAL, one);
         assertEquals(
-                "Filter(, path=*, property=[x=[..2], [1..]])", 
-                f.toString());
+            "Filter(, path=*, property=[x=[..2], [1..]])",
+            f.toString());
 
         f.restrictProperty("x", Operator.GREATER_THAN, one);
         assertEquals(
-                "Filter(, path=*, property=[x=[..2], [1.., (1..]])", 
-                f.toString());
+            "Filter(, path=*, property=[x=[..2], [1.., (1..]])",
+            f.toString());
         f.restrictProperty("x", Operator.LESS_THAN, two);
         assertEquals(
-                "Filter(, path=*, property=[x=[..2], [1.., (1.., ..2)]])", 
-                f.toString());
+            "Filter(, path=*, property=[x=[..2], [1.., (1.., ..2)]])",
+            f.toString());
 
         // TODO could replace / remove the old range conditions,
         // if there is an overlap
         f.restrictProperty("x", Operator.EQUAL, two);
         assertEquals(
-                "Filter(, path=*, property=[x=[..2], [1.., (1.., ..2), 2]])", 
-                f.toString());
+            "Filter(, path=*, property=[x=[..2], [1.., (1.., ..2), 2]])",
+            f.toString());
 
         f = FilterImpl.newTestInstance();
         f.restrictProperty("x", Operator.EQUAL, one);
         assertEquals(
-                "Filter(, path=*, property=[x=[1]])", 
-                f.toString());
+            "Filter(, path=*, property=[x=[1]])",
+            f.toString());
         f.restrictProperty("x", Operator.EQUAL, one);
         assertEquals(
-                "Filter(, path=*, property=[x=[1]])", 
-                f.toString());
-        
+            "Filter(, path=*, property=[x=[1]])",
+            f.toString());
+
         // TODO could replace / remove the old range conditions,
         // if there is an overlap
         f.restrictProperty("x", Operator.GREATER_OR_EQUAL, one);
         assertEquals(
-                "Filter(, path=*, property=[x=[1, [1..]])", 
-                f.toString());
+            "Filter(, path=*, property=[x=[1, [1..]])",
+            f.toString());
         f.restrictProperty("x", Operator.LESS_OR_EQUAL, one);
         assertEquals(
-                "Filter(, path=*, property=[x=[1, [1.., ..1]]])", 
-                f.toString());
-        
+            "Filter(, path=*, property=[x=[1, [1.., ..1]]])",
+            f.toString());
+
         // TODO could replace / remove the old range conditions,
         // if there is an overlap
         f.restrictProperty("x", Operator.GREATER_THAN, one);
         assertEquals(
-                "Filter(, path=*, property=[x=[1, [1.., ..1], (1..]])", 
-                f.toString());
+            "Filter(, path=*, property=[x=[1, [1.., ..1], (1..]])",
+            f.toString());
 
         f = FilterImpl.newTestInstance();
         f.restrictProperty("x", Operator.EQUAL, one);
         assertEquals(
-                "Filter(, path=*, property=[x=[1]])", 
-                f.toString());
+            "Filter(, path=*, property=[x=[1]])",
+            f.toString());
 
         // TODO could replace / remove the old range conditions,
         // if there is an overlap
         f.restrictProperty("x", Operator.LESS_THAN, one);
         assertEquals(
-                "Filter(, path=*, property=[x=[1, ..1)]])", 
-                f.toString());
+            "Filter(, path=*, property=[x=[1, ..1)]])",
+            f.toString());
 
         f = FilterImpl.newTestInstance();
         f.restrictProperty("x", Operator.NOT_EQUAL, null);
         assertEquals(
-                "Filter(, path=*, property=[x=[is not null]])", 
-                f.toString());
+            "Filter(, path=*, property=[x=[is not null]])",
+            f.toString());
         f.restrictProperty("x", Operator.LESS_THAN, one);
         assertEquals(
-                "Filter(, path=*, property=[x=[is not null, ..1)]])", 
-                f.toString());
-        
+            "Filter(, path=*, property=[x=[is not null, ..1)]])",
+            f.toString());
+
         // this should replace the range with an equality
         // (which is faster, and correct even when using multi-valued properties)
         f.restrictProperty("x", Operator.EQUAL, two);
         assertEquals(
-                "Filter(, path=*, property=[x=[is not null, ..1), 2]])", 
-                f.toString());
+            "Filter(, path=*, property=[x=[is not null, ..1), 2]])",
+            f.toString());
 
     }
 
@@ -161,9 +161,9 @@ public class FilterTest {
             String p1 = paths.get(r.nextInt(paths.size()));
             String p2 = paths.get(r.nextInt(paths.size()));
             Filter.PathRestriction r1 = Filter.PathRestriction.values()[r
-                    .nextInt(Filter.PathRestriction.values().length)];
+                .nextInt(Filter.PathRestriction.values().length)];
             Filter.PathRestriction r2 = Filter.PathRestriction.values()[r
-                    .nextInt(Filter.PathRestriction.values().length)];
+                .nextInt(Filter.PathRestriction.values().length)];
             FilterImpl f1 = FilterImpl.newTestInstance();
             f1.restrictPath(p1, r1);
             FilterImpl f2 = FilterImpl.newTestInstance();
@@ -182,7 +182,7 @@ public class FilterTest {
                     fc.restrictPath(p1, r1);
                     fc.restrictPath(p2, r2);
                     fail("not matched: " + p1 + "/" + r1.name() + " && " + p2
-                            + "/" + r2.name());
+                        + "/" + r2.name());
                 } else {
                     // not great, but not a problem
                     tooMany++;
@@ -190,7 +190,7 @@ public class FilterTest {
             }
             if (tooMany > 3) {
                 fail("too many matches: " + p1 + "/" + r1.name() + " && " + p2
-                        + "/" + r2.name() + " superfluous: " + tooMany);
+                    + "/" + r2.name() + " superfluous: " + tooMany);
             }
         }
     }
@@ -200,7 +200,7 @@ public class FilterTest {
         FilterImpl f = FilterImpl.newTestInstance();
         assertEquals("/", f.getPath());
         assertEquals(Filter.PathRestriction.NO_RESTRICTION,
-                f.getPathRestriction());
+            f.getPathRestriction());
 
         f.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
         f.restrictPath("/test2", Filter.PathRestriction.ALL_CHILDREN);
@@ -210,11 +210,11 @@ public class FilterTest {
         f.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
         assertEquals("/test", f.getPath());
         assertEquals(Filter.PathRestriction.ALL_CHILDREN,
-                f.getPathRestriction());
+            f.getPathRestriction());
         f.restrictPath("/test/x", Filter.PathRestriction.DIRECT_CHILDREN);
         assertEquals("/test/x", f.getPath());
         assertEquals(Filter.PathRestriction.DIRECT_CHILDREN,
-                f.getPathRestriction());
+            f.getPathRestriction());
         f.restrictPath("/test/x/y", Filter.PathRestriction.PARENT);
         assertEquals("/test/x/y", f.getPath());
         assertEquals(Filter.PathRestriction.PARENT, f.getPathRestriction());
@@ -276,15 +276,15 @@ public class FilterTest {
         f.restrictPath("/test", Filter.PathRestriction.DIRECT_CHILDREN);
         assertEquals("/test", f.getPath());
         assertEquals(Filter.PathRestriction.DIRECT_CHILDREN,
-                f.getPathRestriction());
+            f.getPathRestriction());
         f.restrictPath("/", Filter.PathRestriction.ALL_CHILDREN);
         assertEquals("/test", f.getPath());
         assertEquals(Filter.PathRestriction.DIRECT_CHILDREN,
-                f.getPathRestriction());
+            f.getPathRestriction());
         f.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
         assertEquals("/test", f.getPath());
         assertEquals(Filter.PathRestriction.DIRECT_CHILDREN,
-                f.getPathRestriction());
+            f.getPathRestriction());
         f.restrictPath("/test/x/y", Filter.PathRestriction.PARENT);
         assertEquals("/test/x/y", f.getPath());
         assertEquals(Filter.PathRestriction.PARENT, f.getPathRestriction());

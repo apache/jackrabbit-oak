@@ -19,14 +19,13 @@ package org.apache.jackrabbit.oak.query;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Map;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 
 /**
@@ -43,8 +42,8 @@ public class ResultRowImpl implements ResultRow {
     private final PropertyValue[] values;
 
     /**
-     * Whether the value at the given index is used for comparing rows (used
-     * within hashCode and equals). If null, all columns are distinct.
+     * Whether the value at the given index is used for comparing rows (used within hashCode and
+     * equals). If null, all columns are distinct.
      */
     private final boolean[] distinctValues;
 
@@ -53,7 +52,8 @@ public class ResultRowImpl implements ResultRow {
      */
     private final PropertyValue[] orderValues;
 
-    ResultRowImpl(Query query, Tree[] trees, PropertyValue[] values, boolean[] distinctValues, PropertyValue[] orderValues) {
+    ResultRowImpl(Query query, Tree[] trees, PropertyValue[] values, boolean[] distinctValues,
+        PropertyValue[] orderValues) {
         this.query = query;
         this.trees = trees;
         this.values = values;
@@ -115,7 +115,8 @@ public class ResultRowImpl implements ResultRow {
             if (columnIndex >= 0) {
                 indexExcerptValue = values[columnIndex];
                 if (indexExcerptValue != null) {
-                    if (QueryConstants.REP_EXCERPT.equals(columnName) || SimpleExcerptProvider.REP_EXCERPT_FN.equals(columnName)) {
+                    if (QueryConstants.REP_EXCERPT.equals(columnName)
+                        || SimpleExcerptProvider.REP_EXCERPT_FN.equals(columnName)) {
                         return SimpleExcerptProvider.getExcerpt(indexExcerptValue);
                     }
                 }
@@ -127,7 +128,7 @@ public class ResultRowImpl implements ResultRow {
 
     private PropertyValue getFallbackExcerpt(String columnName, PropertyValue indexValue) {
         String ex = SimpleExcerptProvider.getExcerpt(getPath(), columnName,
-                query, true);
+            query, true);
         if (ex != null && ex.length() > 24) {
             return PropertyValues.newString(ex);
         } else if (indexValue != null) {
@@ -225,7 +226,7 @@ public class ResultRowImpl implements ResultRow {
     }
 
     public static Comparator<ResultRowImpl> getComparator(
-            final OrderingImpl[] orderings) {
+        final OrderingImpl[] orderings) {
         if (orderings == null) {
             return null;
         }
@@ -265,16 +266,18 @@ public class ResultRowImpl implements ResultRow {
 
     }
 
-    static ResultRowImpl getMappingResultRow(ResultRowImpl delegate, final Map<String, String> columnToFacetMap) {
+    static ResultRowImpl getMappingResultRow(ResultRowImpl delegate,
+        final Map<String, String> columnToFacetMap) {
         if (columnToFacetMap.size() == 0) {
             return delegate;
         }
 
         PropertyValue[] mappedVals = delegate.getValues();
         for (Map.Entry<String, String> entry : columnToFacetMap.entrySet()) {
-            mappedVals[delegate.query.getColumnIndex(entry.getKey())]   = PropertyValues.newString(entry.getValue());
+            mappedVals[delegate.query.getColumnIndex(entry.getKey())] = PropertyValues.newString(
+                entry.getValue());
         }
         return new ResultRowImpl(delegate.query, delegate.trees, mappedVals,
-                delegate.distinctValues, delegate.orderValues);
+            delegate.distinctValues, delegate.orderValues);
     }
 }

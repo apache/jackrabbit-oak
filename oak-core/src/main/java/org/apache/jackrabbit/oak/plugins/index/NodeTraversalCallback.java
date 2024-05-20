@@ -22,19 +22,20 @@ package org.apache.jackrabbit.oak.plugins.index;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 
 /**
- * Callback which invoked for any changed node read by IndexUpdate
- * as part of diff traversal
+ * Callback which invoked for any changed node read by IndexUpdate as part of diff traversal
  */
-public interface NodeTraversalCallback{
+public interface NodeTraversalCallback {
+
     /**
-     * Provides a way to lazily construct the path
-     * and provides access to the current path
+     * Provides a way to lazily construct the path and provides access to the current path
      */
     interface PathSource {
+
         String getPath();
     }
 
-    NodeTraversalCallback NOOP = pathSource -> {};
+    NodeTraversalCallback NOOP = pathSource -> {
+    };
 
     void traversedNode(PathSource pathSource) throws CommitFailedException;
 }

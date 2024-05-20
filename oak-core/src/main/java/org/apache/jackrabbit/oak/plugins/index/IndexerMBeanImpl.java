@@ -49,6 +49,7 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
 
 @Component(service = {})
 public class IndexerMBeanImpl extends AnnotatedStandardMBean implements IndexerMBean {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     @Reference
     private NodeStore nodeStore;
@@ -70,10 +71,12 @@ public class IndexerMBeanImpl extends AnnotatedStandardMBean implements IndexerM
     }
 
     @Override
-    public boolean importIndex(String indexDirPath, boolean ignoreLocalLock) throws IOException, CommitFailedException {
+    public boolean importIndex(String indexDirPath, boolean ignoreLocalLock)
+        throws IOException, CommitFailedException {
 
         try {
-            IndexImporter importer = new IndexImporter(nodeStore, new File(indexDirPath), editorProvider, createLock(ignoreLocalLock));
+            IndexImporter importer = new IndexImporter(nodeStore, new File(indexDirPath),
+                editorProvider, createLock(ignoreLocalLock));
             providerTracker.getServices().forEach(importer::addImporterProvider);
             importer.importIndex();
         } catch (IOException | CommitFailedException | RuntimeException e) {
@@ -93,7 +96,6 @@ public class IndexerMBeanImpl extends AnnotatedStandardMBean implements IndexerM
         }
     }
 
-
     //~---------------------------------------< OSGi >
 
     @Activate
@@ -101,10 +103,10 @@ public class IndexerMBeanImpl extends AnnotatedStandardMBean implements IndexerM
         Whiteboard wb = new OsgiWhiteboard(context);
         editorProvider.start(wb);
         mbeanReg = registerMBean(wb,
-                IndexerMBean.class,
-                this,
-                IndexerMBean.TYPE,
-                "Indexer operations related MBean");
+            IndexerMBean.class,
+            this,
+            IndexerMBean.TYPE,
+            "Indexer operations related MBean");
         providerTracker = wb.track(IndexImporterProvider.class);
     }
 

@@ -32,11 +32,11 @@ import org.junit.Test;
 public class NativeQueryTest {
 
     private final ImmutableRoot ROOT = new ImmutableRoot(INITIAL_CONTENT);
-    private final QueryEngineImpl QUERY_ENGINE = (QueryEngineImpl)ROOT.getQueryEngine();
+    private final QueryEngineImpl QUERY_ENGINE = (QueryEngineImpl) ROOT.getQueryEngine();
 
     private final SQL2Parser p = SQL2ParserTest.createTestSQL2Parser();
 
-    
+
     @Test
     public void dontTraverseForSuggest() throws Exception {
         String sql = "select [rep:suggest()] from [nt:base] where suggest('test')";
@@ -62,17 +62,17 @@ public class NativeQueryTest {
     }
 
     private void assertDontTraverseFor(String sql) throws ParseException {
-        QueryImpl query = (QueryImpl)p.parse(sql);
+        QueryImpl query = (QueryImpl) p.parse(sql);
         query.setExecutionContext(QUERY_ENGINE.getExecutionContext());
         Result result = query.executeQuery();
         Iterator<? extends ResultRow> it = result.getRows().iterator();
         assertFalse("Zero results expected", it.hasNext());
 
-        query = (QueryImpl)p.parse("measure " + sql);
+        query = (QueryImpl) p.parse("measure " + sql);
         query.setExecutionContext(QUERY_ENGINE.getExecutionContext());
         result = query.executeQuery();
         it = result.getRows().iterator();
-        while(it.hasNext()) {
+        while (it.hasNext()) {
             ResultRow row = it.next();
             String selector = row.getValue("selector").getValue(Type.STRING);
             if ("nt:base".equals(selector)) {

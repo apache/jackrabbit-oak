@@ -49,13 +49,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-public class PermissionProviderImplTest extends AbstractSecurityTest implements AccessControlConstants {
+public class PermissionProviderImplTest extends AbstractSecurityTest implements
+    AccessControlConstants {
 
     private static final Set<String> READ_PATHS = ImmutableSet.of(
-            NamespaceConstants.NAMESPACES_PATH,
-            NodeTypeConstants.NODE_TYPES_PATH,
-            PrivilegeConstants.PRIVILEGES_PATH,
-            "/test"
+        NamespaceConstants.NAMESPACES_PATH,
+        NodeTypeConstants.NODE_TYPES_PATH,
+        PrivilegeConstants.PRIVILEGES_PATH,
+        "/test"
     );
 
     private ContentSession testSession;
@@ -88,19 +89,24 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         ConfigurationParameters acConfig = ConfigurationParameters.of(
-                PermissionConstants.PARAM_READ_PATHS, READ_PATHS);
-        return ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, acConfig));
+            PermissionConstants.PARAM_READ_PATHS, READ_PATHS);
+        return ConfigurationParameters.of(
+            ImmutableMap.of(AuthorizationConfiguration.NAME, acConfig));
     }
 
 
     private PermissionProviderImpl createPermissionProvider(ContentSession session) {
-        AuthorizationConfiguration config = getSecurityProvider().getConfiguration(AuthorizationConfiguration.class);
+        AuthorizationConfiguration config = getSecurityProvider().getConfiguration(
+            AuthorizationConfiguration.class);
         assertTrue(config instanceof CompositeAuthorizationConfiguration);
 
         AuthorizationConfiguration defConfig = ((CompositeAuthorizationConfiguration) config).getDefaultConfig();
         assertTrue(defConfig instanceof AuthorizationConfigurationImpl);
 
-        return new PermissionProviderImpl(session.getLatestRoot(), session.getWorkspaceName(), session.getAuthInfo().getPrincipals(), config.getRestrictionProvider(), config.getParameters(), config.getContext(), (AuthorizationConfigurationImpl) defConfig);
+        return new PermissionProviderImpl(session.getLatestRoot(), session.getWorkspaceName(),
+            session.getAuthInfo().getPrincipals(), config.getRestrictionProvider(),
+            config.getParameters(), config.getContext(),
+            (AuthorizationConfigurationImpl) defConfig);
     }
 
     @Test
@@ -129,7 +135,8 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
         for (String path : READ_PATHS) {
             assertTrue(pp.isGranted(path, Permissions.getString(Permissions.READ)));
             assertTrue(pp.isGranted(path, Permissions.getString(Permissions.READ_NODE)));
-            assertTrue(pp.isGranted(path + '/' + JcrConstants.JCR_PRIMARYTYPE, Permissions.getString(Permissions.READ_PROPERTY)));
+            assertTrue(pp.isGranted(path + '/' + JcrConstants.JCR_PRIMARYTYPE,
+                Permissions.getString(Permissions.READ_PROPERTY)));
             assertFalse(pp.isGranted(path, Permissions.getString(Permissions.READ_ACCESS_CONTROL)));
         }
     }
@@ -140,7 +147,8 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
             Tree tree = root.getTree(path);
             assertTrue(pp.isGranted(tree, null, Permissions.READ));
             assertTrue(pp.isGranted(tree, null, Permissions.READ_NODE));
-            assertTrue(pp.isGranted(tree, tree.getProperty(JcrConstants.JCR_PRIMARYTYPE), Permissions.READ_PROPERTY));
+            assertTrue(pp.isGranted(tree, tree.getProperty(JcrConstants.JCR_PRIMARYTYPE),
+                Permissions.READ_PROPERTY));
             assertFalse(pp.isGranted(tree, null, Permissions.READ_ACCESS_CONTROL));
         }
     }
@@ -158,7 +166,8 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
     public void testGetPrivilegesForReadPaths() {
         for (String path : READ_PATHS) {
             Tree tree = root.getTree(path);
-            assertEquals(Collections.singleton(PrivilegeConstants.JCR_READ), pp.getPrivileges(tree));
+            assertEquals(Collections.singleton(PrivilegeConstants.JCR_READ),
+                pp.getPrivileges(tree));
         }
         assertEquals(Collections.<String>emptySet(), pp.getPrivileges(null));
     }
@@ -178,7 +187,8 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
     @Test
     public void testIsGrantedNonExistingLocation() {
         // parent is readable
-        TreeLocation location = TreeLocation.create(testSession.getLatestRoot(), "/test/non/existing/tree");
+        TreeLocation location = TreeLocation.create(testSession.getLatestRoot(),
+            "/test/non/existing/tree");
         assertTrue(pp.isGranted(location, Permissions.READ));
 
         // parent is not readable
@@ -188,7 +198,8 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
 
     @Test
     public void testIsGrantedNonExistingVersionStoreLocation() {
-        TreeLocation location = TreeLocation.create(testSession.getLatestRoot(), VersionConstants.VERSION_STORE_PATH + "/non/existing/tree");
+        TreeLocation location = TreeLocation.create(testSession.getLatestRoot(),
+            VersionConstants.VERSION_STORE_PATH + "/non/existing/tree");
 
         assertFalse(pp.isGranted(location, Permissions.READ));
     }
@@ -196,7 +207,8 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
     @Test
     public void testAdministrativePrincipalSet() {
         PermissionProviderImpl pp = createPermissionProvider(adminSession);
-        assertSame(TreePermission.ALL, pp.getTreePermission(root.getTree(PathUtils.ROOT_PATH), TreePermission.EMPTY));
+        assertSame(TreePermission.ALL,
+            pp.getTreePermission(root.getTree(PathUtils.ROOT_PATH), TreePermission.EMPTY));
         assertSame(RepositoryPermission.ALL, pp.getRepositoryPermission());
     }
 }

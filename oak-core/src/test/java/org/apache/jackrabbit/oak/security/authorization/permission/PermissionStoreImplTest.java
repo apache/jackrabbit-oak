@@ -77,13 +77,16 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
         addAcl(childPath, EveryonePrincipal.getInstance());
         root.commit();
 
-        permissionStore = new PermissionStoreImpl(root, root.getContentSession().getWorkspaceName(), getConfig(AuthorizationConfiguration.class).getRestrictionProvider(), monitor);
+        permissionStore = new PermissionStoreImpl(root, root.getContentSession().getWorkspaceName(),
+            getConfig(AuthorizationConfiguration.class).getRestrictionProvider(), monitor);
     }
 
-    private void addAcl(@NotNull String path, @NotNull Principal principal) throws RepositoryException {
+    private void addAcl(@NotNull String path, @NotNull Principal principal)
+        throws RepositoryException {
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
-        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.JCR_READ));
+        acl.addAccessControlEntry(EveryonePrincipal.getInstance(),
+            privilegesFromNames(PrivilegeConstants.JCR_READ));
         acMgr.setPolicy(path, acl);
     }
 
@@ -93,7 +96,8 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
             clearInvocations(monitor);
 
             AccessControlManager acMgr = getAccessControlManager(root);
-            JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
+            JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr,
+                testPath);
             acMgr.removePolicy(testPath, acl);
             root.commit();
         } finally {
@@ -131,10 +135,12 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
             everyoneTree.removeProperty(REP_NUM_PERMISSIONS);
             for (Tree child : everyoneTree.getChildren()) {
                 if (child.hasProperty(REP_ACCESS_CONTROLLED_PATH)) {
-                    Tree collision = TreeUtil.addChild(child, "c_"+child.getName(), NT_REP_PERMISSION_STORE);
+                    Tree collision = TreeUtil.addChild(child, "c_" + child.getName(),
+                        NT_REP_PERMISSION_STORE);
                     collision.setProperty(REP_ACCESS_CONTROLLED_PATH, "/another/path");
                     Tree entry = TreeUtil.addChild(collision, "1", NT_REP_PERMISSIONS);
-                    entry.setProperty(PrivilegeBits.BUILT_IN.get(REP_READ_NODES).asPropertyState(REP_PRIVILEGE_BITS));
+                    entry.setProperty(PrivilegeBits.BUILT_IN.get(REP_READ_NODES)
+                                                            .asPropertyState(REP_PRIVILEGE_BITS));
                     entry.setProperty(REP_IS_ALLOW, false);
                     break;
                 }
@@ -157,9 +163,11 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
             everyoneTree.removeProperty(REP_NUM_PERMISSIONS);
             for (Tree child : everyoneTree.getChildren()) {
                 if (child.hasProperty(REP_ACCESS_CONTROLLED_PATH)) {
-                    Tree collision = TreeUtil.addChild(child, "c_"+child.getName(), NT_REP_PERMISSION_STORE);
+                    Tree collision = TreeUtil.addChild(child, "c_" + child.getName(),
+                        NT_REP_PERMISSION_STORE);
                     Tree entry = TreeUtil.addChild(collision, "1", NT_REP_PERMISSIONS);
-                    entry.setProperty(PrivilegeBits.BUILT_IN.get(REP_READ_NODES).asPropertyState(REP_PRIVILEGE_BITS));
+                    entry.setProperty(PrivilegeBits.BUILT_IN.get(REP_READ_NODES)
+                                                            .asPropertyState(REP_PRIVILEGE_BITS));
                     entry.setProperty(REP_IS_ALLOW, false);
                     break;
                 }
@@ -180,7 +188,8 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
 
     @Test
     public void testLoadByPath() {
-        Collection<PermissionEntry> entries = permissionStore.load(EveryonePrincipal.NAME, testPath);
+        Collection<PermissionEntry> entries = permissionStore.load(EveryonePrincipal.NAME,
+            testPath);
         assertNotNull(entries);
         assertFalse(entries.isEmpty());
         verifyNoInteractions(monitor);
@@ -202,20 +211,25 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
     public void testLoadByPathWithCollision() throws Exception {
         try {
             Tree everyoneTree = getPermissionRoot(EveryonePrincipal.NAME);
-            Tree aa = TreeUtil.addChild(everyoneTree, "/Aa".hashCode() +"", NT_REP_PERMISSION_STORE);
+            Tree aa = TreeUtil.addChild(everyoneTree, "/Aa".hashCode() + "",
+                NT_REP_PERMISSION_STORE);
             aa.setProperty(REP_ACCESS_CONTROLLED_PATH, "/Aa");
             Tree entry = TreeUtil.addChild(aa, "1", NT_REP_PERMISSIONS);
-            entry.setProperty(PrivilegeBits.BUILT_IN.get(REP_READ_NODES).asPropertyState(REP_PRIVILEGE_BITS));
+            entry.setProperty(
+                PrivilegeBits.BUILT_IN.get(REP_READ_NODES).asPropertyState(REP_PRIVILEGE_BITS));
             entry.setProperty(REP_IS_ALLOW, false);
 
-            Tree collision = TreeUtil.addChild(aa, "c_"+"/BB".hashCode(), NT_REP_PERMISSION_STORE);
+            Tree collision = TreeUtil.addChild(aa, "c_" + "/BB".hashCode(),
+                NT_REP_PERMISSION_STORE);
             collision.setProperty(REP_ACCESS_CONTROLLED_PATH, "/BB");
             Tree entryBB = TreeUtil.addChild(collision, "1", NT_REP_PERMISSIONS);
-            entryBB.setProperty(PrivilegeBits.BUILT_IN.get(REP_READ_NODES).asPropertyState(REP_PRIVILEGE_BITS));
+            entryBB.setProperty(
+                PrivilegeBits.BUILT_IN.get(REP_READ_NODES).asPropertyState(REP_PRIVILEGE_BITS));
             entryBB.setProperty(REP_IS_ALLOW, true);
 
             // a single allow entry for /BB (must descend to collision tree)
-            Collection<PermissionEntry> entries = permissionStore.load(EveryonePrincipal.NAME, "/BB");
+            Collection<PermissionEntry> entries = permissionStore.load(EveryonePrincipal.NAME,
+                "/BB");
             assertNotNull(entries);
             assertEquals(1, entries.size());
             assertTrue(entries.iterator().next().isAllow);
@@ -234,14 +248,18 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
     public void testLoadByPathWithCollisionMissingAccessControlledProperty() throws Exception {
         try {
             Tree everyoneTree = getPermissionRoot(EveryonePrincipal.NAME);
-            Tree aa = TreeUtil.addChild(everyoneTree, "/Aa".hashCode() +"", NT_REP_PERMISSION_STORE);
+            Tree aa = TreeUtil.addChild(everyoneTree, "/Aa".hashCode() + "",
+                NT_REP_PERMISSION_STORE);
             aa.setProperty(REP_ACCESS_CONTROLLED_PATH, "/Aa");
-            Tree collision = TreeUtil.addChild(aa, "c_"+"/BB".hashCode(), NT_REP_PERMISSION_STORE);
+            Tree collision = TreeUtil.addChild(aa, "c_" + "/BB".hashCode(),
+                NT_REP_PERMISSION_STORE);
             Tree entry = TreeUtil.addChild(collision, "1", NT_REP_PERMISSIONS);
-            entry.setProperty(PrivilegeBits.BUILT_IN.get(REP_READ_NODES).asPropertyState(REP_PRIVILEGE_BITS));
+            entry.setProperty(
+                PrivilegeBits.BUILT_IN.get(REP_READ_NODES).asPropertyState(REP_PRIVILEGE_BITS));
             entry.setProperty(REP_IS_ALLOW, false);
 
-            Collection<PermissionEntry> entries = permissionStore.load(EveryonePrincipal.NAME, "/BB");
+            Collection<PermissionEntry> entries = permissionStore.load(EveryonePrincipal.NAME,
+                "/BB");
             assertNull(entries);
         } finally {
             root.refresh();
@@ -250,13 +268,15 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
 
     @Test
     public void testGetNumEntries() {
-        assertEquals(NumEntries.valueOf(2, true), permissionStore.getNumEntries(EveryonePrincipal.NAME, Long.MAX_VALUE));
+        assertEquals(NumEntries.valueOf(2, true),
+            permissionStore.getNumEntries(EveryonePrincipal.NAME, Long.MAX_VALUE));
         verifyNoInteractions(monitor);
     }
 
     @Test
     public void testGetNumEntriesMissingPrincipalRoot() {
-        assertEquals(NumEntries.valueOf(0, true), permissionStore.getNumEntries(testPrincipal.getName(), Long.MAX_VALUE));
+        assertEquals(NumEntries.valueOf(0, true),
+            permissionStore.getNumEntries(testPrincipal.getName(), Long.MAX_VALUE));
         verifyNoInteractions(monitor);
     }
 
@@ -266,7 +286,8 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
             Tree everyoneTree = getPermissionRoot(EveryonePrincipal.NAME);
             everyoneTree.removeProperty(REP_NUM_PERMISSIONS);
 
-            assertEquals(NumEntries.valueOf(2, false), permissionStore.getNumEntries(EveryonePrincipal.NAME, Long.MAX_VALUE));
+            assertEquals(NumEntries.valueOf(2, false),
+                permissionStore.getNumEntries(EveryonePrincipal.NAME, Long.MAX_VALUE));
         } finally {
             root.refresh();
         }
@@ -279,7 +300,8 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
             everyoneTree.removeProperty(REP_NUM_PERMISSIONS);
 
             long max = 1;
-            assertEquals(NumEntries.valueOf(everyoneTree.getChildrenCount(max), false), permissionStore.getNumEntries(EveryonePrincipal.NAME, max));
+            assertEquals(NumEntries.valueOf(everyoneTree.getChildrenCount(max), false),
+                permissionStore.getNumEntries(EveryonePrincipal.NAME, max));
         } finally {
             root.refresh();
         }

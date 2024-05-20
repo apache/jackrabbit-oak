@@ -29,19 +29,17 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_VERSIONSTORAGE;
 
 /**
- * A provider creating two editors: {@link VersionEditor}
- * {@link VersionStorageEditor}.
+ * A provider creating two editors: {@link VersionEditor} {@link VersionStorageEditor}.
  * <p>
- * Historically, it has been used to initalize the Jcr repository. Now, the
- * more general {@link VersionHook} should be passed there using the {@code with()}
- * method.
+ * Historically, it has been used to initalize the Jcr repository. Now, the more general
+ * {@link VersionHook} should be passed there using the {@code with()} method.
  */
 class VersionEditorProvider implements EditorProvider {
 
     @Override
     public Editor getRootEditor(
-            NodeState before, NodeState after,
-            NodeBuilder builder, CommitInfo info) {
+        NodeState before, NodeState after,
+        NodeBuilder builder, CommitInfo info) {
         if (!builder.hasChildNode(JCR_SYSTEM)) {
             return null;
         }
@@ -51,10 +49,10 @@ class VersionEditorProvider implements EditorProvider {
         }
         NodeBuilder versionStorage = system.child(JCR_VERSIONSTORAGE);
         return new VisibleEditor(new CompositeEditor(
-                new VersionEditor(versionStorage, builder, info),
-                new SubtreeEditor(
-                        new VersionStorageEditor(versionStorage, builder),
-                            JCR_SYSTEM, JCR_VERSIONSTORAGE)));
+            new VersionEditor(versionStorage, builder, info),
+            new SubtreeEditor(
+                new VersionStorageEditor(versionStorage, builder),
+                JCR_SYSTEM, JCR_VERSIONSTORAGE)));
     }
 
 }

@@ -26,7 +26,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
 
-public class AccessControlImporterIgnoreTest extends AccessControlImporterBaseTest{
+public class AccessControlImporterIgnoreTest extends AccessControlImporterBaseTest {
 
     @Override
     String getImportBehavior() {
@@ -45,7 +45,8 @@ public class AccessControlImporterIgnoreTest extends AccessControlImporterBaseTe
         init();
         importer.start(aclTree);
 
-        PropInfo privs = new PropInfo(REP_PRIVILEGES, PropertyType.NAME, createTextValues(PrivilegeConstants.JCR_READ));
+        PropInfo privs = new PropInfo(REP_PRIVILEGES, PropertyType.NAME,
+            createTextValues(PrivilegeConstants.JCR_READ));
         importer.startChildInfo(aceGrantInfo, ImmutableList.of(unknownPrincipalInfo, privs));
         importer.endChildInfo();
 

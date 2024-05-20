@@ -54,8 +54,8 @@ public class TypePredicate implements Predicate<NodeState> {
     public static TypePredicate isOrderable(@NotNull NodeState root) {
         Set<String> orderable = newHashSet();
         NodeState types = checkNotNull(root)
-                .getChildNode(JCR_SYSTEM)
-                .getChildNode(JCR_NODE_TYPES);
+            .getChildNode(JCR_SYSTEM)
+            .getChildNode(JCR_NODE_TYPES);
         for (ChildNodeEntry entry : types.getChildNodeEntries()) {
             NodeState type = entry.getNodeState();
             if (type.getBoolean(JCR_HASORDERABLECHILDNODES)) {
@@ -76,9 +76,8 @@ public class TypePredicate implements Predicate<NodeState> {
     private Set<String> mixinTypes;
 
     /**
-     * Creates a predicate for checking whether a node state is an instance of
-     * the named node type. This is an O(1) operation in terms of item
-     * accesses.
+     * Creates a predicate for checking whether a node state is an instance of the named node type.
+     * This is an O(1) operation in terms of item accesses.
      *
      * @param root root node state
      * @param name Oak name of the node type to check for
@@ -88,11 +87,11 @@ public class TypePredicate implements Predicate<NodeState> {
     }
 
     /**
-     * Creates a predicate for checking whether a node state is an instance of
-     * any of the named node types. This is an O(n) operation in terms of item
-     * accesses, with n being the number of given node types.
+     * Creates a predicate for checking whether a node state is an instance of any of the named node
+     * types. This is an O(n) operation in terms of item accesses, with n being the number of given
+     * node types.
      *
-     * @param root root node state
+     * @param root  root node state
      * @param names Oak names of the node types to check for
      */
     public TypePredicate(@NotNull NodeState root, @NotNull Iterable<String> names) {
@@ -101,11 +100,11 @@ public class TypePredicate implements Predicate<NodeState> {
     }
 
     /**
-     * Creates a predicate for checking whether a node state is an instance of
-     * any of the named node types. This is an O(n) operation in terms of item
-     * accesses, with n being the number of given node types.
+     * Creates a predicate for checking whether a node state is an instance of any of the named node
+     * types. This is an O(n) operation in terms of item accesses, with n being the number of given
+     * node types.
      *
-     * @param root root node state
+     * @param root  root node state
      * @param names Oak names of the node types to check for
      */
     public TypePredicate(@NotNull NodeState root, @NotNull String[] names) {
@@ -147,8 +146,8 @@ public class TypePredicate implements Predicate<NodeState> {
         if (!initialized) {
             // lazy initialization of the sets of matching type names
             NodeState types = checkNotNull(root)
-                    .getChildNode(JCR_SYSTEM)
-                    .getChildNode(JCR_NODE_TYPES);
+                .getChildNode(JCR_SYSTEM)
+                .getChildNode(JCR_NODE_TYPES);
             for (String name : checkNotNull(names)) {
                 addNodeType(types, name);
             }
@@ -171,11 +170,11 @@ public class TypePredicate implements Predicate<NodeState> {
         if (input != null) {
             init();
             if (primaryTypes != null
-                    && primaryTypes.contains(TreeUtil.getPrimaryTypeName(input))) {
+                && primaryTypes.contains(TreeUtil.getPrimaryTypeName(input))) {
                 return true;
             }
             if (mixinTypes != null
-                    && any(TreeUtil.getNames(input, JCR_MIXINTYPES), in(mixinTypes))) {
+                && any(TreeUtil.getNames(input, JCR_MIXINTYPES), in(mixinTypes))) {
                 return true;
             }
         }
@@ -189,11 +188,11 @@ public class TypePredicate implements Predicate<NodeState> {
         if (input != null) {
             init();
             if (primaryTypes != null
-                    && primaryTypes.contains(input.getName(JCR_PRIMARYTYPE))) {
+                && primaryTypes.contains(input.getName(JCR_PRIMARYTYPE))) {
                 return true;
             }
             if (mixinTypes != null
-                    && any(input.getNames(JCR_MIXINTYPES), in(mixinTypes))) {
+                && any(input.getNames(JCR_MIXINTYPES), in(mixinTypes))) {
                 return true;
             }
         }

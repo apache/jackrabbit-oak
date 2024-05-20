@@ -32,9 +32,11 @@ public class IndexedQueryMixinTest extends AbstractQueryTest {
     public void before() throws Exception {
         super.before();
 
-        TreeUtil.addMixin(node, "mix:title", root.getTree(NodeTypeConstants.NODE_TYPES_PATH), "userId");
+        TreeUtil.addMixin(node, "mix:title", root.getTree(NodeTypeConstants.NODE_TYPES_PATH),
+            "userId");
         node.setProperty("jcr:title", "title");
-        TreeUtil.addMixin(subnode, "mix:title", root.getTree(NodeTypeConstants.NODE_TYPES_PATH), "userId");
+        TreeUtil.addMixin(subnode, "mix:title", root.getTree(NodeTypeConstants.NODE_TYPES_PATH),
+            "userId");
         subnode.setProperty("jcr:title", "title");
 
         grantPropertyReadAccess("jcr:title");
@@ -44,9 +46,10 @@ public class IndexedQueryMixinTest extends AbstractQueryTest {
 
     @Override
     void createIndexDefinition() throws RepositoryException {
-        Tree oakIndex = root.getTree("/"+IndexConstants.INDEX_DEFINITIONS_NAME);
+        Tree oakIndex = root.getTree("/" + IndexConstants.INDEX_DEFINITIONS_NAME);
         assertTrue(oakIndex.exists());
-        IndexUtils.createIndexDefinition(oakIndex, "test-index", false, new String[] {"jcr:title"}, "mix:title");
+        IndexUtils.createIndexDefinition(oakIndex, "test-index", false, new String[]{"jcr:title"},
+            "mix:title");
     }
 
     String getStatement() {

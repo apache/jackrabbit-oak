@@ -62,6 +62,7 @@ import static org.junit.Assert.assertEquals;
 
 
 public class NodeCounterMetricTest {
+
     private ScheduledExecutorService executor;
     private MetricStatisticsProvider statsProvider;
     private static final String mBeanName = "org.apache.jackrabbit.oak:name=NODE_COUNT_FROM_ROOT,type=Metrics";
@@ -72,9 +73,11 @@ public class NodeCounterMetricTest {
     private ContentSession session;
 
     @Before
-    public void before() throws NoSuchWorkspaceException, LoginException, MalformedObjectNameException {
+    public void before()
+        throws NoSuchWorkspaceException, LoginException, MalformedObjectNameException {
         executor = Executors.newSingleThreadScheduledExecutor();
-        statsProvider = new MetricStatisticsProvider(ManagementFactory.getPlatformMBeanServer(), executor);
+        statsProvider = new MetricStatisticsProvider(ManagementFactory.getPlatformMBeanServer(),
+            executor);
         mBeanObjectName = new ObjectName(mBeanName);
         nodeStore = new MemoryNodeStore();
         Oak oak = getOak(nodeStore);
@@ -97,8 +100,9 @@ public class NodeCounterMetricTest {
     }
 
     @Test
-    public void testMetricWhenAddingNodes() throws CommitFailedException, IOException, ReflectionException,
-            InstanceNotFoundException, AttributeNotFoundException, MBeanException {
+    public void testMetricWhenAddingNodes()
+        throws CommitFailedException, IOException, ReflectionException,
+        InstanceNotFoundException, AttributeNotFoundException, MBeanException {
         Root root = session.getLatestRoot();
         setCounterIndexSeed(root, 2);
         root.commit();
@@ -112,7 +116,7 @@ public class NodeCounterMetricTest {
 
     @Test
     public void testMetricWhenDeletingNodes() throws CommitFailedException, ReflectionException,
-            AttributeNotFoundException, InstanceNotFoundException, MBeanException, IOException {
+        AttributeNotFoundException, InstanceNotFoundException, MBeanException, IOException {
         Root root = session.getLatestRoot();
         setCounterIndexSeed(root, 1);
 
@@ -129,8 +133,9 @@ public class NodeCounterMetricTest {
         validateMetricCount(nodeStore, server);
     }
 
-    private void validateMetricCount(NodeStore nodeStore, MBeanServerConnection server) throws ReflectionException,
-            AttributeNotFoundException, InstanceNotFoundException, MBeanException, IOException {
+    private void validateMetricCount(NodeStore nodeStore, MBeanServerConnection server)
+        throws ReflectionException,
+        AttributeNotFoundException, InstanceNotFoundException, MBeanException, IOException {
         long count = NodeCounter.getEstimatedNodeCount(nodeStore.getRoot(), "/", false);
         long nodeCountMetric = (Long) server.getAttribute(mBeanObjectName, "Count");
         assertEquals(count, nodeCountMetric);
@@ -138,13 +143,13 @@ public class NodeCounterMetricTest {
 
     private Oak getOak(NodeStore nodeStore) {
         return new Oak(nodeStore)
-                .with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .with(new PropertyIndexEditorProvider())
-                .with(new NodeCounterEditorProvider().with(statsProvider))
-                //Effectively disable async indexing auto run
-                //such that we can control run timing as per test requirement
-                .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
+            .with(new InitialContent())
+            .with(new OpenSecurityProvider())
+            .with(new PropertyIndexEditorProvider())
+            .with(new NodeCounterEditorProvider().with(statsProvider))
+            //Effectively disable async indexing auto run
+            //such that we can control run timing as per test requirement
+            .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
     }
 
     private void setCounterIndexSeed(Root root, int seed) throws CommitFailedException {
@@ -153,7 +158,8 @@ public class NodeCounterMetricTest {
         root.commit();
     }
 
-    private void deleteNodes(int n, int m, Whiteboard wb, Root root, NodeStore nodeStore) throws CommitFailedException {
+    private void deleteNodes(int n, int m, Whiteboard wb, Root root, NodeStore nodeStore)
+        throws CommitFailedException {
         for (int i = 0; i < n; i++) {
             if (nodeExists("test" + i, nodeStore)) {
                 Tree t = root.getTree("/").getChild("test" + i);
@@ -187,8 +193,8 @@ public class NodeCounterMetricTest {
 
     private void runAsyncIndex(Root root, Whiteboard wb) {
         Runnable async = WhiteboardUtils.getService(
-                wb,
-                Runnable.class, (Predicate<Runnable>) input -> input instanceof AsyncIndexUpdate
+            wb,
+            Runnable.class, (Predicate<Runnable>) input -> input instanceof AsyncIndexUpdate
         );
         assertNotNull(async);
         async.run();

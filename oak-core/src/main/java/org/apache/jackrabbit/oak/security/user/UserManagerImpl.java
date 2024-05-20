@@ -86,15 +86,15 @@ public class UserManagerImpl implements UserManager {
 
     private UserQueryManager queryManager;
     private ReadOnlyNodeTypeManager ntMgr;
-    
+
     private final DynamicMembershipService dynamicMembership;
     private DynamicMembershipProvider dynamicMembershipProvider;
-    
+
     public UserManagerImpl(@NotNull Root root,
-                           @NotNull PartialValueFactory valueFactory,
-                           @NotNull SecurityProvider securityProvider,
-                           @NotNull UserMonitor monitor, 
-                           @NotNull DynamicMembershipService dynamicMembershipService) {
+        @NotNull PartialValueFactory valueFactory,
+        @NotNull SecurityProvider securityProvider,
+        @NotNull UserMonitor monitor,
+        @NotNull DynamicMembershipService dynamicMembershipService) {
         this.root = root;
         this.valueFactory = valueFactory;
         this.namePathMapper = valueFactory.getNamePathMapper();
@@ -110,8 +110,11 @@ public class UserManagerImpl implements UserManager {
     }
 
     @NotNull
-    private static AuthorizableActionProvider getActionProvider(@NotNull ConfigurationParameters config) {
-        AuthorizableActionProvider actionProvider = config.getConfigValue(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, null, AuthorizableActionProvider.class);
+    private static AuthorizableActionProvider getActionProvider(
+        @NotNull ConfigurationParameters config) {
+        AuthorizableActionProvider actionProvider = config.getConfigValue(
+            UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, null,
+            AuthorizableActionProvider.class);
         if (actionProvider == null) {
             actionProvider = new DefaultAuthorizableActionProvider(config);
         }
@@ -128,14 +131,16 @@ public class UserManagerImpl implements UserManager {
 
     @Nullable
     @Override
-    public <T extends Authorizable> T getAuthorizable(@NotNull String id, @NotNull Class<T> authorizableClass) throws RepositoryException {
+    public <T extends Authorizable> T getAuthorizable(@NotNull String id,
+        @NotNull Class<T> authorizableClass) throws RepositoryException {
         return UserUtil.castAuthorizable(getAuthorizable(id), authorizableClass);
     }
 
     @Nullable
     @Override
     public Authorizable getAuthorizable(@NotNull Principal principal) throws RepositoryException {
-        return (principal == null) ? null : getAuthorizable(userProvider.getAuthorizableByPrincipal(principal));
+        return (principal == null) ? null
+            : getAuthorizable(userProvider.getAuthorizableByPrincipal(principal));
     }
 
     @Nullable
@@ -150,33 +155,39 @@ public class UserManagerImpl implements UserManager {
 
     @NotNull
     @Override
-    public Iterator<Authorizable> findAuthorizables(@NotNull String relPath, @Nullable String value) throws RepositoryException {
+    public Iterator<Authorizable> findAuthorizables(@NotNull String relPath, @Nullable String value)
+        throws RepositoryException {
         return findAuthorizables(relPath, value, SEARCH_TYPE_AUTHORIZABLE);
     }
 
     @NotNull
     @Override
-    public Iterator<Authorizable> findAuthorizables(@NotNull String relPath, @Nullable String value, int searchType) throws RepositoryException {
-        return getQueryManager().findAuthorizables(relPath, value, AuthorizableType.getType(searchType));
+    public Iterator<Authorizable> findAuthorizables(@NotNull String relPath, @Nullable String value,
+        int searchType) throws RepositoryException {
+        return getQueryManager().findAuthorizables(relPath, value,
+            AuthorizableType.getType(searchType));
     }
 
     @NotNull
     @Override
-    public Iterator<Authorizable> findAuthorizables(@NotNull Query query) throws RepositoryException {
+    public Iterator<Authorizable> findAuthorizables(@NotNull Query query)
+        throws RepositoryException {
         return getQueryManager().findAuthorizables(query);
     }
 
     @NotNull
     @Override
-    public User createUser(@NotNull final String userID, @Nullable String password) throws RepositoryException {
+    public User createUser(@NotNull final String userID, @Nullable String password)
+        throws RepositoryException {
         Principal principal = new PrincipalImpl(userID);
         return createUser(userID, password, principal, null);
     }
 
     @NotNull
     @Override
-    public User createUser(@NotNull String userID, @Nullable String password, @NotNull Principal principal,
-                           @Nullable String intermediatePath) throws RepositoryException {
+    public User createUser(@NotNull String userID, @Nullable String password,
+        @NotNull Principal principal,
+        @Nullable String intermediatePath) throws RepositoryException {
         checkValidId(userID);
         checkValidPrincipal(principal, false);
 
@@ -198,7 +209,8 @@ public class UserManagerImpl implements UserManager {
 
     @NotNull
     @Override
-    public User createSystemUser(@NotNull String userID, @Nullable String intermediatePath) throws RepositoryException {
+    public User createSystemUser(@NotNull String userID, @Nullable String intermediatePath)
+        throws RepositoryException {
         checkValidId(userID);
         Principal principal = new PrincipalImpl(userID);
         checkValidPrincipal(principal, false);
@@ -228,13 +240,15 @@ public class UserManagerImpl implements UserManager {
 
     @NotNull
     @Override
-    public Group createGroup(@NotNull Principal principal, @Nullable String intermediatePath) throws RepositoryException {
+    public Group createGroup(@NotNull Principal principal, @Nullable String intermediatePath)
+        throws RepositoryException {
         return createGroup(principal.getName(), principal, intermediatePath);
     }
 
     @NotNull
     @Override
-    public Group createGroup(@NotNull String groupID, @NotNull Principal principal, @Nullable String intermediatePath) throws RepositoryException {
+    public Group createGroup(@NotNull String groupID, @NotNull Principal principal,
+        @Nullable String intermediatePath) throws RepositoryException {
         checkValidId(groupID);
         checkValidPrincipal(principal, true);
 
@@ -252,9 +266,8 @@ public class UserManagerImpl implements UserManager {
     }
 
     /**
-     * Always returns {@code false}. Any modifications made to this user
-     * manager instance require a subsequent call to {@link javax.jcr.Session#save()}
-     * in order to have the changes persisted.
+     * Always returns {@code false}. Any modifications made to this user manager instance require a
+     * subsequent call to {@link javax.jcr.Session#save()} in order to have the changes persisted.
      */
     @Override
     public boolean isAutoSave() {
@@ -262,21 +275,19 @@ public class UserManagerImpl implements UserManager {
     }
 
     /**
-     * Changing the auto-save behavior is not supported by this implementation
-     * and this method always throws {@code UnsupportedRepositoryOperationException}
+     * Changing the auto-save behavior is not supported by this implementation and this method
+     * always throws {@code UnsupportedRepositoryOperationException}
      */
     @Override
     public void autoSave(boolean enable) throws RepositoryException {
         throw new UnsupportedRepositoryOperationException("Session#save() is always required.");
     }
 
-
     //--------------------------------------------------------------------------
 
     /**
-     * Let the configured {@code AuthorizableAction}s perform additional
-     * tasks associated with the creation of the new user before the
-     * corresponding new node is persisted.
+     * Let the configured {@code AuthorizableAction}s perform additional tasks associated with the
+     * creation of the new user before the corresponding new node is persisted.
      *
      * @param user     The new user.
      * @param password The password.
@@ -284,7 +295,8 @@ public class UserManagerImpl implements UserManager {
      */
     void onCreate(@NotNull User user, @Nullable String password) throws RepositoryException {
         if (!user.isSystemUser()) {
-            for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
+            for (AuthorizableAction action : actionProvider.getAuthorizableActions(
+                securityProvider)) {
                 action.onCreate(user, password, root, namePathMapper);
             }
         } else {
@@ -300,9 +312,8 @@ public class UserManagerImpl implements UserManager {
     }
 
     /**
-     * Let the configured {@code AuthorizableAction}s perform additional
-     * tasks associated with the creation of the new group before the
-     * corresponding new node is persisted.
+     * Let the configured {@code AuthorizableAction}s perform additional tasks associated with the
+     * creation of the new group before the corresponding new node is persisted.
      *
      * @param group The new group.
      * @throws RepositoryException If an exception occurs.
@@ -314,9 +325,8 @@ public class UserManagerImpl implements UserManager {
     }
 
     /**
-     * Let the configured {@code AuthorizableAction}s perform any clean
-     * up tasks related to the authorizable removal (before the corresponding
-     * node gets removed).
+     * Let the configured {@code AuthorizableAction}s perform any clean up tasks related to the
+     * authorizable removal (before the corresponding node gets removed).
      *
      * @param authorizable The authorizable to be removed.
      * @throws RepositoryException If an exception occurs.
@@ -328,9 +338,8 @@ public class UserManagerImpl implements UserManager {
     }
 
     /**
-     * Let the configured {@code AuthorizableAction}s perform additional
-     * tasks associated with password changing of a given user before the
-     * corresponding property is being changed.
+     * Let the configured {@code AuthorizableAction}s perform additional tasks associated with
+     * password changing of a given user before the corresponding property is being changed.
      *
      * @param user     The target user.
      * @param password The new password.
@@ -348,7 +357,8 @@ public class UserManagerImpl implements UserManager {
         }
     }
 
-    void onImpersonation(@NotNull User user, @NotNull Principal principal, boolean granting) throws RepositoryException {
+    void onImpersonation(@NotNull User user, @NotNull Principal principal, boolean granting)
+        throws RepositoryException {
         for (UserAction action : filterUserActions()) {
             if (granting) {
                 action.onGrantImpersonation(user, principal, root, namePathMapper);
@@ -359,8 +369,8 @@ public class UserManagerImpl implements UserManager {
     }
 
     /**
-     * Upon a group being updated (single {@code Authorizable} successfully added or removed),
-     * call available {@code GroupAction}s and execute the method specific to removal or addition.
+     * Upon a group being updated (single {@code Authorizable} successfully added or removed), call
+     * available {@code GroupAction}s and execute the method specific to removal or addition.
      * {@code GroupAction}s may then validate or modify the changes.
      *
      * @param group    The target group.
@@ -368,7 +378,8 @@ public class UserManagerImpl implements UserManager {
      * @param member   The member successfully removed or added.
      * @throws RepositoryException If an error occurs.
      */
-    void onGroupUpdate(@NotNull Group group, boolean isRemove, @NotNull Authorizable member) throws RepositoryException {
+    void onGroupUpdate(@NotNull Group group, boolean isRemove, @NotNull Authorizable member)
+        throws RepositoryException {
         for (GroupAction action : filterGroupActions()) {
             if (isRemove) {
                 action.onMemberRemoved(group, member, root, namePathMapper);
@@ -379,24 +390,27 @@ public class UserManagerImpl implements UserManager {
     }
 
     /**
-     * Upon a group being updated (multiple {@code memberIds} added or removed),
-     * call available {@code GroupAction}s and execute the method specific to removal or addition.
+     * Upon a group being updated (multiple {@code memberIds} added or removed), call available
+     * {@code GroupAction}s and execute the method specific to removal or addition.
      * {@code GroupAction}s may then validate or modify the changes.
      *
      * @param group       The target group.
      * @param isRemove    Indicates whether the member is removed or added.
-     * @param isContentId Indicates whether member ids are expressed as content-ids (UUID) or member-ids.
+     * @param isContentId Indicates whether member ids are expressed as content-ids (UUID) or
+     *                    member-ids.
      * @param memberIds   The IDs of all members successfully removed or added.
      * @param failedIds   The IDs of all members whose addition or removal failed.
      * @throws RepositoryException If an error occurs.
      */
-    void onGroupUpdate(@NotNull Group group, boolean isRemove, boolean isContentId, @NotNull Set<String> memberIds, @NotNull Set<String> failedIds) throws RepositoryException {
+    void onGroupUpdate(@NotNull Group group, boolean isRemove, boolean isContentId,
+        @NotNull Set<String> memberIds, @NotNull Set<String> failedIds) throws RepositoryException {
         for (GroupAction action : filterGroupActions()) {
             if (isRemove) {
                 action.onMembersRemoved(group, memberIds, failedIds, root, namePathMapper);
             } else {
                 if (isContentId) {
-                    action.onMembersAddedContentId(group, memberIds, failedIds, root, namePathMapper);
+                    action.onMembersAddedContentId(group, memberIds, failedIds, root,
+                        namePathMapper);
                 } else {
                     action.onMembersAdded(group, memberIds, failedIds, root, namePathMapper);
                 }
@@ -453,18 +467,20 @@ public class UserManagerImpl implements UserManager {
     MembershipProvider getMembershipProvider() {
         return membershipProvider;
     }
-    
-    @NotNull 
+
+    @NotNull
     DynamicMembershipProvider getDynamicMembershipProvider() {
         if (dynamicMembershipProvider == null) {
-            dynamicMembershipProvider = dynamicMembership.getDynamicMembershipProvider(root, this, namePathMapper);
+            dynamicMembershipProvider = dynamicMembership.getDynamicMembershipProvider(root, this,
+                namePathMapper);
         }
         return dynamicMembershipProvider;
     }
 
     @NotNull
     PrincipalManager getPrincipalManager() {
-        return securityProvider.getConfiguration(PrincipalConfiguration.class).getPrincipalManager(root, namePathMapper);
+        return securityProvider.getConfiguration(PrincipalConfiguration.class)
+                               .getPrincipalManager(root, namePathMapper);
     }
 
     @NotNull
@@ -486,15 +502,18 @@ public class UserManagerImpl implements UserManager {
         }
     }
 
-    void checkValidPrincipal(@Nullable Principal principal, boolean isGroup) throws RepositoryException {
+    void checkValidPrincipal(@Nullable Principal principal, boolean isGroup)
+        throws RepositoryException {
         if (principal == null || Strings.isNullOrEmpty(principal.getName())) {
-            throw new IllegalArgumentException("Principal may not be null and must have a valid name.");
+            throw new IllegalArgumentException(
+                "Principal may not be null and must have a valid name.");
         }
         if (!isGroup && EveryonePrincipal.NAME.equals(principal.getName())) {
             throw new IllegalArgumentException("'everyone' is a reserved group principal name.");
         }
         if (getAuthorizable(principal) != null) {
-            throw new AuthorizableExistsException("Authorizable with principal " + principal.getName() + " already exists.");
+            throw new AuthorizableExistsException(
+                "Authorizable with principal " + principal.getName() + " already exists.");
         }
     }
 
@@ -502,7 +521,8 @@ public class UserManagerImpl implements UserManager {
         authorizableTree.setProperty(UserConstants.REP_PRINCIPAL_NAME, principal.getName());
     }
 
-    void setPassword(@NotNull Tree userTree, @NotNull String userId, @NotNull String password, boolean isImport) throws RepositoryException {
+    void setPassword(@NotNull Tree userTree, @NotNull String userId, @NotNull String password,
+        boolean isImport) throws RepositoryException {
         String pwHash;
         if (!isImport || PasswordUtil.isPlainTextPassword(password)) {
             try {
@@ -518,10 +538,13 @@ public class UserManagerImpl implements UserManager {
         // set last-modified property if pw-expiry is enabled and the user is not
         // admin. if initial-pw-change is enabled, we don't set the last modified
         // for new or imported users, in order to force a pw change upon the next login
-        if (Utils.canHavePasswordExpired(userId, config) && setPasswordLastModified(userTree, isImport)) {
-            Tree pwdTree = TreeUtil.getOrAddChild(userTree, UserConstants.REP_PWD, UserConstants.NT_REP_PASSWORD);
+        if (Utils.canHavePasswordExpired(userId, config) && setPasswordLastModified(userTree,
+            isImport)) {
+            Tree pwdTree = TreeUtil.getOrAddChild(userTree, UserConstants.REP_PWD,
+                UserConstants.NT_REP_PASSWORD);
             // System.currentTimeMillis() may be inaccurate on windows. This is accepted for this feature.
-            pwdTree.setProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED, System.currentTimeMillis(), Type.LONG);
+            pwdTree.setProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED,
+                System.currentTimeMillis(), Type.LONG);
         }
     }
 
@@ -538,11 +561,13 @@ public class UserManagerImpl implements UserManager {
     }
 
     private boolean passwordExpiryEnabled() {
-        return config.getConfigValue(UserConstants.PARAM_PASSWORD_MAX_AGE, UserConstants.DEFAULT_PASSWORD_MAX_AGE) > 0;
+        return config.getConfigValue(UserConstants.PARAM_PASSWORD_MAX_AGE,
+            UserConstants.DEFAULT_PASSWORD_MAX_AGE) > 0;
     }
 
     private boolean forceInitialPasswordChangeEnabled() {
-        return config.getConfigValue(UserConstants.PARAM_PASSWORD_INITIAL_CHANGE, UserConstants.DEFAULT_PASSWORD_INITIAL_CHANGE);
+        return config.getConfigValue(UserConstants.PARAM_PASSWORD_INITIAL_CHANGE,
+            UserConstants.DEFAULT_PASSWORD_INITIAL_CHANGE);
     }
 
     @NotNull
@@ -560,11 +585,13 @@ public class UserManagerImpl implements UserManager {
      */
     @NotNull
     private Iterable<GroupAction> filterGroupActions() {
-        return Iterables.filter(actionProvider.getAuthorizableActions(securityProvider), GroupAction.class);
+        return Iterables.filter(actionProvider.getAuthorizableActions(securityProvider),
+            GroupAction.class);
     }
 
     @NotNull
     private Iterable<UserAction> filterUserActions() {
-        return Iterables.filter(actionProvider.getAuthorizableActions(securityProvider), UserAction.class);
+        return Iterables.filter(actionProvider.getAuthorizableActions(securityProvider),
+            UserAction.class);
     }
 }

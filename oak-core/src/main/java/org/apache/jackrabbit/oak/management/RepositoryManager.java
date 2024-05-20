@@ -49,13 +49,13 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Default implementation of the {@link RepositoryManagementMBean} based
- * on a {@link Whiteboard} instance, which is used to look up individual
- * service providers for backup ({@link FileStoreBackupRestoreMBean}), data store
- * garbage collections ({@link BlobGCMBean}) and revision store garbage
- * collections ({@link RevisionGCMBean}).
+ * Default implementation of the {@link RepositoryManagementMBean} based on a {@link Whiteboard}
+ * instance, which is used to look up individual service providers for backup
+ * ({@link FileStoreBackupRestoreMBean}), data store garbage collections ({@link BlobGCMBean}) and
+ * revision store garbage collections ({@link RevisionGCMBean}).
  */
 public class RepositoryManager extends AnnotatedStandardMBean implements RepositoryManagementMBean {
+
     private final Whiteboard whiteboard;
 
     public RepositoryManager(@NotNull Whiteboard whiteboard) {
@@ -71,7 +71,8 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
         return execute(serviceType, operation, Collections.emptyMap());
     }
 
-    private <T> Status execute(Class<T> serviceType, Function<T, Status> operation, Map<String, String> filter) {
+    private <T> Status execute(Class<T> serviceType, Function<T, Status> operation,
+        Map<String, String> filter) {
         Tracker<T> tracker;
         if (filter.isEmpty()) {
             tracker = whiteboard.track(serviceType);
@@ -84,11 +85,11 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
                 return operation.apply(services.get(0));
             } else if (services.isEmpty()) {
                 return unavailable("Cannot perform operation: no service of type " +
-                        serviceType.getSimpleName() + " found."
+                    serviceType.getSimpleName() + " found."
                 );
             } else {
                 return failed("Cannot perform operation: multiple services of type " +
-                        serviceType.getSimpleName() + " found."
+                    serviceType.getSimpleName() + " found."
                 );
             }
         } finally {
@@ -111,46 +112,50 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
 
     @Override
     public CompositeData startBackup() {
-        return execute(FileStoreBackupRestoreMBean.class, new Function<FileStoreBackupRestoreMBean, Status>() {
-            @NotNull
-            @Override
-            public Status apply(FileStoreBackupRestoreMBean fileStoreBackupRestoreMBean) {
-                return fromCompositeData(fileStoreBackupRestoreMBean.startBackup());
-            }
-        }).toCompositeData();
+        return execute(FileStoreBackupRestoreMBean.class,
+            new Function<FileStoreBackupRestoreMBean, Status>() {
+                @NotNull
+                @Override
+                public Status apply(FileStoreBackupRestoreMBean fileStoreBackupRestoreMBean) {
+                    return fromCompositeData(fileStoreBackupRestoreMBean.startBackup());
+                }
+            }).toCompositeData();
     }
 
     @Override
     public CompositeData getBackupStatus() {
-        return execute(FileStoreBackupRestoreMBean.class, new Function<FileStoreBackupRestoreMBean, Status>() {
-            @NotNull
-            @Override
-            public Status apply(FileStoreBackupRestoreMBean backupService) {
-                return fromCompositeData(backupService.getBackupStatus());
-            }
-        }).toCompositeData();
+        return execute(FileStoreBackupRestoreMBean.class,
+            new Function<FileStoreBackupRestoreMBean, Status>() {
+                @NotNull
+                @Override
+                public Status apply(FileStoreBackupRestoreMBean backupService) {
+                    return fromCompositeData(backupService.getBackupStatus());
+                }
+            }).toCompositeData();
     }
 
     @Override
     public CompositeData startRestore() {
-        return execute(FileStoreBackupRestoreMBean.class, new Function<FileStoreBackupRestoreMBean, Status>() {
-            @NotNull
-            @Override
-            public Status apply(FileStoreBackupRestoreMBean backupService) {
-                return fromCompositeData(backupService.startRestore());
-            }
-        }).toCompositeData();
+        return execute(FileStoreBackupRestoreMBean.class,
+            new Function<FileStoreBackupRestoreMBean, Status>() {
+                @NotNull
+                @Override
+                public Status apply(FileStoreBackupRestoreMBean backupService) {
+                    return fromCompositeData(backupService.startRestore());
+                }
+            }).toCompositeData();
     }
 
     @Override
     public CompositeData getRestoreStatus() {
-        return execute(FileStoreBackupRestoreMBean.class, new Function<FileStoreBackupRestoreMBean, Status>() {
-            @NotNull
-            @Override
-            public Status apply(FileStoreBackupRestoreMBean backupService) {
-                return fromCompositeData(backupService.getRestoreStatus());
-            }
-        }).toCompositeData();
+        return execute(FileStoreBackupRestoreMBean.class,
+            new Function<FileStoreBackupRestoreMBean, Status>() {
+                @NotNull
+                @Override
+                public Status apply(FileStoreBackupRestoreMBean backupService) {
+                    return fromCompositeData(backupService.getRestoreStatus());
+                }
+            }).toCompositeData();
     }
 
     @Override
@@ -228,14 +233,15 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
 
     @Override
     public String checkpoint(final long lifetime) {
-        Status status = execute(FileStoreBackupRestoreMBean.class, new Function<FileStoreBackupRestoreMBean, Status>() {
-            @NotNull
-            @Override
-            public Status apply(FileStoreBackupRestoreMBean backupService) {
-                String checkpoint = backupService.checkpoint(lifetime);
-                return succeeded(checkpoint);
-            }
-        });
+        Status status = execute(FileStoreBackupRestoreMBean.class,
+            new Function<FileStoreBackupRestoreMBean, Status>() {
+                @NotNull
+                @Override
+                public Status apply(FileStoreBackupRestoreMBean backupService) {
+                    String checkpoint = backupService.checkpoint(lifetime);
+                    return succeeded(checkpoint);
+                }
+            });
 
         return status.isSuccess()
             ? status.getMessage()
@@ -245,27 +251,27 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
     @Override
     public CompositeData startPropertyIndexAsyncReindex() {
         return execute(PropertyIndexAsyncReindexMBean.class,
-                new Function<PropertyIndexAsyncReindexMBean, Status>() {
-                    @NotNull
-                    @Override
-                    public Status apply(PropertyIndexAsyncReindexMBean reindexer) {
-                        return fromCompositeData(reindexer
-                                .startPropertyIndexAsyncReindex());
-                    }
-                }).toCompositeData();
+            new Function<PropertyIndexAsyncReindexMBean, Status>() {
+                @NotNull
+                @Override
+                public Status apply(PropertyIndexAsyncReindexMBean reindexer) {
+                    return fromCompositeData(reindexer
+                        .startPropertyIndexAsyncReindex());
+                }
+            }).toCompositeData();
     }
 
     @Override
     public CompositeData getPropertyIndexAsyncReindexStatus() {
         return execute(PropertyIndexAsyncReindexMBean.class,
-                new Function<PropertyIndexAsyncReindexMBean, Status>() {
-                    @NotNull
-                    @Override
-                    public Status apply(PropertyIndexAsyncReindexMBean reindexer) {
-                        return fromCompositeData(reindexer
-                                .getPropertyIndexAsyncReindexStatus());
-                    }
-                }).toCompositeData();
+            new Function<PropertyIndexAsyncReindexMBean, Status>() {
+                @NotNull
+                @Override
+                public Status apply(PropertyIndexAsyncReindexMBean reindexer) {
+                    return fromCompositeData(reindexer
+                        .getPropertyIndexAsyncReindexStatus());
+                }
+            }).toCompositeData();
     }
 
     @Override

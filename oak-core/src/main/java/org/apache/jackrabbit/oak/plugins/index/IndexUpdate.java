@@ -77,7 +77,8 @@ public class IndexUpdate implements Editor, PathSource {
 
     //This is used so that wrong index definitions are sparsely logged. After every 1000 indexing cycles, index definitions
     // with wrong nodetype will be logged.
-    public static final long INDEX_JCR_TYPE_INVALID_LOG_LIMITER = Long.parseLong(System.getProperty("oak.indexer.indexJcrTypeInvalidLogLimiter", "1000"));
+    public static final long INDEX_JCR_TYPE_INVALID_LOG_LIMITER = Long.parseLong(
+        System.getProperty("oak.indexer.indexJcrTypeInvalidLogLimiter", "1000"));
 
     // Initial value is set at indexJcrTypeInvalidLogLimiter so that first logging start on first cycle/update itself.
     // This counter is cyclically incremented till indexJcrTypeInvalidLogLimiter and then reset to 0
@@ -89,29 +90,28 @@ public class IndexUpdate implements Editor, PathSource {
 
     /**
      * <p>
-     * The value of this flag determines the behavior of the IndexUpdate when
-     * dealing with {@code reindex} flags.
+     * The value of this flag determines the behavior of the IndexUpdate when dealing with
+     * {@code reindex} flags.
      * </p>
      * <p>
-     * If {@code false} (default value), the indexer will start reindexing
-     * immediately in the current thread, blocking a commit until this operation
-     * is done.
+     * If {@code false} (default value), the indexer will start reindexing immediately in the
+     * current thread, blocking a commit until this operation is done.
      * </p>
      * <p>
-     * If {@code true}, the indexer will ignore the flag, therefore ignoring any
-     * reindex requests.
+     * If {@code true}, the indexer will ignore the flag, therefore ignoring any reindex requests.
      * </p>
      * <p>
-     * This is only provided as a support tool (see OAK-3505) so it should be
-     * used with extreme caution!
+     * This is only provided as a support tool (see OAK-3505) so it should be used with extreme
+     * caution!
      * </p>
      */
     static final boolean IGNORE_REINDEX_FLAGS = Boolean
-            .getBoolean("oak.indexUpdate.ignoreReindexFlags");
+        .getBoolean("oak.indexUpdate.ignoreReindexFlags");
 
     static {
         if (IGNORE_REINDEX_FLAGS) {
-            log.warn("Reindexing is disabled by configuration. This value is configurable via the 'oak.indexUpdate.ignoreReindexFlags' system property.");
+            log.warn(
+                "Reindexing is disabled by configuration. This value is configurable via the 'oak.indexUpdate.ignoreReindexFlags' system property.");
         }
     }
 
@@ -119,13 +119,19 @@ public class IndexUpdate implements Editor, PathSource {
 
     private final NodeBuilder builder;
 
-    /** Parent updater, or {@code null} if this is the root updater. */
+    /**
+     * Parent updater, or {@code null} if this is the root updater.
+     */
     private final IndexUpdate parent;
 
-    /** Name of this node, or {@code null} for the root node. */
+    /**
+     * Name of this node, or {@code null} for the root node.
+     */
     private final String name;
 
-    /** Path of this editor, built lazily in {@link #getPath()}. */
+    /**
+     * Path of this editor, built lazily in {@link #getPath()}.
+     */
     private String path;
 
     /**
@@ -139,28 +145,30 @@ public class IndexUpdate implements Editor, PathSource {
     private final Map<String, Editor> reindex = new HashMap<String, Editor>();
 
     public IndexUpdate(
-            IndexEditorProvider provider, String async,
-            NodeState root, NodeBuilder builder,
-            IndexUpdateCallback updateCallback) {
+        IndexEditorProvider provider, String async,
+        NodeState root, NodeBuilder builder,
+        IndexUpdateCallback updateCallback) {
         this(provider, async, root, builder, updateCallback, CommitInfo.EMPTY);
     }
 
     public IndexUpdate(
-            IndexEditorProvider provider, String async,
-            NodeState root, NodeBuilder builder,
-            IndexUpdateCallback updateCallback, CommitInfo commitInfo) {
-        this(provider, async, root, builder, updateCallback, NodeTraversalCallback.NOOP, commitInfo, CorruptIndexHandler.NOOP);
+        IndexEditorProvider provider, String async,
+        NodeState root, NodeBuilder builder,
+        IndexUpdateCallback updateCallback, CommitInfo commitInfo) {
+        this(provider, async, root, builder, updateCallback, NodeTraversalCallback.NOOP, commitInfo,
+            CorruptIndexHandler.NOOP);
     }
 
     public IndexUpdate(
-            IndexEditorProvider provider, String async,
-            NodeState root, NodeBuilder builder,
-            IndexUpdateCallback updateCallback, NodeTraversalCallback traversalCallback,
-            CommitInfo commitInfo, CorruptIndexHandler corruptIndexHandler) {
+        IndexEditorProvider provider, String async,
+        NodeState root, NodeBuilder builder,
+        IndexUpdateCallback updateCallback, NodeTraversalCallback traversalCallback,
+        CommitInfo commitInfo, CorruptIndexHandler corruptIndexHandler) {
         this.parent = null;
         this.name = null;
         this.path = "/";
-        this.rootState = new IndexUpdateRootState(provider, async, root, builder, updateCallback, traversalCallback, commitInfo, corruptIndexHandler);
+        this.rootState = new IndexUpdateRootState(provider, async, root, builder, updateCallback,
+            traversalCallback, commitInfo, corruptIndexHandler);
         this.builder = checkNotNull(builder);
     }
 
@@ -173,19 +181,19 @@ public class IndexUpdate implements Editor, PathSource {
 
     @Override
     public void enter(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         rootState.nodeRead(this);
         collectIndexEditors(builder.getChildNode(INDEX_DEFINITIONS_NAME), before);
 
         if (!reindex.isEmpty()) {
             log.info("Reindexing will be performed for following indexes: {}",
-                    reindex.keySet());
+                reindex.keySet());
             rootState.progressReporter.reindexingTraversalStart(getPath());
         }
 
         // no-op when reindex is empty
         CommitFailedException exception = process(
-                wrap(wrapProgress(compose(reindex.values()))), MISSING_NODE, after);
+            wrap(wrapProgress(compose(reindex.values()))), MISSING_NODE, after);
         rootState.progressReporter.reindexingTraversalEnd();
         if (exception != null) {
             throw exception;
@@ -196,31 +204,31 @@ public class IndexUpdate implements Editor, PathSource {
         }
     }
 
-    public boolean isReindexingPerformed(){
+    public boolean isReindexingPerformed() {
         return !getReindexStats().isEmpty();
     }
 
-    public List<String> getReindexStats(){
+    public List<String> getReindexStats() {
         return rootState.progressReporter.getReindexStats();
     }
 
-    public Set<String> getUpdatedIndexPaths(){
+    public Set<String> getUpdatedIndexPaths() {
         return rootState.progressReporter.getUpdatedIndexPaths();
     }
 
-    public void setTraversalRateEstimator(TraversalRateEstimator estimator){
+    public void setTraversalRateEstimator(TraversalRateEstimator estimator) {
         rootState.progressReporter.setTraversalRateEstimator(estimator);
     }
 
-    public void setNodeCountEstimator(NodeCountEstimator nodeCountEstimator){
+    public void setNodeCountEstimator(NodeCountEstimator nodeCountEstimator) {
         rootState.progressReporter.setNodeCountEstimator(nodeCountEstimator);
     }
 
-    public String getIndexingStats(){
+    public String getIndexingStats() {
         return rootState.getIndexingStats();
     }
 
-    public void setIgnoreReindexFlags(boolean ignoreReindexFlag){
+    public void setIgnoreReindexFlags(boolean ignoreReindexFlag) {
         rootState.setIgnoreReindexFlags(ignoreReindexFlag);
     }
 
@@ -235,7 +243,8 @@ public class IndexUpdate implements Editor, PathSource {
         // Async indexes are not considered for reindexing for sync indexing
         // Skip this check for elastic index
         // TODO : See if the check to skip elastic can be handled in a better way - maybe move isMatchingIndexNode to IndexDefinition ?
-        if (!TYPE_ELASTICSEARCH.equals(type.getValue(Type.STRING)) && !isMatchingIndexMode(definition)) {
+        if (!TYPE_ELASTICSEARCH.equals(type.getValue(Type.STRING)) && !isMatchingIndexMode(
+            definition)) {
             return false;
         }
 
@@ -252,7 +261,9 @@ public class IndexUpdate implements Editor, PathSource {
         // no reindex is needed. Even if the hidden node is completely unrelated
         // and doesn't contain index data (for example the node ":status").
         // See also OAK-7991.
-        boolean result = !before.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name) && !hasAnyHiddenNodes(definition);
+        boolean result =
+            !before.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name) && !hasAnyHiddenNodes(
+                definition);
         // See OAK-9449
         // In case of elasticsearch, indexed data is stored remotely and not under hidden nodes, so in case of OutOfBand
         // indexing during content import, there is no hidden node created for elastic (not even :status)
@@ -261,7 +272,9 @@ public class IndexUpdate implements Editor, PathSource {
         // the reindex flag, in case OutOfBand Indexing has been performed, warning can be ignored.
         // Also, in case the new elastic node has been added with reindex = true , this method would have already returned true
         if (result && TYPE_ELASTICSEARCH.equals((type.getValue(Type.STRING)))) {
-            log.warn("Found a new elastic index node [{}]. Please set the reindex flag = true to initiate reindexing." +
+            log.warn(
+                "Found a new elastic index node [{}]. Please set the reindex flag = true to initiate reindexing."
+                    +
                     "Please ignore if OutOfBand Reindexing has already been performed.", name);
             return false;
         } else if (result) {
@@ -270,7 +283,7 @@ public class IndexUpdate implements Editor, PathSource {
         return result;
     }
 
-    private static boolean hasAnyHiddenNodes(NodeBuilder builder){
+    private static boolean hasAnyHiddenNodes(NodeBuilder builder) {
         for (String name : builder.getChildNodeNames()) {
             if (NodeStateUtils.isHidden(name)) {
                 NodeBuilder childNode = builder.getChildNode(name);
@@ -284,7 +297,7 @@ public class IndexUpdate implements Editor, PathSource {
     }
 
     private void collectIndexEditors(NodeBuilder definitions,
-            NodeState before) throws CommitFailedException {
+        NodeState before) throws CommitFailedException {
         for (String name : definitions.getChildNodeNames()) {
             NodeBuilder definition = definitions.getChildNode(name);
             if (isIncluded(rootState.async, definition)) {
@@ -302,7 +315,8 @@ public class IndexUpdate implements Editor, PathSource {
                     // It is a cyclic counter which reset back to 0 after INDEX_JCR_TYPE_INVALID_LOG_LIMITER
                     // This is to sparsely log this warning.
                     if ((cyclicExecutionCount >= INDEX_JCR_TYPE_INVALID_LOG_LIMITER)) {
-                        log.warn("jcr:primaryType of index {} should be {} instead of {}", name, IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, primaryType);
+                        log.warn("jcr:primaryType of index {} should be {} instead of {}", name,
+                            IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, primaryType);
                         cyclicExecutionCount = 0;
                     }
                     cyclicExecutionCount++;
@@ -311,22 +325,29 @@ public class IndexUpdate implements Editor, PathSource {
 
                 boolean shouldReindex = shouldReindex(definition, before, name);
                 String indexPath = getIndexPath(getPath(), name);
-                if (definition.hasProperty(IndexConstants.CORRUPT_PROPERTY_NAME) && !shouldReindex){
-                    String corruptSince = definition.getProperty(IndexConstants.CORRUPT_PROPERTY_NAME).getValue(Type.DATE);
-                    rootState.corruptIndexHandler.skippingCorruptIndex(rootState.async, indexPath, ISO8601.parse(corruptSince));
+                if (definition.hasProperty(IndexConstants.CORRUPT_PROPERTY_NAME)
+                    && !shouldReindex) {
+                    String corruptSince = definition.getProperty(
+                        IndexConstants.CORRUPT_PROPERTY_NAME).getValue(Type.DATE);
+                    rootState.corruptIndexHandler.skippingCorruptIndex(rootState.async, indexPath,
+                        ISO8601.parse(corruptSince));
                     continue;
                 }
 
                 Editor editor = null;
                 try {
                     editor = rootState.provider.getIndexEditor(type, definition, rootState.root,
-                            rootState.newCallback(indexPath, shouldReindex, getEstimatedCount(definition)));
+                        rootState.newCallback(indexPath, shouldReindex,
+                            getEstimatedCount(definition)));
                 } catch (IllegalStateException e) {
                     // This will be caught here in case there is any config related error in the index definition
                     // where multiple values are assigned to a property that is supposed to be single valued
                     // We log an error message here and continue - this way the bad index defintion is ignored and doesn't block the async index update
-                    log.error("Unable to get Index Editor for index at {} . Please correct the index definition " +
-                            "and reindex after correction. Additional Info : {}", indexPath, e.getMessage(), e);
+                    log.error(
+                        "Unable to get Index Editor for index at {} . Please correct the index definition "
+                            +
+                            "and reindex after correction. Additional Info : {}", indexPath,
+                        e.getMessage(), e);
                     continue;
                 }
                 if (editor == null) {
@@ -340,11 +361,13 @@ public class IndexUpdate implements Editor, PathSource {
                             long now = System.nanoTime();
                             long last = lastMissingProviderMessageTime.get();
                             if (now > last + silenceMessagesNanos
-                                    && lastMissingProviderMessageTime.compareAndSet(last,  now)) {
+                                && lastMissingProviderMessageTime.compareAndSet(last, now)) {
                                 log.warn("Missing provider for nrt/sync index: {}. " +
-                                        "Please note, it means that index data should be trusted only after this index " +
+                                        "Please note, it means that index data should be trusted only after this index "
+                                        +
                                         "is processed in an async indexing cycle. " +
-                                        "This message is silenced for {} seconds.", indexPath, silenceMessagesSeconds);
+                                        "This message is silenced for {} seconds.", indexPath,
+                                    silenceMessagesSeconds);
                             }
                         }
                     } else {
@@ -352,10 +375,10 @@ public class IndexUpdate implements Editor, PathSource {
                     }
                 } else if (shouldReindex) {
                     if (definition.getBoolean(REINDEX_ASYNC_PROPERTY_NAME)
-                            && definition.getString(ASYNC_PROPERTY_NAME) == null) {
+                        && definition.getString(ASYNC_PROPERTY_NAME) == null) {
                         // switch index to an async update mode
                         definition.setProperty(ASYNC_PROPERTY_NAME,
-                                ASYNC_REINDEX_VALUE);
+                            ASYNC_REINDEX_VALUE);
                     } else {
                         definition.setProperty(REINDEX_PROPERTY_NAME, false);
                         incrementReIndexCount(definition);
@@ -368,7 +391,8 @@ public class IndexUpdate implements Editor, PathSource {
                     rootState.indexDisabler.markDisableFlagIfRequired(indexPath, definition);
                 } else {
                     // not async index OR we're indexing in async mode
-                    if (getAsyncLaneName(definition.getNodeState(), indexPath) == null || rootState.async != null) {
+                    if (getAsyncLaneName(definition.getNodeState(), indexPath) == null
+                        || rootState.async != null) {
                         rootState.indexDisabler.disableOldIndexes(indexPath, definition);
                     }
                     editors.add(editor);
@@ -406,7 +430,8 @@ public class IndexUpdate implements Editor, PathSource {
             Iterable<String> opt = p.getValue(Type.STRINGS);
             if (asyncRef == null) {
                 // sync index job, accept synonyms
-                return Iterables.contains(opt, INDEXING_MODE_NRT) || Iterables.contains(opt, INDEXING_MODE_SYNC);
+                return Iterables.contains(opt, INDEXING_MODE_NRT) || Iterables.contains(opt,
+                    INDEXING_MODE_SYNC);
             } else {
                 return Iterables.contains(opt, asyncRef);
             }
@@ -416,8 +441,8 @@ public class IndexUpdate implements Editor, PathSource {
     }
 
     /**
-     * Determines if the current indexing mode matches with the IndexUpdate mode.
-     * For this match it only considers indexes either as
+     * Determines if the current indexing mode matches with the IndexUpdate mode. For this match it
+     * only considers indexes either as
      * <ul>
      *     <li>sync - Index definition does not have async property defined</li>
      *     <li>async - Index definition has async property defined. It does not matter what its value is</li>
@@ -428,7 +453,7 @@ public class IndexUpdate implements Editor, PathSource {
      * <p>Note that this differs from #isIncluded which also considers the value of <code>async</code>
      * property to determine if the index should be selected for current IndexUpdate run.
      */
-    private boolean isMatchingIndexMode(NodeBuilder definition){
+    private boolean isMatchingIndexMode(NodeBuilder definition) {
         boolean async = definition.hasProperty(ASYNC_PROPERTY_NAME);
         //Either
         // 1. async index and async index update
@@ -438,7 +463,7 @@ public class IndexUpdate implements Editor, PathSource {
 
     private void incrementReIndexCount(NodeBuilder definition) {
         long count = 0;
-        if(definition.hasProperty(REINDEX_COUNT)){
+        if (definition.hasProperty(REINDEX_COUNT)) {
             count = definition.getProperty(REINDEX_COUNT).getValue(Type.LONG);
         }
         definition.setProperty(REINDEX_COUNT, count + 1);
@@ -457,19 +482,19 @@ public class IndexUpdate implements Editor, PathSource {
 
     @Override
     public void leave(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         for (Editor editor : editors) {
             editor.leave(before, after);
         }
 
-        if (parent == null){
+        if (parent == null) {
             rootState.progressReporter.logReport();
         }
     }
 
     @Override
     public void propertyAdded(PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         rootState.propertyChanged(after.getName());
         for (Editor editor : editors) {
             editor.propertyAdded(after);
@@ -478,7 +503,7 @@ public class IndexUpdate implements Editor, PathSource {
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         rootState.propertyChanged(before.getName());
         for (Editor editor : editors) {
             editor.propertyChanged(before, after);
@@ -487,16 +512,17 @@ public class IndexUpdate implements Editor, PathSource {
 
     @Override
     public void propertyDeleted(PropertyState before)
-            throws CommitFailedException {
+        throws CommitFailedException {
         rootState.propertyChanged(before.getName());
         for (Editor editor : editors) {
             editor.propertyDeleted(before);
         }
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Editor childNodeAdded(String name, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         List<Editor> children = newArrayListWithCapacity(1 + editors.size());
         children.add(new IndexUpdate(this, name));
         for (Editor editor : editors) {
@@ -508,10 +534,11 @@ public class IndexUpdate implements Editor, PathSource {
         return compose(children);
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Editor childNodeChanged(
-            String name, NodeState before, NodeState after)
-            throws CommitFailedException {
+        String name, NodeState before, NodeState after)
+        throws CommitFailedException {
         List<Editor> children = newArrayListWithCapacity(1 + editors.size());
         children.add(new IndexUpdate(this, name));
         for (Editor editor : editors) {
@@ -523,9 +550,10 @@ public class IndexUpdate implements Editor, PathSource {
         return compose(children);
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public Editor childNodeDeleted(String name, NodeState before)
-            throws CommitFailedException {
+        throws CommitFailedException {
         List<Editor> children = newArrayListWithCapacity(editors.size());
         for (Editor editor : editors) {
             Editor child = editor.childNodeDeleted(name, before);
@@ -550,7 +578,7 @@ public class IndexUpdate implements Editor, PathSource {
         if (corrupt != null) {
             definition.removeProperty(IndexConstants.CORRUPT_PROPERTY_NAME);
             log.info("Removing corrupt flag from index [{}] which has been marked " +
-                    "as corrupt since [{}]", indexPath, corrupt.getValue(Type.DATE));
+                "as corrupt since [{}]", indexPath, corrupt.getValue(Type.DATE));
         }
     }
 
@@ -561,7 +589,7 @@ public class IndexUpdate implements Editor, PathSource {
         return path + "/" + INDEX_DEFINITIONS_NAME + "/" + indexName;
     }
 
-    private Editor wrapProgress(Editor editor){
+    private Editor wrapProgress(Editor editor) {
         return rootState.progressReporter.wrapProgress(editor);
     }
 
@@ -569,18 +597,17 @@ public class IndexUpdate implements Editor, PathSource {
 
         /**
          * The value of this flag determines the behavior of
-         * {@link #onMissingIndex(String, NodeBuilder, String)}. If
-         * {@code false} (default value), the method will set the
-         * {@code reindex} flag to true and log a warning. if {@code true}, the
-         * method will throw a {@link CommitFailedException} failing the commit.
+         * {@link #onMissingIndex(String, NodeBuilder, String)}. If {@code false} (default value),
+         * the method will set the {@code reindex} flag to true and log a warning. if {@code true},
+         * the method will throw a {@link CommitFailedException} failing the commit.
          */
         private boolean failOnMissingIndexProvider = Boolean
-                .getBoolean("oak.indexUpdate.failOnMissingIndexProvider");
+            .getBoolean("oak.indexUpdate.failOnMissingIndexProvider");
 
         private final Set<String> ignore = newHashSet("disabled", "ordered");
 
         public void onMissingIndex(String type, NodeBuilder definition, String indexPath)
-                throws CommitFailedException {
+            throws CommitFailedException {
             if (isDisabled(type)) {
                 return;
             }
@@ -593,12 +620,12 @@ public class IndexUpdate implements Editor, PathSource {
 
             if (failOnMissingIndexProvider) {
                 throw new CommitFailedException("IndexUpdate", 1,
-                        "Missing index provider detected for type [" + type
-                                + "] on index [" + indexPath + "]");
+                    "Missing index provider detected for type [" + type
+                        + "] on index [" + indexPath + "]");
             } else {
                 log.warn(
-                        "Missing index provider of type [{}], requesting reindex on [{}]",
-                        type, indexPath);
+                    "Missing index provider of type [{}], requesting reindex on [{}]",
+                    type, indexPath);
                 definition.setProperty(REINDEX_PROPERTY_NAME, true);
             }
         }
@@ -613,12 +640,13 @@ public class IndexUpdate implements Editor, PathSource {
     }
 
     public IndexUpdate withMissingProviderStrategy(
-            MissingIndexProviderStrategy missingProvider) {
+        MissingIndexProviderStrategy missingProvider) {
         rootState.setMissingProvider(missingProvider);
         return this;
     }
 
     private static final class IndexUpdateRootState {
+
         final IndexEditorProvider provider;
         final String async;
         final NodeState root;
@@ -633,9 +661,9 @@ public class IndexUpdate implements Editor, PathSource {
         private MissingIndexProviderStrategy missingProvider = new MissingIndexProviderStrategy();
 
         private IndexUpdateRootState(IndexEditorProvider provider, String async, NodeState root,
-                                     NodeBuilder builder, IndexUpdateCallback updateCallback,
-                                     NodeTraversalCallback traversalCallback,
-                                     CommitInfo commitInfo, CorruptIndexHandler corruptIndexHandler) {
+            NodeBuilder builder, IndexUpdateCallback updateCallback,
+            NodeTraversalCallback traversalCallback,
+            CommitInfo commitInfo, CorruptIndexHandler corruptIndexHandler) {
             this.provider = checkNotNull(provider);
             this.async = async;
             this.root = checkNotNull(root);
@@ -645,12 +673,13 @@ public class IndexUpdate implements Editor, PathSource {
             this.progressReporter = new IndexingProgressReporter(updateCallback, traversalCallback);
         }
 
-        public IndexUpdateCallback newCallback(String indexPath, boolean reindex, long estimatedCount) {
+        public IndexUpdateCallback newCallback(String indexPath, boolean reindex,
+            long estimatedCount) {
             progressReporter.registerIndex(indexPath, reindex, estimatedCount);
             return new ReportingCallback(indexPath, reindex);
         }
 
-        public boolean isAsync(){
+        public boolean isAsync() {
             return async != null;
         }
 
@@ -659,13 +688,13 @@ public class IndexUpdate implements Editor, PathSource {
             progressReporter.traversedNode(pathSource);
         }
 
-        public void propertyChanged(String name){
+        public void propertyChanged(String name) {
             changedPropertyCount++;
         }
 
         public String getIndexingStats() {
             return String.format("changedNodeCount %d, changedPropertyCount %d",
-                    changedNodeCount, changedPropertyCount);
+                changedNodeCount, changedPropertyCount);
         }
 
         public void setMissingProvider(MissingIndexProviderStrategy missingProvider) {
@@ -691,6 +720,7 @@ public class IndexUpdate implements Editor, PathSource {
         }
 
         private class ReportingCallback implements ContextAwareCallback, IndexingContext {
+
             final String indexPath;
             final boolean reindex;
 
@@ -701,7 +731,7 @@ public class IndexUpdate implements Editor, PathSource {
 
             @Override
             public void indexUpdate() throws CommitFailedException {
-               progressReporter.indexUpdate(indexPath);
+                progressReporter.indexUpdate(indexPath);
             }
 
             //~------------------------------< ContextAwareCallback >

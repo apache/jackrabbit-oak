@@ -153,7 +153,7 @@ public class VersionCopierTest {
 
         // Add another version
         target = createNewVersion(path, target, "a");
-        
+
         // copy versions again preserving any new target versions created
         VersionCopyConfiguration config = new VersionCopyConfiguration();
         config.setPreserveOnTarget(true);
@@ -162,7 +162,7 @@ public class VersionCopierTest {
         // Verify the test properties no longer exist in the target version history.
         assertVersionHistoryPreserveTarget(source, target);
     }
-    
+
     @Test
     public void copyVersionSourceForIncrementalTargetVersionHistory() throws Exception {
         String path = "/foo";
@@ -179,7 +179,7 @@ public class VersionCopierTest {
             copyContent(sourceStore, targetStore, path + i);
         }
         copyVersionStorage(sourceStore, targetStore);
-        
+
         // Remove 1 version for path /foo0 and create a new one
         removeSpecificVersion(targetStore, "/foo0", "1.0");
         createNewVersion("/foo0", targetStore, "a");
@@ -194,7 +194,7 @@ public class VersionCopierTest {
         assertVersionsAndUUID(targetStore, sourceStore, "/foo1", true, "1.1");
         assertSuccessorBaseVersion(targetStore, "/foo1", "1.1");
     }
-        
+
     @Test
     public void copyVersionSourceForMutatedTargetVersionHistory() throws Exception {
         String path = "/foo";
@@ -230,71 +230,90 @@ public class VersionCopierTest {
         VersionCopyConfiguration config = new VersionCopyConfiguration();
         config.setPreserveOnTarget(true);
         copyVersionStorageInternal(sourceStore, targetStore, config);
-        
-        assertVersionsAndUUID(targetStore, sourceStore,"/foo3", false, "1.0");
+
+        assertVersionsAndUUID(targetStore, sourceStore, "/foo3", false, "1.0");
         assertVersionsAndUUID(targetStore, sourceStore, "/foo0", true, "1.0");
         assertVersionsAndUUID(targetStore, sourceStore, "/foo1", true, "1.1");
         assertVersionsAndUUID(targetStore, sourceStore, "/foo2", true, "jcr:rootVersion");
         assertVersionsAndUUID(targetStore, sourceStore, "/foo4", true, "2.0");
     }
 
-    private void addVersionHistoryTestProperty(NodeStore source, NodeStore target) throws CommitFailedException {
-        final NodeState sourceVersionStorage = VersionHistoryUtil.getVersionStorage(source.getRoot());
+    private void addVersionHistoryTestProperty(NodeStore source, NodeStore target)
+        throws CommitFailedException {
+        final NodeState sourceVersionStorage = VersionHistoryUtil.getVersionStorage(
+            source.getRoot());
         final NodeBuilder targetRootBuilder = target.getRoot().builder();
-        final NodeBuilder targetVersionStorage = VersionHistoryUtil.getVersionStorage(targetRootBuilder);
+        final NodeBuilder targetVersionStorage = VersionHistoryUtil.getVersionStorage(
+            targetRootBuilder);
 
-        final Iterator<NodeState> versionStorageIterator = new DescendantsIterator(sourceVersionStorage, 3);
+        final Iterator<NodeState> versionStorageIterator = new DescendantsIterator(
+            sourceVersionStorage, 3);
         final NodeState versionHistoryBucket = versionStorageIterator.next();
         for (String versionHistory : versionHistoryBucket.getChildNodeNames()) {
-            getVersionHistoryBuilder(targetVersionStorage, versionHistory).setProperty("jcr:test", "test");
+            getVersionHistoryBuilder(targetVersionStorage, versionHistory).setProperty("jcr:test",
+                "test");
         }
         commit(target, targetRootBuilder);
     }
 
     private void assertVersionHistoryTestPropertyRemoved(NodeStore source, NodeStore target) {
-        final NodeState sourceVersionStorage = VersionHistoryUtil.getVersionStorage(source.getRoot());
-        final NodeState targetVersionStorage = VersionHistoryUtil.getVersionStorage(target.getRoot());
+        final NodeState sourceVersionStorage = VersionHistoryUtil.getVersionStorage(
+            source.getRoot());
+        final NodeState targetVersionStorage = VersionHistoryUtil.getVersionStorage(
+            target.getRoot());
 
-        final Iterator<NodeState> versionStorageIterator = new DescendantsIterator(sourceVersionStorage, 3);
+        final Iterator<NodeState> versionStorageIterator = new DescendantsIterator(
+            sourceVersionStorage, 3);
         final NodeState versionHistoryBucket = versionStorageIterator.next();
         for (String versionHistory : versionHistoryBucket.getChildNodeNames()) {
-            assertFalse(getVersionHistoryNodeState(targetVersionStorage, versionHistory).hasProperty("jcr:test"));
+            assertFalse(
+                getVersionHistoryNodeState(targetVersionStorage, versionHistory).hasProperty(
+                    "jcr:test"));
         }
     }
 
     private void assertVersionHistoryPreserveTarget(NodeStore source, NodeStore target) {
-        final NodeState sourceVersionStorage = VersionHistoryUtil.getVersionStorage(source.getRoot());
-        final NodeState targetVersionStorage = VersionHistoryUtil.getVersionStorage(target.getRoot());
+        final NodeState sourceVersionStorage = VersionHistoryUtil.getVersionStorage(
+            source.getRoot());
+        final NodeState targetVersionStorage = VersionHistoryUtil.getVersionStorage(
+            target.getRoot());
 
-        final Iterator<NodeState> versionStorageIterator = new DescendantsIterator(targetVersionStorage, 3);
+        final Iterator<NodeState> versionStorageIterator = new DescendantsIterator(
+            targetVersionStorage, 3);
         final NodeState versionHistoryBucket = versionStorageIterator.next();
         for (String versionHistory : versionHistoryBucket.getChildNodeNames()) {
-            NodeState historyNodeState = getVersionHistoryNodeState(targetVersionStorage, versionHistory);
-            List<String> targetList = StreamSupport.stream(historyNodeState.getChildNodeNames().spliterator(), false)
-                .collect(Collectors.toList());
-            
-            NodeState srcHistoryNodeState = getVersionHistoryNodeState(sourceVersionStorage, versionHistory);
-            List<String> sourceList = StreamSupport.stream(srcHistoryNodeState.getChildNodeNames().spliterator(), false)
-                .collect(Collectors.toList());
-            
+            NodeState historyNodeState = getVersionHistoryNodeState(targetVersionStorage,
+                versionHistory);
+            List<String> targetList = StreamSupport.stream(
+                                                       historyNodeState.getChildNodeNames().spliterator(), false)
+                                                   .collect(Collectors.toList());
+
+            NodeState srcHistoryNodeState = getVersionHistoryNodeState(sourceVersionStorage,
+                versionHistory);
+            List<String> sourceList = StreamSupport.stream(
+                                                       srcHistoryNodeState.getChildNodeNames().spliterator(), false)
+                                                   .collect(Collectors.toList());
+
             // Check all source versions in target
             assertTrue(targetList.containsAll(sourceList));
             // Check target has more versions
             assertTrue(targetList.size() > sourceList.size());
-            
+
             // check successors not empty for 1.0 version
             String successorId = historyNodeState.getChildNode("1.1").getString(JCR_UUID);
             Iterable<String> values =
-                historyNodeState.getChildNode("1.0").getProperty(JCR_SUCCESSORS).getValue(Type.STRINGS);
+                historyNodeState.getChildNode("1.0").getProperty(JCR_SUCCESSORS)
+                                .getValue(Type.STRINGS);
             Set<String> successorSet =
-                StreamSupport.stream(values.spliterator(), false).filter(s -> !s.isEmpty()).collect(Collectors.toSet());
+                StreamSupport.stream(values.spliterator(), false).filter(s -> !s.isEmpty())
+                             .collect(Collectors.toSet());
             assertFalse(successorSet.isEmpty());
             assertTrue(successorSet.contains(successorId));
         }
     }
 
     private void copyContent(NodeStore source, NodeStore target, String path)
-            throws CommitFailedException {
+        throws CommitFailedException {
         NodeStateCopier.builder().include(path).copy(source, target);
     }
 
@@ -304,8 +323,9 @@ public class VersionCopierTest {
         copyVersionStorage(source, target, false);
     }
 
-    private void copyVersionStorage(NodeStore source, NodeStore target, boolean removeTargetVersionHistory)
-            throws CommitFailedException {
+    private void copyVersionStorage(NodeStore source, NodeStore target,
+        boolean removeTargetVersionHistory)
+        throws CommitFailedException {
 
         VersionCopyConfiguration config = new VersionCopyConfiguration();
         config.setRemoveTargetVersionHistory(removeTargetVersionHistory);
@@ -313,8 +333,9 @@ public class VersionCopierTest {
         copyVersionStorageInternal(source, target, config);
     }
 
-    private void copyVersionStorageInternal(NodeStore source, NodeStore target, VersionCopyConfiguration config) 
-            throws CommitFailedException {
+    private void copyVersionStorageInternal(NodeStore source, NodeStore target,
+        VersionCopyConfiguration config)
+        throws CommitFailedException {
 
         NodeBuilder targetRootBuilder = target.getRoot().builder();
         VersionCopier.copyVersionStorage(
@@ -327,22 +348,22 @@ public class VersionCopierTest {
     }
 
     private void assertVersionReferenceable(NodeState rootState,
-                                            String versionablePath)
-            throws RepositoryException {
+        String versionablePath)
+        throws RepositoryException {
         assertTrue(getFrozenNode(rootState, versionablePath).hasProperty(JCR_UUID));
     }
 
     private void assertVersionNotReferenceable(NodeState rootState,
-                                               String versionablePath)
-            throws RepositoryException {
+        String versionablePath)
+        throws RepositoryException {
         assertFalse(getFrozenNode(rootState, versionablePath).hasProperty(JCR_UUID));
     }
 
     private Tree getFrozenNode(NodeState rootState, String versionablePath)
-            throws RepositoryException {
+        throws RepositoryException {
         Root root = new ImmutableRoot(rootState);
         ReadOnlyVersionManager vMgr = ReadOnlyVersionManager.getInstance(
-                root, NamePathMapper.DEFAULT);
+            root, NamePathMapper.DEFAULT);
         Tree version = vMgr.getBaseVersion(root.getTree(versionablePath));
         assertNotNull(version);
         Tree frozenNode = version.getChild(JCR_FROZENNODE);
@@ -369,21 +390,23 @@ public class VersionCopierTest {
             builder = builder.child(name);
         }
         builder.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME);
-        builder.setProperty(JCR_MIXINTYPES, Arrays.asList(MIX_VERSIONABLE, MIX_REFERENCEABLE), Type.NAMES);
+        builder.setProperty(JCR_MIXINTYPES, Arrays.asList(MIX_VERSIONABLE, MIX_REFERENCEABLE),
+            Type.NAMES);
         builder.setProperty(JCR_UUID, UUID.randomUUID().toString());
         if (StringUtils.isNotEmpty(property)) {
             builder.setProperty(property, property);
         }
         ReadWriteVersionManager vMgr = new ReadWriteVersionManager(
-                VersionHistoryUtil.getVersionStorage(rootBuilder),
-                rootBuilder
+            VersionHistoryUtil.getVersionStorage(rootBuilder),
+            rootBuilder
         );
         vMgr.checkin(builder);
         commit(ns, rootBuilder);
         return ns;
     }
 
-    private NodeStore createNewVersion(String path, NodeStore ns, String property) throws Exception {
+    private NodeStore createNewVersion(String path, NodeStore ns, String property)
+        throws Exception {
         NodeBuilder rootBuilder = ns.getRoot().builder();
         NodeBuilder builder = rootBuilder;
         for (String name : PathUtils.elements(path)) {
@@ -393,7 +416,8 @@ public class VersionCopierTest {
             builder.setProperty(property, property);
         }
         // Add the mixing mix:versionable
-        builder.setProperty(JCR_MIXINTYPES, Arrays.asList(MIX_VERSIONABLE, MIX_REFERENCEABLE), Type.NAMES);
+        builder.setProperty(JCR_MIXINTYPES, Arrays.asList(MIX_VERSIONABLE, MIX_REFERENCEABLE),
+            Type.NAMES);
         ReadWriteVersionManager vMgr = new ReadWriteVersionManager(
             VersionHistoryUtil.getVersionStorage(rootBuilder),
             rootBuilder
@@ -404,7 +428,8 @@ public class VersionCopierTest {
         return ns;
     }
 
-    protected String removeVersionableMixin(NodeStore ns, String path) throws CommitFailedException {
+    protected String removeVersionableMixin(NodeStore ns, String path)
+        throws CommitFailedException {
         NodeBuilder rootBuilder = ns.getRoot().builder();
         NodeBuilder builder = rootBuilder;
         for (String name : PathUtils.elements(path)) {
@@ -417,7 +442,7 @@ public class VersionCopierTest {
         commit(ns, rootBuilder);
         return versionableUuid;
     }
-    
+
     protected void removeVersionHistory(NodeStore ns, String path) throws CommitFailedException {
         String versionableUuid = removeVersionableMixin(ns, path);
 
@@ -429,23 +454,25 @@ public class VersionCopierTest {
         commit(ns, rootBuilder);
     }
 
-    protected void removeVersions(NodeStore ns, String path, boolean removeRootVersion, boolean removeRootSuccessor) throws CommitFailedException {
+    protected void removeVersions(NodeStore ns, String path, boolean removeRootVersion,
+        boolean removeRootSuccessor) throws CommitFailedException {
         String versionableUuid = removeVersionableMixin(ns, path);
         NodeBuilder rootBuilder = ns.getRoot().builder();
-        
-        // Remove versions 
+
+        // Remove versions
         NodeBuilder versionHistoryRoot = VersionHistoryUtil.getVersionStorage(rootBuilder);
         NodeBuilder versionHistoryBuilder =
             VersionHistoryUtil.getVersionHistoryBuilder(versionHistoryRoot, versionableUuid);
         Iterable<String> versionNames = versionHistoryBuilder.getChildNodeNames();
-        for (String version: versionNames) {
+        for (String version : versionNames) {
             if (!version.equals(JCR_ROOTVERSION) || removeRootVersion) {
                 versionHistoryBuilder.getChildNode(version).remove();
             } else {
                 NodeBuilder rootVersionBuilder = versionHistoryBuilder.getChildNode(version);
                 String rootVersionUUID = rootVersionBuilder.getString(JCR_UUID);
                 if (removeRootSuccessor) {
-                    rootVersionBuilder.setProperty(MultiStringPropertyState.stringProperty(JCR_SUCCESSORS, new ArrayList<>()));
+                    rootVersionBuilder.setProperty(
+                        MultiStringPropertyState.stringProperty(JCR_SUCCESSORS, new ArrayList<>()));
                 }
                 // Change base version of path to rootVersion
                 NodeBuilder builder = rootBuilder;
@@ -459,8 +486,9 @@ public class VersionCopierTest {
         }
         commit(ns, rootBuilder);
     }
-    
-    protected void removeSpecificVersion(NodeStore ns, String path, String version) throws CommitFailedException {
+
+    protected void removeSpecificVersion(NodeStore ns, String path, String version)
+        throws CommitFailedException {
         NodeBuilder rootBuilder = ns.getRoot().builder();
         NodeBuilder builder = rootBuilder;
         for (String name : PathUtils.elements(path)) {
@@ -468,12 +496,14 @@ public class VersionCopierTest {
         }
         String versionableUuid = builder.getString(JCR_UUID);
         String relPath = VersionHistoryUtil.getRelativeVersionHistoryPath(versionableUuid);
-        String versionPath = PathUtils.concat("/", JCR_SYSTEM, JCR_VERSIONSTORAGE + relPath, version);
+        String versionPath = PathUtils.concat("/", JCR_SYSTEM, JCR_VERSIONSTORAGE + relPath,
+            version);
         ReadWriteVersionManagerUtil.removeVersion(rootBuilder, versionPath);
         commit(ns, rootBuilder);
     }
 
-    protected void assertSuccessorBaseVersion(NodeStore ns, String path, String baseVersion) throws CommitFailedException {
+    protected void assertSuccessorBaseVersion(NodeStore ns, String path, String baseVersion)
+        throws CommitFailedException {
         NodeBuilder rootBuilder = ns.getRoot().builder();
         NodeBuilder builder = rootBuilder;
         for (String name : PathUtils.elements(path)) {
@@ -486,26 +516,35 @@ public class VersionCopierTest {
         NodeBuilder versionHistoryBuilder =
             VersionHistoryUtil.getVersionHistoryBuilder(versionHistoryRoot, versionableUuid);
         NodeBuilder versionNode = versionHistoryBuilder.getChildNode(baseVersion);
-        
+
         String predVersion = getPredecessorVersion(baseVersion);
         NodeBuilder predecessorVersionNode = versionHistoryBuilder.getChildNode(predVersion);
         String baseVersionId = versionNode.getString(JCR_UUID);
         String baseVersionPredecessor =
-            StreamSupport.stream(versionNode.getProperty(JCR_PREDECESSORS).getValue(Type.STRINGS).spliterator(), false).collect(
+            StreamSupport.stream(
+                versionNode.getProperty(JCR_PREDECESSORS).getValue(Type.STRINGS).spliterator(),
+                false).collect(
                 Collectors.toList()).get(0);
         String predecessorVersionId = predecessorVersionNode.getString(JCR_UUID);
-        assertEquals("predecessor version not correct", baseVersionPredecessor, predecessorVersionId);
+        assertEquals("predecessor version not correct", baseVersionPredecessor,
+            predecessorVersionId);
 
         String predSuccessorVersionId =
-            StreamSupport.stream(predecessorVersionNode.getProperty(JCR_SUCCESSORS).getValue(Type.STRINGS).spliterator(), false).collect(
+            StreamSupport.stream(
+                predecessorVersionNode.getProperty(JCR_SUCCESSORS).getValue(Type.STRINGS)
+                                      .spliterator(), false).collect(
                 Collectors.toList()).get(0);
         assertEquals("successor version not correct", baseVersionId, predSuccessorVersionId);
 
-        NodeBuilder prevVersionNode = versionHistoryBuilder.getChildNode(getPredecessorVersion(predVersion));
+        NodeBuilder prevVersionNode = versionHistoryBuilder.getChildNode(
+            getPredecessorVersion(predVersion));
         String prevVersionSuccessor =
-            StreamSupport.stream(prevVersionNode.getProperty(JCR_SUCCESSORS).getValue(Type.STRINGS).spliterator(), false).collect(
+            StreamSupport.stream(
+                prevVersionNode.getProperty(JCR_SUCCESSORS).getValue(Type.STRINGS).spliterator(),
+                false).collect(
                 Collectors.toList()).get(0);
-        assertEquals("root successor version not correct", predecessorVersionId, prevVersionSuccessor);
+        assertEquals("root successor version not correct", predecessorVersionId,
+            prevVersionSuccessor);
     }
 
     private static String getPredecessorVersion(String version) {
@@ -515,7 +554,7 @@ public class VersionCopierTest {
         String[] versionSegs = version.split("\\.");
         return versionSegs[0] + "." + (Integer.parseInt(versionSegs[1]) - 1);
     }
-    
+
     private void removeVersionHistoryAndRecreate(NodeStore store, String path) throws Exception {
         removeVersionHistory(store, path);
         createNewVersion(path, store, "");
@@ -530,7 +569,8 @@ public class VersionCopierTest {
         }
     }
 
-    private void assertVersionsAndUUID(NodeStore targetStore, NodeStore sourceStore, String path, boolean isVhSame,
+    private void assertVersionsAndUUID(NodeStore targetStore, NodeStore sourceStore, String path,
+        boolean isVhSame,
         String targetBaseVersion) {
         NodeState targetRoot = targetStore.getRoot();
         NodeState targetNodeState = targetRoot;
@@ -554,11 +594,16 @@ public class VersionCopierTest {
         } else {
             assertNotEquals(vhId, sourceVersionHistory.getString(JCR_UUID));
         }
-        
-        List<String> baseVersionFoundList = StreamSupport.stream(versionHistory.getChildNodeNames().spliterator(), false)
-            .filter(s -> !s.equals(JCR_VERSIONLABELS))
-            .filter(s -> versionHistory.getChildNode(s).getString(JCR_UUID).equals(baseVersionUuid))
-            .collect(Collectors.toList());
+
+        List<String> baseVersionFoundList = StreamSupport.stream(
+                                                             versionHistory.getChildNodeNames().spliterator(), false)
+                                                         .filter(s -> !s.equals(JCR_VERSIONLABELS))
+                                                         .filter(s -> versionHistory.getChildNode(s)
+                                                                                    .getString(
+                                                                                        JCR_UUID)
+                                                                                    .equals(
+                                                                                        baseVersionUuid))
+                                                         .collect(Collectors.toList());
         assertFalse(baseVersionFoundList.isEmpty());
         assertEquals(targetBaseVersion, baseVersionFoundList.get(0));
     }

@@ -26,15 +26,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * This commit hook implementation is responsible for resolving
- * conflicts. It does so by detecting the presence of conflict
- * markers added by the Microkernel and delegating to a
- * {@link org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler}
- * for resolving the conflicts.
+ * This commit hook implementation is responsible for resolving conflicts. It does so by detecting
+ * the presence of conflict markers added by the Microkernel and delegating to a
+ * {@link org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler} for resolving the
+ * conflicts.
  *
  * @see org.apache.jackrabbit.oak.spi.state.NodeStore#rebase(org.apache.jackrabbit.oak.spi.state.NodeBuilder)
  */
 public class ConflictHook implements CommitHook {
+
     private final ThreeWayConflictHandler conflictHandler;
 
     /**
@@ -50,9 +50,10 @@ public class ConflictHook implements CommitHook {
     }
 
     /**
-     * Create a new instance of the conflict hook using the
-     * passed conflict handler for resolving conflicts.
-     * @param conflictHandler  a conflict handler
+     * Create a new instance of the conflict hook using the passed conflict handler for resolving
+     * conflicts.
+     *
+     * @param conflictHandler a conflict handler
      */
     public ConflictHook(ThreeWayConflictHandler conflictHandler) {
         this.conflictHandler = conflictHandler;
@@ -61,8 +62,8 @@ public class ConflictHook implements CommitHook {
     @NotNull
     @Override
     public NodeState processCommit(
-            NodeState before, NodeState after, CommitInfo info)
-            throws CommitFailedException {
+        NodeState before, NodeState after, CommitInfo info)
+        throws CommitFailedException {
         return MergingNodeStateDiff.merge(before, after, conflictHandler);
     }
 }

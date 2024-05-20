@@ -37,13 +37,13 @@ import javax.jcr.NamespaceRegistry;
 import java.util.Set;
 
 /**
- * Restriction that limits the effect of a given ACE to the target node where the entry takes effect and optionally it's
- * properties (or a subset thereof).
- * 
+ * Restriction that limits the effect of a given ACE to the target node where the entry takes effect
+ * and optionally it's properties (or a subset thereof).
+ * <p>
  * The following values are allowed for the corresponding multi-valued property:
  * <table>
- * <tr><td>empty value array</td><td>restriction applies to the target node only, properties are never included</td></tr>    
- * <tr><td>value with {@link NodeTypeConstants#RESIDUAL_NAME residual name '*'}</td><td>restriction applies to the target node and all it's properties</td></tr>    
+ * <tr><td>empty value array</td><td>restriction applies to the target node only, properties are never included</td></tr>
+ * <tr><td>value with {@link NodeTypeConstants#RESIDUAL_NAME residual name '*'}</td><td>restriction applies to the target node and all it's properties</td></tr>
  * <tr><td>one or multiple property names</td><td>restriction applies to the target node and the specified properties</td></tr>
  * </table>
  */
@@ -53,46 +53,50 @@ class CurrentPattern implements RestrictionPattern {
      * Built-in namespace prefixes
      */
     private static final Set<String> PREFIXES = ImmutableSet.of(
-            NamespaceConstants.PREFIX_OAK, 
-            NamespaceConstants.PREFIX_REP,
-            NamespaceRegistry.PREFIX_JCR);
+        NamespaceConstants.PREFIX_OAK,
+        NamespaceConstants.PREFIX_REP,
+        NamespaceRegistry.PREFIX_JCR);
 
     /**
-     * Known names of nodes defined by built-in node type definitions, which allows for a best-effort estimate if a given
-     * name with one of the built-in namespace prefixes is a node or a property.
-     * 
-     * NOTE: {@link UserConstants#REP_MEMBERS} and {@link org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants#REP_PRIVILEGES}
-     * are ambiguous as they are defined for both node and property definitions. however, {@link UserConstants#REP_MEMBERS} 
-     * child node definition is deprecated and no longer used in Oak. {@link org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants#REP_PRIVILEGES}
-     * is used for a single node below jcr:system only, while the property name is used in every access control entry.
-     * Therefore these two names are omitted from the list.
+     * Known names of nodes defined by built-in node type definitions, which allows for a
+     * best-effort estimate if a given name with one of the built-in namespace prefixes is a node or
+     * a property.
+     * <p>
+     * NOTE: {@link UserConstants#REP_MEMBERS} and
+     * {@link org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants#REP_PRIVILEGES}
+     * are ambiguous as they are defined for both node and property definitions. however,
+     * {@link UserConstants#REP_MEMBERS} child node definition is deprecated and no longer used in
+     * Oak.
+     * {@link org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants#REP_PRIVILEGES} is
+     * used for a single node below jcr:system only, while the property name is used in every access
+     * control entry. Therefore these two names are omitted from the list.
      */
     private static final Set<String> NODE_NAMES = ImmutableSet.<String>builder().add(
-            JcrConstants.JCR_CHILDNODEDEFINITION, 
-            JcrConstants.JCR_CONTENT, 
-            JcrConstants.JCR_FROZENNODE, 
-            JcrConstants.JCR_PROPERTYDEFINITION, 
-            JcrConstants.JCR_ROOTVERSION,
-            JcrConstants.JCR_SYSTEM, 
-            JcrConstants.JCR_VERSIONLABELS,
-            JcrConstants.JCR_VERSIONSTORAGE,
-            NodeTypeConstants.JCR_NODE_TYPES,
-            NodeTypeConstants.REP_NAMED_CHILD_NODE_DEFINITIONS,
-            NodeTypeConstants.REP_RESIDUAL_CHILD_NODE_DEFINITIONS,
-            NodeTypeConstants.REP_NAMED_PROPERTY_DEFINITIONS,
-            NodeTypeConstants.REP_RESIDUAL_PROPERTY_DEFINITIONS,
-            NodeTypeConstants.REP_OURS,
-            VersionConstants.JCR_ACTIVITIES,
-            VersionConstants.JCR_CONFIGURATIONS,
-            AccessControlConstants.REP_POLICY,
-            AccessControlConstants.REP_REPO_POLICY,
-            AccessControlConstants.REP_RESTRICTIONS,
-            UserConstants.REP_PWD,
-            UserConstants.REP_MEMBERS_LIST,
-            IndexConstants.INDEX_DEFINITIONS_NAME,
-            "rep:cugPolicy",
-            "rep:principalPolicy").build();
-    
+        JcrConstants.JCR_CHILDNODEDEFINITION,
+        JcrConstants.JCR_CONTENT,
+        JcrConstants.JCR_FROZENNODE,
+        JcrConstants.JCR_PROPERTYDEFINITION,
+        JcrConstants.JCR_ROOTVERSION,
+        JcrConstants.JCR_SYSTEM,
+        JcrConstants.JCR_VERSIONLABELS,
+        JcrConstants.JCR_VERSIONSTORAGE,
+        NodeTypeConstants.JCR_NODE_TYPES,
+        NodeTypeConstants.REP_NAMED_CHILD_NODE_DEFINITIONS,
+        NodeTypeConstants.REP_RESIDUAL_CHILD_NODE_DEFINITIONS,
+        NodeTypeConstants.REP_NAMED_PROPERTY_DEFINITIONS,
+        NodeTypeConstants.REP_RESIDUAL_PROPERTY_DEFINITIONS,
+        NodeTypeConstants.REP_OURS,
+        VersionConstants.JCR_ACTIVITIES,
+        VersionConstants.JCR_CONFIGURATIONS,
+        AccessControlConstants.REP_POLICY,
+        AccessControlConstants.REP_REPO_POLICY,
+        AccessControlConstants.REP_RESTRICTIONS,
+        UserConstants.REP_PWD,
+        UserConstants.REP_MEMBERS_LIST,
+        IndexConstants.INDEX_DEFINITIONS_NAME,
+        "rep:cugPolicy",
+        "rep:principalPolicy").build();
+
     private final String treePath;
     private final Set<String> propertyNames;
 
@@ -122,7 +126,7 @@ class CurrentPattern implements RestrictionPattern {
             if (PathUtils.denotesRoot(path)) {
                 return false;
             }
-            return matches(PathUtils.getParentPath(path),  PathUtils.getName(path));
+            return matches(PathUtils.getParentPath(path), PathUtils.getName(path));
         } else {
             return matches(path, null);
         }
@@ -133,7 +137,7 @@ class CurrentPattern implements RestrictionPattern {
         // pattern never matches for repository level permissions
         return false;
     }
-    
+
     private boolean matches(@NotNull String nodePath, @Nullable String propertyName) {
         if (!this.treePath.equals(nodePath)) {
             return false;
@@ -157,14 +161,15 @@ class CurrentPattern implements RestrictionPattern {
     }
 
     /**
-     * Best-effort attempt to determine if the specified path points to a property or not. If it cannot be determined,
-     * this method returns {@code null} assuming that the path points to a node.
-     * 
+     * Best-effort attempt to determine if the specified path points to a property or not. If it
+     * cannot be determined, this method returns {@code null} assuming that the path points to a
+     * node.
+     *
      * @param path The path as passed to {@link #matches(String)}
-     * @return A non-null string if the given path ends with a name that is known to belong to a property defined by 
-     * a named property definition of a built-in node type. It returns {@code null} if the name either belongs to a 
-     * named child-node definition of a built-in node type or if it is not possible to determined if the given path 
-     * points to a property.
+     * @return A non-null string if the given path ends with a name that is known to belong to a
+     * property defined by a named property definition of a built-in node type. It returns
+     * {@code null} if the name either belongs to a named child-node definition of a built-in node
+     * type or if it is not possible to determined if the given path points to a property.
      */
     @Nullable
     private static String getPropertyNameOrNull(@NotNull String path) {
@@ -198,7 +203,7 @@ class CurrentPattern implements RestrictionPattern {
         }
         if (obj instanceof CurrentPattern) {
             CurrentPattern other = (CurrentPattern) obj;
-            return treePath.equals(other.treePath) &&  propertyNames.equals(other.propertyNames);
+            return treePath.equals(other.treePath) && propertyNames.equals(other.propertyNames);
         }
         return false;
     }

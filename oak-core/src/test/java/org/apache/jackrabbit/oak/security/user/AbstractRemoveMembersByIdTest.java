@@ -43,11 +43,11 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public abstract class AbstractRemoveMembersByIdTest extends AbstractUserTest {
 
-    static final String[] NON_EXISTING_IDS = new String[] {"nonExisting1", "nonExisting2"};
+    static final String[] NON_EXISTING_IDS = new String[]{"nonExisting1", "nonExisting2"};
 
     Group testGroup;
     Group memberGroup;
-    
+
     @Override
     public void before() throws Exception {
         super.before();
@@ -91,16 +91,20 @@ public abstract class AbstractRemoveMembersByIdTest extends AbstractUserTest {
 
     Set<String> removeExistingMemberWithoutAccess() throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testGroup.getPath());
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr,
+            testGroup.getPath());
         if (acl != null) {
-            if (acl.addEntry(getTestUser().getPrincipal(), privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_USER_MANAGEMENT), true)) {
+            if (acl.addEntry(getTestUser().getPrincipal(),
+                privilegesFromNames(PrivilegeConstants.JCR_READ,
+                    PrivilegeConstants.REP_USER_MANAGEMENT), true)) {
                 acMgr.setPolicy(testGroup.getPath(), acl);
                 root.commit();
             }
         }
 
         String userId = getTestUser().getID();
-        try (ContentSession testSession = login(new SimpleCredentials(userId, userId.toCharArray()))) {
+        try (ContentSession testSession = login(
+            new SimpleCredentials(userId, userId.toCharArray()))) {
             Root testRoot = testSession.getLatestRoot();
 
             assertFalse(testRoot.getTree(memberGroup.getPath()).exists());

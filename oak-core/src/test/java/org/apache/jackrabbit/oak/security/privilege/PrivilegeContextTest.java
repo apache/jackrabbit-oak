@@ -46,7 +46,8 @@ public class PrivilegeContextTest {
     private static Tree mockTree(@NotNull String name, @NotNull String ntName) {
         Tree t = Mockito.mock(Tree.class);
         when(t.getName()).thenReturn(name);
-        when(t.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, ntName, Type.NAME));
+        when(t.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(
+            PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, ntName, Type.NAME));
         return t;
     }
 
@@ -65,7 +66,7 @@ public class PrivilegeContextTest {
 
     @Test
     public void testNameNotDefinesProperty() {
-        for (String propName : new String[] {"anyName", JcrConstants.JCR_PRIMARYTYPE}) {
+        for (String propName : new String[]{"anyName", JcrConstants.JCR_PRIMARYTYPE}) {
             PropertyState property = PropertyStates.createProperty(propName, "value");
 
             for (String ntName : PrivilegeConstants.PRIVILEGE_NODETYPE_NAMES) {
@@ -81,7 +82,7 @@ public class PrivilegeContextTest {
         for (String propName : PrivilegeConstants.PRIVILEGE_PROPERTY_NAMES) {
             PropertyState property = PropertyStates.createProperty(propName, "value");
 
-            for (String ntName : new String[] {JcrConstants.NT_BASE, JcrConstants.NT_UNSTRUCTURED}) {
+            for (String ntName : new String[]{JcrConstants.NT_BASE, JcrConstants.NT_UNSTRUCTURED}) {
                 assertFalse(ctx.definesProperty(mockTree("anyName", ntName), property));
 
             }
@@ -90,15 +91,20 @@ public class PrivilegeContextTest {
 
     @Test
     public void testDefinesContextRoot() {
-        assertTrue(ctx.definesContextRoot(mockTree(PrivilegeConstants.REP_PRIVILEGES, PrivilegeConstants.NT_REP_PRIVILEGES)));
+        assertTrue(ctx.definesContextRoot(
+            mockTree(PrivilegeConstants.REP_PRIVILEGES, PrivilegeConstants.NT_REP_PRIVILEGES)));
     }
 
     @Test
     public void testNotDefinesContextRoot() {
-        assertFalse(ctx.definesContextRoot(mockTree(PrivilegeConstants.REP_PRIVILEGES, PrivilegeConstants.NT_REP_PRIVILEGE)));
-        assertFalse(ctx.definesContextRoot(mockTree(PrivilegeConstants.REP_PRIVILEGES, JcrConstants.NT_UNSTRUCTURED)));
-        assertFalse(ctx.definesContextRoot(mockTree(PrivilegeConstants.REP_PRIVILEGES, NodeTypeConstants.NT_REP_NAMED_CHILD_NODE_DEFINITIONS)));
-        assertFalse(ctx.definesContextRoot(mockTree("anyName", PrivilegeConstants.NT_REP_PRIVILEGES)));
+        assertFalse(ctx.definesContextRoot(
+            mockTree(PrivilegeConstants.REP_PRIVILEGES, PrivilegeConstants.NT_REP_PRIVILEGE)));
+        assertFalse(ctx.definesContextRoot(
+            mockTree(PrivilegeConstants.REP_PRIVILEGES, JcrConstants.NT_UNSTRUCTURED)));
+        assertFalse(ctx.definesContextRoot(mockTree(PrivilegeConstants.REP_PRIVILEGES,
+            NodeTypeConstants.NT_REP_NAMED_CHILD_NODE_DEFINITIONS)));
+        assertFalse(
+            ctx.definesContextRoot(mockTree("anyName", PrivilegeConstants.NT_REP_PRIVILEGES)));
     }
 
     @Test
@@ -116,7 +122,8 @@ public class PrivilegeContextTest {
 
     @Test
     public void testNotDefinesTree() {
-        for (String ntName : new String[] {JcrConstants.NT_UNSTRUCTURED, JcrConstants.NT_BASE, NodeTypeConstants.NT_REP_SYSTEM, NodeTypeConstants.NT_REP_ROOT}) {
+        for (String ntName : new String[]{JcrConstants.NT_UNSTRUCTURED, JcrConstants.NT_BASE,
+            NodeTypeConstants.NT_REP_SYSTEM, NodeTypeConstants.NT_REP_ROOT}) {
             assertFalse(ctx.definesTree(mockTree(PrivilegeConstants.REP_PRIVILEGES, ntName)));
         }
     }
@@ -124,9 +131,9 @@ public class PrivilegeContextTest {
     @Test
     public void testDefinesLocation() {
         List<String> paths = ImmutableList.of(
-                PrivilegeConstants.PRIVILEGES_PATH,
-                PrivilegeConstants.PRIVILEGES_PATH + "/child",
-                PrivilegeConstants.PRIVILEGES_PATH + "/another/child"
+            PrivilegeConstants.PRIVILEGES_PATH,
+            PrivilegeConstants.PRIVILEGES_PATH + "/child",
+            PrivilegeConstants.PRIVILEGES_PATH + "/another/child"
         );
 
         for (String path : paths) {
@@ -140,10 +147,10 @@ public class PrivilegeContextTest {
     @Test
     public void testNotDefinesLocation() {
         List<String> paths = ImmutableList.of(
-                PathUtils.ROOT_PATH,
-                PrivilegeConstants.PRIVILEGES_PATH + "sibling",
-                "/some/other/path",
-                ""
+            PathUtils.ROOT_PATH,
+            PrivilegeConstants.PRIVILEGES_PATH + "sibling",
+            "/some/other/path",
+            ""
         );
 
         for (String path : paths) {

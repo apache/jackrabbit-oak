@@ -39,21 +39,21 @@ public class NodeTypePredicateTest {
     @Test
     public void emptyNodeTypeList() {
         NodeState node = createNodeOfType(NT_BASE);
-        TypePredicate p = new TypePredicate(node, new String[] {});
+        TypePredicate p = new TypePredicate(node, new String[]{});
         assertFalse(p.test(node));
     }
 
     @Test
     public void singleNodeTypeMatch() {
         NodeState node = createNodeOfType(NT_BASE);
-        TypePredicate p = new TypePredicate(node, new String[] {NT_BASE});
+        TypePredicate p = new TypePredicate(node, new String[]{NT_BASE});
         assertTrue(p.test(node));
     }
 
     @Test
     public void singleNodeTypeMiss() {
         NodeState node = createNodeOfType(NT_BASE);
-        TypePredicate p = new TypePredicate(node, new String[] {NT_FILE});
+        TypePredicate p = new TypePredicate(node, new String[]{NT_FILE});
         assertFalse(p.test(node));
     }
 
@@ -61,7 +61,7 @@ public class NodeTypePredicateTest {
     public void multipleNodeTypesMatch() {
         NodeState node = createNodeOfType(NT_FILE);
         TypePredicate p = new TypePredicate(node,
-                new String[] { NT_FOLDER, NT_RESOURCE, NT_FILE });
+            new String[]{NT_FOLDER, NT_RESOURCE, NT_FILE});
         assertTrue(p.test(node));
     }
 
@@ -69,13 +69,13 @@ public class NodeTypePredicateTest {
     public void multipleNodeTypesMiss() {
         NodeState node = createNodeOfType(NT_FILE);
         TypePredicate p = new TypePredicate(node,
-                new String[] { NT_FOLDER, NT_RESOURCE, JCR_CONTENT });
+            new String[]{NT_FOLDER, NT_RESOURCE, JCR_CONTENT});
         assertFalse(p.test(node));
     }
 
     private static NodeState createNodeOfType(String ntName) {
         return EMPTY_NODE.builder()
-                .setProperty(JCR_PRIMARYTYPE, ntName, Type.NAME)
-                .getNodeState();
+                         .setProperty(JCR_PRIMARYTYPE, ntName, Type.NAME)
+                         .getNodeState();
     }
 }

@@ -91,10 +91,13 @@ public class SystemUserImplTest extends AbstractSecurityTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         return ConfigurationParameters.of(
-                UserConfiguration.NAME,
-                ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, (AuthorizableActionProvider) securityProvider -> {
+            UserConfiguration.NAME,
+            ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER,
+                (AuthorizableActionProvider) securityProvider -> {
                     AuthorizableAction action = new AccessControlAction();
-                    action.init(securityProvider, ConfigurationParameters.of(AccessControlAction.USER_PRIVILEGE_NAMES, new String[]{PrivilegeConstants.JCR_ALL}));
+                    action.init(securityProvider,
+                        ConfigurationParameters.of(AccessControlAction.USER_PRIVILEGE_NAMES,
+                            new String[]{PrivilegeConstants.JCR_ALL}));
                     return ImmutableList.of(action);
                 }));
     }
@@ -135,7 +138,8 @@ public class SystemUserImplTest extends AbstractSecurityTest {
     @Test(expected = IllegalArgumentException.class)
     public void testCheckValidTree() throws Exception {
         User testUser = getTestUser();
-        new SystemUserImpl(testUser.getID(), root.getTree(testUser.getPath()), (UserManagerImpl) userMgr);
+        new SystemUserImpl(testUser.getID(), root.getTree(testUser.getPath()),
+            (UserManagerImpl) userMgr);
     }
 
     @Test
@@ -170,8 +174,8 @@ public class SystemUserImplTest extends AbstractSecurityTest {
     }
 
     /**
-     * @since OAK 1.0 In contrast to Jackrabbit core the intermediate path may
-     * not be an absolute path in OAK.
+     * @since OAK 1.0 In contrast to Jackrabbit core the intermediate path may not be an absolute
+     * path in OAK.
      */
     @Test(expected = ConstraintViolationException.class)
     public void testCreateUserWithAbsolutePath() throws Exception {
@@ -185,7 +189,8 @@ public class SystemUserImplTest extends AbstractSecurityTest {
 
     @Test
     public void testCreateUserWithAbsolutePath3() throws Exception {
-        String userRoot = UserConstants.DEFAULT_USER_PATH + '/' + UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH;
+        String userRoot =
+            UserConstants.DEFAULT_USER_PATH + '/' + UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH;
         String path = userRoot + "/any/path/to/the/new/user";
 
         assertTrue(createUser(path).getPath().startsWith(path));
@@ -209,7 +214,8 @@ public class SystemUserImplTest extends AbstractSecurityTest {
         String path = null;
         try {
             Tree t = root.getTree(UserConstants.DEFAULT_USER_PATH);
-            Tree systemUserTree = TreeUtil.addChild(t, "systemUser", UserConstants.NT_REP_SYSTEM_USER);
+            Tree systemUserTree = TreeUtil.addChild(t, "systemUser",
+                UserConstants.NT_REP_SYSTEM_USER);
             systemUserTree.setProperty(UserConstants.REP_PRINCIPAL_NAME, "systemUser");
             systemUserTree.setProperty(UserConstants.REP_AUTHORIZABLE_ID, "systemUser");
             path = systemUserTree.getPath();
@@ -251,7 +257,9 @@ public class SystemUserImplTest extends AbstractSecurityTest {
     @Test
     public void testImpersonateSystemUser() throws Exception {
         createUser(null);
-        ContentSession cs = login(new ImpersonationCredentials(new SimpleCredentials(uid, new char[0]), adminSession.getAuthInfo()));
+        ContentSession cs = login(
+            new ImpersonationCredentials(new SimpleCredentials(uid, new char[0]),
+                adminSession.getAuthInfo()));
         cs.close();
     }
 
@@ -261,7 +269,9 @@ public class SystemUserImplTest extends AbstractSecurityTest {
         user.disable("disabled");
         root.commit();
         try {
-            ContentSession cs = login(new ImpersonationCredentials(new SimpleCredentials(uid, new char[0]), adminSession.getAuthInfo()));
+            ContentSession cs = login(
+                new ImpersonationCredentials(new SimpleCredentials(uid, new char[0]),
+                    adminSession.getAuthInfo()));
             cs.close();
             fail();
         } catch (LoginException e) {
@@ -318,7 +328,9 @@ public class SystemUserImplTest extends AbstractSecurityTest {
 
     @Test
     public void testReplacesAdministrator() throws Exception {
-        String adminId = getUserConfiguration().getParameters().getConfigValue(UserConstants.PARAM_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID);
+        String adminId = getUserConfiguration().getParameters()
+                                               .getConfigValue(UserConstants.PARAM_ADMIN_ID,
+                                                   UserConstants.DEFAULT_ADMIN_ID);
         User admin = userMgr.getAuthorizable(adminId, User.class);
         root.getTree(admin.getPath()).remove();
 

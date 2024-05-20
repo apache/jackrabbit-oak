@@ -52,29 +52,30 @@ public class NodeCounterMBeanEstimatorTest {
         builder.child("idx-a");
 
         builder.child("idx-b").setProperty(PROP_INCLUDED_PATHS, asList("/content"), Type.STRINGS);
-        builder.child("idx-b").setProperty(PROP_EXCLUDED_PATHS, asList("/content/old"), Type.STRINGS);
+        builder.child("idx-b")
+               .setProperty(PROP_EXCLUDED_PATHS, asList("/content/old"), Type.STRINGS);
 
         builder.child("idx-c").setProperty(PROP_INCLUDED_PATHS, asList("/libs"), Type.STRINGS);
 
         builder.child("idx-d").setProperty(PROP_EXCLUDED_PATHS, asList("/libs"), Type.STRINGS);
 
-
-        builder.child("content").child("idx-e").setProperty(PROP_EXCLUDED_PATHS, asList("/content/old"), Type.STRINGS);
+        builder.child("content").child("idx-e")
+               .setProperty(PROP_EXCLUDED_PATHS, asList("/content/old"), Type.STRINGS);
         builder.child("content").child("idx-f");
 
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         Map<String, Integer> counts = ImmutableMap.of(
-                "/", 100,
-                "/content", 50,
-                "/content/old", 10,
-                "/libs", 30
+            "/", 100,
+            "/content", 50,
+            "/content/old", 10,
+            "/libs", 30
         );
 
         when(counter.getEstimatedNodeCount(anyString())).then((invocation -> {
             String path = (String) invocation.getArguments()[0];
             if (counts.containsKey(path)) {
-                return (long)counts.get(path);
+                return (long) counts.get(path);
             }
             return -1;
         }));

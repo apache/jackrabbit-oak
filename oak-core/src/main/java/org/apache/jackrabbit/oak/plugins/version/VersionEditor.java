@@ -62,17 +62,17 @@ class VersionEditor implements Editor {
     private CommitInfo commitInfo;
 
     public VersionEditor(@NotNull NodeBuilder versionStore,
-                         @NotNull NodeBuilder workspaceRoot,
-                         @NotNull CommitInfo commitInfo) {
+        @NotNull NodeBuilder workspaceRoot,
+        @NotNull CommitInfo commitInfo) {
         this(null, new ReadWriteVersionManager(checkNotNull(versionStore),
-                checkNotNull(workspaceRoot)), workspaceRoot, "", commitInfo);
+            checkNotNull(workspaceRoot)), workspaceRoot, "", commitInfo);
     }
 
     VersionEditor(@Nullable VersionEditor parent,
-                  @NotNull ReadWriteVersionManager vMgr,
-                  @NotNull NodeBuilder node,
-                  @NotNull String name,
-                  @NotNull CommitInfo commitInfo) {
+        @NotNull ReadWriteVersionManager vMgr,
+        @NotNull NodeBuilder node,
+        @NotNull String name,
+        @NotNull CommitInfo commitInfo) {
         this.parent = parent;
         this.vMgr = checkNotNull(vMgr);
         this.node = checkNotNull(node);
@@ -82,7 +82,7 @@ class VersionEditor implements Editor {
 
     @Override
     public void enter(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         this.before = before;
         this.after = after;
         if (isVersionable()) {
@@ -102,19 +102,20 @@ class VersionEditor implements Editor {
 
     @Override
     public void leave(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
     }
 
     @Override
     public void propertyAdded(PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (after.getName().equals(JCR_BASEVERSION)
-                && this.after.hasProperty(JcrConstants.JCR_VERSIONHISTORY)
-                && !this.after.hasProperty(JCR_ISCHECKEDOUT)
-                && !this.before.exists()) {
+            && this.after.hasProperty(JcrConstants.JCR_VERSIONHISTORY)
+            && !this.after.hasProperty(JCR_ISCHECKEDOUT)
+            && !this.before.exists()) {
             Tree tree = new TreeProviderService().createReadOnlyTree(this.node.getNodeState());
             if (vMgr.getNodeTypeManager().isNodeType(
-                    TreeUtil.getPrimaryTypeName(tree), () -> TreeUtil.getMixinTypeNames(tree), MIX_VERSIONABLE)) {
+                TreeUtil.getPrimaryTypeName(tree), () -> TreeUtil.getMixinTypeNames(tree),
+                MIX_VERSIONABLE)) {
                 // OAK-10462: the node has mix:versionable, but not the mandatory property jcr:isCheckedOut,
                 // so it has to be sentinel node for a restore operation.
                 // Unfortunately, there is no API available to detect that.
@@ -127,20 +128,21 @@ class VersionEditor implements Editor {
         }
         // JCR allows to put a lock on a checked in node.
         if (after.getName().equals(JcrConstants.JCR_LOCKOWNER)
-                || after.getName().equals(JcrConstants.JCR_LOCKISDEEP)) {
+            || after.getName().equals(JcrConstants.JCR_LOCKISDEEP)) {
             return;
         }
         throwCheckedIn("Cannot add property " + after.getName()
-                + " on checked in node");
+            + " on checked in node");
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (!isVersionable()) {
-            if (!isVersionProperty(after) && isReadOnly && getOPV(after) != OnParentVersionAction.IGNORE) {
+            if (!isVersionProperty(after) && isReadOnly
+                && getOPV(after) != OnParentVersionAction.IGNORE) {
                 throwCheckedIn("Cannot change property " + after.getName()
-                        + " on checked in node");
+                    + " on checked in node");
             }
             return;
         }
@@ -162,15 +164,16 @@ class VersionEditor implements Editor {
             throwProtected(after.getName());
         } else if (isReadOnly && getOPV(after) != OnParentVersionAction.IGNORE) {
             throwCheckedIn("Cannot change property " + after.getName()
-                    + " on checked in node");
+                + " on checked in node");
         }
     }
 
     @Override
     public void propertyDeleted(PropertyState before)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (isReadOnly) {
-            if (!isVersionProperty(before) && !isLockProperty(before) && getOPV(before) != OnParentVersionAction.IGNORE) {
+            if (!isVersionProperty(before) && !isLockProperty(before)
+                && getOPV(before) != OnParentVersionAction.IGNORE) {
                 throwCheckedIn("Cannot delete property on checked in node");
             }
         }
@@ -183,7 +186,7 @@ class VersionEditor implements Editor {
 
     @Override
     public Editor childNodeChanged(String name, NodeState before,
-            NodeState after) {
+        NodeState after) {
         return new VersionEditor(this, vMgr, node.child(name), name, commitInfo);
     }
 
@@ -193,8 +196,8 @@ class VersionEditor implements Editor {
     }
 
     /**
-     * Returns {@code true} if the node of this VersionDiff is versionable;
-     * {@code false} otherwise.
+     * Returns {@code true} if the node of this VersionDiff is versionable; {@code false}
+     * otherwise.
      *
      * @return whether the node is versionable.
      */
@@ -207,7 +210,7 @@ class VersionEditor implements Editor {
 
     private boolean isVersionProperty(PropertyState state) {
         return VersionConstants.VERSION_PROPERTY_NAMES
-                .contains(state.getName());
+            .contains(state.getName());
     }
 
     private boolean isLockProperty(PropertyState state) {
@@ -215,9 +218,8 @@ class VersionEditor implements Editor {
     }
 
     /**
-     * @return {@code true} if this node <b>was</b> checked in. That is,
-     *         this method checks the before state for the jcr:isCheckedOut
-     *         property.
+     * @return {@code true} if this node <b>was</b> checked in. That is, this method checks the
+     * before state for the jcr:isCheckedOut property.
      */
     private boolean wasCheckedIn() {
         PropertyState prop = before.getProperty(JCR_ISCHECKEDOUT);
@@ -257,25 +259,26 @@ class VersionEditor implements Editor {
     }
 
     private static void throwCheckedIn(String msg)
-            throws CommitFailedException {
+        throws CommitFailedException {
         throw new CommitFailedException(CommitFailedException.VERSION,
-                VersionExceptionCode.NODE_CHECKED_IN.ordinal(), msg);
+            VersionExceptionCode.NODE_CHECKED_IN.ordinal(), msg);
     }
 
     private static void throwProtected(String name)
-            throws CommitFailedException {
+        throws CommitFailedException {
         throw new CommitFailedException(CommitFailedException.CONSTRAINT, 100,
-                "Property is protected: " + name);
+            "Property is protected: " + name);
     }
 
     private boolean isIgnoreOnOPV() throws CommitFailedException {
         if (this.parent != null) {
             try {
-                NodeDefinition definition = this.vMgr.getNodeTypeManager().getDefinition(TreeFactory.createTree(parent.node), this.name);
+                NodeDefinition definition = this.vMgr.getNodeTypeManager().getDefinition(
+                    TreeFactory.createTree(parent.node), this.name);
                 return definition.getOnParentVersion() == OnParentVersionAction.IGNORE;
             } catch (Exception e) {
                 throw new CommitFailedException(CommitFailedException.VERSION,
-                        VersionExceptionCode.UNEXPECTED_REPOSITORY_EXCEPTION.ordinal(), e.getMessage());
+                    VersionExceptionCode.UNEXPECTED_REPOSITORY_EXCEPTION.ordinal(), e.getMessage());
             }
         }
         return false;
@@ -283,11 +286,12 @@ class VersionEditor implements Editor {
 
     private int getOPV(PropertyState property) throws CommitFailedException {
         try {
-            return this.vMgr.getNodeTypeManager().getDefinition(TreeFactory.createReadOnlyTree(this.node.getNodeState()),
-                    property, false).getOnParentVersion();
+            return this.vMgr.getNodeTypeManager()
+                            .getDefinition(TreeFactory.createReadOnlyTree(this.node.getNodeState()),
+                                property, false).getOnParentVersion();
         } catch (Exception e) {
             throw new CommitFailedException(CommitFailedException.VERSION,
-                    VersionExceptionCode.UNEXPECTED_REPOSITORY_EXCEPTION.ordinal(), e.getMessage());
+                VersionExceptionCode.UNEXPECTED_REPOSITORY_EXCEPTION.ordinal(), e.getMessage());
         }
     }
 }

@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.query.fulltext.LikePattern;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.fulltext.LikePattern;
 
 /**
  * The enumeration of all operators.
@@ -92,7 +92,7 @@ public enum Operator {
 
     /**
      * "operand2 always evaluates to a scalar value"
-     *
+     * <p>
      * for multi-valued properties: if any of the value matches, then return true
      */
     public abstract boolean evaluate(PropertyValue p1, PropertyValue p2);

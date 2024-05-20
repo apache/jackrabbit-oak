@@ -60,12 +60,12 @@ public class TypeEditorProvider implements EditorProvider {
 
     @Override
     public Editor getRootEditor(
-            NodeState before, NodeState after, NodeBuilder builder,
-            CommitInfo info) throws CommitFailedException {
+        NodeState before, NodeState after, NodeBuilder builder,
+        CommitInfo info) throws CommitFailedException {
         NodeState beforeTypes =
-                before.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES);
+            before.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES);
         NodeState afterTypes =
-                after.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES);
+            after.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES);
 
         String primary = after.getName(JCR_PRIMARYTYPE);
         Iterable<String> mixins = after.getNames(JCR_MIXINTYPES);
@@ -73,13 +73,15 @@ public class TypeEditorProvider implements EditorProvider {
         TypeRegistration registration = new TypeRegistration();
         afterTypes.compareAgainstBaseState(beforeTypes, registration);
         if (registration.isModified()) {
-            ReadOnlyNodeTypeManager ntBefore = ReadOnlyNodeTypeManager.getInstance(RootFactory.createReadOnlyRoot(before), NamePathMapper.DEFAULT);
-            ReadOnlyNodeTypeManager ntAfter = ReadOnlyNodeTypeManager.getInstance(RootFactory.createReadOnlyRoot(after), NamePathMapper.DEFAULT);
+            ReadOnlyNodeTypeManager ntBefore = ReadOnlyNodeTypeManager.getInstance(
+                RootFactory.createReadOnlyRoot(before), NamePathMapper.DEFAULT);
+            ReadOnlyNodeTypeManager ntAfter = ReadOnlyNodeTypeManager.getInstance(
+                RootFactory.createReadOnlyRoot(after), NamePathMapper.DEFAULT);
 
             afterTypes = registration.apply(builder);
 
             Set<String> modifiedTypes =
-                    registration.getModifiedTypes(beforeTypes);
+                registration.getModifiedTypes(beforeTypes);
             if (!modifiedTypes.isEmpty()) {
                 boolean modified = false;
                 for (String t : modifiedTypes) {
@@ -88,37 +90,44 @@ public class TypeEditorProvider implements EditorProvider {
                 }
 
                 if (!modified) {
-                    LOG.info("Node type changes: " + modifiedTypes + " appear to be trivial, repository will not be scanned");
-                }
-                else {
-                    
-                    ConstraintViolationCallback callback = strict ? TypeEditor.THROW_ON_CONSTRAINT_VIOLATION : TypeEditor.WARN_ON_CONSTRAINT_VIOLATION;
-                    
+                    LOG.info("Node type changes: " + modifiedTypes
+                        + " appear to be trivial, repository will not be scanned");
+                } else {
+
+                    ConstraintViolationCallback callback =
+                        strict ? TypeEditor.THROW_ON_CONSTRAINT_VIOLATION
+                            : TypeEditor.WARN_ON_CONSTRAINT_VIOLATION;
+
                     long start = System.currentTimeMillis();
                     // Some node types were modified, so scan the repository
                     // to make sure that the modified definitions still apply.
                     Editor editor = new VisibleEditor(new TypeEditor(
-                            callback, modifiedTypes, afterTypes,
-                            primary, mixins, builder));
-                    LOG.info("Node type changes: " + modifiedTypes + " appear not to be trivial, starting repository scan");
+                        callback, modifiedTypes, afterTypes,
+                        primary, mixins, builder));
+                    LOG.info("Node type changes: " + modifiedTypes
+                        + " appear not to be trivial, starting repository scan");
                     CommitFailedException exception =
-                            EditorDiff.process(editor, MISSING_NODE, after);
-                    LOG.info("Node type changes: " + modifiedTypes + "; repository scan took " + (System.currentTimeMillis() - start)
-                            + "ms" + (exception == null ? "" : "; failed with " + exception.getMessage()));
+                        EditorDiff.process(editor, MISSING_NODE, after);
+                    LOG.info("Node type changes: " + modifiedTypes + "; repository scan took " + (
+                        System.currentTimeMillis() - start)
+                        + "ms" + (exception == null ? ""
+                        : "; failed with " + exception.getMessage()));
                     if (exception != null) {
                         throw exception;
                     }
                 }
             }
         }
-        
-        ConstraintViolationCallback callback = strict ? TypeEditor.THROW_ON_CONSTRAINT_VIOLATION : TypeEditor.WARN_ON_CONSTRAINT_VIOLATION;
+
+        ConstraintViolationCallback callback = strict ? TypeEditor.THROW_ON_CONSTRAINT_VIOLATION
+            : TypeEditor.WARN_ON_CONSTRAINT_VIOLATION;
 
         return new VisibleEditor(new TypeEditor(
-                callback, null, afterTypes, primary, mixins, builder));
+            callback, null, afterTypes, primary, mixins, builder));
     }
 
-    private boolean isTrivialChange(ReadOnlyNodeTypeManager ntBefore, ReadOnlyNodeTypeManager ntAfter, String nodeType) {
+    private boolean isTrivialChange(ReadOnlyNodeTypeManager ntBefore,
+        ReadOnlyNodeTypeManager ntAfter, String nodeType) {
 
         NodeType nb, na;
 

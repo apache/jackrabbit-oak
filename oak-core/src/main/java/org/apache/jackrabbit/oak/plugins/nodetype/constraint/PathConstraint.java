@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PathConstraint implements Predicate<Value> {
+
     private static final Logger log = LoggerFactory.getLogger(PathConstraint.class);
 
     private final String requiredValue;
@@ -56,8 +57,7 @@ public class PathConstraint implements Predicate<Value> {
             }
 
             return required.equals(actual);
-        }
-        catch (RepositoryException e) {
+        } catch (RepositoryException e) {
             log.warn("Error checking path constraint " + this, e);
             return false;
         }

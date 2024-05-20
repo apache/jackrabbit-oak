@@ -53,23 +53,24 @@ import static org.osgi.service.component.annotations.ReferencePolicy.DYNAMIC;
  * behavioural details.
  */
 @Component(
-        property = "type=atomicCounter",
-        service = EditorProvider.class)
+    property = "type=atomicCounter",
+    service = EditorProvider.class)
 public class AtomicCounterEditorProvider implements EditorProvider {
+
     private static final Logger LOG = LoggerFactory.getLogger(AtomicCounterEditorProvider.class);
 
     private AtomicReference<Clusterable> cluster = new AtomicReference<Clusterable>();
 
-    private volatile AtomicReference<NodeStore> store = new AtomicReference<NodeStore>();    
+    private volatile AtomicReference<NodeStore> store = new AtomicReference<NodeStore>();
 
     private volatile AtomicReference<ScheduledExecutorService> scheduler = new AtomicReference<ScheduledExecutorService>();
     private volatile AtomicReference<Whiteboard> whiteboard = new AtomicReference<Whiteboard>();
-    
+
     private final Supplier<Clusterable> clusterSupplier;
     private final Supplier<ScheduledExecutorService> schedulerSupplier;
     private final Supplier<NodeStore> storeSupplier;
     private final Supplier<Whiteboard> wbSupplier;
-    
+
     /**
      * OSGi oriented constructor where all the required dependencies will be taken care of.
      */
@@ -103,33 +104,34 @@ public class AtomicCounterEditorProvider implements EditorProvider {
     /**
      * <p>
      * Plain Java oriented constructor. Refer to
-     * {@link AtomicCounterEditor#AtomicCounterEditor(NodeBuilder, String, ScheduledExecutorService, NodeStore, Whiteboard)}
-     * for constructions details of the actual editor.
+     * {@link AtomicCounterEditor#AtomicCounterEditor(NodeBuilder, String, ScheduledExecutorService,
+     * NodeStore, Whiteboard)} for constructions details of the actual editor.
      * </p>
-     * 
+     *
      * <p>
      * Based on the use case this may need an already set of the constructor parameters during the
-     * repository construction. Please ensure they're registered before this provider is registered.
+     * repository construction. Please ensure they're registered before this provider is
+     * registered.
      * </p>
-     * 
+     *
      * @param clusterInfo cluster node information
-     * @param executor the executor for running asynchronously.
-     * @param store reference to the NodeStore.
-     * @param whiteboard the underlying board for picking up the registered {@link CommitHook}
+     * @param executor    the executor for running asynchronously.
+     * @param store       reference to the NodeStore.
+     * @param whiteboard  the underlying board for picking up the registered {@link CommitHook}
      */
-    public AtomicCounterEditorProvider(@Nullable Supplier<Clusterable> clusterInfo, 
-                                       @Nullable Supplier<ScheduledExecutorService> executor,
-                                       @Nullable Supplier<NodeStore> store,
-                                       @Nullable Supplier<Whiteboard> whiteboard) {
+    public AtomicCounterEditorProvider(@Nullable Supplier<Clusterable> clusterInfo,
+        @Nullable Supplier<ScheduledExecutorService> executor,
+        @Nullable Supplier<NodeStore> store,
+        @Nullable Supplier<Whiteboard> whiteboard) {
         this.clusterSupplier = clusterInfo;
         this.schedulerSupplier = executor;
         this.storeSupplier = store;
         this.wbSupplier = whiteboard;
     }
-    
+
     /**
      * convenience method wrapping logic around {@link AtomicReference}
-     * 
+     *
      * @return
      */
     private String getInstanceId() {
@@ -140,41 +142,41 @@ public class AtomicCounterEditorProvider implements EditorProvider {
             return c.getInstanceId();
         }
     }
-    
+
     /**
      * convenience method wrapping logic around {@link AtomicReference}
-     * 
+     *
      * @return
      */
     private ScheduledExecutorService getScheduler() {
         return schedulerSupplier.get();
     }
-    
+
     /**
      * convenience method wrapping logic around {@link AtomicReference}
-     * 
+     *
      * @return
      */
     private NodeStore getStore() {
         return storeSupplier.get();
     }
-    
+
     /**
      * Convenience method wrapping logic around {@link AtomicReference}
-     * 
+     *
      * @return
      */
     private Whiteboard getBoard() {
         return wbSupplier.get();
     }
-    
+
     @Activate
     public void activate(BundleContext context) {
         whiteboard.set(new OsgiWhiteboard(context));
         ThreadFactory tf = new ThreadFactoryBuilder().setNameFormat("atomic-counter-%d").build();
         scheduler.set(Executors.newScheduledThreadPool(10, tf));
     }
-    
+
     @Deactivate
     public void deactivate() {
         ScheduledExecutorService ses = getScheduler();
@@ -199,15 +201,15 @@ public class AtomicCounterEditorProvider implements EditorProvider {
     protected void bindStore(NodeStore store) {
         this.store.set(store);
     }
-    
+
     protected void unbindStore(NodeStore store) {
         this.store.compareAndSet(store, null);
     }
 
     @Override
     public Editor getRootEditor(final NodeState before, final NodeState after,
-                                final NodeBuilder builder, final CommitInfo info)
-                                    throws CommitFailedException {
+        final NodeBuilder builder, final CommitInfo info)
+        throws CommitFailedException {
         return new AtomicCounterEditor(builder, getInstanceId(), getScheduler(), getStore(),
             getBoard());
     }

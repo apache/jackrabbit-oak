@@ -37,15 +37,20 @@ import static org.mockito.Mockito.when;
  * A utility interface that generates mocked entities for Impersonation tests
  */
 public interface ImpersonationTestUtil {
-    /**
-     * Generates a mocked {@link ConfigurationParameters} object with a specified impersonator group ID.
 
-     * @param configs The configuration object to be spied. If null, a new mock object will be created.
-     * @param impersonatorGroupId The impersonator group ID to be returned when searching in the config for
-     *                            {@code PARAM_IMPERSONATOR_GROUPS_ID}.
+    /**
+     * Generates a mocked {@link ConfigurationParameters} object with a specified impersonator group
+     * ID.
+     *
+     * @param configs             The configuration object to be spied. If null, a new mock object
+     *                            will be created.
+     * @param impersonatorGroupId The impersonator group ID to be returned when searching in the
+     *                            config for {@code PARAM_IMPERSONATOR_GROUPS_ID}.
      * @return A mocked configuration object with the specified impersonator group ID.
      */
-    @NotNull static ConfigurationParameters getMockedConfigs(@Nullable ConfigurationParameters configs, @NotNull String impersonatorGroupId) {
+    @NotNull
+    static ConfigurationParameters getMockedConfigs(@Nullable ConfigurationParameters configs,
+        @NotNull String impersonatorGroupId) {
         ConfigurationParameters configMock;
         if (configs != null) {
             configMock = spy(configs);
@@ -53,25 +58,28 @@ public interface ImpersonationTestUtil {
             configMock = mock(ConfigurationParameters.class);
         }
         doReturn(new String[]{impersonatorGroupId})
-                .when(configMock).getConfigValue(eq(UserConstants.PARAM_IMPERSONATOR_PRINCIPAL_NAMES), any());
+            .when(configMock)
+            .getConfigValue(eq(UserConstants.PARAM_IMPERSONATOR_PRINCIPAL_NAMES), any());
 
         return configMock;
     }
 
-    @NotNull static ConfigurationParameters getMockedConfigs(@NotNull String impersonatorGroupId) {
+    @NotNull
+    static ConfigurationParameters getMockedConfigs(@NotNull String impersonatorGroupId) {
         return getMockedConfigs(null, impersonatorGroupId);
     }
 
     /**
-
-     * Attaches to a given {@link UserImpl} a {@link ConfigurationParameters}. The config
-     * will have the impersonator principals key set to a given group name.
-
+     * Attaches to a given {@link UserImpl} a {@link ConfigurationParameters}. The config will have
+     * the impersonator principals key set to a given group name.
+     *
      * @param impersonatorGroupName the name of the impersonator group
-     * @param user the existing user object to attach a config to
+     * @param user                  the existing user object to attach a config to
      * @return a mock user object with mocked configuration parameters
      */
-    @NotNull static UserImpl getUserWithMockedConfigs(@NotNull String impersonatorGroupName, @NotNull UserImpl user) {
+    @NotNull
+    static UserImpl getUserWithMockedConfigs(@NotNull String impersonatorGroupName,
+        @NotNull UserImpl user) {
         ConfigurationParameters configMock = getMockedConfigs(impersonatorGroupName);
 
         UserManagerImpl userManagerMock = spy(user.getUserManager());
@@ -83,14 +91,17 @@ public interface ImpersonationTestUtil {
         return userMock;
     }
 
-    @NotNull static User getUserWithPrincipal(@NotNull Principal principal) throws RepositoryException {
+    @NotNull
+    static User getUserWithPrincipal(@NotNull Principal principal) throws RepositoryException {
         User user = mock(User.class);
         when(user.getPrincipal()).thenReturn(principal);
 
         return user;
     }
 
-    @NotNull static PrincipalManager getMockedPrincipalManager(@NotNull String impersonatorName, @NotNull Principal principal) {
+    @NotNull
+    static PrincipalManager getMockedPrincipalManager(@NotNull String impersonatorName,
+        @NotNull Principal principal) {
         PrincipalManager principalManagerMocked = mock(PrincipalManager.class);
         when(principalManagerMocked.getPrincipal(impersonatorName)).thenReturn(principal);
 

@@ -38,17 +38,17 @@ import org.junit.Test;
 public class NamePathMapperImplTest {
 
     private static final Map<String, String> GLOBAL = ImmutableMap.of(
-            "oak-jcr", "http://www.jcp.org/jcr/1.0",
-            "oak-nt", "http://www.jcp.org/jcr/nt/1.0",
-            "oak-foo", "http://www.example.com/foo",
-            "oak-quu", "http://www.example.com/quu",
-            "oak",     "http://jackrabbit.apache.org/oak/ns/1.0");
+        "oak-jcr", "http://www.jcp.org/jcr/1.0",
+        "oak-nt", "http://www.jcp.org/jcr/nt/1.0",
+        "oak-foo", "http://www.example.com/foo",
+        "oak-quu", "http://www.example.com/quu",
+        "oak", "http://jackrabbit.apache.org/oak/ns/1.0");
 
     private static final Map<String, String> LOCAL = ImmutableMap.of(
-            "jcr-jcr", "http://www.jcp.org/jcr/1.0",
-            "jcr-nt", "http://www.jcp.org/jcr/nt/1.0",
-            "foo", "http://www.example.com/foo",
-            "quu", "http://www.example.com/quu");
+        "jcr-jcr", "http://www.jcp.org/jcr/1.0",
+        "jcr-nt", "http://www.jcp.org/jcr/nt/1.0",
+        "foo", "http://www.example.com/foo",
+        "quu", "http://www.example.com/quu");
 
     private final NameMapper mapper = new LocalNameMapper(GLOBAL, LOCAL);
 
@@ -75,8 +75,8 @@ public class NamePathMapperImplTest {
 
     @Test
     public void testTrailingSlash() {
-        assertEquals("/oak-foo:bar/oak-quu:qux",npMapper.getOakPath("/foo:bar/quu:qux/"));
-        assertEquals("/a/b/c",npMapper.getOakPath("/a/b/c/"));
+        assertEquals("/oak-foo:bar/oak-quu:qux", npMapper.getOakPath("/foo:bar/quu:qux/"));
+        assertEquals("/a/b/c", npMapper.getOakPath("/a/b/c/"));
     }
 
     @Test
@@ -86,20 +86,31 @@ public class NamePathMapperImplTest {
         assertEquals("/oak-foo:bar", npMapper.getOakPath("/foo:bar"));
         assertEquals("/oak-foo:bar/oak-quu:qux", npMapper.getOakPath("/foo:bar/quu:qux"));
         assertEquals("oak-foo:bar", npMapper.getOakPath("foo:bar"));
-        assertEquals("oak-nt:unstructured", npMapper.getOakPath("{http://www.jcp.org/jcr/nt/1.0}unstructured"));
-        assertEquals("foobar/oak-jcr:content", npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content"));
-        assertEquals("foobar", npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content/.."));
+        assertEquals("oak-nt:unstructured",
+            npMapper.getOakPath("{http://www.jcp.org/jcr/nt/1.0}unstructured"));
+        assertEquals("foobar/oak-jcr:content",
+            npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("foobar",
+            npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content/.."));
         assertEquals("", npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content/../.."));
-        assertEquals("..", npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content/../../.."));
-        assertEquals("../..", npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content/../../../.."));
-        assertEquals("oak-jcr:content", npMapper.getOakPath("foobar/../{http://www.jcp.org/jcr/1.0}content"));
-        assertEquals("../oak-jcr:content", npMapper.getOakPath("foobar/../../{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("..",
+            npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content/../../.."));
+        assertEquals("../..",
+            npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content/../../../.."));
+        assertEquals("oak-jcr:content",
+            npMapper.getOakPath("foobar/../{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("../oak-jcr:content",
+            npMapper.getOakPath("foobar/../../{http://www.jcp.org/jcr/1.0}content"));
         assertEquals("..", npMapper.getOakPath(".."));
         assertEquals("", npMapper.getOakPath("."));
-        assertEquals("foobar/oak-jcr:content", npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content/."));
-        assertEquals("foobar/oak-jcr:content", npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content/./."));
-        assertEquals("foobar/oak-jcr:content", npMapper.getOakPath("foobar/./{http://www.jcp.org/jcr/1.0}content"));
-        assertEquals("oak-jcr:content", npMapper.getOakPath("foobar/./../{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("foobar/oak-jcr:content",
+            npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content/."));
+        assertEquals("foobar/oak-jcr:content",
+            npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content/./."));
+        assertEquals("foobar/oak-jcr:content",
+            npMapper.getOakPath("foobar/./{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("oak-jcr:content",
+            npMapper.getOakPath("foobar/./../{http://www.jcp.org/jcr/1.0}content"));
         assertEquals("/a/b/c", npMapper.getOakPath("/a/b[1]/c[01]"));
         assertEquals("/a/b[2]/c[3]", npMapper.getOakPath("/a[1]/b[2]/c[03]"));
         assertEquals("/a/b", npMapper.getOakPath("/a/b/a/.."));
@@ -139,23 +150,23 @@ public class NamePathMapperImplTest {
     @Test
     public void testInvalidJcrPaths() {
         String[] paths = {
-                "//",
-                "/foo//",
-                "/..//",
-                "/..",
-                "/foo/../..",
-                "foo::bar",
-                "foo:bar:baz",
-                "foo:bar]baz",
-                "foo:bar[baz",
-                "foo:bar|baz",
-                "foo:bar*baz"
+            "//",
+            "/foo//",
+            "/..//",
+            "/..",
+            "/foo/../..",
+            "foo::bar",
+            "foo:bar:baz",
+            "foo:bar]baz",
+            "foo:bar[baz",
+            "foo:bar|baz",
+            "foo:bar*baz"
         };
 
         NamePathMapper[] mappers = {
-                npMapper,
-                new NamePathMapperImpl(new LocalNameMapper(
-                        GLOBAL, Collections.<String, String>emptyMap()))
+            npMapper,
+            new NamePathMapperImpl(new LocalNameMapper(
+                GLOBAL, Collections.<String, String>emptyMap()))
         };
 
         for (NamePathMapper mapper : mappers) {
@@ -178,8 +189,7 @@ public class NamePathMapperImplTest {
         try {
             npMapper.getJcrPath(path);
             fail("Expected IllegalArgumentException");
-        }
-        catch (IllegalArgumentException expected) {
+        } catch (IllegalArgumentException expected) {
         }
     }
 
@@ -194,7 +204,7 @@ public class NamePathMapperImplTest {
 
     @Test
     public void testBracketsInNodeName() throws Exception {
-        String[] childNames = { "{A}", "B}", "{C", "(D)", "E)", "(F", };
+        String[] childNames = {"{A}", "B}", "{C", "(D)", "E)", "(F",};
 
         for (String name : childNames) {
             assertEquals(name, npMapper.getOakName(name));
@@ -204,40 +214,40 @@ public class NamePathMapperImplTest {
     @Test
     public void testBracketsInPaths() throws Exception {
         String[] paths = {
-                "/parent/childB1",
-                "/parent/}childB2",
-                "/parent/{childB3}",
-                "/parent/sub/childB4",
-                "/parent/sub/}childB5",
-                "/parent/sub/{childB6}",
+            "/parent/childB1",
+            "/parent/}childB2",
+            "/parent/{childB3}",
+            "/parent/sub/childB4",
+            "/parent/sub/}childB5",
+            "/parent/sub/{childB6}",
         };
 
         for (String path : paths) {
             assertEquals(path, npMapper.getOakPath(path));
         }
     }
-    
+
     @Test
     public void testIllegalBracketsInPaths() throws Exception {
         String[] paths = {
-                "/parent/sub/{childB7", 
-                "/parent/sub/{childB7",
-                "/parent/{", 
-                "/parent/{childA1", 
-                "/parent/{{childA2"        };
+            "/parent/sub/{childB7",
+            "/parent/sub/{childB7",
+            "/parent/{",
+            "/parent/{childA1",
+            "/parent/{{childA2"};
 
         for (String path : paths) {
             assertNull(npMapper.getOakPath(path));
         }
-    }    
+    }
 
     @Test
     public void testWhitespace() {
-        String[] paths = new String[] {
-                " leading", "trailing\n", " ", "\t",
-                "oak: leading", "oak:trailing\n", "oak: ", "oak:\t" };
+        String[] paths = new String[]{
+            " leading", "trailing\n", " ", "\t",
+            "oak: leading", "oak:trailing\n", "oak: ", "oak:\t"};
         NamePathMapper noLocal = new NamePathMapperImpl(new LocalNameMapper(
-                GLOBAL, Collections.<String, String>emptyMap()));
+            GLOBAL, Collections.<String, String>emptyMap()));
         for (String path : paths) {
             assertEquals("without local mappings", path, noLocal.getOakPath(path));
             assertEquals("with local mappings", path, npMapper.getOakPath(path));

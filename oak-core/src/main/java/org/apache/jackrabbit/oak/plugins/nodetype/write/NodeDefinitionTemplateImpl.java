@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 class NodeDefinitionTemplateImpl extends ItemDefinitionTemplate
-        implements NodeDefinitionTemplate {
+    implements NodeDefinitionTemplate {
 
     private boolean allowSameNameSiblings = false;
 
@@ -48,8 +48,8 @@ class NodeDefinitionTemplateImpl extends ItemDefinitionTemplate
     }
 
     public NodeDefinitionTemplateImpl(
-            NameMapper mapper, NodeDefinition definition)
-            throws ConstraintViolationException {
+        NameMapper mapper, NodeDefinition definition)
+        throws ConstraintViolationException {
         super(mapper, definition);
         setSameNameSiblings(definition.allowsSameNameSiblings());
         setDefaultPrimaryTypeName(definition.getDefaultPrimaryTypeName());
@@ -57,8 +57,8 @@ class NodeDefinitionTemplateImpl extends ItemDefinitionTemplate
     }
 
     /**
-     * Writes the contents of this node definition to the given tree node.
-     * Used when registering new node types.
+     * Writes the contents of this node definition to the given tree node. Used when registering new
+     * node types.
      *
      * @param tree an {@code nt:childNodeDefinition} node
      * @throws RepositoryException if this definition could not be written
@@ -71,16 +71,16 @@ class NodeDefinitionTemplateImpl extends ItemDefinitionTemplate
 
         if (requiredPrimaryTypeOakNames != null) {
             tree.setProperty(
-                    JCR_REQUIREDPRIMARYTYPES,
-                    Arrays.asList(requiredPrimaryTypeOakNames), Type.NAMES);
+                JCR_REQUIREDPRIMARYTYPES,
+                Arrays.asList(requiredPrimaryTypeOakNames), Type.NAMES);
         } else {
             tree.removeProperty(JCR_REQUIREDPRIMARYTYPES);
         }
 
         if (defaultPrimaryTypeOakName != null) {
             tree.setProperty(
-                    JCR_DEFAULTPRIMARYTYPE,
-                    defaultPrimaryTypeOakName, Type.NAME);
+                JCR_DEFAULTPRIMARYTYPE,
+                defaultPrimaryTypeOakName, Type.NAME);
         } else {
             tree.removeProperty(JCR_DEFAULTPRIMARYTYPE);
         }
@@ -99,8 +99,8 @@ class NodeDefinitionTemplateImpl extends ItemDefinitionTemplate
     }
 
     /**
-     * Returns {@code null} since an item definition template is not
-     * attached to a live, already registered node type.
+     * Returns {@code null} since an item definition template is not attached to a live, already
+     * registered node type.
      *
      * @return {@code null}
      */
@@ -116,14 +116,14 @@ class NodeDefinitionTemplateImpl extends ItemDefinitionTemplate
 
     @Override
     public void setDefaultPrimaryTypeName(String jcrName)
-            throws ConstraintViolationException {
+        throws ConstraintViolationException {
         this.defaultPrimaryTypeOakName =
-                    getOakNameAllowNullOrThrowConstraintViolation(jcrName);
+            getOakNameAllowNullOrThrowConstraintViolation(jcrName);
     }
 
     /**
-     * Returns {@code null} since an item definition template is not
-     * attached to a live, already registered node type.
+     * Returns {@code null} since an item definition template is not attached to a live, already
+     * registered node type.
      *
      * @return {@code null}
      */
@@ -139,9 +139,9 @@ class NodeDefinitionTemplateImpl extends ItemDefinitionTemplate
 
     @Override
     public void setRequiredPrimaryTypeNames(String[] jcrNames)
-            throws ConstraintViolationException {
+        throws ConstraintViolationException {
         this.requiredPrimaryTypeOakNames =
-                getOakNamesOrThrowConstraintViolation(jcrNames);
+            getOakNamesOrThrowConstraintViolation(jcrNames);
     }
 
     //------------------------------------------------------------< Object >--

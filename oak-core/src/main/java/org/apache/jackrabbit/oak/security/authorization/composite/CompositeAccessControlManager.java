@@ -46,11 +46,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Access control manager that aggregates a list of different access control
- * manager implementations. Note, that the implementations *must* implement
- * the {@link org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner}
- * interface in order to be able to set and remove individual access control
- * policies.
+ * Access control manager that aggregates a list of different access control manager
+ * implementations. Note, that the implementations *must* implement the
+ * {@link org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner} interface
+ * in order to be able to set and remove individual access control policies.
  */
 class CompositeAccessControlManager extends AbstractAccessControlManager {
 
@@ -58,10 +57,10 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
     private final AggregationFilter aggregationFilter;
 
     public CompositeAccessControlManager(@NotNull Root root,
-                                         @NotNull NamePathMapper namePathMapper,
-                                         @NotNull SecurityProvider securityProvider,
-                                         @NotNull List<AccessControlManager> acMgrs,
-                                         @NotNull AggregationFilter aggregationFilter) {
+        @NotNull NamePathMapper namePathMapper,
+        @NotNull SecurityProvider securityProvider,
+        @NotNull List<AccessControlManager> acMgrs,
+        @NotNull AggregationFilter aggregationFilter) {
         super(root, namePathMapper, securityProvider);
         this.acMgrs = acMgrs;
         this.aggregationFilter = aggregationFilter;
@@ -102,14 +101,16 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
     }
 
     @Override
-    public AccessControlPolicyIterator getApplicablePolicies(String absPath) throws RepositoryException {
+    public AccessControlPolicyIterator getApplicablePolicies(String absPath)
+        throws RepositoryException {
         List<AccessControlPolicyIterator> l = Lists.newArrayList();
         for (AccessControlManager acMgr : acMgrs) {
             if (acMgr instanceof PolicyOwner) {
                 l.add(acMgr.getApplicablePolicies(absPath));
             }
         }
-        return new AccessControlPolicyIteratorAdapter(Iterators.concat(l.toArray(new AccessControlPolicyIterator[0])));
+        return new AccessControlPolicyIteratorAdapter(
+            Iterators.concat(l.toArray(new AccessControlPolicyIterator[0])));
     }
 
     @Override
@@ -120,28 +121,33 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
                 return;
             }
         }
-        throw new AccessControlException("Cannot set access control policy " + policy + "; no PolicyOwner found.");
+        throw new AccessControlException(
+            "Cannot set access control policy " + policy + "; no PolicyOwner found.");
     }
 
     @Override
-    public void removePolicy(String absPath, AccessControlPolicy policy) throws RepositoryException {
+    public void removePolicy(String absPath, AccessControlPolicy policy)
+        throws RepositoryException {
         for (AccessControlManager acMgr : acMgrs) {
             if (acMgr instanceof PolicyOwner && ((PolicyOwner) acMgr).defines(absPath, policy)) {
                 acMgr.removePolicy(absPath, policy);
                 return;
             }
         }
-        throw new AccessControlException("Cannot remove access control policy " + policy + "; no PolicyOwner found.");
+        throw new AccessControlException(
+            "Cannot remove access control policy " + policy + "; no PolicyOwner found.");
     }
 
     //-------------------------------------< JackrabbitAccessControlManager >---
     @NotNull
     @Override
-    public JackrabbitAccessControlPolicy[] getApplicablePolicies(@NotNull Principal principal) throws RepositoryException {
+    public JackrabbitAccessControlPolicy[] getApplicablePolicies(@NotNull Principal principal)
+        throws RepositoryException {
         ImmutableList.Builder<JackrabbitAccessControlPolicy> policies = ImmutableList.builder();
         for (AccessControlManager acMgr : acMgrs) {
             if (acMgr instanceof JackrabbitAccessControlManager && acMgr instanceof PolicyOwner) {
-                policies.add(((JackrabbitAccessControlManager) acMgr).getApplicablePolicies(principal));
+                policies.add(
+                    ((JackrabbitAccessControlManager) acMgr).getApplicablePolicies(principal));
             }
         }
         List<JackrabbitAccessControlPolicy> l = policies.build();
@@ -150,7 +156,8 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
 
     @NotNull
     @Override
-    public JackrabbitAccessControlPolicy[] getPolicies(@NotNull Principal principal) throws RepositoryException {
+    public JackrabbitAccessControlPolicy[] getPolicies(@NotNull Principal principal)
+        throws RepositoryException {
         ImmutableList.Builder<JackrabbitAccessControlPolicy> policies = ImmutableList.builder();
         for (AccessControlManager acMgr : acMgrs) {
             if (acMgr instanceof JackrabbitAccessControlManager) {
@@ -163,7 +170,8 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
 
     @NotNull
     @Override
-    public AccessControlPolicy[] getEffectivePolicies(@NotNull Set<Principal> principals) throws RepositoryException {
+    public AccessControlPolicy[] getEffectivePolicies(@NotNull Set<Principal> principals)
+        throws RepositoryException {
         ImmutableList.Builder<AccessControlPolicy> policies = ImmutableList.builder();
         for (AccessControlManager acMgr : acMgrs) {
             if (acMgr instanceof JackrabbitAccessControlManager) {
@@ -179,7 +187,9 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
     }
 
     @Override
-    public @NotNull Iterator<AccessControlPolicy> getEffectivePolicies(@NotNull Set<Principal> principals, @Nullable String... absPaths) throws AccessDeniedException, AccessControlException, UnsupportedRepositoryOperationException, RepositoryException {
+    public @NotNull Iterator<AccessControlPolicy> getEffectivePolicies(
+        @NotNull Set<Principal> principals, @Nullable String... absPaths)
+        throws AccessDeniedException, AccessControlException, UnsupportedRepositoryOperationException, RepositoryException {
         ImmutableList.Builder<Iterator<AccessControlPolicy>> iterators = ImmutableList.builder();
         for (AccessControlManager acMgr : acMgrs) {
             if (acMgr instanceof JackrabbitAccessControlManager) {

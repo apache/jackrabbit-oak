@@ -44,7 +44,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
  * <li>{@link #NUM_GROUPS} groups</li>
  * <li>1 group with all users</li>
  * <li>1 user with all groups</li>
-  * </ul>
+ * </ul>
  *
  * @since OAK 1.0
  */

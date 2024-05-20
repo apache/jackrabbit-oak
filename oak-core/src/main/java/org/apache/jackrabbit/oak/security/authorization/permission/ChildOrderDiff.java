@@ -29,22 +29,21 @@ import org.jetbrains.annotations.Nullable;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 
 /**
- * Helper class to handle modifications to the hidden
- * {@link TreeConstants#OAK_CHILD_ORDER} property.
+ * Helper class to handle modifications to the hidden {@link TreeConstants#OAK_CHILD_ORDER}
+ * property.
  */
 final class ChildOrderDiff {
 
-    private ChildOrderDiff() {}
+    private ChildOrderDiff() {
+    }
 
     /**
-     * Tests if there was any user-supplied reordering involved with the
-     * modification of the {@link TreeConstants#OAK_CHILD_ORDER}
-     * property.
+     * Tests if there was any user-supplied reordering involved with the modification of the
+     * {@link TreeConstants#OAK_CHILD_ORDER} property.
      *
      * @param before
      * @param after
-     * @return {@code true} if any user-supplied node
-     * reorder happened; {@code false} otherwise.
+     * @return {@code true} if any user-supplied node reorder happened; {@code false} otherwise.
      */
     static boolean isReordered(@NotNull PropertyState before, @NotNull PropertyState after) {
         Set<String> afterNames = newLinkedHashSet(after.getValue(Type.NAMES));

@@ -19,9 +19,8 @@ package org.apache.jackrabbit.oak.plugins.index;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 
 /**
- * Represents the content of a QueryIndex as well as a mechanism for keeping
- * this content up to date. <br>
- * An IndexEditor listens for changes to the content and updates the index data
+ * Represents the content of a QueryIndex as well as a mechanism for keeping this content up to
+ * date. <br> An IndexEditor listens for changes to the content and updates the index data
  * accordingly.
  */
 public interface IndexEditor extends Editor {

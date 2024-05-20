@@ -33,12 +33,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
-
+import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
-import org.apache.jackrabbit.oak.query.index.FilterImpl;
-
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * An "or" condition.
@@ -83,12 +81,12 @@ public class OrImpl extends ConstraintImpl {
         }
 
         LinkedHashMap<DynamicOperandImpl, LinkedHashSet<StaticOperandImpl>> in =
-                newLinkedHashMap();
+            newLinkedHashMap();
         Iterator<ConstraintImpl> iterator = simplified.iterator();
         while (iterator.hasNext()) {
             ConstraintImpl simple = iterator.next();
             if (simple instanceof ComparisonImpl
-                    && ((ComparisonImpl) simple).getOperator() == EQUAL) {
+                && ((ComparisonImpl) simple).getOperator() == EQUAL) {
                 DynamicOperandImpl o = ((ComparisonImpl) simple).getOperand1();
                 LinkedHashSet<StaticOperandImpl> values = in.get(o);
                 if (values == null) {
@@ -111,14 +109,14 @@ public class OrImpl extends ConstraintImpl {
             }
         }
         for (Entry<DynamicOperandImpl, LinkedHashSet<StaticOperandImpl>> entry
-                : in.entrySet()) {
+            : in.entrySet()) {
             LinkedHashSet<StaticOperandImpl> values = entry.getValue();
             if (values.size() == 1) {
                 simplified.add(new ComparisonImpl(
-                        entry.getKey(), EQUAL, values.iterator().next()));
+                    entry.getKey(), EQUAL, values.iterator().next()));
             } else {
                 simplified.add(new InImpl(
-                        entry.getKey(), newArrayList(values)));
+                    entry.getKey(), newArrayList(values)));
             }
         }
 
@@ -155,7 +153,7 @@ public class OrImpl extends ConstraintImpl {
         }
         return result;
     }
-    
+
     @Override
     public FullTextExpression getFullTextConstraint(SelectorImpl s) {
         List<FullTextExpression> list = newArrayList();
@@ -171,7 +169,7 @@ public class OrImpl extends ConstraintImpl {
         }
         return new FullTextOr(list);
     }
-    
+
     @Override
     public Set<SelectorImpl> getSelectors() {
         Set<SelectorImpl> result = newHashSet();
@@ -190,7 +188,7 @@ public class OrImpl extends ConstraintImpl {
         }
         return false;
     }
-    
+
     @Override
     public boolean evaluateStop() {
         // the logic is reversed here:
@@ -226,7 +224,7 @@ public class OrImpl extends ConstraintImpl {
 
     /**
      * Push down the "not exists" conditions to the selector.
-     * 
+     *
      * @param s the selector
      */
     private void restrictPushDownNotExists(SelectorImpl s) {
@@ -240,15 +238,15 @@ public class OrImpl extends ConstraintImpl {
     }
 
     /**
-     * Push down the "property in(1, 2, 3)" conditions to the selector, if there
-     * are any that can be derived.
-     * 
+     * Push down the "property in(1, 2, 3)" conditions to the selector, if there are any that can be
+     * derived.
+     *
      * @param s the selector
      */
     private void restrictPushDownInList(SelectorImpl s) {
         DynamicOperandImpl operand = null;
         LinkedHashSet<StaticOperandImpl> values = newLinkedHashSet();
- 
+
         boolean multiPropertyOr = false;
         List<AndImpl> ands = newArrayList();
         for (ConstraintImpl constraint : constraints) {
@@ -267,7 +265,7 @@ public class OrImpl extends ConstraintImpl {
                     multiPropertyOr = true;
                 }
             } else if (constraint instanceof ComparisonImpl
-                    && ((ComparisonImpl) constraint).getOperator() == EQUAL) {
+                && ((ComparisonImpl) constraint).getOperator() == EQUAL) {
                 ComparisonImpl comparison = (ComparisonImpl) constraint;
                 DynamicOperandImpl o = comparison.getOperand1();
                 if (operand == null || operand.equals(o)) {
@@ -299,7 +297,7 @@ public class OrImpl extends ConstraintImpl {
                         break;
                     }
                 } else if (constraint instanceof ComparisonImpl
-                        && ((ComparisonImpl) constraint).getOperator() == EQUAL) {
+                    && ((ComparisonImpl) constraint).getOperator() == EQUAL) {
                     ComparisonImpl comparison = (ComparisonImpl) constraint;
                     if (operand.equals(comparison.getOperand1())) {
                         values.add(comparison.getOperand2());
@@ -361,7 +359,7 @@ public class OrImpl extends ConstraintImpl {
     public Set<ConstraintImpl> convertToUnion() {
         Set<ConstraintImpl> result = Sets.newHashSet();
         for (ConstraintImpl c : getConstraints()) {
-            Set<ConstraintImpl> converted = c.convertToUnion(); 
+            Set<ConstraintImpl> converted = c.convertToUnion();
             if (converted.isEmpty()) {
                 result.add(c);
             } else {
@@ -405,6 +403,6 @@ public class OrImpl extends ConstraintImpl {
             }
         }
         return false;
-    }    
+    }
 
 }

@@ -21,14 +21,12 @@ package org.apache.jackrabbit.oak.query.ast;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
@@ -99,11 +97,11 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
         if (name != null && f.getSelector().equals(selector)) {
             if (NodeNameImpl.supportedOperator(operator)) {
                 f.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME,
-                        operator, PropertyValues.newString(name));
+                    operator, PropertyValues.newString(name));
             }
             String fn = getFunction(f.getSelector());
             f.restrictProperty(QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn,
-                    operator, v, PropertyType.STRING);
+                operator, v, PropertyType.STRING);
         }
     }
 
@@ -147,10 +145,10 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
             return null;
         }
         return new OrderEntry(
-                QueryConstants.FUNCTION_RESTRICTION_PREFIX + getFunction(s),
+            QueryConstants.FUNCTION_RESTRICTION_PREFIX + getFunction(s),
             Type.STRING,
             o.isDescending() ?
-            OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
+                OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
     }
 
 }

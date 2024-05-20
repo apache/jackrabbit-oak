@@ -31,7 +31,7 @@ import static org.junit.Assert.assertTrue;
 
 public class SystemRelativePathTest extends AbstractSecurityTest {
 
-    private static final String REL_PATH = DEFAULT_SYSTEM_RELATIVE_PATH+"/subtree";
+    private static final String REL_PATH = DEFAULT_SYSTEM_RELATIVE_PATH + "/subtree";
 
     @Override
     public void after() throws Exception {
@@ -45,14 +45,15 @@ public class SystemRelativePathTest extends AbstractSecurityTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         return ConfigurationParameters.of(
-                UserConfiguration.NAME,
-                ConfigurationParameters.of(PARAM_SYSTEM_RELATIVE_PATH, REL_PATH));
+            UserConfiguration.NAME,
+            ConfigurationParameters.of(PARAM_SYSTEM_RELATIVE_PATH, REL_PATH));
     }
 
     @Test(expected = ConstraintViolationException.class)
     public void testDefaultRelPath() throws RepositoryException {
         try {
-            getUserManager(root).createSystemUser("testDefaultRelPath", DEFAULT_SYSTEM_RELATIVE_PATH);
+            getUserManager(root).createSystemUser("testDefaultRelPath",
+                DEFAULT_SYSTEM_RELATIVE_PATH);
         } catch (RepositoryException e) {
             assertTrue(e.getMessage().contains(REL_PATH));
             throw e;
@@ -62,12 +63,12 @@ public class SystemRelativePathTest extends AbstractSecurityTest {
     @Test
     public void testRelPath() throws RepositoryException {
         User u = getUserManager(root).createSystemUser("testRelPath", REL_PATH);
-        assertTrue(u.getPath().contains("/"+REL_PATH+"/"));
+        assertTrue(u.getPath().contains("/" + REL_PATH + "/"));
     }
 
     @Test
     public void testBelowRelPath() throws RepositoryException {
-        User u = getUserManager(root).createSystemUser("testBelowRelPath", REL_PATH+"/subtree");
-        assertTrue(u.getPath().contains("/"+REL_PATH+"/subtree/"));
+        User u = getUserManager(root).createSystemUser("testBelowRelPath", REL_PATH + "/subtree");
+        assertTrue(u.getPath().contains("/" + REL_PATH + "/subtree/"));
     }
 }

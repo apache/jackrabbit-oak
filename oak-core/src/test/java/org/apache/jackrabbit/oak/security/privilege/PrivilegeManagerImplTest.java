@@ -76,7 +76,8 @@ public class PrivilegeManagerImplTest extends AbstractSecurityTest {
 
     @Test
     public void testGetRegisteredPrivilegesFromEmptyRoot() throws RepositoryException {
-        Privilege[] registered = create(getRootProvider().createReadOnlyRoot(EmptyNodeState.EMPTY_NODE)).getRegisteredPrivileges();
+        Privilege[] registered = create(getRootProvider().createReadOnlyRoot(
+            EmptyNodeState.EMPTY_NODE)).getRegisteredPrivileges();
         assertNotNull(registered);
         assertEquals(0, registered.length);
     }
@@ -99,7 +100,8 @@ public class PrivilegeManagerImplTest extends AbstractSecurityTest {
 
     @Test
     public void testGetPrivilegeExpandedName() throws Exception {
-        Privilege p = create(root, new NamePathMapperImpl(new GlobalNameMapper(root))).getPrivilege(Privilege.JCR_VERSION_MANAGEMENT);
+        Privilege p = create(root, new NamePathMapperImpl(new GlobalNameMapper(root))).getPrivilege(
+            Privilege.JCR_VERSION_MANAGEMENT);
 
         assertNotNull(p);
         assertNotEquals(Privilege.JCR_VERSION_MANAGEMENT, p.getName());
@@ -108,7 +110,8 @@ public class PrivilegeManagerImplTest extends AbstractSecurityTest {
 
     @Test
     public void testGetPrivilegeRemappedNamespace() throws Exception {
-        NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, ImmutableMap.of("prefix", NamespaceRegistry.NAMESPACE_JCR)));
+        NamePathMapper mapper = new NamePathMapperImpl(
+            new LocalNameMapper(root, ImmutableMap.of("prefix", NamespaceRegistry.NAMESPACE_JCR)));
         Privilege p = create(root, mapper).getPrivilege("prefix:read");
 
         assertNotNull(p);
@@ -119,18 +122,21 @@ public class PrivilegeManagerImplTest extends AbstractSecurityTest {
 
     @Test(expected = AccessControlException.class)
     public void testGetPrivilegeInvalidRemappedNamespace() throws Exception {
-        NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, ImmutableMap.of("prefix", "unknownUri")));
+        NamePathMapper mapper = new NamePathMapperImpl(
+            new LocalNameMapper(root, ImmutableMap.of("prefix", "unknownUri")));
         create(root, mapper).getPrivilege("prefix:read");
     }
 
     @Test(expected = AccessControlException.class)
     public void testGetPrivilegeFromEmptyRoot() throws Exception {
-        create(getRootProvider().createReadOnlyRoot(EmptyNodeState.EMPTY_NODE)).getPrivilege(PrivilegeConstants.JCR_READ);
+        create(getRootProvider().createReadOnlyRoot(EmptyNodeState.EMPTY_NODE)).getPrivilege(
+            PrivilegeConstants.JCR_READ);
     }
 
     @Test(expected = AccessControlException.class)
     public void testGetUnknownPrivilege() throws Exception {
-        create(getRootProvider().createReadOnlyRoot(EmptyNodeState.EMPTY_NODE)).getPrivilege("jcr:someName");
+        create(getRootProvider().createReadOnlyRoot(EmptyNodeState.EMPTY_NODE)).getPrivilege(
+            "jcr:someName");
     }
 
     @Test(expected = AccessControlException.class)
@@ -167,24 +173,29 @@ public class PrivilegeManagerImplTest extends AbstractSecurityTest {
 
     @Test(expected = RepositoryException.class)
     public void testRegisterPrivilegeReservedNamespace() throws Exception {
-        privilegeManager.registerPrivilege("jcr:customPrivilege", true, new String[]{"jcr:read", "jcr:write"});
+        privilegeManager.registerPrivilege("jcr:customPrivilege", true,
+            new String[]{"jcr:read", "jcr:write"});
     }
 
     @Test
     public void testRegisterAggregated() throws Exception {
-        privilegeManager.registerPrivilege("test:customPrivilege", false, new String[] { "jcr:read", "jcr:write" });
+        privilegeManager.registerPrivilege("test:customPrivilege", false,
+            new String[]{"jcr:read", "jcr:write"});
     }
 
     @Test(expected = RepositoryException.class)
     public void testRegisterAggregatedNonExisting() throws Exception {
-        privilegeManager.registerPrivilege("test:customPrivilege", false, new String[] { "test:nan" });
+        privilegeManager.registerPrivilege("test:customPrivilege", false, new String[]{"test:nan"});
     }
 
     @Test(expected = RepositoryException.class)
     public void testRegisterPrivilegeReservedRemappedNamespace() throws Exception {
-        NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, ImmutableMap.of("prefix", NamespaceRegistry.NAMESPACE_JCR)));
+        NamePathMapper mapper = new NamePathMapperImpl(
+            new LocalNameMapper(root, ImmutableMap.of("prefix", NamespaceRegistry.NAMESPACE_JCR)));
         PrivilegeManager pmgr = create(root, mapper);
-        pmgr.registerPrivilege("prefix:customPrivilege", true, new String[] {"prefix:read", "prefix:write"});    }
+        pmgr.registerPrivilege("prefix:customPrivilege", true,
+            new String[]{"prefix:read", "prefix:write"});
+    }
 
     @Test
     public void testRegisterPrivilegeRemappedNamespace() throws Exception {
@@ -197,13 +208,14 @@ public class PrivilegeManagerImplTest extends AbstractSecurityTest {
         nsRegistry.registerNamespace("ns", "http://jackrabbit.apache.org/oak/ns");
 
         Map<String, String> localMapping = ImmutableMap.of(
-                "prefix", NamespaceRegistry.NAMESPACE_JCR,
-                "prefix2", "http://jackrabbit.apache.org/oak/ns");
+            "prefix", NamespaceRegistry.NAMESPACE_JCR,
+            "prefix2", "http://jackrabbit.apache.org/oak/ns");
 
         NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, localMapping));
         PrivilegeManager pmgr = create(root, mapper);
 
-        Privilege p = pmgr.registerPrivilege("prefix2:customPrivilege", true, new String[] {"prefix:read", "prefix:write"});
+        Privilege p = pmgr.registerPrivilege("prefix2:customPrivilege", true,
+            new String[]{"prefix:read", "prefix:write"});
 
         assertEquals("prefix2:customPrivilege", p.getName());
         assertEquals(2, p.getDeclaredAggregatePrivileges().length);

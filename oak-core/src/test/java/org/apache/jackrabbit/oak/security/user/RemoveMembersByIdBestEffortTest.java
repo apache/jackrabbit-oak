@@ -34,8 +34,8 @@ public class RemoveMembersByIdBestEffortTest extends AbstractRemoveMembersByIdTe
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         return ConfigurationParameters.of(UserConfiguration.NAME,
-                ConfigurationParameters.of(
-                        ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT)
+            ConfigurationParameters.of(
+                ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT)
         );
     }
 

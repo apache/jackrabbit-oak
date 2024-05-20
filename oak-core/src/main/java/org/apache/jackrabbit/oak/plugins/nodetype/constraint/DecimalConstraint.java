@@ -22,6 +22,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
 public class DecimalConstraint extends NumericConstraint<BigDecimal> {
+
     public DecimalConstraint(String definition) {
         super(definition);
     }

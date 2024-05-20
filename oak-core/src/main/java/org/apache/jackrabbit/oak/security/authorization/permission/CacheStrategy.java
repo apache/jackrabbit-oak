@@ -19,21 +19,25 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 interface CacheStrategy {
 
     /**
-     * @return Maximal number of access controlled paths that should be read to populate the cache upon initialization.
+     * @return Maximal number of access controlled paths that should be read to populate the cache
+     * upon initialization.
      */
     long maxSize();
 
     /**
      * @param numEntriesSize Value of {@link NumEntries#size} for a given path.
-     * @param cnt The latest (estimated) count of number of access controlled paths for the principals processed so far.
-     * @return {@code true} if permission entries for the current principal should be read to populate the cache; {@code false} otherwise.
+     * @param cnt            The latest (estimated) count of number of access controlled paths for
+     *                       the principals processed so far.
+     * @return {@code true} if permission entries for the current principal should be read to
+     * populate the cache; {@code false} otherwise.
      */
     boolean loadFully(long numEntriesSize, long cnt);
 
     /**
-     * @param cnt The final (estimated) count of number of access controlled paths after having initialized the cache for all principals.
-     * @return {@code true} if all entries should (or already have) been read into the cache and a simple lookup can be used;
-     * {@code false} if the default cache should be used instead.
+     * @param cnt The final (estimated) count of number of access controlled paths after having
+     *            initialized the cache for all principals.
+     * @return {@code true} if all entries should (or already have) been read into the cache and a
+     * simple lookup can be used; {@code false} if the default cache should be used instead.
      */
     boolean usePathEntryMap(long cnt);
 

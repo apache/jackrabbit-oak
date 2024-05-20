@@ -95,13 +95,12 @@ public class NodeUtil {
     }
 
     /**
-     * Adds a new child tree with the given name and primary type name.
-     * This method is a shortcut for calling {@link Tree#addChild(String)} and
-     * {@link Tree#setProperty(String, Object, org.apache.jackrabbit.oak.api.Type)}
-     * where the property name is {@link JcrConstants#JCR_PRIMARYTYPE}.
-     * Note, that this method in addition verifies if the created tree exists
-     * and is accessible in order to avoid {@link IllegalStateException} upon
-     * subsequent modification of the new child.
+     * Adds a new child tree with the given name and primary type name. This method is a shortcut
+     * for calling {@link Tree#addChild(String)} and
+     * {@link Tree#setProperty(String, Object, org.apache.jackrabbit.oak.api.Type)} where the
+     * property name is {@link JcrConstants#JCR_PRIMARYTYPE}. Note, that this method in addition
+     * verifies if the created tree exists and is accessible in order to avoid
+     * {@link IllegalStateException} upon subsequent modification of the new child.
      *
      * @param name            The name of the child item.
      * @param primaryTypeName The name of the primary node type.
@@ -120,8 +119,8 @@ public class NodeUtil {
     }
 
     /**
-     * Combination of {@link #getChild(String)} and {@link #addChild(String, String)}
-     * in case no tree exists with the specified name.
+     * Combination of {@link #getChild(String)} and {@link #addChild(String, String)} in case no
+     * tree exists with the specified name.
      *
      * @param name            The name of the child item.
      * @param primaryTypeName The name of the primary node type.
@@ -129,7 +128,8 @@ public class NodeUtil {
      * @throws AccessDeniedException If the child does not exist after creation.
      */
     @NotNull
-    public NodeUtil getOrAddChild(String name, String primaryTypeName) throws AccessDeniedException {
+    public NodeUtil getOrAddChild(String name, String primaryTypeName)
+        throws AccessDeniedException {
         NodeUtil child = getChild(name);
         return (child != null) ? child : addChild(name, primaryTypeName);
     }
@@ -144,16 +144,16 @@ public class NodeUtil {
      * elements this may lead to tree creating outside the tree structure
      * defined by this {@code NodeUtil}.
      *
-     * @param relativePath    A relative OAK path that may contain parent and
-     *                        current elements.
-     * @param primaryTypeName A oak name of a primary node type that is used
-     *                        to create the missing trees.
+     * @param relativePath    A relative OAK path that may contain parent and current elements.
+     * @param primaryTypeName A oak name of a primary node type that is used to create the missing
+     *                        trees.
      * @return The node util of the tree at the specified {@code relativePath}.
-     * @throws AccessDeniedException If the any intermediate tree does not exist
-     *                               and cannot be created.
+     * @throws AccessDeniedException If the any intermediate tree does not exist and cannot be
+     *                               created.
      */
     @NotNull
-    public NodeUtil getOrAddTree(String relativePath, String primaryTypeName) throws AccessDeniedException {
+    public NodeUtil getOrAddTree(String relativePath, String primaryTypeName)
+        throws AccessDeniedException {
         if (PathUtils.denotesCurrent(relativePath)) {
             return this;
         } else if (PathUtils.denotesParent(relativePath)) {
@@ -221,12 +221,13 @@ public class NodeUtil {
     }
 
     public void setNames(String propertyName, String... values) {
-        tree.setProperty(propertyName, Lists.transform(Arrays.asList(values), new Function<String, String>() {
-            @Override
-            public String apply(String jcrName) {
-                return getOakName(jcrName);
-            }
-        }), NAMES);
+        tree.setProperty(propertyName,
+            Lists.transform(Arrays.asList(values), new Function<String, String>() {
+                @Override
+                public String apply(String jcrName) {
+                    return getOakName(jcrName);
+                }
+            }), NAMES);
     }
 
     public void setDate(String name, long time) {

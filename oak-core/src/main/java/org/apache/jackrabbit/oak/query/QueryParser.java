@@ -18,7 +18,7 @@ import java.util.Set;
 
 /**
  * Query parser interface.
- *
+ * <p>
  * TODO: move to o.a.j.o.spi (figure out what to do with the Query class)
  */
 public interface QueryParser {
@@ -32,10 +32,10 @@ public interface QueryParser {
 
     /**
      * Parses the given query string, expressed in the specified language.
-     *
+     * <p>
      * TODO: Include name mapping information
      *
-     * @param query query string
+     * @param query    query string
      * @param language query language
      * @return parsed query
      * @throws ParseException if the query string could not be parsed

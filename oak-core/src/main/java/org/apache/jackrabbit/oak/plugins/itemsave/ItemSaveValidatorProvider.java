@@ -28,15 +28,15 @@ import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Component;
 
 /**
- * This validator checks that all changes are contained within the subtree
- * rooted at a given path.
+ * This validator checks that all changes are contained within the subtree rooted at a given path.
  */
 @Component(service = EditorProvider.class)
 public class ItemSaveValidatorProvider extends ValidatorProvider {
 
-    @Override  @Nullable
+    @Override
+    @Nullable
     protected Validator getRootValidator(
-            NodeState before, NodeState after, CommitInfo info) {
+        NodeState before, NodeState after, CommitInfo info) {
         String path = info.getPath();
         if (PathUtils.denotesRoot(path)) {
             return null; // no need to check saves of the whole transient space

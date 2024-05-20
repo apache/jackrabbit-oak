@@ -21,16 +21,14 @@ package org.apache.jackrabbit.oak.query.ast;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 import org.apache.jackrabbit.util.ISO9075;
@@ -101,11 +99,11 @@ public class NodeNameImpl extends DynamicOperandImpl {
             if (NodeNameImpl.supportedOperator(operator)) {
                 String localName = NodeLocalNameImpl.getLocalName(name);
                 f.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME,
-                        operator, PropertyValues.newString(localName));
+                    operator, PropertyValues.newString(localName));
             }
             String fn = getFunction(f.getSelector());
             f.restrictProperty(QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn,
-                    operator, v, PropertyType.STRING);
+                operator, v, PropertyType.STRING);
         }
     }
 
@@ -128,8 +126,7 @@ public class NodeNameImpl extends DynamicOperandImpl {
     }
 
     /**
-     * Validate that the given value can be converted to a JCR name, and
-     * return the name.
+     * Validate that the given value can be converted to a JCR name, and return the name.
      *
      * @param v the value
      * @return name value, or {@code null} if the value can not be converted
@@ -137,12 +134,12 @@ public class NodeNameImpl extends DynamicOperandImpl {
     static String getName(QueryImpl query, PropertyValue v) {
         // TODO correctly validate JCR names - see JCR 2.0 spec 3.2.4 Naming Restrictions
         switch (v.getType().tag()) {
-        case PropertyType.DATE:
-        case PropertyType.DECIMAL:
-        case PropertyType.DOUBLE:
-        case PropertyType.LONG:
-        case PropertyType.BOOLEAN:
-            return null;
+            case PropertyType.DATE:
+            case PropertyType.DECIMAL:
+            case PropertyType.DOUBLE:
+            case PropertyType.LONG:
+            case PropertyType.BOOLEAN:
+                return null;
         }
         String name = v.getValue(Type.NAME);
         // Name escaping (convert _x0020_ to space)
@@ -157,10 +154,10 @@ public class NodeNameImpl extends DynamicOperandImpl {
         }
         if (PathUtils.isAbsolute(name)) {
             throw new IllegalArgumentException("Not a valid JCR name: "
-                    + name + " (absolute paths are not names)");
+                + name + " (absolute paths are not names)");
         } else if (PathUtils.getDepth(name) > 1) {
             throw new IllegalArgumentException("Not a valid JCR name: "
-                    + name + " (relative path with depth > 1 are not names)");
+                + name + " (relative path with depth > 1 are not names)");
         } else if (name.startsWith("[") && !name.endsWith("]")) {
             return null;
         } else if (!JcrNameParser.validate(name)) {
@@ -190,10 +187,10 @@ public class NodeNameImpl extends DynamicOperandImpl {
             return null;
         }
         return new OrderEntry(
-                QueryConstants.FUNCTION_RESTRICTION_PREFIX + getFunction(s),
+            QueryConstants.FUNCTION_RESTRICTION_PREFIX + getFunction(s),
             Type.STRING,
             o.isDescending() ?
-            OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
+                OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
     }
 
 }

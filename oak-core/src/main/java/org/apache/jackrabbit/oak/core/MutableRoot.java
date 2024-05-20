@@ -31,9 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
 import javax.security.auth.Subject;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -87,7 +85,7 @@ class MutableRoot implements Root, PermissionAware {
     private final Subject subject;
 
     private final SecurityProvider securityProvider;
-    
+
     private final QueryEngineSettings queryEngineSettings;
 
     private final QueryIndexProvider indexProvider;
@@ -115,13 +113,11 @@ class MutableRoot implements Root, PermissionAware {
     private Move lastMove;
 
     /**
-     * Simple info object used to collect all move operations (source + dest)
-     * for further processing in those commit hooks that wish to distinguish
-     * between simple add/remove and move operations.
-     * Please note that this information will only allow to perform best-effort
-     * matching as depending on the sequence of modifications some operations
-     * may no longer be detected as changes in the commit hook due to way the
-     * diff is compiled.
+     * Simple info object used to collect all move operations (source + dest) for further processing
+     * in those commit hooks that wish to distinguish between simple add/remove and move operations.
+     * Please note that this information will only allow to perform best-effort matching as
+     * depending on the sequence of modifications some operations may no longer be detected as
+     * changes in the commit hook due to way the diff is compiled.
      */
     private final MoveTracker moveTracker = new MoveTracker();
 
@@ -134,14 +130,14 @@ class MutableRoot implements Root, PermissionAware {
         @Override
         protected PermissionProvider createValue() {
             return getAcConfig().getPermissionProvider(
-                    MutableRoot.this,
-                    getContentSession().getWorkspaceName(),
-                    subject.getPrincipals());
+                MutableRoot.this,
+                getContentSession().getWorkspaceName(),
+                subject.getPrincipals());
         }
     };
 
     private static final boolean CLASSIC_MOVE =
-            SystemPropertySupplier.create("oak.classicMove", false).get();
+        SystemPropertySupplier.create("oak.classicMove", false).get();
 
     /**
      * New instance bases on a given {@link NodeStore} and a workspace
@@ -154,14 +150,14 @@ class MutableRoot implements Root, PermissionAware {
      * @param indexProvider    the query index provider.
      */
     MutableRoot(NodeStore store,
-                 CommitHook hook,
-                 String workspaceName,
-                 Subject subject,
-                 SecurityProvider securityProvider,
-                 QueryEngineSettings queryEngineSettings,
-                 QueryIndexProvider indexProvider,
-                 Feature classicMove,
-                 ContentSessionImpl session) {
+        CommitHook hook,
+        String workspaceName,
+        Subject subject,
+        SecurityProvider securityProvider,
+        QueryEngineSettings queryEngineSettings,
+        QueryIndexProvider indexProvider,
+        Feature classicMove,
+        ContentSessionImpl session) {
         this.store = checkNotNull(store);
         this.hook = checkNotNull(hook);
         this.workspaceName = checkNotNull(workspaceName);
@@ -178,10 +174,9 @@ class MutableRoot implements Root, PermissionAware {
     }
 
     /**
-     * Called whenever a method on this instance or on any {@code Tree} instance
-     * obtained from this {@code Root} is called. Throws an exception if this
-     * {@code Root} instance is not live anymore (e.g. because the session has
-     * been logged out already).
+     * Called whenever a method on this instance or on any {@code Tree} instance obtained from this
+     * {@code Root} is called. Throws an exception if this {@code Root} instance is not live anymore
+     * (e.g. because the session has been logged out already).
      */
     void checkLive() {
         session.checkLive();
@@ -258,7 +253,7 @@ class MutableRoot implements Root, PermissionAware {
         checkLive();
         ContentSession session = getContentSession();
         CommitInfo commitInfo = new CommitInfo(
-                session.toString(), session.getAuthInfo().getUserID(), newInfoWithCommitContext(info));
+            session.toString(), session.getAuthInfo().getUserID(), newInfoWithCommitContext(info));
         store.merge(builder, getCommitHook(), commitInfo);
         secureBuilder.baseChanged();
         modCount = 0;
@@ -278,7 +273,7 @@ class MutableRoot implements Root, PermissionAware {
      * various security related configurations.
      *
      * @return A commit hook combining repository global commit hook(s) with the pluggable hooks
-     *         defined with the security modules and the padded {@code hooks}.
+     * defined with the security modules and the padded {@code hooks}.
      */
     private CommitHook getCommitHook() {
         List<CommitHook> hooks = newArrayList();
@@ -297,7 +292,8 @@ class MutableRoot implements Root, PermissionAware {
                 }
             }
 
-            validators.addAll(sc.getValidators(workspaceName, subject.getPrincipals(), moveTracker));
+            validators.addAll(
+                sc.getValidators(workspaceName, subject.getPrincipals(), moveTracker));
         }
 
         if (!validators.isEmpty()) {
@@ -324,23 +320,24 @@ class MutableRoot implements Root, PermissionAware {
                 QueryIndexProvider provider = indexProvider;
                 if (hasPendingChanges()) {
                     provider = new UUIDDiffIndexProviderWrapper(
-                            provider, getBaseState(), getRootState());
+                        provider, getBaseState(), getRootState());
                 }
                 return new ExecutionContext(
-                        getBaseState(),
-                        MutableRoot.this,
-                        queryEngineSettings,
-                        provider,
-                        permissionProvider.get(),
-                        store instanceof PrefetchNodeStore ?
-                                (PrefetchNodeStore) store :
-                                PrefetchNodeStore.NOOP
+                    getBaseState(),
+                    MutableRoot.this,
+                    queryEngineSettings,
+                    provider,
+                    permissionProvider.get(),
+                    store instanceof PrefetchNodeStore ?
+                        (PrefetchNodeStore) store :
+                        PrefetchNodeStore.NOOP
                 );
             }
         };
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Blob createBlob(@NotNull InputStream inputStream) throws IOException {
         checkLive();
         return store.createBlob(checkNotNull(inputStream));
@@ -354,8 +351,7 @@ class MutableRoot implements Root, PermissionAware {
     //-----------------------------------------------------------< internal >---
 
     /**
-     * Returns the node state from the time this root was created, that
-     * is this root's base state.
+     * Returns the node state from the time this root was created, that is this root's base state.
      *
      * @return base node state
      */
@@ -371,8 +367,7 @@ class MutableRoot implements Root, PermissionAware {
     //------------------------------------------------------------< private >---
 
     /**
-     * Root node state of the tree including all transient changes at the time of
-     * this call.
+     * Root node state of the tree including all transient changes at the time of this call.
      *
      * @return root node state
      */
@@ -386,11 +381,11 @@ class MutableRoot implements Root, PermissionAware {
         return securityProvider.getConfiguration(AuthorizationConfiguration.class);
     }
 
-    private static Map<String, Object> newInfoWithCommitContext(Map<String, Object> info){
+    private static Map<String, Object> newInfoWithCommitContext(Map<String, Object> info) {
         return ImmutableMap.<String, Object>builder()
-                .putAll(info)
-                .put(CommitContext.NAME, new SimpleCommitContext())
-                .build();
+                           .putAll(info)
+                           .put(CommitContext.NAME, new SimpleCommitContext())
+                           .build();
     }
 
     //--------------------------------------------------------------------------------------------< PermissionAware >---
@@ -404,19 +399,19 @@ class MutableRoot implements Root, PermissionAware {
 
     /**
      * Instances implementing this interface record move operations which took place on this root.
-     * They form a singly linked list where each move instance points to the next one.
-     * The last entry in the list is always an empty slot to be filled in by calling
-     * {@code setMove()}. This fills the slot with the source and destination of the move
-     * and links this move to the next one which will be the new empty slot.
+     * They form a singly linked list where each move instance points to the next one. The last
+     * entry in the list is always an empty slot to be filled in by calling {@code setMove()}. This
+     * fills the slot with the source and destination of the move and links this move to the next
+     * one which will be the new empty slot.
      * <p>
-     * Moves can be applied to {@code MutableTree} instances by calling {@code apply()},
-     * which will execute all moves in the list on the passed tree instance
+     * Moves can be applied to {@code MutableTree} instances by calling {@code apply()}, which will
+     * execute all moves in the list on the passed tree instance
      */
     interface Move {
 
         /**
-         * Set this move to the given source and destination. Creates a new empty
-         * slot, sets this as the next move and returns it.
+         * Set this move to the given source and destination. Creates a new empty slot, sets this as
+         * the next move and returns it.
          */
         Move setMove(String source, MutableTree destParent, String destName);
 
@@ -460,8 +455,8 @@ class MutableRoot implements Root, PermissionAware {
 
         @Override
         public Move setMove(String source,
-                            MutableTree destParent,
-                            String destName) {
+            MutableTree destParent,
+            String destName) {
             this.source = source;
             this.destParent = destParent;
             this.destName = destName;
@@ -483,8 +478,8 @@ class MutableRoot implements Root, PermissionAware {
         @Override
         public String toString() {
             return source == null
-                    ? "NIL"
-                    : '>' + source + ':' + PathUtils.concat(destParent.getPathInternal(), destName);
+                ? "NIL"
+                : '>' + source + ':' + PathUtils.concat(destParent.getPathInternal(), destName);
         }
     }
 
@@ -546,8 +541,8 @@ class MutableRoot implements Root, PermissionAware {
         @Override
         public String toString() {
             return source == null
-                    ? "NIL"
-                    : '>' + source + ':' + destination;
+                ? "NIL"
+                : '>' + source + ':' + destination;
         }
     }
 

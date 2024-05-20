@@ -18,51 +18,48 @@ package org.apache.jackrabbit.oak.query.xpath;
 
 import java.util.ArrayList;
 import java.util.List;
-
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.query.QueryOptions;
-import org.apache.jackrabbit.oak.query.SQL2Parser;
 import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
+import org.apache.jackrabbit.oak.query.SQL2Parser;
 import org.apache.jackrabbit.oak.query.xpath.Expression.AndCondition;
 import org.apache.jackrabbit.oak.query.xpath.Expression.OrCondition;
 import org.apache.jackrabbit.oak.query.xpath.Expression.Property;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 /**
  * An xpath statement.
  */
 public class Statement {
-    
-    private static final UnsupportedOperationException TOO_MANY_UNION = 
-            new UnsupportedOperationException("Too many union queries");
+
+    private static final UnsupportedOperationException TOO_MANY_UNION =
+        new UnsupportedOperationException("Too many union queries");
     private final static int MAX_UNION = Integer.getInteger("oak.xpathMaxUnion", 1000);
     private final static boolean KEEP_UNION_ORDER = Boolean.getBoolean("oak.xpath.keepUnionOrder");
 
     boolean explain;
     boolean measure;
-    
+
     /**
-     * The selector to get the columns from (the selector used in the select
-     * column list).
+     * The selector to get the columns from (the selector used in the select column list).
      */
     private Selector columnSelector;
-    
+
     private ArrayList<Expression> columnList = new ArrayList<Expression>();
-    
+
     /**
      * All selectors.
      */
     private ArrayList<Selector> selectors;
-    
+
     private Expression where;
 
     ArrayList<Order> orderList = new ArrayList<Order>();
-    
+
     String xpathQuery;
-    
+
     QueryOptions queryOptions;
-    
+
     public Statement optimize() {
         ignoreOrderByScoreDesc(orderList);
         if (where == null) {
@@ -102,7 +99,7 @@ public class Statement {
 
         return union;
     }
-    
+
     private ArrayList<Selector> cloneSelectors() {
         ArrayList<Selector> list = new ArrayList<Selector>();
         for (Selector s : selectors) {
@@ -110,7 +107,7 @@ public class Statement {
         }
         return list;
     }
-    
+
     private void optimizeSelectorNodeTypes() {
         if (!XPathToSQL2Converter.NODETYPE_OPTIMIZATION) {
             return;
@@ -129,11 +126,11 @@ public class Statement {
             }
         }
     }
-    
-    private static void addToUnionList(Expression condition,  ArrayList<Expression> unionList) {
+
+    private static void addToUnionList(Expression condition, ArrayList<Expression> unionList) {
         if (condition instanceof OrCondition) {
             OrCondition or = (OrCondition) condition;
-            // conditions of type                
+            // conditions of type
             // @x = 1 or @y = 2
             // or similar are converted to
             // (@x = 1) union (@y = 2)
@@ -160,27 +157,29 @@ public class Statement {
         }
         unionList.add(condition);
     }
-    
+
     @Override
     public String toString() {
         StringBuilder buff = new StringBuilder();
-        
+
         // explain | measure ...
         if (explain) {
             buff.append("explain ");
-        } 
+        }
         if (measure) {
             buff.append("measure ");
         }
-        
+
         // select ...
         buff.append("select ");
-        buff.append(new Expression.Property(columnSelector, QueryConstants.JCR_PATH, false).toString());
+        buff.append(
+            new Expression.Property(columnSelector, QueryConstants.JCR_PATH, false).toString());
         if (selectors.size() > 1) {
             buff.append(" as ").append('[').append(QueryConstants.JCR_PATH).append(']');
         }
         buff.append(", ");
-        buff.append(new Expression.Property(columnSelector, QueryConstants.JCR_SCORE, false).toString());
+        buff.append(
+            new Expression.Property(columnSelector, QueryConstants.JCR_SCORE, false).toString());
         if (selectors.size() > 1) {
             buff.append(" as ").append('[').append(QueryConstants.JCR_SCORE).append(']');
         }
@@ -198,7 +197,7 @@ public class Statement {
                 }
             }
         }
-        
+
         // from ...
         buff.append(" from ");
         for (int i = 0; i < selectors.size(); i++) {
@@ -215,12 +214,12 @@ public class Statement {
                 buff.append(" on ").append(s.joinCondition);
             }
         }
-        
+
         // where ...
         if (where != null) {
             buff.append(" where ").append(where.toString());
         }
-        
+
         // order by ...
         if (!orderList.isEmpty()) {
             buff.append(" order by ");
@@ -234,9 +233,9 @@ public class Statement {
         appendQueryOptions(buff, queryOptions);
         // leave original xpath string as a comment
         appendXPathAsComment(buff, xpathQuery);
-        return buff.toString();        
+        return buff.toString();
     }
-    
+
     /**
      * Remove "[jcr:score] descending" from the list if this is the only element.
      *
@@ -253,7 +252,7 @@ public class Statement {
         if (!order.expr.toString().equals("[jcr:score]")) {
             return;
         }
-        // so we have just one expression, 
+        // so we have just one expression,
         // and it is "order by @jcr:score desc"
         // this we can remove
         orderList.remove(0);
@@ -274,7 +273,7 @@ public class Statement {
     public void setSelectors(ArrayList<Selector> selectors) {
         this.selectors = selectors;
     }
-    
+
     public void setWhere(Expression where) {
         this.where = where;
     }
@@ -286,23 +285,23 @@ public class Statement {
     public void setColumnSelector(Selector columnSelector) {
         this.columnSelector = columnSelector;
     }
-    
+
     public void setOriginalQuery(String xpathQuery) {
         this.xpathQuery = xpathQuery;
     }
-    
+
     /**
      * A union statement.
      */
     static class UnionStatement extends Statement {
-        
+
         private final Statement s1, s2;
-        
+
         UnionStatement(Statement s1, Statement s2) {
             this.s1 = s1;
             this.s2 = s2;
         }
-        
+
         @Override
         public Statement optimize() {
             if (!KEEP_UNION_ORDER) {
@@ -322,14 +321,14 @@ public class Statement {
             union.xpathQuery = xpathQuery;
             return union;
         }
-        
+
         @Override
         public String toString() {
             StringBuilder buff = new StringBuilder();
             // explain | measure ...
             if (explain) {
                 buff.append("explain ");
-            } 
+            }
             if (measure) {
                 buff.append("measure ");
             }
@@ -349,9 +348,9 @@ public class Statement {
             appendXPathAsComment(buff, xpathQuery);
             return buff.toString();
         }
-        
+
     }
-    
+
     private static void appendQueryOptions(StringBuilder buff, QueryOptions queryOptions) {
         if (queryOptions == null) {
             return;
@@ -378,14 +377,14 @@ public class Statement {
         }
         if (!queryOptions.prefetch.isEmpty()) {
             String list = String.join(", ",
-                    Lists.transform(queryOptions.prefetch,
-                            SQL2Parser::escapeStringLiteral));
+                Lists.transform(queryOptions.prefetch,
+                    SQL2Parser::escapeStringLiteral));
             optionValues.add("prefetch (" + list + ")");
         }
         buff.append(String.join(", ", optionValues));
         buff.append(")");
     }
-    
+
     private static void appendXPathAsComment(StringBuilder buff, String xpath) {
         if (xpath == null) {
             return;
@@ -394,10 +393,10 @@ public class Statement {
         // the xpath query may contain the "end comment" marker
         String xpathEscaped = xpath.replaceAll("\\*\\/", "* /");
         buff.append(xpathEscaped);
-        buff.append(" */");        
+        buff.append(" */");
     }
 
-    public  void setQueryOptions(QueryOptions options) {
+    public void setQueryOptions(QueryOptions options) {
         this.queryOptions = options;
     }
 

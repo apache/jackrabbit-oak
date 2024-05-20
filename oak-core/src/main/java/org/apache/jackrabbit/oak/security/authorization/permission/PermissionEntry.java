@@ -55,8 +55,8 @@ final class PermissionEntry implements Comparable<PermissionEntry>, PermissionCo
     final RestrictionPattern restriction;
 
     PermissionEntry(@NotNull String path, boolean isAllow, int index,
-                    @NotNull PrivilegeBits privilegeBits,
-                    @NotNull RestrictionPattern restriction) {
+        @NotNull PrivilegeBits privilegeBits,
+        @NotNull RestrictionPattern restriction) {
         this.path = path;
         this.isAllow = isAllow;
         this.index = index;
@@ -81,7 +81,8 @@ final class PermissionEntry implements Comparable<PermissionEntry>, PermissionCo
     }
 
     boolean matchesParent(@NotNull String parentPath) {
-        return Text.isDescendantOrEqual(path, parentPath) && (restriction == RestrictionPattern.EMPTY || restriction.matches(parentPath, false));
+        return Text.isDescendantOrEqual(path, parentPath) && (
+            restriction == RestrictionPattern.EMPTY || restriction.matches(parentPath, false));
     }
 
     @Override
@@ -109,8 +110,8 @@ final class PermissionEntry implements Comparable<PermissionEntry>, PermissionCo
             PermissionEntry that = (PermissionEntry) o;
 
             return index == that.index && isAllow == that.isAllow
-                    && privilegeBits.equals(that.privilegeBits)
-                    && path.equals(that.path) && restriction.equals(that.restriction);
+                && privilegeBits.equals(that.privilegeBits)
+                && path.equals(that.path) && restriction.equals(that.restriction);
         }
         return false;
     }

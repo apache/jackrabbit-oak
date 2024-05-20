@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.List;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
@@ -33,34 +32,33 @@ public abstract class DynamicOperandImpl extends AstElement {
 
     /**
      * Apply a restriction of type "this = value" to the given filter.
-     * 
-     * @param f the filter where the restriction is applied.
+     *
+     * @param f        the filter where the restriction is applied.
      * @param operator the operator (for example "=").
-     * @param v the value
+     * @param v        the value
      */
     public abstract void restrict(FilterImpl f, Operator operator, PropertyValue v);
 
     /**
      * Apply a restriction of type "this in (list)" to the given filter.
-     * 
-     * @param f the filter where the restriction is applied.
+     *
+     * @param f    the filter where the restriction is applied.
      * @param list the list of values
      */
     public abstract void restrictList(FilterImpl f, List<PropertyValue> list);
-    
+
     /**
      * Get the function of a function-based index, in Polish notation.
-     * 
+     *
      * @param s the selector
      * @return the function, or null if not supported
      */
     public abstract String getFunction(SelectorImpl s);
 
     /**
-     * Check whether the condition can be applied to a selector (to restrict the
-     * selector). The method may return true if the operand can be evaluated
-     * when the given selector and all previous selectors in the join can be
-     * evaluated.
+     * Check whether the condition can be applied to a selector (to restrict the selector). The
+     * method may return true if the operand can be evaluated when the given selector and all
+     * previous selectors in the join can be evaluated.
      *
      * @param s the selector
      * @return true if the condition can be applied
@@ -74,20 +72,20 @@ public abstract class DynamicOperandImpl extends AstElement {
     abstract int getPropertyType();
 
     /**
-     * Get the property existence condition for this operand, if this operand is
-     * used as part of a condition.
-     * 
+     * Get the property existence condition for this operand, if this operand is used as part of a
+     * condition.
+     *
      * @return the property existence condition, or null if none
      */
     public abstract PropertyExistenceImpl getPropertyExistence();
 
     /**
      * Get the set of selectors for this operand.
-     * 
+     *
      * @return the set of selectors
      */
     public abstract Set<SelectorImpl> getSelectors();
-    
+
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -98,17 +96,17 @@ public abstract class DynamicOperandImpl extends AstElement {
         DynamicOperandImpl o = (DynamicOperandImpl) other;
         return o.toString().equals(toString());
     }
-    
+
     @Override
     public int hashCode() {
         return toString().hashCode();
     }
-    
+
     public abstract DynamicOperandImpl createCopy();
-    
+
     /**
      * Create an entry for the "order by" list for a given filter.
-     * 
+     *
      * @param s the selector
      * @param o the ordering
      * @return the entry
@@ -116,14 +114,13 @@ public abstract class DynamicOperandImpl extends AstElement {
     public abstract OrderEntry getOrderEntry(SelectorImpl s, OrderingImpl o);
 
     /**
-     *
      * @param s
      * @return the property name as defined in the OrderEntry for the DynamicOperand
      */
     public String getOrderEntryPropertyName(SelectorImpl s) {
         String fn = getFunction(s);
         if (fn != null) {
-            return  QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn;
+            return QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn;
         }
         return null;
     }

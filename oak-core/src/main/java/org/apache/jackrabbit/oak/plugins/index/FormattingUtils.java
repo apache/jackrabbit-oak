@@ -21,6 +21,7 @@ import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import java.util.concurrent.TimeUnit;
 
 public class FormattingUtils {
+
     public static String formatToSeconds(Stopwatch stopwatch) {
         return formatToSeconds(stopwatch.elapsed(TimeUnit.SECONDS));
     }
@@ -42,6 +43,7 @@ public class FormattingUtils {
         long secondsPart = TimeUnit.MILLISECONDS.toSeconds(absMillis) % 60;
         long millisPart = TimeUnit.MILLISECONDS.toMillis(absMillis) % 1000;
         String sign = millis < 0 ? "-" : "";
-        return String.format("%s%02d:%02d:%02d.%03d", sign, hoursPart, minutesPart, secondsPart, millisPart);
+        return String.format("%s%02d:%02d:%02d.%03d", sign, hoursPart, minutesPart, secondsPart,
+            millisPart);
     }
 }

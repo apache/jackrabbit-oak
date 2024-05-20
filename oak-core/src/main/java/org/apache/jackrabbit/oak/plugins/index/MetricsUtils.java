@@ -25,23 +25,27 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MetricsUtils {
+
     private final static Logger LOG = LoggerFactory.getLogger(MetricsUtils.class);
 
     /**
-     * <p>Set a counter metric to the given value. The previous value of the metric is discarded and replaced by the
+     * <p>Set a counter metric to the given value. The previous value of the metric is discarded and
+     * replaced by the
      * given value.</p>
      * <p>
-     * Note that this method is to support a non-standard use case of the counter metrics.
-     * Normally counters are incremented periodically to keep track of how many times an event occurred. This method
-     * instead is intended to be called only once for a given metric, to provide the final value of the metrics. If
-     * called more than once for the same metric, it will log a warning and discard the old value.
+     * Note that this method is to support a non-standard use case of the counter metrics. Normally
+     * counters are incremented periodically to keep track of how many times an event occurred. This
+     * method instead is intended to be called only once for a given metric, to provide the final
+     * value of the metrics. If called more than once for the same metric, it will log a warning and
+     * discard the old value.
      * </p>
      *
      * @param statisticsProvider The statistics provider to use.
      * @param name               The name of the counter to set.
      * @param value              The value to set
      */
-    public static void setCounterOnce(StatisticsProvider statisticsProvider, String name, long value) {
+    public static void setCounterOnce(StatisticsProvider statisticsProvider, String name,
+        long value) {
         CounterStats metric = statisticsProvider.getCounterStats(name, StatsOptions.METRICS_ONLY);
         LOG.debug("Setting counter {} to {}", name, value);
         if (metric.getCount() != 0) {
@@ -52,12 +56,14 @@ public class MetricsUtils {
         metric.inc(value);
     }
 
-    public static void addMetric(StatisticsProvider statisticsProvider, IndexingReporter reporter, String name, long value) {
+    public static void addMetric(StatisticsProvider statisticsProvider, IndexingReporter reporter,
+        String name, long value) {
         setCounterOnce(statisticsProvider, name, value);
         reporter.addMetric(name, value);
     }
 
-    public static void addMetricByteSize(StatisticsProvider statisticsProvider, IndexingReporter reporter, String name, long value) {
+    public static void addMetricByteSize(StatisticsProvider statisticsProvider,
+        IndexingReporter reporter, String name, long value) {
         setCounterOnce(statisticsProvider, name, value);
         reporter.addMetricByteSize(name, value);
     }

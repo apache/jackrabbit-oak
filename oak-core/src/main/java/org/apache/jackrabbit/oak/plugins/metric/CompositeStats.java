@@ -33,11 +33,11 @@ import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 
 /**
- * Stats instances which delegates to both TimeSeries based counter
- * and Metrics based meters so as to allow both systems to collect
- * stats
+ * Stats instances which delegates to both TimeSeries based counter and Metrics based meters so as
+ * to allow both systems to collect stats
  */
 final class CompositeStats implements CounterStats, MeterStats, TimerStats, HistogramStats {
+
     private final AtomicLong delegate;
     private final Counter counter;
     private final Timer timer;
@@ -62,7 +62,7 @@ final class CompositeStats implements CounterStats, MeterStats, TimerStats, Hist
     }
 
     private CompositeStats(AtomicLong delegate, Counter counter,
-                           Timer timer, Meter meter, Histogram histogram, Counting counting) {
+        Timer timer, Meter meter, Histogram histogram, Counting counting) {
         this.delegate = delegate;
         this.counter = counter;
         this.timer = timer;
@@ -141,7 +141,7 @@ final class CompositeStats implements CounterStats, MeterStats, TimerStats, Hist
         return counter != null;
     }
 
-    boolean isHistogram(){
+    boolean isHistogram() {
         return histogram != null;
     }
 
@@ -157,13 +157,14 @@ final class CompositeStats implements CounterStats, MeterStats, TimerStats, Hist
         return meter;
     }
 
-    Histogram getHistogram(){
+    Histogram getHistogram() {
         return histogram;
     }
 
 
     private static final class StatsContext implements Context {
-        private final Timer.Context context ;
+
+        private final Timer.Context context;
         private final AtomicLong delegate;
 
         private StatsContext(Timer.Context context, AtomicLong delegate) {
@@ -177,7 +178,9 @@ final class CompositeStats implements CounterStats, MeterStats, TimerStats, Hist
             return nanos;
         }
 
-        /** Equivalent to calling {@link #stop()}. */
+        /**
+         * Equivalent to calling {@link #stop()}.
+         */
         @Override
         public void close() {
             stop();

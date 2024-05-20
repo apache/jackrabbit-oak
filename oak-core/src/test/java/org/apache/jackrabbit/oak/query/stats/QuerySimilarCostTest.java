@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.jackrabbit.oak.query.stats;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -59,12 +60,12 @@ public class QuerySimilarCostTest extends AbstractQueryTest {
     @Override
     protected ContentRepository createRepository() {
         return new Oak()
-                .with(new OpenSecurityProvider())
-                .with(new InitialContent())
-                .with(new PropertyIndexEditorProvider())
-                .with(new PropertyIndexProvider())
-                .with(testIndexProvider)
-                .createContentRepository();
+            .with(new OpenSecurityProvider())
+            .with(new InitialContent())
+            .with(new PropertyIndexEditorProvider())
+            .with(new PropertyIndexProvider())
+            .with(testIndexProvider)
+            .createContentRepository();
     }
 
     /*
@@ -73,7 +74,8 @@ public class QuerySimilarCostTest extends AbstractQueryTest {
      */
     @Test
     public void testSimilarCostIndices() throws Exception {
-        LogCustomizer customLogs = LogCustomizer.forLogger(QueryImpl.class.getName()).enable(Level.DEBUG).create();
+        LogCustomizer customLogs = LogCustomizer.forLogger(QueryImpl.class.getName())
+                                                .enable(Level.DEBUG).create();
 
         try {
             customLogs.starting();
@@ -88,15 +90,17 @@ public class QuerySimilarCostTest extends AbstractQueryTest {
             String expectedLogMessage = String.format("selected index %s "
                     + "with plan testIndexPlan1 and %s with plan testIndexPlan2 have similar costs 11.0 and 11.0 "
                     + "for query Filter(query=SELECT * FROM [nt:base] WHERE [jcr:uuid] is not null, path=*, property=[jcr:uuid=[is not null]]) - check query explanation / index definitions",
-                    testIndexProvider.index, testIndexProvider.index);
+                testIndexProvider.index, testIndexProvider.index);
 
-            Assert.assertThat(customLogs.getLogs(), IsCollectionContaining.hasItems(expectedLogMessage));
+            Assert.assertThat(customLogs.getLogs(),
+                IsCollectionContaining.hasItems(expectedLogMessage));
         } finally {
             customLogs.finished();
         }
     }
 
     private static class TestIndexProvider implements QueryIndexProvider {
+
         TestIndex index = new TestIndex();
 
         @Override
@@ -105,7 +109,7 @@ public class QuerySimilarCostTest extends AbstractQueryTest {
         }
     }
 
-    private static class TestIndex implements QueryIndex,QueryIndex.AdvancedQueryIndex {
+    private static class TestIndex implements QueryIndex, QueryIndex.AdvancedQueryIndex {
 
         @Override
         public double getMinimumCost() {
@@ -133,11 +137,14 @@ public class QuerySimilarCostTest extends AbstractQueryTest {
         }
 
         @Override
-        public List<QueryIndex.IndexPlan> getPlans(Filter filter, List<QueryIndex.OrderEntry> sortOrder, NodeState rootState) {
+        public List<QueryIndex.IndexPlan> getPlans(Filter filter,
+            List<QueryIndex.OrderEntry> sortOrder, NodeState rootState) {
             IndexPlan.Builder b = new IndexPlan.Builder();
             Filter f = new FilterImpl(null, "SELECT * FROM [nt:file]", new QueryEngineSettings());
-            IndexPlan plan1 = b.setEstimatedEntryCount(10).setPlanName("testIndexPlan1").setFilter(f).build();
-            IndexPlan plan2 = b.setEstimatedEntryCount(10).setPlanName("testIndexPlan2").setFilter(f).build();
+            IndexPlan plan1 = b.setEstimatedEntryCount(10).setPlanName("testIndexPlan1")
+                               .setFilter(f).build();
+            IndexPlan plan2 = b.setEstimatedEntryCount(10).setPlanName("testIndexPlan2")
+                               .setFilter(f).build();
 
             List<QueryIndex.IndexPlan> indexList = new ArrayList<QueryIndex.IndexPlan>();
 

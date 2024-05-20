@@ -40,7 +40,8 @@ import static org.junit.Assert.fail;
  */
 public class HiddenPropertyTest extends AbstractOakCoreTest {
 
-    private final String[] hiddenProps = new String[] {TreeConstants.OAK_CHILD_ORDER};
+    private final String[] hiddenProps = new String[]{TreeConstants.OAK_CHILD_ORDER};
+
     @Override
     @Before
     public void before() throws Exception {
@@ -121,9 +122,9 @@ public class HiddenPropertyTest extends AbstractOakCoreTest {
         Tree a = root.getTree("/a");
         try {
             PropertyState propertyState = PropertyBuilder.scalar(STRING)
-                    .setName(":hiddenProperty")
-                    .setValue("val")
-                    .getPropertyState();
+                                                         .setName(":hiddenProperty")
+                                                         .setValue("val")
+                                                         .getPropertyState();
             a.setProperty(propertyState);
             root.commit();
             fail();

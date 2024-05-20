@@ -75,7 +75,8 @@ public class PrincipalProviderImplErrorTest extends AbstractSecurityTest {
     }
 
     private PrincipalProviderImpl createPrincipalProvider(@NotNull UserManager um) {
-        UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(any(Root.class), any(NamePathMapper.class))).thenReturn(um).getMock();
+        UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(any(Root.class),
+            any(NamePathMapper.class))).thenReturn(um).getMock();
         return new PrincipalProviderImpl(root, uc, DEFAULT);
     }
 
@@ -92,17 +93,21 @@ public class PrincipalProviderImplErrorTest extends AbstractSecurityTest {
         String principalName = testUser.getPrincipal().getName();
         Principal p = new PrincipalImpl(principalName);
 
-        User userMock = when(mock(User.class).getPrincipal()).thenThrow(new RepositoryException()).getMock();
-        UserManager um = when(mock(UserManager.class).getAuthorizable(p)).thenReturn(userMock).getMock();
+        User userMock = when(mock(User.class).getPrincipal()).thenThrow(new RepositoryException())
+                                                             .getMock();
+        UserManager um = when(mock(UserManager.class).getAuthorizable(p)).thenReturn(userMock)
+                                                                         .getMock();
 
-        assertNull(createPrincipalProvider(um).getPrincipal(getTestUser().getPrincipal().getName()));
+        assertNull(
+            createPrincipalProvider(um).getPrincipal(getTestUser().getPrincipal().getName()));
         verify(um, times(1)).getAuthorizable(p);
         verify(userMock, times(1)).getPrincipal();
     }
 
     @Test
     public void testGetEveryone() throws Exception {
-        assertSame(EveryonePrincipal.getInstance(), principalProvider.getPrincipal(EveryonePrincipal.NAME));
+        assertSame(EveryonePrincipal.getInstance(),
+            principalProvider.getPrincipal(EveryonePrincipal.NAME));
 
         verify(umMock, times(1)).getAuthorizable(new PrincipalImpl(EveryonePrincipal.NAME));
     }
@@ -128,10 +133,13 @@ public class PrincipalProviderImplErrorTest extends AbstractSecurityTest {
     public void testGetMembershipPrincipalsFailsOnUser() throws Exception {
         Principal p = testUser.getPrincipal();
 
-        User userMock = when(mock(User.class).memberOf()).thenThrow(new RepositoryException()).getMock();
-        UserManager um = when(mock(UserManager.class).getAuthorizable(p)).thenReturn(userMock).getMock();
+        User userMock = when(mock(User.class).memberOf()).thenThrow(new RepositoryException())
+                                                         .getMock();
+        UserManager um = when(mock(UserManager.class).getAuthorizable(p)).thenReturn(userMock)
+                                                                         .getMock();
 
-        assertEquals(Sets.newHashSet(EveryonePrincipal.getInstance()), createPrincipalProvider(um).getMembershipPrincipals(p));
+        assertEquals(Sets.newHashSet(EveryonePrincipal.getInstance()),
+            createPrincipalProvider(um).getMembershipPrincipals(p));
 
         verify(um, times(1)).getAuthorizable(p);
         verify(userMock, times(1)).memberOf();
@@ -146,7 +154,8 @@ public class PrincipalProviderImplErrorTest extends AbstractSecurityTest {
 
     @Test
     public void testFindByTypeUser() throws Exception {
-        assertFalse(principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP).hasNext());
+        assertFalse(
+            principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP).hasNext());
 
         verify(umMock, times(1)).findAuthorizables(any(Query.class));
     }
@@ -160,7 +169,8 @@ public class PrincipalProviderImplErrorTest extends AbstractSecurityTest {
 
     @Test
     public void testFind() throws Exception {
-        assertFalse(principalProvider.findPrincipals(testUser.getPrincipal().getName(), false, PrincipalManager.SEARCH_TYPE_NOT_GROUP, 0, Long.MAX_VALUE).hasNext());
+        assertFalse(principalProvider.findPrincipals(testUser.getPrincipal().getName(), false,
+            PrincipalManager.SEARCH_TYPE_NOT_GROUP, 0, Long.MAX_VALUE).hasNext());
 
         verify(umMock, times(1)).findAuthorizables(any(Query.class));
     }
@@ -169,10 +179,14 @@ public class PrincipalProviderImplErrorTest extends AbstractSecurityTest {
     public void testFindFailsOnUser() throws Exception {
         Principal p = testUser.getPrincipal();
 
-        User userMock = when(mock(User.class).getPrincipal()).thenThrow(new RepositoryException()).getMock();
-        UserManager um = when(mock(UserManager.class).findAuthorizables(any(Query.class))).thenReturn(Iterators.singletonIterator(userMock)).getMock();
+        User userMock = when(mock(User.class).getPrincipal()).thenThrow(new RepositoryException())
+                                                             .getMock();
+        UserManager um = when(
+            mock(UserManager.class).findAuthorizables(any(Query.class))).thenReturn(
+            Iterators.singletonIterator(userMock)).getMock();
 
-        Iterator it = createPrincipalProvider(um).findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP);
+        Iterator it = createPrincipalProvider(um).findPrincipals(
+            PrincipalManager.SEARCH_TYPE_NOT_GROUP);
         assertFalse(it.hasNext());
 
         verify(userMock, times(1)).getPrincipal();

@@ -37,7 +37,7 @@ import org.apache.jackrabbit.guava.common.collect.Sets;
 /**
  * The {@code RepMembersConflictHandler} takes care of merging the {@code rep:members} property
  * during parallel updates.
- *<p>
+ * <p>
  * The conflict handler deals with the following conflicts:
  * <ul>
  *     <li>{@code addExistingProperty}  : {@code Resolution.MERGED}.</li>
@@ -55,7 +55,7 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
     @NotNull
     @Override
     public Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
-            @NotNull PropertyState theirs) {
+        @NotNull PropertyState theirs) {
         if (isRepMembersProperty(theirs)) {
             mergeChange(parent, ours, theirs, ImmutableSet.of());
             return Resolution.MERGED;
@@ -66,8 +66,9 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
 
     @Override
     @NotNull
-    public Resolution changeDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
-            @NotNull PropertyState base) {
+    public Resolution changeDeletedProperty(@NotNull NodeBuilder parent,
+        @NotNull PropertyState ours,
+        @NotNull PropertyState base) {
         if (isRepMembersProperty(ours)) {
             // removing the members property takes precedence
             return Resolution.THEIRS;
@@ -78,20 +79,22 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
 
     @NotNull
     @Override
-    public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
-            @NotNull PropertyState theirs, @NotNull PropertyState base) {
+    public Resolution changeChangedProperty(@NotNull NodeBuilder parent,
+        @NotNull PropertyState ours,
+        @NotNull PropertyState theirs, @NotNull PropertyState base) {
         if (isRepMembersProperty(theirs)) {
             Set<String> baseMembers = ImmutableSet.copyOf(base.getValue(Type.STRINGS));
             mergeChange(parent, ours, theirs, baseMembers);
             return Resolution.MERGED;
         } else {
-             return Resolution.IGNORED;
+            return Resolution.IGNORED;
         }
     }
 
     @NotNull
     @Override
-    public Resolution deleteDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState base) {
+    public Resolution deleteDeletedProperty(@NotNull NodeBuilder parent,
+        @NotNull PropertyState base) {
         if (isRepMembersProperty(base)) {
             // both are removing the members property
             return Resolution.MERGED;
@@ -102,8 +105,9 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
 
     @NotNull
     @Override
-    public Resolution deleteChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState theirs,
-            @NotNull PropertyState base) {
+    public Resolution deleteChangedProperty(@NotNull NodeBuilder parent,
+        @NotNull PropertyState theirs,
+        @NotNull PropertyState base) {
         if (isRepMembersProperty(theirs)) {
             // removing the members property takes precedence
             return Resolution.OURS;
@@ -114,15 +118,17 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
 
     @NotNull
     @Override
-    public Resolution addExistingNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours,
-            @NotNull NodeState theirs) {
+    public Resolution addExistingNode(@NotNull NodeBuilder parent, @NotNull String name,
+        @NotNull NodeState ours,
+        @NotNull NodeState theirs) {
         return Resolution.IGNORED;
     }
 
     @NotNull
     @Override
-    public Resolution changeDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours,
-            @NotNull NodeState base) {
+    public Resolution changeDeletedNode(@NotNull NodeBuilder parent, @NotNull String name,
+        @NotNull NodeState ours,
+        @NotNull NodeState base) {
         if (isMemberRefType(base)) {
             return Resolution.THEIRS;
         } else {
@@ -132,8 +138,9 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
 
     @NotNull
     @Override
-    public Resolution deleteChangedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState theirs,
-            @NotNull NodeState base) {
+    public Resolution deleteChangedNode(@NotNull NodeBuilder parent, @NotNull String name,
+        @NotNull NodeState theirs,
+        @NotNull NodeState base) {
         if (isMemberRefType(base)) {
             return Resolution.OURS;
         } else {
@@ -143,7 +150,8 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
 
     @NotNull
     @Override
-    public Resolution deleteDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState base) {
+    public Resolution deleteDeletedNode(@NotNull NodeBuilder parent, @NotNull String name,
+        @NotNull NodeState base) {
         if (isMemberRefType(base)) {
             return Resolution.MERGED;
         } else {
@@ -153,7 +161,8 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
 
     //----------------------------< internal >----------------------------------
 
-    private static void mergeChange(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs, @NotNull Set<String> base) {
+    private static void mergeChange(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
+        @NotNull PropertyState theirs, @NotNull Set<String> base) {
         PropertyBuilder<String> merged = PropertyBuilder.array(Type.WEAKREFERENCE);
         merged.setName(UserConstants.REP_MEMBERS);
 

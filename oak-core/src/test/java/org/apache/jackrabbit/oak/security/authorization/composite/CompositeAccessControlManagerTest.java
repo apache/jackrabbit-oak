@@ -78,7 +78,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         acMgr = createComposite(getAccessControlManager(root), new TestAcMgr());
 
         Tree tree = root.getTree(ROOT_PATH);
-        TreeUtil.addChild(tree,"test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        TreeUtil.addChild(tree, "test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
 
         root.commit();
     }
@@ -100,13 +100,16 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
     }
 
     @NotNull
-    private CompositeAccessControlManager createComposite(@NotNull AggregationFilter aggregationFilter, @NotNull AccessControlManager... acMgrs) {
-        return new CompositeAccessControlManager(root, NamePathMapper.DEFAULT, getSecurityProvider(), ImmutableList.copyOf(acMgrs), aggregationFilter);
+    private CompositeAccessControlManager createComposite(
+        @NotNull AggregationFilter aggregationFilter, @NotNull AccessControlManager... acMgrs) {
+        return new CompositeAccessControlManager(root, NamePathMapper.DEFAULT,
+            getSecurityProvider(), ImmutableList.copyOf(acMgrs), aggregationFilter);
     }
 
     @Test
     public void testGetSupportedPrivileges() throws Exception {
-        Set<Privilege> expected = ImmutableSet.copyOf(getPrivilegeManager(root).getRegisteredPrivileges());
+        Set<Privilege> expected = ImmutableSet.copyOf(
+            getPrivilegeManager(root).getRegisteredPrivileges());
         Set<Privilege> result = ImmutableSet.copyOf(acMgr.getSupportedPrivileges("/"));
         assertEquals(expected, result);
 
@@ -124,7 +127,8 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
             }
         }
 
-        Set<AccessControlPolicy> applicable = ImmutableSet.copyOf(acMgr.getApplicablePolicies(TEST_PATH));
+        Set<AccessControlPolicy> applicable = ImmutableSet.copyOf(
+            acMgr.getApplicablePolicies(TEST_PATH));
         assertEquals(2, applicable.size());
         assertTrue(applicable.contains(TestPolicy.INSTANCE));
     }
@@ -132,7 +136,9 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
     @Test
     public void testGetApplicablePoliciesNotPolicyOwner() throws Exception {
         AccessControlPolicy policy = mock(AccessControlPolicy.class);
-        AccessControlManager mgr = when(mock(AccessControlManager.class).getApplicablePolicies(anyString())).thenReturn(new AccessControlPolicyIteratorAdapter(ImmutableSet.of(policy))).getMock();
+        AccessControlManager mgr = when(
+            mock(AccessControlManager.class).getApplicablePolicies(anyString())).thenReturn(
+            new AccessControlPolicyIteratorAdapter(ImmutableSet.of(policy))).getMock();
 
         CompositeAccessControlManager composite = createComposite(mgr);
         AccessControlPolicyIterator it = composite.getApplicablePolicies(ROOT_PATH);
@@ -164,7 +170,8 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
                 acMgr.setPolicy(TEST_PATH, plc);
                 len++;
 
-                Set<AccessControlPolicy> policySet = ImmutableSet.copyOf(acMgr.getPolicies(TEST_PATH));
+                Set<AccessControlPolicy> policySet = ImmutableSet.copyOf(
+                    acMgr.getPolicies(TEST_PATH));
                 assertEquals(len, policySet.size());
                 assertTrue(policySet.contains(TestPolicy.INSTANCE));
                 assertTrue(policySet.contains(plc));
@@ -181,7 +188,8 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         while (it.hasNext()) {
             AccessControlPolicy plc = it.nextAccessControlPolicy();
             if (plc instanceof AccessControlList) {
-                ((AccessControlList) plc).addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.JCR_READ));
+                ((AccessControlList) plc).addAccessControlEntry(EveryonePrincipal.getInstance(),
+                    privilegesFromNames(PrivilegeConstants.JCR_READ));
             }
             acMgr.setPolicy(TEST_PATH, plc);
         }
@@ -198,7 +206,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
     public void testGetEffectivePoliciesFiltersDuplicates() throws Exception {
         TestAcMgr test = new TestAcMgr();
         test.hasPolicy = true;
-        
+
         // create a composite that would result in duplicate effective policies
         AccessControlManager composite = createComposite(test, test);
         assertEquals(1, composite.getEffectivePolicies(TEST_PATH).length);
@@ -232,7 +240,9 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
     @Test(expected = AccessControlException.class)
     public void testSetPoliciesNotPolicyOwner() throws Exception {
         AccessControlPolicy policy = mock(AccessControlPolicy.class);
-        AccessControlManager mgr = when(mock(AccessControlManager.class).getPolicies(anyString())).thenReturn(new AccessControlPolicy[] {policy}).getMock();
+        AccessControlManager mgr = when(
+            mock(AccessControlManager.class).getPolicies(anyString())).thenReturn(
+            new AccessControlPolicy[]{policy}).getMock();
 
         try {
             CompositeAccessControlManager composite = createComposite(mgr);
@@ -245,9 +255,11 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
     @Test(expected = AccessControlException.class)
     public void testSetPoliciesPolicyOwnerPathNotDefined() throws Exception {
         AccessControlPolicy policy = mock(AccessControlPolicy.class);
-        AccessControlManager mgr = mock(AccessControlManager.class, withSettings().extraInterfaces(PolicyOwner.class));
-        when(mgr.getPolicies(anyString())).thenReturn(new AccessControlPolicy[] {policy}).getMock();
-        when(((PolicyOwner) mgr).defines(anyString(), any(AccessControlPolicy.class))).thenReturn(false);
+        AccessControlManager mgr = mock(AccessControlManager.class,
+            withSettings().extraInterfaces(PolicyOwner.class));
+        when(mgr.getPolicies(anyString())).thenReturn(new AccessControlPolicy[]{policy}).getMock();
+        when(((PolicyOwner) mgr).defines(anyString(), any(AccessControlPolicy.class))).thenReturn(
+            false);
 
         try {
             CompositeAccessControlManager composite = createComposite(mgr);
@@ -281,7 +293,9 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
     @Test(expected = AccessControlException.class)
     public void testRemovePoliciesNotPolicyOwner() throws Exception {
         AccessControlPolicy policy = mock(AccessControlPolicy.class);
-        AccessControlManager mgr = when(mock(AccessControlManager.class).getPolicies(anyString())).thenReturn(new AccessControlPolicy[] {policy}).getMock();
+        AccessControlManager mgr = when(
+            mock(AccessControlManager.class).getPolicies(anyString())).thenReturn(
+            new AccessControlPolicy[]{policy}).getMock();
 
         try {
             CompositeAccessControlManager composite = createComposite(mgr);
@@ -294,9 +308,11 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
     @Test(expected = AccessControlException.class)
     public void testRemovePoliciesPolicyOwnerPathNotDefined() throws Exception {
         AccessControlPolicy policy = mock(AccessControlPolicy.class);
-        AccessControlManager mgr = mock(AccessControlManager.class, withSettings().extraInterfaces(PolicyOwner.class));
-        when(mgr.getPolicies(anyString())).thenReturn(new AccessControlPolicy[] {policy}).getMock();
-        when(((PolicyOwner) mgr).defines(anyString(), any(AccessControlPolicy.class))).thenReturn(false);
+        AccessControlManager mgr = mock(AccessControlManager.class,
+            withSettings().extraInterfaces(PolicyOwner.class));
+        when(mgr.getPolicies(anyString())).thenReturn(new AccessControlPolicy[]{policy}).getMock();
+        when(((PolicyOwner) mgr).defines(anyString(), any(AccessControlPolicy.class))).thenReturn(
+            false);
 
         try {
             CompositeAccessControlManager composite = createComposite(mgr);
@@ -311,10 +327,12 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
     public void testGetApplicablePoliciesByPrincipalNotOwnerPolicy() throws Exception {
         JackrabbitAccessControlPolicy policy = mock(JackrabbitAccessControlPolicy.class);
         JackrabbitAccessControlManager mgr = mock(JackrabbitAccessControlManager.class);
-        when(mgr.getApplicablePolicies(any(Principal.class))).thenReturn(new JackrabbitAccessControlPolicy[] {policy}).getMock();
+        when(mgr.getApplicablePolicies(any(Principal.class))).thenReturn(
+            new JackrabbitAccessControlPolicy[]{policy}).getMock();
 
         CompositeAccessControlManager composite = createComposite(mgr);
-        JackrabbitAccessControlPolicy[] applicable = composite.getApplicablePolicies(EveryonePrincipal.getInstance());
+        JackrabbitAccessControlPolicy[] applicable = composite.getApplicablePolicies(
+            EveryonePrincipal.getInstance());
         assertEquals(0, applicable.length);
 
         verify(mgr, never()).getApplicablePolicies(EveryonePrincipal.getInstance());
@@ -322,10 +340,12 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testGetApplicablePoliciesByPrincipalNotJackrabbitAcMgr() throws Exception {
-        AccessControlManager mgr = mock(AccessControlManager.class, withSettings().extraInterfaces(PolicyOwner.class));
+        AccessControlManager mgr = mock(AccessControlManager.class,
+            withSettings().extraInterfaces(PolicyOwner.class));
 
         CompositeAccessControlManager composite = createComposite(mgr);
-        JackrabbitAccessControlPolicy[] applicable = composite.getApplicablePolicies(EveryonePrincipal.getInstance());
+        JackrabbitAccessControlPolicy[] applicable = composite.getApplicablePolicies(
+            EveryonePrincipal.getInstance());
         assertEquals(0, applicable.length);
 
         verifyNoInteractions(mgr);
@@ -334,12 +354,15 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
     @Test
     public void testGetApplicablePoliciesByPrincipal() throws Exception {
         JackrabbitAccessControlPolicy policy = mock(JackrabbitAccessControlPolicy.class);
-        JackrabbitAccessControlManager mgr = mock(JackrabbitAccessControlManager.class, withSettings().extraInterfaces(PolicyOwner.class));
-        when(mgr.getApplicablePolicies(any(Principal.class))).thenReturn(new JackrabbitAccessControlPolicy[] {policy}).getMock();
+        JackrabbitAccessControlManager mgr = mock(JackrabbitAccessControlManager.class,
+            withSettings().extraInterfaces(PolicyOwner.class));
+        when(mgr.getApplicablePolicies(any(Principal.class))).thenReturn(
+            new JackrabbitAccessControlPolicy[]{policy}).getMock();
 
         CompositeAccessControlManager composite = createComposite(mgr);
-        JackrabbitAccessControlPolicy[] applicable = composite.getApplicablePolicies(EveryonePrincipal.getInstance());
-        assertArrayEquals(new JackrabbitAccessControlPolicy[] {policy}, applicable);
+        JackrabbitAccessControlPolicy[] applicable = composite.getApplicablePolicies(
+            EveryonePrincipal.getInstance());
+        assertArrayEquals(new JackrabbitAccessControlPolicy[]{policy}, applicable);
 
         verify(mgr, times(1)).getApplicablePolicies(EveryonePrincipal.getInstance());
     }
@@ -358,10 +381,12 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
     public void testGetPoliciesByPrincipalNotJackrabbitAcMgr() throws Exception {
         JackrabbitAccessControlPolicy policy = mock(JackrabbitAccessControlPolicy.class);
         JackrabbitAccessControlManager mgr = mock(JackrabbitAccessControlManager.class);
-        when(mgr.getPolicies(any(Principal.class))).thenReturn(new JackrabbitAccessControlPolicy[] {policy}).getMock();
+        when(mgr.getPolicies(any(Principal.class))).thenReturn(
+            new JackrabbitAccessControlPolicy[]{policy}).getMock();
 
         CompositeAccessControlManager composite = createComposite(mgr);
-        assertArrayEquals(new JackrabbitAccessControlPolicy[] {policy}, composite.getPolicies(EveryonePrincipal.getInstance()));
+        assertArrayEquals(new JackrabbitAccessControlPolicy[]{policy},
+            composite.getPolicies(EveryonePrincipal.getInstance()));
 
         verify(mgr, times(1)).getPolicies(EveryonePrincipal.getInstance());
     }
@@ -369,11 +394,14 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
     @Test
     public void testGetPoliciesByPrincipal() throws Exception {
         JackrabbitAccessControlPolicy policy = mock(JackrabbitAccessControlPolicy.class);
-        JackrabbitAccessControlManager mgr = mock(JackrabbitAccessControlManager.class, withSettings().extraInterfaces(PolicyOwner.class));
-        when(mgr.getPolicies(any(Principal.class))).thenReturn(new JackrabbitAccessControlPolicy[] {policy}).getMock();
+        JackrabbitAccessControlManager mgr = mock(JackrabbitAccessControlManager.class,
+            withSettings().extraInterfaces(PolicyOwner.class));
+        when(mgr.getPolicies(any(Principal.class))).thenReturn(
+            new JackrabbitAccessControlPolicy[]{policy}).getMock();
 
         CompositeAccessControlManager composite = createComposite(mgr);
-        assertArrayEquals(new JackrabbitAccessControlPolicy[] {policy}, composite.getPolicies(EveryonePrincipal.getInstance()));
+        assertArrayEquals(new JackrabbitAccessControlPolicy[]{policy},
+            composite.getPolicies(EveryonePrincipal.getInstance()));
 
         verify(mgr, times(1)).getPolicies(EveryonePrincipal.getInstance());
     }
@@ -392,12 +420,15 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
     @Test
     public void testEffectivePoliciesByPrincipal() throws Exception {
         JackrabbitAccessControlPolicy policy = mock(JackrabbitAccessControlPolicy.class);
-        JackrabbitAccessControlManager mgr = mock(JackrabbitAccessControlManager.class, withSettings().extraInterfaces(PolicyOwner.class));
-        when(mgr.getEffectivePolicies(any(Set.class))).thenReturn(new JackrabbitAccessControlPolicy[] {policy});
+        JackrabbitAccessControlManager mgr = mock(JackrabbitAccessControlManager.class,
+            withSettings().extraInterfaces(PolicyOwner.class));
+        when(mgr.getEffectivePolicies(any(Set.class))).thenReturn(
+            new JackrabbitAccessControlPolicy[]{policy});
 
         Set<Principal> principalSet = ImmutableSet.of(EveryonePrincipal.getInstance());
         CompositeAccessControlManager composite = createComposite(mgr);
-        assertArrayEquals(new JackrabbitAccessControlPolicy[] {policy}, composite.getEffectivePolicies(principalSet));
+        assertArrayEquals(new JackrabbitAccessControlPolicy[]{policy},
+            composite.getEffectivePolicies(principalSet));
 
         verify(mgr, times(1)).getEffectivePolicies(principalSet);
     }
@@ -416,13 +447,16 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
     @Test
     public void testEffectivePoliciesByPrincipalAndPaths() throws Exception {
         JackrabbitAccessControlPolicy policy = mock(JackrabbitAccessControlPolicy.class);
-        JackrabbitAccessControlManager mgr = mock(JackrabbitAccessControlManager.class, withSettings().extraInterfaces(PolicyOwner.class));
-        when(mgr.getEffectivePolicies(any(Set.class), anyString())).thenReturn(Iterators.singletonIterator(policy));
+        JackrabbitAccessControlManager mgr = mock(JackrabbitAccessControlManager.class,
+            withSettings().extraInterfaces(PolicyOwner.class));
+        when(mgr.getEffectivePolicies(any(Set.class), anyString())).thenReturn(
+            Iterators.singletonIterator(policy));
 
         Set<Principal> principalSet = ImmutableSet.of(EveryonePrincipal.getInstance());
         CompositeAccessControlManager composite = createComposite(mgr);
-        
-        assertTrue(Iterators.elementsEqual(Iterators.singletonIterator(policy), composite.getEffectivePolicies(principalSet, ROOT_PATH)));
+
+        assertTrue(Iterators.elementsEqual(Iterators.singletonIterator(policy),
+            composite.getEffectivePolicies(principalSet, ROOT_PATH)));
 
         verify(mgr, times(0)).getEffectivePolicies(principalSet);
         verify(mgr, times(1)).getEffectivePolicies(principalSet, ROOT_PATH);
@@ -432,10 +466,14 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
     public void testAggregationFilterByPath() throws Exception {
         String matchingPath = TEST_PATH;
 
-        JackrabbitAccessControlManager acMgr1 = mock(JackrabbitAccessControlManager.class, withSettings().extraInterfaces(PolicyOwner.class));
-        JackrabbitAccessControlManager acMgr2 = mock(JackrabbitAccessControlManager.class, withSettings().extraInterfaces(PolicyOwner.class));
-        for (JackrabbitAccessControlManager acMgr : new JackrabbitAccessControlManager[] {acMgr1, acMgr2}) {
-            when(acMgr.getApplicablePolicies(anyString())).thenReturn(AccessControlPolicyIteratorAdapter.EMPTY);
+        JackrabbitAccessControlManager acMgr1 = mock(JackrabbitAccessControlManager.class,
+            withSettings().extraInterfaces(PolicyOwner.class));
+        JackrabbitAccessControlManager acMgr2 = mock(JackrabbitAccessControlManager.class,
+            withSettings().extraInterfaces(PolicyOwner.class));
+        for (JackrabbitAccessControlManager acMgr : new JackrabbitAccessControlManager[]{acMgr1,
+            acMgr2}) {
+            when(acMgr.getApplicablePolicies(anyString())).thenReturn(
+                AccessControlPolicyIteratorAdapter.EMPTY);
             when(acMgr.getPolicies(anyString())).thenReturn(new AccessControlPolicy[0]);
             when(acMgr.getEffectivePolicies(anyString())).thenReturn(new AccessControlPolicy[0]);
         }
@@ -443,7 +481,8 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         AggregationFilter aggregationFilter = mock(AggregationFilter.class);
         when(aggregationFilter.stop(acMgr1, matchingPath)).thenReturn(true);
 
-        CompositeAccessControlManager composite = createComposite(aggregationFilter, acMgr1, acMgr2);
+        CompositeAccessControlManager composite = createComposite(aggregationFilter, acMgr1,
+            acMgr2);
         composite.getApplicablePolicies(TEST_PATH); // must not call AggregationFilter
         composite.getPolicies(TEST_PATH);           // must not call AggregationFilter
         composite.getEffectivePolicies(TEST_PATH);  // must call AggregationFilter
@@ -454,7 +493,8 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         verify(acMgr1, times(1)).getEffectivePolicies(TEST_PATH);
         verify(acMgr2, never()).getEffectivePolicies(TEST_PATH);
 
-        composite.getEffectivePolicies(ROOT_PATH);  // must call AggregationFilter but not trigger stop
+        composite.getEffectivePolicies(
+            ROOT_PATH);  // must call AggregationFilter but not trigger stop
 
         verify(aggregationFilter, times(1)).stop(acMgr1, ROOT_PATH);
         verify(aggregationFilter, times(1)).stop(acMgr2, ROOT_PATH);
@@ -469,18 +509,25 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         Set<Principal> matchingSet = ImmutableSet.of(principal);
         Set<Principal> notMatching = ImmutableSet.of(EveryonePrincipal.getInstance());
 
-        JackrabbitAccessControlManager acMgr1 = mock(JackrabbitAccessControlManager.class, withSettings().extraInterfaces(PolicyOwner.class));
-        JackrabbitAccessControlManager acMgr2 = mock(JackrabbitAccessControlManager.class, withSettings().extraInterfaces(PolicyOwner.class));
-        for (JackrabbitAccessControlManager acMgr : new JackrabbitAccessControlManager[] {acMgr1, acMgr2}) {
-            when(acMgr.getApplicablePolicies(any(Principal.class))).thenReturn(new JackrabbitAccessControlPolicy[0]);
-            when(acMgr.getPolicies(any(Principal.class))).thenReturn(new JackrabbitAccessControlPolicy[0]);
-            when(acMgr.getEffectivePolicies(any(Set.class))).thenReturn(new JackrabbitAccessControlPolicy[0]);
+        JackrabbitAccessControlManager acMgr1 = mock(JackrabbitAccessControlManager.class,
+            withSettings().extraInterfaces(PolicyOwner.class));
+        JackrabbitAccessControlManager acMgr2 = mock(JackrabbitAccessControlManager.class,
+            withSettings().extraInterfaces(PolicyOwner.class));
+        for (JackrabbitAccessControlManager acMgr : new JackrabbitAccessControlManager[]{acMgr1,
+            acMgr2}) {
+            when(acMgr.getApplicablePolicies(any(Principal.class))).thenReturn(
+                new JackrabbitAccessControlPolicy[0]);
+            when(acMgr.getPolicies(any(Principal.class))).thenReturn(
+                new JackrabbitAccessControlPolicy[0]);
+            when(acMgr.getEffectivePolicies(any(Set.class))).thenReturn(
+                new JackrabbitAccessControlPolicy[0]);
         }
 
         AggregationFilter aggregationFilter = mock(AggregationFilter.class);
         when(aggregationFilter.stop(acMgr1, matchingSet)).thenReturn(true);
 
-        CompositeAccessControlManager composite = createComposite(aggregationFilter, acMgr1, acMgr2);
+        CompositeAccessControlManager composite = createComposite(aggregationFilter, acMgr1,
+            acMgr2);
         composite.getApplicablePolicies(principal);  // must not call AggregationFilter
         composite.getPolicies(principal);            // must not call AggregationFilter
         composite.getEffectivePolicies(matchingSet); // must call AggregationFilter
@@ -491,7 +538,8 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         verify(acMgr1, times(1)).getEffectivePolicies(matchingSet);
         verify(acMgr2, never()).getEffectivePolicies(matchingSet);
 
-        composite.getEffectivePolicies(notMatching);  // must call AggregationFilter but not trigger stop
+        composite.getEffectivePolicies(
+            notMatching);  // must call AggregationFilter but not trigger stop
 
         verify(aggregationFilter, times(1)).stop(acMgr1, notMatching);
         verify(aggregationFilter, times(1)).stop(acMgr2, notMatching);
@@ -507,7 +555,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         private final Privilege[] supported;
 
         private TestAcMgr() {
-            this.supported = new Privilege[] {TestPrivilege.INSTANCE};
+            this.supported = new Privilege[]{TestPrivilege.INSTANCE};
         }
 
         @Override
@@ -555,15 +603,17 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         @Override
         public AccessControlPolicyIterator getApplicablePolicies(String absPath) {
             if (TEST_PATH.equals(absPath) && !hasPolicy) {
-                return new AccessControlPolicyIteratorAdapter(Collections.singleton(TestPolicy.INSTANCE));
+                return new AccessControlPolicyIteratorAdapter(
+                    Collections.singleton(TestPolicy.INSTANCE));
             } else {
                 return AccessControlPolicyIteratorAdapter.EMPTY;
             }
         }
 
         @Override
-        public void setPolicy(String absPath, AccessControlPolicy policy) throws AccessControlException {
-            if (hasPolicy || !TEST_PATH.equals(absPath) || policy != TestPolicy.INSTANCE)  {
+        public void setPolicy(String absPath, AccessControlPolicy policy)
+            throws AccessControlException {
+            if (hasPolicy || !TEST_PATH.equals(absPath) || policy != TestPolicy.INSTANCE) {
                 throw new AccessControlException();
             } else {
                 hasPolicy = true;
@@ -571,8 +621,9 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         }
 
         @Override
-        public void removePolicy(String absPath, AccessControlPolicy policy) throws AccessControlException {
-            if (!hasPolicy || !TEST_PATH.equals(absPath) || policy != TestPolicy.INSTANCE)  {
+        public void removePolicy(String absPath, AccessControlPolicy policy)
+            throws AccessControlException {
+            if (!hasPolicy || !TEST_PATH.equals(absPath) || policy != TestPolicy.INSTANCE) {
                 throw new AccessControlException();
             } else {
                 hasPolicy = false;
@@ -591,7 +642,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         static final TestPolicy INSTANCE = new TestPolicy();
 
         static AccessControlPolicy[] asPolicyArray() {
-            return new AccessControlPolicy[] {INSTANCE};
+            return new AccessControlPolicy[]{INSTANCE};
         }
     }
 

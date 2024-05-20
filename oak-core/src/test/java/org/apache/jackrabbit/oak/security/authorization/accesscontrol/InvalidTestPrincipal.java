@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 import java.security.Principal;
 
 /**
- * Test principal implementation which doesn't implement the OAK specific
- * principal marker interface.
+ * Test principal implementation which doesn't implement the OAK specific principal marker
+ * interface.
  */
 public final class InvalidTestPrincipal implements Principal {
 

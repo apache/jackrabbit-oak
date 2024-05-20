@@ -48,7 +48,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class TokenProviderImplExceptionTest extends AbstractTokenTest  {
+public class TokenProviderImplExceptionTest extends AbstractTokenTest {
 
     private UserConfiguration uc;
     private TokenProviderImpl tp;
@@ -81,7 +81,8 @@ public class TokenProviderImplExceptionTest extends AbstractTokenTest  {
         when(userManager.getAuthorizable(anyString())).thenReturn(u);
 
         Tree tokenTree = when(mock(Tree.class).exists()).thenReturn(false).getMock();
-        when(tokenTree.getProperty(JCR_UUID)).thenReturn(PropertyStates.createProperty(JCR_UUID, UUID.randomUUID().toString()));
+        when(tokenTree.getProperty(JCR_UUID)).thenReturn(
+            PropertyStates.createProperty(JCR_UUID, UUID.randomUUID().toString()));
 
         Tree tokenParent = mock(Tree.class);
         when(tokenParent.exists()).thenReturn(true);
@@ -107,7 +108,8 @@ public class TokenProviderImplExceptionTest extends AbstractTokenTest  {
         when(userManager.getAuthorizable(anyString())).thenReturn(u);
 
         Tree tokenTree = when(mock(Tree.class).exists()).thenReturn(true).getMock();
-        when(tokenTree.getProperty(JCR_UUID)).thenReturn(PropertyStates.createProperty(JCR_UUID, UUID.randomUUID().toString()));
+        when(tokenTree.getProperty(JCR_UUID)).thenReturn(
+            PropertyStates.createProperty(JCR_UUID, UUID.randomUUID().toString()));
 
         Tree tokenParent = when(mock(Tree.class).exists()).thenReturn(true).getMock();
         when(tokenParent.addChild(anyString())).thenReturn(tokenTree);
@@ -120,10 +122,12 @@ public class TokenProviderImplExceptionTest extends AbstractTokenTest  {
         Root r = mock(Root.class);
         doAnswer(new Answer() {
             int cnt = 0;
+
             @Override
             public @Nullable Object answer(InvocationOnMock invocationOnMock) throws Throwable {
                 if (cnt++ == 0) {
-                    throw new CommitFailedException(CommitFailedException.CONSTRAINT, 1, "conflict");
+                    throw new CommitFailedException(CommitFailedException.CONSTRAINT, 1,
+                        "conflict");
                 } else {
                     return null;
                 }
@@ -143,7 +147,8 @@ public class TokenProviderImplExceptionTest extends AbstractTokenTest  {
         when(userManager.getAuthorizable(anyString())).thenReturn(u);
 
         Tree tokenTree = when(mock(Tree.class).exists()).thenReturn(true).getMock();
-        when(tokenTree.getProperty(JCR_UUID)).thenReturn(PropertyStates.createProperty(JCR_UUID, UUID.randomUUID().toString()));
+        when(tokenTree.getProperty(JCR_UUID)).thenReturn(
+            PropertyStates.createProperty(JCR_UUID, UUID.randomUUID().toString()));
 
         Tree tokenParent = when(mock(Tree.class).exists()).thenReturn(true).getMock();
         when(tokenParent.addChild(anyString())).thenReturn(tokenTree);
@@ -154,7 +159,8 @@ public class TokenProviderImplExceptionTest extends AbstractTokenTest  {
         when(userTree.getChild(TOKENS_NODE_NAME)).thenReturn(tokenParent);
 
         Root r = mock(Root.class);
-        doThrow(new CommitFailedException(CommitFailedException.CONSTRAINT, 1, "conflict")).when(r).commit();
+        doThrow(new CommitFailedException(CommitFailedException.CONSTRAINT, 1, "conflict")).when(r)
+                                                                                           .commit();
         when(r.getTree(parentPath)).thenReturn(tokenParent);
         when(r.getTree("/testuser")).thenReturn(userTree);
 

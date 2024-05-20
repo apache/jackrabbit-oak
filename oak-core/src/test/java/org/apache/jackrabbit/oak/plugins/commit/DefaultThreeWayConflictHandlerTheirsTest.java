@@ -47,9 +47,9 @@ public class DefaultThreeWayConflictHandlerTheirsTest {
     @Before
     public void setUp() throws CommitFailedException {
         ContentSession session = new Oak()
-                .with(new OpenSecurityProvider())
-                .with(DefaultThreeWayConflictHandler.THEIRS)
-                .createContentSession();
+            .with(new OpenSecurityProvider())
+            .with(DefaultThreeWayConflictHandler.THEIRS)
+            .createContentSession();
 
         // Add test content
         Root root = session.getLatestRoot();

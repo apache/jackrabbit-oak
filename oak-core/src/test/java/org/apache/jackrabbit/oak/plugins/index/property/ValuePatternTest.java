@@ -40,69 +40,69 @@ import org.junit.Test;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 
 public class ValuePatternTest {
-    
+
     @Test
     public void getStringsBuilder() {
         NodeBuilder b = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
         assertNull(ValuePattern.getStrings(b, "x"));
-        
+
         b.setProperty("x", "");
         assertEquals("[]", ValuePattern.getStrings(b, "x").toString());
-        
+
         b.setProperty("x", "test");
         assertEquals("[test]", ValuePattern.getStrings(b, "x").toString());
-        
+
         PropertyState ps = PropertyStates.createProperty(
-                "x",
-                Arrays.asList("hello"),
-                Type.STRINGS);
+            "x",
+            Arrays.asList("hello"),
+            Type.STRINGS);
         b.setProperty(ps);
         assertEquals("[hello]", ValuePattern.getStrings(b, "x").toString());
-        
+
         ps = PropertyStates.createProperty(
-                "x",
-                Arrays.asList(),
-                Type.STRINGS);
+            "x",
+            Arrays.asList(),
+            Type.STRINGS);
         b.setProperty(ps);
         assertEquals("[]", ValuePattern.getStrings(b, "x").toString());
 
         ps = PropertyStates.createProperty(
-                "x",
-                Arrays.asList("a", "b"),
-                Type.STRINGS);
+            "x",
+            Arrays.asList("a", "b"),
+            Type.STRINGS);
         b.setProperty(ps);
         assertEquals("[a, b]", ValuePattern.getStrings(b, "x").toString());
     }
-    
+
     @Test
     public void getStringsState() {
         NodeBuilder b = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
         assertNull(ValuePattern.getStrings(b.getNodeState(), "x"));
-        
+
         b.setProperty("x", "");
         assertEquals("[]", ValuePattern.getStrings(b.getNodeState(), "x").toString());
-        
+
         b.setProperty("x", "test");
         assertEquals("[test]", ValuePattern.getStrings(b.getNodeState(), "x").toString());
-        
+
         PropertyState ps = PropertyStates.createProperty(
-                "x",
-                Arrays.asList("hello"),
-                Type.STRINGS);
+            "x",
+            Arrays.asList("hello"),
+            Type.STRINGS);
         b.setProperty(ps);
         assertEquals("[hello]", ValuePattern.getStrings(b.getNodeState(), "x").toString());
-        
+
         ps = PropertyStates.createProperty(
-                "x",
-                Arrays.asList(),
-                Type.STRINGS);
+            "x",
+            Arrays.asList(),
+            Type.STRINGS);
         b.setProperty(ps);
         assertEquals("[]", ValuePattern.getStrings(b.getNodeState(), "x").toString());
 
         ps = PropertyStates.createProperty(
-                "x",
-                Arrays.asList("a", "b"),
-                Type.STRINGS);
+            "x",
+            Arrays.asList("a", "b"),
+            Type.STRINGS);
         b.setProperty(ps);
         assertEquals("[a, b]", ValuePattern.getStrings(b.getNodeState(), "x").toString());
     }
@@ -140,7 +140,7 @@ public class ValuePatternTest {
         // unkown, as we don't do regular expression analysis
         assertFalse(vp.matchesPrefix("x"));
     }
-    
+
     @Test
     public void included() {
         ValuePattern vp = new ValuePattern(null, Lists.newArrayList("abc", "bcd"), null);
@@ -161,7 +161,7 @@ public class ValuePatternTest {
         assertTrue(vp.matchesPrefix("abcdef"));
         assertFalse(vp.matchesPrefix("a"));
     }
-    
+
     @Test
     public void excluded() {
         ValuePattern vp = new ValuePattern(null, null, Lists.newArrayList("abc", "bcd"));
@@ -182,70 +182,70 @@ public class ValuePatternTest {
         assertFalse(vp.matchesPrefix("abcdef"));
         assertFalse(vp.matchesPrefix("a"));
     }
-    
+
     @Test
     public void longestPrefix() {
         FilterImpl filter;
-        
+
         filter = new FilterImpl(null, null, null);
-        filter.restrictProperty("x", Operator.EQUAL, 
-                PropertyValues.newString("hello"));
+        filter.restrictProperty("x", Operator.EQUAL,
+            PropertyValues.newString("hello"));
         assertEquals("hello", getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
-        filter.restrictProperty("x", Operator.GREATER_OR_EQUAL, 
-                PropertyValues.newString("hello welt"));
-        filter.restrictProperty("x", Operator.LESS_OR_EQUAL, 
-                PropertyValues.newString("hello world"));
+        filter.restrictProperty("x", Operator.GREATER_OR_EQUAL,
+            PropertyValues.newString("hello welt"));
+        filter.restrictProperty("x", Operator.LESS_OR_EQUAL,
+            PropertyValues.newString("hello world"));
         assertEquals("hello w", getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
-        filter.restrictProperty("x", Operator.GREATER_THAN, 
-                PropertyValues.newString("hello welt"));
-        filter.restrictProperty("x", Operator.LESS_THAN, 
-                PropertyValues.newString("hello world"));
+        filter.restrictProperty("x", Operator.GREATER_THAN,
+            PropertyValues.newString("hello welt"));
+        filter.restrictProperty("x", Operator.LESS_THAN,
+            PropertyValues.newString("hello world"));
         assertEquals("hello w", getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
-        filter.restrictProperty("x", Operator.GREATER_THAN, 
-                PropertyValues.newString("hello welt"));
-        filter.restrictProperty("x", Operator.GREATER_THAN, 
-                PropertyValues.newString("hello welt!"));
-        filter.restrictProperty("x", Operator.LESS_THAN, 
-                PropertyValues.newString("hello world"));
-        filter.restrictProperty("x", Operator.EQUAL, 
-                PropertyValues.newString("hell"));
+        filter.restrictProperty("x", Operator.GREATER_THAN,
+            PropertyValues.newString("hello welt"));
+        filter.restrictProperty("x", Operator.GREATER_THAN,
+            PropertyValues.newString("hello welt!"));
+        filter.restrictProperty("x", Operator.LESS_THAN,
+            PropertyValues.newString("hello world"));
+        filter.restrictProperty("x", Operator.EQUAL,
+            PropertyValues.newString("hell"));
         assertEquals("hell", getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
-        filter.restrictProperty("x", Operator.GREATER_THAN, 
-                PropertyValues.newString("abc"));
-        filter.restrictProperty("x", Operator.LESS_THAN, 
-                PropertyValues.newString("bde"));
+        filter.restrictProperty("x", Operator.GREATER_THAN,
+            PropertyValues.newString("abc"));
+        filter.restrictProperty("x", Operator.LESS_THAN,
+            PropertyValues.newString("bde"));
         assertNull(getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
-        filter.restrictProperty("x", Operator.GREATER_THAN, 
-                PropertyValues.newString("abc"));
-        filter.restrictProperty("x", Operator.GREATER_THAN, 
-                PropertyValues.newString("bcd"));
-        filter.restrictProperty("x", Operator.LESS_THAN, 
-                PropertyValues.newString("dce"));
+        filter.restrictProperty("x", Operator.GREATER_THAN,
+            PropertyValues.newString("abc"));
+        filter.restrictProperty("x", Operator.GREATER_THAN,
+            PropertyValues.newString("bcd"));
+        filter.restrictProperty("x", Operator.LESS_THAN,
+            PropertyValues.newString("dce"));
         assertNull(getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
-        filter.restrictProperty("x", Operator.LIKE, 
-                PropertyValues.newString("hello%"));
+        filter.restrictProperty("x", Operator.LIKE,
+            PropertyValues.newString("hello%"));
         assertNull(getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
-        filter.restrictProperty("x", Operator.GREATER_OR_EQUAL, 
-                PropertyValues.newString("hello"));
+        filter.restrictProperty("x", Operator.GREATER_OR_EQUAL,
+            PropertyValues.newString("hello"));
         assertNull(getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
-        filter.restrictProperty("x", Operator.LESS_THAN, 
-                PropertyValues.newString("hello"));
+        filter.restrictProperty("x", Operator.LESS_THAN,
+            PropertyValues.newString("hello"));
         assertNull(getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
@@ -254,19 +254,19 @@ public class ValuePatternTest {
 
         filter = new FilterImpl(null, null, null);
         filter.restrictProperty("x", Operator.GREATER_THAN,
-                PropertyValues.newString(Arrays.asList("a0", "a1")));
+            PropertyValues.newString(Arrays.asList("a0", "a1")));
         filter.restrictProperty("x", Operator.LESS_THAN,
-                PropertyValues.newString("a2"));
+            PropertyValues.newString("a2"));
         assertNull(getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
         filter.restrictProperty("x", Operator.GREATER_THAN,
-                PropertyValues.newString("a0"));
+            PropertyValues.newString("a0"));
         filter.restrictProperty("x", Operator.LESS_THAN,
-                PropertyValues.newString(Arrays.asList("a3", "a4")));
+            PropertyValues.newString(Arrays.asList("a3", "a4")));
         assertNull(getLongestPrefix(filter, "x"));
-        
+
     }
-    
-    
+
+
 }

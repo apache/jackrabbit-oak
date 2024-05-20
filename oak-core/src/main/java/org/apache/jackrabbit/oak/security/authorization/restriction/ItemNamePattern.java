@@ -26,11 +26,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Implementation of the {@link RestrictionPattern} interface that returns
- * {@code true} if the name of the target item (property or node) is contained
- * in the configured set of names. This allows to limit certain operations (e.g.
- * reading or modifying properties) to a subset of items in the tree defined
- * by the associated policy.
+ * Implementation of the {@link RestrictionPattern} interface that returns {@code true} if the name
+ * of the target item (property or node) is contained in the configured set of names. This allows to
+ * limit certain operations (e.g. reading or modifying properties) to a subset of items in the tree
+ * defined by the associated policy.
  */
 class ItemNamePattern implements RestrictionPattern {
 

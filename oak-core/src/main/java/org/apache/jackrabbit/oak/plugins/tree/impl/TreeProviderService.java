@@ -36,7 +36,8 @@ public class TreeProviderService implements TreeProvider {
 
     @NotNull
     @Override
-    public Tree createReadOnlyTree(@NotNull Tree readOnlyParent, @NotNull String childName, @NotNull NodeState childState) {
+    public Tree createReadOnlyTree(@NotNull Tree readOnlyParent, @NotNull String childName,
+        @NotNull NodeState childState) {
         return TreeFactory.createReadOnlyTree(readOnlyParent, childName, childState);
     }
 

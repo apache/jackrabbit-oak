@@ -54,26 +54,29 @@ import org.slf4j.LoggerFactory;
  * MergingNodeStateDiff... TODO
  */
 public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
+
     private static final Logger LOG = LoggerFactory.getLogger(MergingNodeStateDiff.class);
 
     private final NodeState parent;
     private final NodeBuilder target;
     private final ThreeWayConflictHandler conflictHandler;
 
-    private MergingNodeStateDiff(NodeState parent, NodeBuilder target, ThreeWayConflictHandler conflictHandler) {
+    private MergingNodeStateDiff(NodeState parent, NodeBuilder target,
+        ThreeWayConflictHandler conflictHandler) {
         this.parent = parent;
         this.target = target;
         this.conflictHandler = conflictHandler;
     }
 
-    static NodeState merge(NodeState fromState, NodeState toState, ThreeWayConflictHandler conflictHandler) {
+    static NodeState merge(NodeState fromState, NodeState toState,
+        ThreeWayConflictHandler conflictHandler) {
         return merge(fromState, toState, toState.builder(), conflictHandler).getNodeState();
     }
 
     private static NodeBuilder merge(NodeState fromState, NodeState toState, NodeBuilder target,
-                    ThreeWayConflictHandler conflictHandler) {
+        ThreeWayConflictHandler conflictHandler) {
         toState.compareAgainstBaseState(fromState,
-                new MergingNodeStateDiff(toState, target, conflictHandler));
+            new MergingNodeStateDiff(toState, target, conflictHandler));
 
         return target;
     }
@@ -103,7 +106,8 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
     //------------------------------------------------------------< private >---
 
     private void resolveConflict(ConflictType conflictType, NodeState conflictInfo) {
-        PropertyConflictHandler propertyConflictHandler = propertyConflictHandlers.get(conflictType);
+        PropertyConflictHandler propertyConflictHandler = propertyConflictHandlers.get(
+            conflictType);
         if (propertyConflictHandler != null) {
             NodeState oursNS = conflictInfo.getChildNode(OURS);
             NodeState baseNS = conflictInfo.getChildNode(BASE);
@@ -133,7 +137,7 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
                 NodeState baseNS = conflictInfo.getChildNode(BASE);
 
                 Set<String> candidates = Sets.union(Sets.newHashSet(oursNS.getChildNodeNames()),
-                        Sets.newHashSet(baseNS.getChildNodeNames()));
+                    Sets.newHashSet(baseNS.getChildNodeNames()));
                 for (String name : candidates) {
                     NodeState ours = oursNS.getChildNode(name);
                     NodeState base = baseNS.getChildNode(name);
@@ -144,28 +148,33 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
                     if (LOG.isDebugEnabled()) {
                         String diff = JsopDiff.diffToJsop(base, theirs);
                         LOG.debug(
-                                "{} resolved conflict of type {} with resolution {} on node {}, conflict trace {}",
-                                nodeConflictHandler, conflictType, resolution,
-                                name, diff);
+                            "{} resolved conflict of type {} with resolution {} on node {}, conflict trace {}",
+                            nodeConflictHandler, conflictType, resolution,
+                            name, diff);
                     }
                 }
-            }
-            else {
+            } else {
                 LOG.warn("Ignoring unknown conflict '" + conflictType + '\'');
             }
         }
 
         NodeBuilder conflictMarker = getConflictMarker(conflictType);
         if (conflictMarker != null) {
-            assert conflictMarker.getChildNode(ConflictAnnotatingRebaseDiff.BASE).getChildNodeCount(1) == 0;
-            assert conflictMarker.getChildNode(ConflictAnnotatingRebaseDiff.OURS).getChildNodeCount(1) == 0;
+            assert
+                conflictMarker.getChildNode(ConflictAnnotatingRebaseDiff.BASE).getChildNodeCount(1)
+                    == 0;
+            assert
+                conflictMarker.getChildNode(ConflictAnnotatingRebaseDiff.OURS).getChildNodeCount(1)
+                    == 0;
         }
     }
 
-    private void applyPropertyResolution(Resolution resolution, ConflictType conflictType, String name, PropertyState ours) {
+    private void applyPropertyResolution(Resolution resolution, ConflictType conflictType,
+        String name, PropertyState ours) {
         NodeBuilder conflictMarker = getConflictMarker(conflictType);
         if (resolution == Resolution.OURS) {
-            if (DELETE_CHANGED_PROPERTY == conflictType || DELETE_DELETED_PROPERTY == conflictType) {
+            if (DELETE_CHANGED_PROPERTY == conflictType
+                || DELETE_DELETED_PROPERTY == conflictType) {
                 target.removeProperty(name);
             } else {
                 target.setProperty(ours);
@@ -181,7 +190,8 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         }
     }
 
-    private void applyResolution(Resolution resolution, ConflictType conflictType, String name, NodeState ours) {
+    private void applyResolution(Resolution resolution, ConflictType conflictType, String name,
+        NodeState ours) {
         NodeBuilder conflictMarker = getConflictMarker(conflictType);
         if (resolution == Resolution.OURS) {
             if (DELETE_CHANGED_NODE == conflictType || DELETE_DELETED_NODE == conflictType) {
@@ -216,17 +226,20 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
     }
 
     private interface PropertyConflictHandler {
+
         Resolution resolve(PropertyState ours, PropertyState theirs, PropertyState base);
     }
 
     private interface NodeConflictHandler {
+
         Resolution resolve(String name, NodeState ours, NodeState theirs, NodeState base);
     }
 
     private final Map<ConflictType, PropertyConflictHandler> propertyConflictHandlers = ImmutableMap.of(
         ADD_EXISTING_PROPERTY, new PropertyConflictHandler() {
             @Override
-            public Resolution resolve(PropertyState ours, PropertyState theirs, PropertyState base) {
+            public Resolution resolve(PropertyState ours, PropertyState theirs,
+                PropertyState base) {
                 return conflictHandler.addExistingProperty(target, ours, theirs);
             }
 
@@ -237,7 +250,8 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         },
         CHANGE_DELETED_PROPERTY, new PropertyConflictHandler() {
             @Override
-            public Resolution resolve(PropertyState ours, PropertyState theirs, PropertyState base) {
+            public Resolution resolve(PropertyState ours, PropertyState theirs,
+                PropertyState base) {
                 return conflictHandler.changeDeletedProperty(target, ours, base);
             }
 
@@ -248,7 +262,8 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         },
         CHANGE_CHANGED_PROPERTY, new PropertyConflictHandler() {
             @Override
-            public Resolution resolve(PropertyState ours, PropertyState theirs, PropertyState base) {
+            public Resolution resolve(PropertyState ours, PropertyState theirs,
+                PropertyState base) {
                 return conflictHandler.changeChangedProperty(target, ours, theirs, base);
             }
 
@@ -259,7 +274,8 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         },
         DELETE_DELETED_PROPERTY, new PropertyConflictHandler() {
             @Override
-            public Resolution resolve(PropertyState ours, PropertyState theirs, PropertyState base) {
+            public Resolution resolve(PropertyState ours, PropertyState theirs,
+                PropertyState base) {
                 return conflictHandler.deleteDeletedProperty(target, base);
             }
 
@@ -270,7 +286,8 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         },
         DELETE_CHANGED_PROPERTY, new PropertyConflictHandler() {
             @Override
-            public Resolution resolve(PropertyState ours, PropertyState theirs, PropertyState base) {
+            public Resolution resolve(PropertyState ours, PropertyState theirs,
+                PropertyState base) {
                 return conflictHandler.deleteChangedProperty(target, theirs, base);
             }
 
@@ -284,7 +301,8 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
     private final Map<ConflictType, NodeConflictHandler> nodeConflictHandlers = ImmutableMap.of(
         ADD_EXISTING_NODE, new NodeConflictHandler() {
             @Override
-            public Resolution resolve(String name, NodeState ours, NodeState theirs, NodeState base) {
+            public Resolution resolve(String name, NodeState ours, NodeState theirs,
+                NodeState base) {
                 return conflictHandler.addExistingNode(target, name, ours, theirs);
             }
 
@@ -295,7 +313,8 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         },
         CHANGE_DELETED_NODE, new NodeConflictHandler() {
             @Override
-            public Resolution resolve(String name, NodeState ours, NodeState theirs, NodeState base) {
+            public Resolution resolve(String name, NodeState ours, NodeState theirs,
+                NodeState base) {
                 return conflictHandler.changeDeletedNode(target, name, ours, base);
             }
 
@@ -306,7 +325,8 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         },
         DELETE_CHANGED_NODE, new NodeConflictHandler() {
             @Override
-            public Resolution resolve(String name, NodeState ours, NodeState theirs, NodeState base) {
+            public Resolution resolve(String name, NodeState ours, NodeState theirs,
+                NodeState base) {
                 return conflictHandler.deleteChangedNode(target, name, theirs, base);
             }
 
@@ -317,7 +337,8 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         },
         DELETE_DELETED_NODE, new NodeConflictHandler() {
             @Override
-                public Resolution resolve(String name, NodeState ours, NodeState theirs, NodeState base) {
+            public Resolution resolve(String name, NodeState ours, NodeState theirs,
+                NodeState base) {
                 return conflictHandler.deleteDeletedNode(target, name, base);
             }
 

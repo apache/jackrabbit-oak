@@ -23,6 +23,7 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 
 public class MetricRateEstimator implements TraversalRateEstimator {
+
     private final Meter meter;
 
     public MetricRateEstimator(String name, MetricRegistry registry) {

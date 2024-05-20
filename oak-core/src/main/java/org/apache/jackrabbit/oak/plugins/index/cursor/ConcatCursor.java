@@ -46,7 +46,7 @@ class ConcatCursor extends AbstractCursor {
         this.settings = settings;
         nextCursor();
     }
-    
+
     private void nextCursor() {
         if (cursorListIndex >= cursors.size()) {
             init = true;
@@ -102,7 +102,7 @@ class ConcatCursor extends AbstractCursor {
         seen.add(path);
         FilterIterators.checkMemoryLimit(seen.size(), settings);
     }
-    
+
     @Override
     public long getSize(SizePrecision precision, long max) {
         // this is the worst case (duplicate entries are counted twice)

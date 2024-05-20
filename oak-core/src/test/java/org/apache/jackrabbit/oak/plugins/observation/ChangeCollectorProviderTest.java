@@ -73,6 +73,7 @@ public class ChangeCollectorProviderTest {
     private SecurityProvider securityProvider;
 
     class ContentChange {
+
         final NodeState root;
         final CommitInfo info;
 
@@ -83,10 +84,11 @@ public class ChangeCollectorProviderTest {
     }
 
     class Recorder implements Observer {
+
         List<ContentChange> changes = new LinkedList<ContentChange>();
 
         @Override
-        public void contentChanged(@NotNull NodeState root,@NotNull CommitInfo info) {
+        public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
             changes.add(new ContentChange(root, info));
         }
 
@@ -100,38 +102,44 @@ public class ChangeCollectorProviderTest {
     }
 
     /**
-     * Checks that the actual string set provided matches the expected one. A
-     * match is when all elements occur, irrespective of the order.
+     * Checks that the actual string set provided matches the expected one. A match is when all
+     * elements occur, irrespective of the order.
      */
     private void assertMatches(String msg, Set<String> actuals, String... expected) {
         if ((actuals == null || actuals.size() == 0) && expected.length != 0) {
-            fail("assertion failed for '" + msg + "': expected length " + expected.length + " != actual 0."
-                    + " Expected: '" + Arrays.toString(expected) + "', got: '" + actuals + "'");
+            fail("assertion failed for '" + msg + "': expected length " + expected.length
+                + " != actual 0."
+                + " Expected: '" + Arrays.toString(expected) + "', got: '" + actuals + "'");
         } else if (expected.length == 0 && actuals != null && actuals.size() != 0) {
-            fail("assertion failed for '" + msg + "': expected length == 0, actual " + actuals.size() + "."
+            fail(
+                "assertion failed for '" + msg + "': expected length == 0, actual " + actuals.size()
+                    + "."
                     + " Expected: '" + Arrays.toString(expected) + "', got: '" + actuals + "'");
         } else if (expected.length != actuals.size()) {
-            fail("assertion failed for '" + msg + "': expected length (" + expected.length + ") != actual ("
-                    + actuals.size() + ")." + " Expected: '" + Arrays.toString(expected) + "', got: '" + actuals + "'");
+            fail("assertion failed for '" + msg + "': expected length (" + expected.length
+                + ") != actual ("
+                + actuals.size() + ")." + " Expected: '" + Arrays.toString(expected) + "', got: '"
+                + actuals + "'");
         }
         for (String anExpected : expected) {
             if (!actuals.contains(anExpected)) {
-                fail("assertion failed for '" + msg + "': expected '" + anExpected + "' not found. Got: '" + actuals
-                        + "'");
+                fail("assertion failed for '" + msg + "': expected '" + anExpected
+                    + "' not found. Got: '" + actuals
+                    + "'");
             }
         }
     }
 
     /**
-     * Assumes that the recorder got 1 call, and extracts the ChangeSet from
-     * that call
+     * Assumes that the recorder got 1 call, and extracts the ChangeSet from that call
      */
     private ChangeSet getSingleChangeSet() {
         assertEquals(recorder.changes.size(), 1);
-        CommitContext commitContext = (CommitContext) recorder.changes.get(0).info.getInfo().get(CommitContext.NAME);
+        CommitContext commitContext = (CommitContext) recorder.changes.get(0).info.getInfo().get(
+            CommitContext.NAME);
         assertNotNull(commitContext);
         ChangeSet changeSet = (ChangeSet) commitContext
-                .get(ChangeSet.COMMIT_CONTEXT_OBSERVATION_CHANGESET);
+            .get(ChangeSet.COMMIT_CONTEXT_OBSERVATION_CHANGESET);
         assertNotNull(changeSet);
         return changeSet;
     }
@@ -141,15 +149,16 @@ public class ChangeCollectorProviderTest {
         collectorProvider = new ChangeCollectorProvider();
         recorder = new Recorder();
         Oak oak = new Oak().with(new InitialContent()).with(collectorProvider).with(recorder)
-                .with(getSecurityProvider());
+                           .with(getSecurityProvider());
         contentRepository = oak.createContentRepository();
 
-        session = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
-            @Override
-            public ContentSession run() throws LoginException, NoSuchWorkspaceException {
-                return contentRepository.login(null, null);
-            }
-        });
+        session = Subject.doAs(SystemSubject.INSTANCE,
+            new PrivilegedExceptionAction<ContentSession>() {
+                @Override
+                public ContentSession run() throws LoginException, NoSuchWorkspaceException {
+                    return contentRepository.login(null, null);
+                }
+            });
         Root root = session.getLatestRoot();
         Tree rootTree = root.getTree("/").addChild("test");
         rootTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, "test:parentType", Type.NAME);
@@ -161,7 +170,8 @@ public class ChangeCollectorProviderTest {
         grandChild1.setProperty(JcrConstants.JCR_PRIMARYTYPE, "test:grandChildType", Type.NAME);
         Tree greatGrandChild1 = grandChild1.addChild("greatGrandChild1");
         greatGrandChild1.setProperty("greatGrandChild1Prop", 1);
-        greatGrandChild1.setProperty(JcrConstants.JCR_PRIMARYTYPE, "test:greatGrandChildType", Type.NAME);
+        greatGrandChild1.setProperty(JcrConstants.JCR_PRIMARYTYPE, "test:greatGrandChildType",
+            Type.NAME);
         Tree child2 = rootTree.addChild("child2");
         child2.setProperty("child2Prop", 1);
         child2.setProperty(JcrConstants.JCR_PRIMARYTYPE, "test:childType", Type.NAME);
@@ -173,16 +183,20 @@ public class ChangeCollectorProviderTest {
 
         ChangeSet changeSet = getSingleChangeSet();
         assertMatches("parentPaths", changeSet.getParentPaths(), "/test/child2", "/test/child1",
-                "/test/child1/grandChild1/greatGrandChild1", "/", "/test", "/test/child1/grandChild1",
-                "/test/child2/grandChild2");
-        assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "child2", "child1", "greatGrandChild1", "test",
-                "grandChild1", "grandChild2");
-        assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType", "test:childType",
-                "test:grandChildType", "test:greatGrandChildType");
-        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:childType",
-                "test:grandChildType", "test:greatGrandChildType");
-        assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE, "child1Prop",
-                "child2Prop", "grandChild1Prop", "grandChild2Prop", "greatGrandChild1Prop");
+            "/test/child1/grandChild1/greatGrandChild1", "/", "/test", "/test/child1/grandChild1",
+            "/test/child2/grandChild2");
+        assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "child2", "child1",
+            "greatGrandChild1", "test",
+            "grandChild1", "grandChild2");
+        assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType",
+            "test:childType",
+            "test:grandChildType", "test:greatGrandChildType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType",
+            "test:childType",
+            "test:grandChildType", "test:greatGrandChildType");
+        assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE,
+            "child1Prop",
+            "child2Prop", "grandChild1Prop", "grandChild2Prop", "greatGrandChild1Prop");
 
         // clear the recorder so that we start off empty
         recorder.changes.clear();
@@ -190,7 +204,8 @@ public class ChangeCollectorProviderTest {
 
     private static CommitInfo newCommitInfoWithCommitContext(String sessionId, String userId) {
         return new CommitInfo(sessionId, userId,
-                ImmutableMap.<String, Object> builder().put(CommitContext.NAME, new SimpleCommitContext()).build());
+            ImmutableMap.<String, Object>builder()
+                        .put(CommitContext.NAME, new SimpleCommitContext()).build());
     }
 
     @Test
@@ -207,7 +222,7 @@ public class ChangeCollectorProviderTest {
         assertNull(collectorProvider.getRootValidator(before, after, null));
         assertNull(collectorProvider.getRootValidator(before, after, CommitInfo.EMPTY));
         assertNotNull(collectorProvider.getRootValidator(before, after,
-                newCommitInfoWithCommitContext(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN)));
+            newCommitInfoWithCommitContext(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN)));
     }
 
     @Test
@@ -218,35 +233,44 @@ public class ChangeCollectorProviderTest {
 
         root.commit();
         ChangeSet changeSet = getSingleChangeSet();
-        assertMatches("parentPaths", changeSet.getParentPaths(), "/test", "/test/child1", "/test/child1/grandChild1",
-                "/test/child1/grandChild1/greatGrandChild1");
-        assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test", "child1", "grandChild1",
-                "greatGrandChild1");
-        assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType", "test:childType",
-                "test:grandChildType", "test:greatGrandChildType");
-        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:childType",
-                "test:grandChildType", "test:greatGrandChildType");
-        assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE, "child1Prop",
-                "grandChild1Prop", "greatGrandChild1Prop");
+        assertMatches("parentPaths", changeSet.getParentPaths(), "/test", "/test/child1",
+            "/test/child1/grandChild1",
+            "/test/child1/grandChild1/greatGrandChild1");
+        assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test", "child1",
+            "grandChild1",
+            "greatGrandChild1");
+        assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType",
+            "test:childType",
+            "test:grandChildType", "test:greatGrandChildType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType",
+            "test:childType",
+            "test:grandChildType", "test:greatGrandChildType");
+        assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE,
+            "child1Prop",
+            "grandChild1Prop", "greatGrandChild1Prop");
     }
 
     @Test
     public void testRemoveGreatGrandChild() throws CommitFailedException {
         Root root = session.getLatestRoot();
         Tree rootTree = root.getTree("/test");
-        assertTrue(rootTree.getChild("child1").getChild("grandChild1").getChild("greatGrandChild1").remove());
+        assertTrue(rootTree.getChild("child1").getChild("grandChild1").getChild("greatGrandChild1")
+                           .remove());
 
         root.commit();
         ChangeSet changeSet = getSingleChangeSet();
-        assertMatches("parentPaths", changeSet.getParentPaths(), "/test/child1/grandChild1/greatGrandChild1",
-                "/test/child1/grandChild1");
-        assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "grandChild1", "greatGrandChild1");
+        assertMatches("parentPaths", changeSet.getParentPaths(),
+            "/test/child1/grandChild1/greatGrandChild1",
+            "/test/child1/grandChild1");
+        assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "grandChild1",
+            "greatGrandChild1");
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:greatGrandChildType",
-                "test:grandChildType");
-        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:childType",
-                "test:grandChildType", "test:greatGrandChildType");
+            "test:grandChildType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType",
+            "test:childType",
+            "test:grandChildType", "test:greatGrandChildType");
         assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE,
-                "greatGrandChild1Prop");
+            "greatGrandChild1Prop");
     }
 
     @Test
@@ -258,11 +282,14 @@ public class ChangeCollectorProviderTest {
 
         root.commit();
         ChangeSet changeSet = getSingleChangeSet();
-        assertMatches("parentPaths", changeSet.getParentPaths(), "/test/child1/grandChild1/greatGrandChild1");
+        assertMatches("parentPaths", changeSet.getParentPaths(),
+            "/test/child1/grandChild1/greatGrandChild1");
         assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "greatGrandChild1");
-        assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:greatGrandChildType");
-        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:childType",
-                "test:grandChildType", "test:greatGrandChildType");
+        assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(),
+            "test:greatGrandChildType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType",
+            "test:childType",
+            "test:grandChildType", "test:greatGrandChildType");
         assertMatches("propertyNames", changeSet.getPropertyNames(), "greatGrandChild1Prop");
     }
 
@@ -277,13 +304,16 @@ public class ChangeCollectorProviderTest {
         root.commit();
         ChangeSet changeSet = getSingleChangeSet();
         assertMatches("parentPaths", changeSet.getParentPaths(), "/test/child1/grandChild1",
-                "/test/child1/grandChild1/greatGrandChild1");
-        assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "grandChild1", "greatGrandChild1");
+            "/test/child1/grandChild1/greatGrandChild1");
+        assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "grandChild1",
+            "greatGrandChild1");
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:grandChildType",
-                "test:greatGrandChildType");
-        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:childType",
-                "test:grandChildType", "test:greatGrandChildType");
-        assertMatches("propertyNames", changeSet.getPropertyNames(), "grandChild1Prop", "greatGrandChild1Prop");
+            "test:greatGrandChildType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType",
+            "test:childType",
+            "test:grandChildType", "test:greatGrandChildType");
+        assertMatches("propertyNames", changeSet.getPropertyNames(), "grandChild1Prop",
+            "greatGrandChild1Prop");
     }
 
     @Test
@@ -328,11 +358,14 @@ public class ChangeCollectorProviderTest {
 
         root.commit();
         ChangeSet changeSet = getSingleChangeSet();
-        assertMatches("parentPaths", changeSet.getParentPaths(), "/test", "/test/child", "/test/child/grandChild");
-        assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test", "child", "grandChild");
+        assertMatches("parentPaths", changeSet.getParentPaths(), "/test", "/test/child",
+            "/test/child/grandChild");
+        assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test", "child",
+            "grandChild");
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType");
         assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType");
-        assertMatches("propertyNames", changeSet.getPropertyNames(), "childProperty", "grandChildProperty");
+        assertMatches("propertyNames", changeSet.getPropertyNames(), "childProperty",
+            "grandChildProperty");
     }
 
     @Test
@@ -347,18 +380,25 @@ public class ChangeCollectorProviderTest {
 
         root.commit();
         ChangeSet changeSet = getSingleChangeSet();
-        assertMatches("parentPaths", changeSet.getParentPaths(), "/test", "/test/x0", "/test/x1", "/test/x2",
-                "/test/x3", "/test/x4", "/test/x5", "/test/x6", "/test/x7", "/test/x8", "/test/x9");
-        assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test", "x0", "x1", "x2", "x3", "x4", "x5",
-                "x6", "x7", "x8", "x9");
-        assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType", "test:type0", "test:type1",
-                "test:type2", "test:type3", "test:type4", "test:type5", "test:type6", "test:type7", "test:type8",
-                "test:type9");
-        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:type0", "test:type1",
-                "test:type2", "test:type3", "test:type4", "test:type5", "test:type6", "test:type7", "test:type8",
-                "test:type9");
-        assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE, "foo0", "foo1",
-                "foo2", "foo3", "foo4", "foo5", "foo6", "foo7", "foo8", "foo9");
+        assertMatches("parentPaths", changeSet.getParentPaths(), "/test", "/test/x0", "/test/x1",
+            "/test/x2",
+            "/test/x3", "/test/x4", "/test/x5", "/test/x6", "/test/x7", "/test/x8", "/test/x9");
+        assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test", "x0", "x1", "x2",
+            "x3", "x4", "x5",
+            "x6", "x7", "x8", "x9");
+        assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType",
+            "test:type0", "test:type1",
+            "test:type2", "test:type3", "test:type4", "test:type5", "test:type6", "test:type7",
+            "test:type8",
+            "test:type9");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:type0",
+            "test:type1",
+            "test:type2", "test:type3", "test:type4", "test:type5", "test:type6", "test:type7",
+            "test:type8",
+            "test:type9");
+        assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE,
+            "foo0", "foo1",
+            "foo2", "foo3", "foo4", "foo5", "foo6", "foo7", "foo8", "foo9");
     }
 
     @Test
@@ -371,15 +411,20 @@ public class ChangeCollectorProviderTest {
 
         root.commit();
         ChangeSet changeSet = getSingleChangeSet();
-        assertMatches("parentPaths", changeSet.getParentPaths(), "/test", "/test/child", "/test/child2",
-                "/test/child2/grandChild2");
-        assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test", "child", "child2", "grandChild2");
-        assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType", "test:childType",
-                "test:grandChildType");
-        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:childType",
-                "test:grandChildType");
-        assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE, "child2Prop",
-                "grandChild2Prop");
+        assertMatches("parentPaths", changeSet.getParentPaths(), "/test", "/test/child",
+            "/test/child2",
+            "/test/child2/grandChild2");
+        assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test", "child", "child2",
+            "grandChild2");
+        assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType",
+            "test:childType",
+            "test:grandChildType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType",
+            "test:childType",
+            "test:grandChildType");
+        assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE,
+            "child2Prop",
+            "grandChild2Prop");
     }
 
     @Test
@@ -399,7 +444,8 @@ public class ChangeCollectorProviderTest {
             next = next.addChild("n" + i);
             if (i % 3 != 0) {
                 next.setProperty("nextProp" + i, i);
-                next.setProperty(JcrConstants.JCR_PRIMARYTYPE, i % 2 == 0 ? "test:even" : "test:odd", Type.NAME);
+                next.setProperty(JcrConstants.JCR_PRIMARYTYPE,
+                    i % 2 == 0 ? "test:even" : "test:odd", Type.NAME);
             }
         }
         root.commit();
@@ -418,34 +464,41 @@ public class ChangeCollectorProviderTest {
             expectedParentPaths.add(path.toString());
         }
         assertMatches("parentPaths-" + maxPathDepth, changeSet.getParentPaths(),
-                expectedParentPaths.toArray(new String[0]));
-        assertMatches("parentNodeNames-" + maxPathDepth, changeSet.getParentNodeNames(), "test", "n0", "n1", "n2", "n3",
-                "n4", "n5", "n6", "n7", "n8", "n9", "n10", "n11", "n12", "n13",
-                "n14"/* , "n15" */);
-        assertMatches("parentNodeTypes-" + maxPathDepth, changeSet.getParentNodeTypes(), "test:parentType", "test:even",
-                "test:odd");
-        assertMatches("allNodeTypes-" + maxPathDepth, changeSet.getAllNodeTypes(), "test:parentType", "test:even", "test:odd");
-        assertMatches("propertyNames-" + maxPathDepth, changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE,
-                /* "nextProp0", */"nextProp1", "nextProp2", /* "nextProp3", */ "nextProp4",
-                "nextProp5"/* , "nextProp6" */
-                , "nextProp7", "nextProp8", /* "nextProp9", */"nextProp10", "nextProp11",
-                /* "nextProp12", */ "nextProp13",
-                "nextProp14"/* , "nextProp15" */);
+            expectedParentPaths.toArray(new String[0]));
+        assertMatches("parentNodeNames-" + maxPathDepth, changeSet.getParentNodeNames(), "test",
+            "n0", "n1", "n2", "n3",
+            "n4", "n5", "n6", "n7", "n8", "n9", "n10", "n11", "n12", "n13",
+            "n14"/* , "n15" */);
+        assertMatches("parentNodeTypes-" + maxPathDepth, changeSet.getParentNodeTypes(),
+            "test:parentType", "test:even",
+            "test:odd");
+        assertMatches("allNodeTypes-" + maxPathDepth, changeSet.getAllNodeTypes(),
+            "test:parentType", "test:even", "test:odd");
+        assertMatches("propertyNames-" + maxPathDepth, changeSet.getPropertyNames(),
+            JcrConstants.JCR_PRIMARYTYPE,
+            /* "nextProp0", */"nextProp1", "nextProp2", /* "nextProp3", */ "nextProp4",
+            "nextProp5"/* , "nextProp6" */
+            , "nextProp7", "nextProp8", /* "nextProp9", */"nextProp10", "nextProp11",
+            /* "nextProp12", */ "nextProp13",
+            "nextProp14"/* , "nextProp15" */);
     }
 
     @Test
     public void testAddMixin() throws Exception {
         Root root = session.getLatestRoot();
         Tree rootTree = root.getTree("/test");
-        rootTree.addChild("child").setProperty(JcrConstants.JCR_MIXINTYPES, Arrays.asList("aMixin1", "aMixin2"),
-                Type.NAMES);
+        rootTree.addChild("child")
+                .setProperty(JcrConstants.JCR_MIXINTYPES, Arrays.asList("aMixin1", "aMixin2"),
+                    Type.NAMES);
 
         root.commit();
         ChangeSet changeSet = getSingleChangeSet();
         assertMatches("parentPaths", changeSet.getParentPaths(), "/test", "/test/child");
         assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test", "child");
-        assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType", "aMixin1", "aMixin2");
-        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "aMixin1", "aMixin2");
+        assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType",
+            "aMixin1", "aMixin2");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "aMixin1",
+            "aMixin2");
         assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_MIXINTYPES);
     }
 
@@ -461,9 +514,12 @@ public class ChangeCollectorProviderTest {
         ChangeSet changeSet = getSingleChangeSet();
         assertMatches("parentPaths", changeSet.getParentPaths(), "/test", "/test/newchild");
         assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test", "newchild");
-        assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType", "aPrimaryType");
-        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "aPrimaryType");
-        assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE, "aProp");
+        assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType",
+            "aPrimaryType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType",
+            "aPrimaryType");
+        assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE,
+            "aProp");
     }
 
     @Test
@@ -488,14 +544,16 @@ public class ChangeCollectorProviderTest {
         }
         root.commit();
         ChangeSet changeSet = getSingleChangeSet();
-        assertMatches("parentPaths", changeSet.getParentPaths(), expectedParentPaths.toArray(new String[0]));
+        assertMatches("parentPaths", changeSet.getParentPaths(),
+            expectedParentPaths.toArray(new String[0]));
         assertMatches("parentNodeNames", changeSet.getParentNodeNames(),
-                expectedParentNodeNames.toArray(new String[0]));
+            expectedParentNodeNames.toArray(new String[0]));
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(),
-                expectedParentNodeTypes.toArray(new String[0]));
+            expectedParentNodeTypes.toArray(new String[0]));
         assertMatches("allNodeTypes", changeSet.getAllNodeTypes(),
-                expectedParentNodeTypes.toArray(new String[0]));
-        assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE, "aProperty");
+            expectedParentNodeTypes.toArray(new String[0]));
+        assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE,
+            "aProperty");
     }
 
     @Test
@@ -506,7 +564,8 @@ public class ChangeCollectorProviderTest {
         }
     }
 
-    private void doTestPathOverflown(int overflowCnt) throws CommitFailedException, PrivilegedActionException {
+    private void doTestPathOverflown(int overflowCnt)
+        throws CommitFailedException, PrivilegedActionException {
         setup();
         Root root = session.getLatestRoot();
         Tree rootTree = root.getTree("/test");
@@ -539,8 +598,10 @@ public class ChangeCollectorProviderTest {
         assertMatches("parentPaths", changeSet.getParentPaths(), "/test/child1");
         assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "child1");
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:childType");
-        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:childType");
-        assertMatches("propertyNames", changeSet.getPropertyNames(), expectedPropertyNames.toArray(new String[0]));
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType",
+            "test:childType");
+        assertMatches("propertyNames", changeSet.getPropertyNames(),
+            expectedPropertyNames.toArray(new String[0]));
     }
 
     @Test
@@ -550,7 +611,8 @@ public class ChangeCollectorProviderTest {
         }
     }
 
-    private void doTestPropertyOverflown(int overflowCnt) throws CommitFailedException, PrivilegedActionException {
+    private void doTestPropertyOverflown(int overflowCnt)
+        throws CommitFailedException, PrivilegedActionException {
         setup();
         Root root = session.getLatestRoot();
         Tree rootTree = root.getTree("/test");
@@ -566,12 +628,14 @@ public class ChangeCollectorProviderTest {
         assertMatches("parentPaths", changeSet.getParentPaths(), "/test/child1");
         assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "child1");
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:childType");
-        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:childType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType",
+            "test:childType");
         assertEquals("propertyNames", null, changeSet.getPropertyNames());
     }
 
     @Test
-    public void testRemoveMaxPathDepthAll() throws CommitFailedException, PrivilegedActionException {
+    public void testRemoveMaxPathDepthAll()
+        throws CommitFailedException, PrivilegedActionException {
         for (int i = 0; i < 16; i++) {
             setup();
             doRemoveMaxPathDepth(i);
@@ -587,7 +651,8 @@ public class ChangeCollectorProviderTest {
             next = next.addChild("n" + i);
             if (i % 3 != 0) {
                 next.setProperty("nextProp" + i, i);
-                next.setProperty(JcrConstants.JCR_PRIMARYTYPE, i % 2 == 0 ? "test:even" : "test:odd", Type.NAME);
+                next.setProperty(JcrConstants.JCR_PRIMARYTYPE,
+                    i % 2 == 0 ? "test:even" : "test:odd", Type.NAME);
             }
         }
         root.commit();
@@ -618,16 +683,21 @@ public class ChangeCollectorProviderTest {
         }
         expectedParentPaths.add(path);
         assertMatches("parentPaths-" + maxPathDepth, changeSet.getParentPaths(),
-                expectedParentPaths.toArray(new String[0]));
-        assertMatches("parentNodeNames-" + maxPathDepth, changeSet.getParentNodeNames(), "n13", "n14");
-        assertMatches("parentNodeTypes-" + maxPathDepth, changeSet.getParentNodeTypes(), "test:even", "test:odd");
-        assertMatches("allNodeTypes-" + maxPathDepth, changeSet.getAllNodeTypes(), "test:parentType", "test:even", "test:odd");
-        assertMatches("propertyNames-" + maxPathDepth, changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE,
-                "nextProp14");
+            expectedParentPaths.toArray(new String[0]));
+        assertMatches("parentNodeNames-" + maxPathDepth, changeSet.getParentNodeNames(), "n13",
+            "n14");
+        assertMatches("parentNodeTypes-" + maxPathDepth, changeSet.getParentNodeTypes(),
+            "test:even", "test:odd");
+        assertMatches("allNodeTypes-" + maxPathDepth, changeSet.getAllNodeTypes(),
+            "test:parentType", "test:even", "test:odd");
+        assertMatches("propertyNames-" + maxPathDepth, changeSet.getPropertyNames(),
+            JcrConstants.JCR_PRIMARYTYPE,
+            "nextProp14");
     }
 
     @Test
-    public void testChangeMaxPathDepthAll() throws CommitFailedException, PrivilegedActionException {
+    public void testChangeMaxPathDepthAll()
+        throws CommitFailedException, PrivilegedActionException {
         for (int maxPathDepth = 0; maxPathDepth < 16; maxPathDepth++) {
             for (int changeAt = 0; changeAt < 16; changeAt++) {
                 setup();
@@ -645,7 +715,8 @@ public class ChangeCollectorProviderTest {
             next = next.addChild("n" + i);
             if (i % 3 != 0) {
                 next.setProperty("nextProp" + i, i);
-                next.setProperty(JcrConstants.JCR_PRIMARYTYPE, i % 2 == 0 ? "test:even" : "test:odd", Type.NAME);
+                next.setProperty(JcrConstants.JCR_PRIMARYTYPE,
+                    i % 2 == 0 ? "test:even" : "test:odd", Type.NAME);
             }
         }
         root.commit();
@@ -684,7 +755,8 @@ public class ChangeCollectorProviderTest {
                 String propertyName = "nextProp" + i;
                 next.setProperty(propertyName, i + 1);
                 expectedPropertyNames.add(propertyName);
-                final String changedNodeTypeName = i % 2 == 0 ? "test:evenChanged" : "test:oddChanged";
+                final String changedNodeTypeName =
+                    i % 2 == 0 ? "test:evenChanged" : "test:oddChanged";
                 expectedParentNodeTypes.add(changedNodeTypeName);
                 expectedAllNodeTypes.add(changedNodeTypeName);
                 next.setProperty(JcrConstants.JCR_PRIMARYTYPE, changedNodeTypeName, Type.NAME);
@@ -695,15 +767,18 @@ public class ChangeCollectorProviderTest {
 
         ChangeSet changeSet = getSingleChangeSet();
         assertMatches("parentPaths-" + changeAt + "-" + maxPathDepth, changeSet.getParentPaths(),
-                expectedParentPaths.toArray(new String[0]));
-        assertMatches("parentNodeNames-" + changeAt + "-" + maxPathDepth, changeSet.getParentNodeNames(),
-                expectedParentNodeNames.toArray(new String[0]));
-        assertMatches("parentNodeTypes-" + changeAt + "-" + maxPathDepth, changeSet.getParentNodeTypes(),
-                expectedParentNodeTypes.toArray(new String[0]));
+            expectedParentPaths.toArray(new String[0]));
+        assertMatches("parentNodeNames-" + changeAt + "-" + maxPathDepth,
+            changeSet.getParentNodeNames(),
+            expectedParentNodeNames.toArray(new String[0]));
+        assertMatches("parentNodeTypes-" + changeAt + "-" + maxPathDepth,
+            changeSet.getParentNodeTypes(),
+            expectedParentNodeTypes.toArray(new String[0]));
         assertMatches("allNodeTypes-" + changeAt + "-" + maxPathDepth, changeSet.getAllNodeTypes(),
-                expectedAllNodeTypes.toArray(new String[0]));
-        assertMatches("propertyNames-" + changeAt + "-" + maxPathDepth, changeSet.getPropertyNames(),
-                expectedPropertyNames.toArray(new String[0]));
+            expectedAllNodeTypes.toArray(new String[0]));
+        assertMatches("propertyNames-" + changeAt + "-" + maxPathDepth,
+            changeSet.getPropertyNames(),
+            expectedPropertyNames.toArray(new String[0]));
     }
 
 }

@@ -56,7 +56,8 @@ public class ResultRowToAuthorizableTest extends AbstractUserTest {
     }
 
     @NotNull
-    private ResultRowToAuthorizable createResultRowToAuthorizable(@NotNull Root r, @Nullable AuthorizableType targetType) {
+    private ResultRowToAuthorizable createResultRowToAuthorizable(@NotNull Root r,
+        @Nullable AuthorizableType targetType) {
         UserManagerImpl umgr = createUserManagerImpl(r);
         return new ResultRowToAuthorizable(umgr, r, targetType, new String[0]);
     }
@@ -120,7 +121,8 @@ public class ResultRowToAuthorizableTest extends AbstractUserTest {
         User user = getTestUser();
         String userPath = user.getPath();
 
-        try (ContentSession cs = login(new SimpleCredentials(user.getID(), user.getID().toCharArray()))) {
+        try (ContentSession cs = login(
+            new SimpleCredentials(user.getID(), user.getID().toCharArray()))) {
             Root r = cs.getLatestRoot();
             ResultRowToAuthorizable rrta = createResultRowToAuthorizable(r, null);
             assertNull(rrta.apply(createResultRow(r.getTree(userPath))));

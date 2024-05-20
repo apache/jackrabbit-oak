@@ -59,18 +59,20 @@ import com.codahale.metrics.MetricRegistry;
 public class StatisticsProviderFactory {
 
     @ObjectClassDefinition(
-            name = "Apache Jackrabbit Oak StatisticsProviderFactory",
-            description = "Creates a statistics providers used by Oak. By default if checks if Metrics (" +
-                    "See http://metrics.dropwizard.io) library is present then that is used. Otherwise it fallbacks " +
-                    "to default"
+        name = "Apache Jackrabbit Oak StatisticsProviderFactory",
+        description =
+            "Creates a statistics providers used by Oak. By default if checks if Metrics (" +
+                "See http://metrics.dropwizard.io) library is present then that is used. Otherwise it fallbacks "
+                +
+                "to default"
     )
     @interface Configuration {
 
         @AttributeDefinition(options = {
-                    @Option(label = TYPE_DEFAULT, value = TYPE_DEFAULT),
-                    @Option(label = TYPE_METRIC, value = TYPE_METRIC),
-                    @Option(label = TYPE_NONE, value = TYPE_NONE)
-                })
+            @Option(label = TYPE_DEFAULT, value = TYPE_DEFAULT),
+            @Option(label = TYPE_METRIC, value = TYPE_METRIC),
+            @Option(label = TYPE_NONE, value = TYPE_NONE)
+        })
         String providerType() default TYPE_AUTO;
 
     }
@@ -80,19 +82,18 @@ public class StatisticsProviderFactory {
     private static final String TYPE_NONE = "NONE";
     private static final String TYPE_AUTO = "AUTO";
     private static final String METRIC_PROVIDER_CLASS =
-            "com.codahale.metrics.MetricRegistry";
+        "com.codahale.metrics.MetricRegistry";
 
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     /**
-     * Keeping this as optional as for default case MBeanServer is not required
-     * Further Metrics would bound to default platform MBeanServer is no explicit
-     * server is provided.
+     * Keeping this as optional as for default case MBeanServer is not required Further Metrics
+     * would bound to default platform MBeanServer is no explicit server is provided.
      */
     @Reference(cardinality = ReferenceCardinality.OPTIONAL)
     private MBeanServer server;
-    
+
     private StatisticsProvider statisticsProvider;
     private List<ServiceRegistration> regs = Lists.newArrayList();
     private ScheduledExecutorService executor;
@@ -105,13 +106,13 @@ public class StatisticsProviderFactory {
 
         if (statisticsProvider != null) {
             regs.add(context.registerService(StatisticsProvider.class.getName(),
-                    statisticsProvider, null));
+                statisticsProvider, null));
         }
     }
 
     @Deactivate
     private void deactivate() throws IOException {
-        for (ServiceRegistration reg : regs){
+        for (ServiceRegistration reg : regs) {
             reg.unregister();
         }
         regs.clear();
@@ -147,11 +148,11 @@ public class StatisticsProviderFactory {
 
     private StatisticsProvider createMetricsProvider(ScheduledExecutorService executor) {
         org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider metricProvider =
-         new org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider(server, executor);
+            new org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider(server, executor);
         Dictionary<String, Object> dictionary = new Hashtable<>();
         dictionary.put("name", "oak");
         regs.add(bundleContext.registerService(MetricRegistry.class,
-                metricProvider.getRegistry(),  dictionary));
+            metricProvider.getRegistry(), dictionary));
         return metricProvider;
     }
 

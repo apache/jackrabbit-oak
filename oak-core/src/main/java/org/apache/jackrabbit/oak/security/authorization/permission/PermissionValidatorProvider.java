@@ -38,8 +38,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * {@code ValidatorProvider} implementation for permission evaluation associated
- * with write operations.
+ * {@code ValidatorProvider} implementation for permission evaluation associated with write
+ * operations.
  */
 public class PermissionValidatorProvider extends ValidatorProvider {
 
@@ -56,12 +56,14 @@ public class PermissionValidatorProvider extends ValidatorProvider {
     private Context userCtx;
 
     public PermissionValidatorProvider(@NotNull String workspaceName,
-                                       @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker,
-                                       @NotNull ProviderCtx providerCtx) {
-        this.acConfig = providerCtx.getSecurityProvider().getConfiguration(AuthorizationConfiguration.class);
+        @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker,
+        @NotNull ProviderCtx providerCtx) {
+        this.acConfig = providerCtx.getSecurityProvider()
+                                   .getConfiguration(AuthorizationConfiguration.class);
 
         ConfigurationParameters params = acConfig.getParameters();
-        String compatValue = params.getConfigValue(PermissionConstants.PARAM_PERMISSIONS_JR2, null, String.class);
+        String compatValue = params.getConfigValue(PermissionConstants.PARAM_PERMISSIONS_JR2, null,
+            String.class);
         jr2Permissions = Permissions.getPermissions(compatValue);
 
         this.workspaceName = workspaceName;
@@ -75,7 +77,8 @@ public class PermissionValidatorProvider extends ValidatorProvider {
     @NotNull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
-        PermissionProvider pp = acConfig.getPermissionProvider(createReadOnlyRoot(before), workspaceName, principals);
+        PermissionProvider pp = acConfig.getPermissionProvider(createReadOnlyRoot(before),
+            workspaceName, principals);
         if (moveTracker.isEmpty()) {
             return new PermissionValidator(before, after, pp, this);
         } else {
@@ -95,7 +98,8 @@ public class PermissionValidatorProvider extends ValidatorProvider {
     @NotNull
     Context getUserContext() {
         if (userCtx == null) {
-            UserConfiguration uc = providerCtx.getSecurityProvider().getConfiguration(UserConfiguration.class);
+            UserConfiguration uc = providerCtx.getSecurityProvider()
+                                              .getConfiguration(UserConfiguration.class);
             userCtx = uc.getContext();
         }
         return userCtx;

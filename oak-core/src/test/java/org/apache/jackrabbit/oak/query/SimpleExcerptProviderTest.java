@@ -38,30 +38,30 @@ public class SimpleExcerptProviderTest {
         //     System.setProperty("oak.query.caseSensitiveHighlight", "true");
         // }
         assertEquals("<div><span><strong>fox</strong> is jumping and dancing foxtrot</span></div>",
-                highlight(sb("fox is jumping and dancing foxtrot"), of("Fox")));
+            highlight(sb("fox is jumping and dancing foxtrot"), of("Fox")));
         assertEquals("<div><span>fox is <strong>jumping</strong></span></div>",
-                highlight(sb("fox is jumping"), of("jUmP*")));
+            highlight(sb("fox is jumping"), of("jUmP*")));
     }
 
     @Test
     public void simpleTest() throws Exception {
         assertEquals("<div><span><strong>fox</strong> is jumping</span></div>",
-                highlight(sb("fox is jumping"), of("fox")));
+            highlight(sb("fox is jumping"), of("fox")));
         assertEquals("<div><span>fox is <strong>jumping</strong></span></div>",
-                highlight(sb("fox is jumping"), of("jump*")));
+            highlight(sb("fox is jumping"), of("jump*")));
 
     }
 
     @Test
     public void highlightWithWildCard() throws Exception {
         assertEquals("<div><span><strong>fox</strong> is jumping</span></div>",
-                highlight(sb("fox is jumping"), of("fox *")));
+            highlight(sb("fox is jumping"), of("fox *")));
     }
 
     @Test
     public void highlightIgnoreStar() throws Exception {
         assertEquals("<div><span>10 * 10</span></div>",
-                highlight(sb("10 * 10"), of("fox *")));
+            highlight(sb("10 * 10"), of("fox *")));
     }
 
     @Test
@@ -76,42 +76,44 @@ public class SimpleExcerptProviderTest {
     @Test
     public void hightlightCompleteWordOnly() {
         // using 2 non-simple spaces as mentioned in http://jkorpela.fi/chars/spaces.html
-        String[] delimiters = new String[] {" ", "\t", "\n", ":", "\u1680", "\u00A0"};
+        String[] delimiters = new String[]{" ", "\t", "\n", ":", "\u1680", "\u00A0"};
         Map<String, String> simpleCheck = Maps.newHashMap(); // highlight "of"
 
         // simple ones
         simpleCheck.put("official conflict of interest",
-                "<div><span>official conflict <strong>of</strong> interest</span></div>");
+            "<div><span>official conflict <strong>of</strong> interest</span></div>");
         simpleCheck.put("of to new city",
-                "<div><span><strong>of</strong> to new city</span></div>");
+            "<div><span><strong>of</strong> to new city</span></div>");
         simpleCheck.put("out of the roof",
-                "<div><span>out <strong>of</strong> the roof</span></div>");
+            "<div><span>out <strong>of</strong> the roof</span></div>");
         simpleCheck.put("well this is of",
-                "<div><span>well this is <strong>of</strong></span></div>");
+            "<div><span>well this is <strong>of</strong></span></div>");
 
         for (Map.Entry<String, String> simple : simpleCheck.entrySet()) {
             for (String delimiter : delimiters) {
                 String text = simple.getKey().replaceAll(" ", delimiter);
                 String expect = simple.getValue().replaceAll(" ", delimiter);
-                assertEquals("highlighting '" + text + "' for 'of' (delimiter - '" + delimiter + "')",
-                        expect, highlight(sb(text), of("of")));
+                assertEquals(
+                    "highlighting '" + text + "' for 'of' (delimiter - '" + delimiter + "')",
+                    expect, highlight(sb(text), of("of")));
             }
         }
 
         Map<String, String> wildcardCheck = Maps.newHashMap(); // highlight "of*"
         wildcardCheck.put("office room",
-                "<div><span><strong>office</strong> room</span></div>");
+            "<div><span><strong>office</strong> room</span></div>");
         wildcardCheck.put("office room off",
-                "<div><span><strong>office</strong> room <strong>off</strong></span></div>");
+            "<div><span><strong>office</strong> room <strong>off</strong></span></div>");
         wildcardCheck.put("big office room",
-                "<div><span>big <strong>office</strong> room</span></div>");
+            "<div><span>big <strong>office</strong> room</span></div>");
 
         for (Map.Entry<String, String> wildcard : wildcardCheck.entrySet()) {
             for (String delimiter : delimiters) {
                 String text = wildcard.getKey().replaceAll(" ", delimiter);
                 String expect = wildcard.getValue().replaceAll(" ", delimiter);
-                assertEquals("highlighting '" + text + "' for 'of*' (delimiter - '" + delimiter + "')",
-                        expect, highlight(sb(text), of("of*")));
+                assertEquals(
+                    "highlighting '" + text + "' for 'of*' (delimiter - '" + delimiter + "')",
+                    expect, highlight(sb(text), of("of*")));
             }
         }
     }
@@ -120,8 +122,8 @@ public class SimpleExcerptProviderTest {
     public void multipleSearchTokens() {
         String text = "To be, or not to be. That is the question!";
         String expected = "<div><span>To <strong>be</strong>, " +
-                "or not to <strong>be</strong>. " +
-                "That is the <strong>question</strong>!</span></div>";
+            "or not to <strong>be</strong>. " +
+            "That is the <strong>question</strong>!</span></div>";
 
         assertEquals(expected, highlight(sb(text), of("question", "be")));
         assertEquals(expected, highlight(sb(text), of("quest*", "be")));

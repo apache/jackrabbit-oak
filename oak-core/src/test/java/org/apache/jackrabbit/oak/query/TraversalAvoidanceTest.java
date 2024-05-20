@@ -47,44 +47,45 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 
 public class TraversalAvoidanceTest extends AbstractQueryTest {
-    
+
     Whiteboard wb;
     NodeStore nodeStore;
 
     private static final String QUERY = "SELECT * FROM [nt:base]";
-    
-    private static final String PATH_RESTRICTED_QUERY = 
-            "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/content/test0')";
-    
-    private static final String PATH_RESTRICTED_SLOW_TRAVERSAL_QUERY = 
-            "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/content')";
+
+    private static final String PATH_RESTRICTED_QUERY =
+        "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/content/test0')";
+
+    private static final String PATH_RESTRICTED_SLOW_TRAVERSAL_QUERY =
+        "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/content')";
 
     private TestQueryIndexProvider testIndexProvider = new TestQueryIndexProvider();
+
     @Override
     protected ContentRepository createRepository() {
         nodeStore = new MemoryNodeStore();
         Oak oak = new Oak(nodeStore)
-                .with(new OpenSecurityProvider())
-                .with(new InitialContent())
-                .with(new NodeCounterEditorProvider())
-                .with(testIndexProvider)
-                //Effectively disable async indexing auto run
-                //such that we can control run timing as per test requirement
-                .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
-                
-            wb = oak.getWhiteboard();
-            return oak.createContentRepository();      
+            .with(new OpenSecurityProvider())
+            .with(new InitialContent())
+            .with(new NodeCounterEditorProvider())
+            .with(testIndexProvider)
+            //Effectively disable async indexing auto run
+            //such that we can control run timing as per test requirement
+            .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
+
+        wb = oak.getWhiteboard();
+        return oak.createContentRepository();
     }
-    
+
     @Before
     public void before() throws Exception {
         session = createRepository().login(null, null);
         root = session.getLatestRoot();
         qe = root.getQueryEngine();
-        
+
         root.getTree("/oak:index/counter").setProperty("resolution", 100);
         root.getTree("/oak:index/counter").setProperty("seed", 1);
-        
+
         Tree content = root.getTree("/").addChild("content");
         // add 200'000 nodes under /content
         for (int i = 0; i < 2000; i++) {
@@ -94,7 +95,7 @@ public class TraversalAvoidanceTest extends AbstractQueryTest {
             }
         }
         root.commit();
-        
+
         runAsyncIndex();
     }
 
@@ -108,15 +109,16 @@ public class TraversalAvoidanceTest extends AbstractQueryTest {
         assertNotNull(async);
         async.run();
         root.refresh();
-    }    
+    }
 
     @Test
     public void noPlansLetTraversalWin() {
-        assertPlanSelection(QUERY, "traverse", "Traversal must be used if nothing else participates");
+        assertPlanSelection(QUERY, "traverse",
+            "Traversal must be used if nothing else participates");
         assertPlanSelection(PATH_RESTRICTED_QUERY, "traverse", "Traversal must be used if nothing" +
-                " else participates");
+            " else participates");
         assertPlanSelection(PATH_RESTRICTED_SLOW_TRAVERSAL_QUERY, "traverse", "Traversal must be" +
-                " used if nothing else participates");
+            " used if nothing else participates");
     }
 
     @Test
@@ -131,17 +133,18 @@ public class TraversalAvoidanceTest extends AbstractQueryTest {
         testIndexProvider.addPlan("plan1", 10000, true);
 
         assertPlanSelection(PATH_RESTRICTED_QUERY, "plan1", "Valid plan which evaluate path" +
-                " restrictions wins with query having path restriction");
+            " restrictions wins with query having path restriction");
 
         testIndexProvider.restPlans();
         testIndexProvider.addPlan("plan1", 10000, false);
 
         assertPlanSelection(PATH_RESTRICTED_QUERY, "traverse", "Valid plan which evaluate path" +
-                " restrictions wins with query having path restriction");
+            " restrictions wins with query having path restriction");
 
         testIndexProvider.restPlans();
         testIndexProvider.addPlan("plan1", 10, false);
-        assertPlanSelection(PATH_RESTRICTED_SLOW_TRAVERSAL_QUERY, "plan1", "cost wars still prevail");
+        assertPlanSelection(PATH_RESTRICTED_SLOW_TRAVERSAL_QUERY, "plan1",
+            "cost wars still prevail");
     }
 
     @Test
@@ -179,6 +182,7 @@ public class TraversalAvoidanceTest extends AbstractQueryTest {
     }
 
     class TestQueryIndexProvider implements QueryIndexProvider {
+
         private final TestQueryIndex queryIndex = new TestQueryIndex();
 
         void addPlan(String name, long cost, boolean supportsPathRestriction) {
@@ -197,6 +201,7 @@ public class TraversalAvoidanceTest extends AbstractQueryTest {
     }
 
     class TestQueryIndex implements QueryIndex, QueryIndex.AdvancedQueryIndex {
+
         final String name;
 
         final List<IndexPlan> plans;
@@ -219,6 +224,7 @@ public class TraversalAvoidanceTest extends AbstractQueryTest {
         public double getCost(Filter filter, NodeState rootState) {
             return getCost();
         }
+
         private double getCost() {
             return 500;//arbitrary cost - useless as we are AdvanceQueryIndex
         }
@@ -232,6 +238,7 @@ public class TraversalAvoidanceTest extends AbstractQueryTest {
         public Cursor query(IndexPlan plan, NodeState rootState) {
             return query();
         }
+
         private Cursor query() {
             return new TestEmptyCursor();
         }
@@ -247,7 +254,8 @@ public class TraversalAvoidanceTest extends AbstractQueryTest {
         }
 
         @Override
-        public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
+        public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder,
+            NodeState rootState) {
             return ImmutableList.copyOf(plans);
         }
 
@@ -258,12 +266,12 @@ public class TraversalAvoidanceTest extends AbstractQueryTest {
 
         void addPlan(String name, long cost, boolean supportsPathRestriction) {
             plans.add(new IndexPlan.Builder()
-                    .setCostPerEntry(1)
-                    .setCostPerExecution(1)
-                    .setEstimatedEntryCount(cost)
-                    .setSupportsPathRestriction(supportsPathRestriction)
-                    .setPlanName(name)
-                    .build());
+                .setCostPerEntry(1)
+                .setCostPerExecution(1)
+                .setEstimatedEntryCount(cost)
+                .setSupportsPathRestriction(supportsPathRestriction)
+                .setPlanName(name)
+                .build());
         }
 
         void resetPlans() {
@@ -289,7 +297,7 @@ public class TraversalAvoidanceTest extends AbstractQueryTest {
         }
     }
 
-    private String explain(String query){
+    private String explain(String query) {
         String explain = "explain " + query;
         return executeQuery(explain, SQL2).get(0);
     }

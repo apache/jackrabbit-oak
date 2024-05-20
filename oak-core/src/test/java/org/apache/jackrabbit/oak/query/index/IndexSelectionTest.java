@@ -44,46 +44,48 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
 public class IndexSelectionTest extends AbstractQueryTest {
+
     private TestIndexProvider testIndexProvider = new TestIndexProvider();
+
     @Override
     protected ContentRepository createRepository() {
         return new Oak()
-                .with(new OpenSecurityProvider())
-                .with(new InitialContent())
-                .with(new PropertyIndexEditorProvider())
-                .with(new PropertyIndexProvider())
-                .with(testIndexProvider)
-                .createContentRepository();
+            .with(new OpenSecurityProvider())
+            .with(new InitialContent())
+            .with(new PropertyIndexEditorProvider())
+            .with(new PropertyIndexProvider())
+            .with(testIndexProvider)
+            .createContentRepository();
     }
 
     @Test
-    public void uuidIndexQuery() throws Exception{
+    public void uuidIndexQuery() throws Exception {
         NodeUtil node = new NodeUtil(root.getTree("/"));
         String uuid = UUID.randomUUID().toString();
         node.setString(JcrConstants.JCR_UUID, uuid);
         root.commit();
 
-        assertQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] = '"+uuid+"' ",
-                ImmutableList.of("/"));
-        assertEquals("Test index plan should not be invoked", 
-                0, testIndexProvider.index.invocationCount);
+        assertQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] = '" + uuid + "' ",
+            ImmutableList.of("/"));
+        assertEquals("Test index plan should not be invoked",
+            0, testIndexProvider.index.invocationCount);
     }
-    
+
     @Test
-    public void uuidIndexNotNullQuery() throws Exception{
+    public void uuidIndexNotNullQuery() throws Exception {
         NodeUtil node = new NodeUtil(root.getTree("/"));
         String uuid = UUID.randomUUID().toString();
         node.setString(JcrConstants.JCR_UUID, uuid);
         root.commit();
 
         assertQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] is not null",
-                ImmutableList.of("/"));
-        assertEquals("Test index plan should be invoked", 
-                1, testIndexProvider.index.invocationCount);
+            ImmutableList.of("/"));
+        assertEquals("Test index plan should be invoked",
+            1, testIndexProvider.index.invocationCount);
     }
 
     @Test
-    public void uuidIndexInListQuery() throws Exception{
+    public void uuidIndexInListQuery() throws Exception {
         NodeUtil node = new NodeUtil(root.getTree("/"));
         String uuid = UUID.randomUUID().toString();
         String uuid2 = UUID.randomUUID().toString();
@@ -91,13 +93,15 @@ public class IndexSelectionTest extends AbstractQueryTest {
         root.commit();
 
         assertQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] in('" + uuid + "', '" + uuid2 + "')",
-                ImmutableList.of("/"));
-        assertEquals("Test index plan should be invoked", 
-                1, testIndexProvider.index.invocationCount);
+            ImmutableList.of("/"));
+        assertEquals("Test index plan should be invoked",
+            1, testIndexProvider.index.invocationCount);
     }
 
     private static class TestIndexProvider implements QueryIndexProvider {
+
         TestIndex index = new TestIndex();
+
         @NotNull
         @Override
         public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
@@ -106,7 +110,9 @@ public class IndexSelectionTest extends AbstractQueryTest {
     }
 
     private static class TestIndex implements QueryIndex {
+
         int invocationCount = 0;
+
         @Override
         public double getMinimumCost() {
             return PropertyIndexPlan.COST_OVERHEAD + 0.1;

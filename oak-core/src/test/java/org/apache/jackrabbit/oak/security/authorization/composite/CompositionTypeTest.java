@@ -26,7 +26,8 @@ public class CompositionTypeTest {
 
     @Test
     public void testOrFromString() {
-        String[] orNames = new String[] {OR.name(), OR.toString(), OR.name().toLowerCase(), OR.name().toUpperCase()};
+        String[] orNames = new String[]{OR.name(), OR.toString(), OR.name().toLowerCase(),
+            OR.name().toUpperCase()};
         for (String s : orNames) {
             assertSame(OR, CompositeAuthorizationConfiguration.CompositionType.fromString(s));
         }
@@ -34,7 +35,8 @@ public class CompositionTypeTest {
 
     @Test
     public void testAndFromString() {
-        String[] andNames = new String[] {AND.name(), AND.toString(), AND.name().toLowerCase(), AND.name().toUpperCase(), "any", ""};
+        String[] andNames = new String[]{AND.name(), AND.toString(), AND.name().toLowerCase(),
+            AND.name().toUpperCase(), "any", ""};
         for (String s : andNames) {
             assertSame(AND, CompositeAuthorizationConfiguration.CompositionType.fromString(s));
         }

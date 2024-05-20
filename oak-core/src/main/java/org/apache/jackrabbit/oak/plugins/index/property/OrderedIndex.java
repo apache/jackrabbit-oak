@@ -26,19 +26,20 @@ import org.jetbrains.annotations.Nullable;
  * IndexEditorProviders, ...
  */
 public interface OrderedIndex {
+
     /**
      * Deprecation message tracked when using the ordered index.
      */
     String DEPRECATION_MESSAGE =
         "Ordered Index has been deprecated since Oak 1.1.8. " +
-        "Please replace the index definition ({}) with Lucene Property index " +
-        "and remove the index providers from the repository. " +
-        "See docs at http://jackrabbit.apache.org/oak/docs";
+            "Please replace the index definition ({}) with Lucene Property index " +
+            "and remove the index providers from the repository. " +
+            "See docs at http://jackrabbit.apache.org/oak/docs";
     /**
      * the deprecation message will be tracked every N times
      */
     int TRACK_DEPRECATION_EVERY = 10000;
-    
+
     /**
      * enum for easing the order direction of the index
      */
@@ -46,25 +47,27 @@ public interface OrderedIndex {
         /**
          * ascending order configuration (default)
          */
-        ASC("ascending"), 
-        
+        ASC("ascending"),
+
         /**
          * descending order configuration
          */
         DESC("descending");
-        
+
         private final String direction;
+
         private OrderDirection(String direction) {
             this.direction = direction;
         }
+
         public String getDirection() {
             return direction;
         }
-        
+
         /**
          * retrieve an {@code OrderDirection} from a provided String. Will return null in case of
          * no-match
-         * 
+         *
          * @param direction the direction of the sorting: ascending or descending
          * @return the direction
          */
@@ -77,10 +80,10 @@ public interface OrderedIndex {
             }
             return null;
         }
-        
+
         /**
          * tells whether the provided index definition is ascending or descending
-         * 
+         *
          * @param indexMeta
          * @return the direction
          */
@@ -91,47 +94,49 @@ public interface OrderedIndex {
             }
             return direction;
         }
-        
+
         /**
          * convenience method that tells if the provided index definition is descending
-         * 
+         *
          * @param indexMeta
          * @return true if descending
          */
         public static boolean isDescending(NodeState indexMeta) {
             return DESC.equals(fromIndexMeta(indexMeta));
         }
-        
+
         public boolean isAscending() {
             return ASC.equals(this);
         }
-        
+
         public boolean isDescending() {
             return DESC.equals(this);
         }
 
         /**
          * convenience method that tells if the provided index definition is ascending
-         * 
+         *
          * @param indexMeta
          * @return true if ascending
          */
         public static boolean isAscending(NodeState indexMeta) {
             return ASC.equals(fromIndexMeta(indexMeta));
         }
-    };
-    
+    }
+
+    ;
+
     String TYPE = "ordered";
-    
+
     /**
      * the 'key' used for specifying the direction of the index when providing the configuration
-     * 
+     * <p>
      * {@code  { "propertyNames"="foobar", "direction"="ascending" } }
      */
     String DIRECTION = "direction";
-    
+
     /**
      * the default direction for sorting the index
      */
-    OrderDirection DEFAULT_DIRECTION = OrderDirection.ASC;    
+    OrderDirection DEFAULT_DIRECTION = OrderDirection.ASC;
 }

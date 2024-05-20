@@ -52,6 +52,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefi
 import static org.junit.Assert.*;
 
 public class AsyncIndexerServiceTest {
+
     @Rule
     public final OsgiContext context = new OsgiContext();
 
@@ -60,10 +61,10 @@ public class AsyncIndexerServiceTest {
 
 
     @Test
-    public void asyncReg() throws Exception{
+    public void asyncReg() throws Exception {
         injectDefaultServices();
-        Map<String,Object> config = ImmutableMap.<String, Object>of(
-                "asyncConfigs", new String[] {"async:5"}
+        Map<String, Object> config = ImmutableMap.<String, Object>of(
+            "asyncConfigs", new String[]{"async:5"}
         );
         MockOsgi.activate(service, context.bundleContext(), config);
         assertNotNull(context.getService(Runnable.class));
@@ -83,9 +84,9 @@ public class AsyncIndexerServiceTest {
     @Test
     public void leaseTimeout() {
         injectDefaultServices();
-        Map<String,Object> config = ImmutableMap.<String, Object>of(
-                "asyncConfigs", new String[] {"async:5"},
-                "leaseTimeOutMinutes" , "20"
+        Map<String, Object> config = ImmutableMap.<String, Object>of(
+            "asyncConfigs", new String[]{"async:5"},
+            "leaseTimeOutMinutes", "20"
         );
         MockOsgi.activate(service, context.bundleContext(), config);
         AsyncIndexUpdate indexUpdate = getIndexUpdate("async");
@@ -95,9 +96,9 @@ public class AsyncIndexerServiceTest {
     @Test
     public void leaseTimeout2() {
         injectDefaultServices();
-        Map<String,Object> config = ImmutableMap.<String, Object>of(
-                "asyncConfigs", new String[] {"async:5:13", "foo-async:5"},
-                "leaseTimeOutMinutes" , "20"
+        Map<String, Object> config = ImmutableMap.<String, Object>of(
+            "asyncConfigs", new String[]{"async:5:13", "foo-async:5"},
+            "leaseTimeOutMinutes", "20"
         );
         MockOsgi.activate(service, context.bundleContext(), config);
         AsyncIndexUpdate indexUpdate = getIndexUpdate("async");
@@ -108,18 +109,18 @@ public class AsyncIndexerServiceTest {
     }
 
     @Test
-    public void changeCollectionEnabled() throws Exception{
+    public void changeCollectionEnabled() throws Exception {
         injectDefaultServices();
-        Map<String,Object> config = ImmutableMap.<String, Object>of(
-                "asyncConfigs", new String[] {"async:5"}
+        Map<String, Object> config = ImmutableMap.<String, Object>of(
+            "asyncConfigs", new String[]{"async:5"}
         );
         context.registerService(IndexEditorProvider.class, new PropertyIndexEditorProvider());
         MockOsgi.activate(service, context.bundleContext(), config);
 
         NodeBuilder builder = nodeStore.getRoot().builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null)
-                .setProperty(ASYNC_PROPERTY_NAME, "async");
+            "rootIndex", true, false, ImmutableSet.of("foo"), null)
+            .setProperty(ASYNC_PROPERTY_NAME, "async");
         builder.child("testRoot").setProperty("foo", "abc");
 
         // merge it back in
@@ -131,20 +132,22 @@ public class AsyncIndexerServiceTest {
         AsyncIndexUpdate indexUpdate = getIndexUpdate("async");
         indexUpdate.run();
 
-        CommitContext commitContext = (CommitContext) infoCollector.infos.get(0).getInfo().get(CommitContext.NAME);
+        CommitContext commitContext = (CommitContext) infoCollector.infos.get(0).getInfo()
+                                                                         .get(CommitContext.NAME);
         assertNotNull(commitContext);
-        ChangeSet changeSet = (ChangeSet) commitContext.get(ChangeSet.COMMIT_CONTEXT_OBSERVATION_CHANGESET);
+        ChangeSet changeSet = (ChangeSet) commitContext.get(
+            ChangeSet.COMMIT_CONTEXT_OBSERVATION_CHANGESET);
         assertNotNull(changeSet);
     }
 
     @Test
-    public void nonClusterableNodeStoreAndLeaseTimeout() throws Exception{
+    public void nonClusterableNodeStoreAndLeaseTimeout() throws Exception {
         nodeStore = new MemoryNodeStore();
         injectDefaultServices();
 
-        Map<String,Object> config = ImmutableMap.<String, Object>of(
-                "asyncConfigs", new String[] {"async:5"},
-                "leaseTimeOutMinutes" , "20"
+        Map<String, Object> config = ImmutableMap.<String, Object>of(
+            "asyncConfigs", new String[]{"async:5"},
+            "leaseTimeOutMinutes", "20"
         );
         MockOsgi.activate(service, context.bundleContext(), config);
         AsyncIndexUpdate indexUpdate = getIndexUpdate("async");
@@ -152,7 +155,7 @@ public class AsyncIndexerServiceTest {
     }
 
     @Test
-    public void configParsing() throws Exception{
+    public void configParsing() throws Exception {
         List<AsyncConfig> configs = AsyncIndexerService.getAsyncConfig(new String[]{"async:15"});
         assertEquals(1, configs.size());
         assertEquals("async", configs.get(0).name);
@@ -171,17 +174,19 @@ public class AsyncIndexerServiceTest {
     }
 
     @Test
-    public void corruptIndexTimeout() throws Exception{
+    public void corruptIndexTimeout() throws Exception {
         injectDefaultServices();
-        Map<String,Object> config = ImmutableMap.<String, Object>of(
-                "asyncConfigs", new String[] {"async:5"},
-                "failingIndexTimeoutSeconds" , "43",
-                "errorWarnIntervalSeconds" , "53"
+        Map<String, Object> config = ImmutableMap.<String, Object>of(
+            "asyncConfigs", new String[]{"async:5"},
+            "failingIndexTimeoutSeconds", "43",
+            "errorWarnIntervalSeconds", "53"
         );
         MockOsgi.activate(service, context.bundleContext(), config);
         AsyncIndexUpdate indexUpdate = getIndexUpdate("async");
-        assertEquals(TimeUnit.SECONDS.toMillis(43), indexUpdate.getCorruptIndexHandler().getCorruptIntervalMillis());
-        assertEquals(TimeUnit.SECONDS.toMillis(53), indexUpdate.getCorruptIndexHandler().getErrorWarnIntervalMillis());
+        assertEquals(TimeUnit.SECONDS.toMillis(43),
+            indexUpdate.getCorruptIndexHandler().getCorruptIntervalMillis());
+        assertEquals(TimeUnit.SECONDS.toMillis(53),
+            indexUpdate.getCorruptIndexHandler().getErrorWarnIntervalMillis());
     }
 
     private void injectDefaultServices() {
@@ -192,10 +197,13 @@ public class AsyncIndexerServiceTest {
     }
 
     private AsyncIndexUpdate getIndexUpdate(String name) {
-        return (AsyncIndexUpdate) context.getServices(Runnable.class, "(oak.async="+name+")")[0];
+        return (AsyncIndexUpdate) context.getServices(Runnable.class,
+            "(oak.async=" + name + ")")[0];
     }
 
-    private static class FakeClusterableMemoryNodeStore extends MemoryNodeStore implements Clusterable {
+    private static class FakeClusterableMemoryNodeStore extends MemoryNodeStore implements
+        Clusterable {
+
         @NotNull
         @Override
         public String getInstanceId() {
@@ -208,7 +216,8 @@ public class AsyncIndexerServiceTest {
         }
 
         @Override
-        public boolean isVisible(String visibilityToken, long maxWaitMillis) throws InterruptedException {
+        public boolean isVisible(String visibilityToken, long maxWaitMillis)
+            throws InterruptedException {
             return true;
         }
     }

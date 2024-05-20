@@ -40,23 +40,23 @@ public class MultipleIndicesTest extends AbstractQueryTest {
     @Override
     protected ContentRepository createRepository() {
         return new Oak()
-                .with(new InitialContent())
-                .with(new RepositoryInitializer() {
-                    @Override
-                    public void initialize(@NotNull NodeBuilder builder) {
-                        createIndexDefinition(
-                                getOrCreateOakIndex(builder), "pid",
-                                true, false, ImmutableList.of("pid"), null);
-                        createIndexDefinition(
-                                getOrCreateOakIndex(builder.child("content")),
-                                "pid", true, false, ImmutableList.of("pid"),
-                                null);
-                    }
-                })
-                .with(new OpenSecurityProvider())
-                .with(new PropertyIndexProvider())
-                .with(new PropertyIndexEditorProvider())
-                .createContentRepository();
+            .with(new InitialContent())
+            .with(new RepositoryInitializer() {
+                @Override
+                public void initialize(@NotNull NodeBuilder builder) {
+                    createIndexDefinition(
+                        getOrCreateOakIndex(builder), "pid",
+                        true, false, ImmutableList.of("pid"), null);
+                    createIndexDefinition(
+                        getOrCreateOakIndex(builder.child("content")),
+                        "pid", true, false, ImmutableList.of("pid"),
+                        null);
+                }
+            })
+            .with(new OpenSecurityProvider())
+            .with(new PropertyIndexProvider())
+            .with(new PropertyIndexEditorProvider())
+            .createContentRepository();
     }
 
     @Test
@@ -77,16 +77,16 @@ public class MultipleIndicesTest extends AbstractQueryTest {
 
         setTraversalEnabled(false);
         assertQuery("select [jcr:path] from [nt:base] where [cid] = 'foo'",
-                new ArrayList<String>());
+            new ArrayList<String>());
 
         assertQuery("select [jcr:path] from [nt:base] where [pid] = 'foo'",
-                ImmutableList.of("/", "/a", "/c", "/content/x"));
+            ImmutableList.of("/", "/a", "/c", "/content/x"));
 
         assertQuery("select [jcr:path] from [nt:base] where [pid] = 'bar'",
-                ImmutableList.of("/b", "/content/z"));
+            ImmutableList.of("/b", "/content/z"));
 
         assertQuery("select [jcr:path] from [nt:base] where [pid] = 'baz'",
-                ImmutableList.of("/content/y"));
+            ImmutableList.of("/content/y"));
         setTraversalEnabled(true);
     }
 
@@ -109,11 +109,11 @@ public class MultipleIndicesTest extends AbstractQueryTest {
 
         setTraversalEnabled(false);
         assertQuery("select [jcr:path] from [nt:base] where [pid] = 'value'",
-                ImmutableList.of("/node-1"));
+            ImmutableList.of("/node-1"));
         assertQuery("select [jcr:path] from [nt:base] where [pid] = ''",
-                ImmutableList.of("/node-2"));
+            ImmutableList.of("/node-2"));
         assertQuery("select [jcr:path] from [nt:base] where [pid] = ':'",
-                ImmutableList.of("/node-3"));
+            ImmutableList.of("/node-3"));
 
         setTraversalEnabled(true);
     }

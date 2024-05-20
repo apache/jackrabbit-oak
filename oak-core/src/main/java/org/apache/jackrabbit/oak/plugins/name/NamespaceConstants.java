@@ -19,5 +19,7 @@ package org.apache.jackrabbit.oak.plugins.name;
 /**
  * @deprecated Use {@link org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants} instead.
  */
-public interface NamespaceConstants extends org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants {
+public interface NamespaceConstants extends
+    org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants {
+
 }

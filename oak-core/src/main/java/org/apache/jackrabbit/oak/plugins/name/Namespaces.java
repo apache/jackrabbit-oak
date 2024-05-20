@@ -1,36 +1,21 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static javax.jcr.NamespaceRegistry.NAMESPACE_JCR;
 import static javax.jcr.NamespaceRegistry.NAMESPACE_MIX;
 import static javax.jcr.NamespaceRegistry.NAMESPACE_NT;
@@ -41,9 +26,23 @@ import static javax.jcr.NamespaceRegistry.PREFIX_NT;
 import static javax.jcr.NamespaceRegistry.PREFIX_XML;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.util.Text.escapeIllegalJcrChars;
+
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 /**
  * Internal static utility class for managing the persisted namespace registry.
@@ -56,26 +55,27 @@ public class Namespaces implements NamespaceConstants {
     private static final Map<String, String> ENCODED_URIS = newConcurrentMap();
 
     /**
-     * By default, item names with non space whitespace chars are not allowed.
-     * However initial Oak release did allowed that and this flag is provided
-     * to revert back to old behaviour if required for some case temporarily
+     * By default, item names with non space whitespace chars are not allowed. However initial Oak
+     * release did allowed that and this flag is provided to revert back to old behaviour if
+     * required for some case temporarily
      */
-    private static final boolean allowOtherWhitespaceChars = Boolean.getBoolean("oak.allowOtherWhitespaceChars");
+    private static final boolean allowOtherWhitespaceChars = Boolean.getBoolean(
+        "oak.allowOtherWhitespaceChars");
 
     /**
-     * By default, item names with control characters are not allowed.
-     * Oak releases prior to 1.10 allowed these (in conflict with the JCR
-     * specification), so if required the check can be turned off.
-     * See OAK-7208.
+     * By default, item names with control characters are not allowed. Oak releases prior to 1.10
+     * allowed these (in conflict with the JCR specification), so if required the check can be
+     * turned off. See OAK-7208.
      */
-    private static final boolean allowOtherControlChars = Boolean.getBoolean("oak.allowOtherControlChars");
+    private static final boolean allowOtherControlChars = Boolean.getBoolean(
+        "oak.allowOtherControlChars");
 
     /**
-     * By default, item names with non-ASCII whitespace characters are allowed.
-     * Oak releases prior to 1.10 disallowed these, so if required the check can
-     * be turned on again. See OAK-4857.
+     * By default, item names with non-ASCII whitespace characters are allowed. Oak releases prior
+     * to 1.10 disallowed these, so if required the check can be turned on again. See OAK-4857.
      */
-    private static final boolean disallowNonASCIIWhitespaceChars = Boolean.getBoolean("oak.disallowNonASCIIWhitespaceChars");
+    private static final boolean disallowNonASCIIWhitespaceChars = Boolean.getBoolean(
+        "oak.disallowNonASCIIWhitespaceChars");
 
     private Namespaces() {
     }
@@ -95,7 +95,7 @@ public class Namespaces implements NamespaceConstants {
 
         // Standard namespace specified by JCR (default one not included)
         namespaces.setProperty(PREFIX_JCR, NAMESPACE_JCR);
-        namespaces.setProperty(PREFIX_NT,  NAMESPACE_NT);
+        namespaces.setProperty(PREFIX_NT, NAMESPACE_NT);
         namespaces.setProperty(PREFIX_MIX, NAMESPACE_MIX);
         namespaces.setProperty(PREFIX_XML, NAMESPACE_XML);
 
@@ -110,13 +110,13 @@ public class Namespaces implements NamespaceConstants {
     }
 
     public static String addCustomMapping(
-            NodeBuilder namespaces, String uri, String prefixHint) {
+        NodeBuilder namespaces, String uri, String prefixHint) {
         // first look for an existing mapping for the given URI
         for (PropertyState property : namespaces.getProperties()) {
             if (property.getType() == STRING) {
                 String prefix = property.getName();
                 if (isValidPrefix(prefix)
-                        && uri.equals(property.getValue(STRING))) {
+                    && uri.equals(property.getValue(STRING))) {
                     return prefix;
                 }
             }
@@ -207,14 +207,14 @@ public class Namespaces implements NamespaceConstants {
 
     /**
      * encodes the uri value to be used as a property
-     * 
+     *
      * @param uri
      * @return encoded uri
      */
     public static String encodeUri(String uri) {
         String encoded = ENCODED_URIS.get(uri);
         if (encoded == null) {
-            encoded =  escapeIllegalJcrChars(uri);
+            encoded = escapeIllegalJcrChars(uri);
             if (ENCODED_URIS.size() > 1000) {
                 ENCODED_URIS.clear(); // prevents DoS attacks
             }
@@ -242,7 +242,8 @@ public class Namespaces implements NamespaceConstants {
             boolean spaceChar;
             if (disallowNonASCIIWhitespaceChars) {
                 // behavior before OAK-4857 was fixed
-                spaceChar = allowOtherWhitespaceChars ? Character.isSpaceChar(ch) : Character.isWhitespace(ch);
+                spaceChar = allowOtherWhitespaceChars ? Character.isSpaceChar(ch)
+                    : Character.isWhitespace(ch);
             } else {
                 // disallow just leading and trailing ' ', plus CR, LF and TAB
                 spaceChar = ch == ' ' || ch == 0x9 || ch == 0xa || ch == 0xd;
@@ -258,7 +259,8 @@ public class Namespaces implements NamespaceConstants {
                 }
             } else if ("/:[]|*".indexOf(ch) != -1) { // TODO: XMLChar check for unpaired surrogates
                 return false; // invalid name character
-            } else if (!allowOtherControlChars && ch >= 0 && ch < 32 && (ch != 9 && ch != 0xa && ch != 0xd)) {
+            } else if (!allowOtherControlChars && ch >= 0 && ch < 32 && (ch != 9 && ch != 0xa
+                && ch != 0xd)) {
                 // https://www.w3.org/TR/xml/#NT-Char - disallowed control chars
                 return false;
             }

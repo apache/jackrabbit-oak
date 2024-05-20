@@ -35,7 +35,8 @@ import static org.junit.Assert.assertTrue;
 
 public class PrincipalPermissionEntriesTest {
 
-    private final PermissionEntry permissionEntry = new PermissionEntry("/path", true, 0, PrivilegeBits.BUILT_IN.get(PrivilegeBits.JCR_READ), RestrictionPattern.EMPTY);
+    private final PermissionEntry permissionEntry = new PermissionEntry("/path", true, 0,
+        PrivilegeBits.BUILT_IN.get(PrivilegeBits.JCR_READ), RestrictionPattern.EMPTY);
 
     @Test
     public void testExpectedSize() throws Exception {
@@ -104,7 +105,8 @@ public class PrincipalPermissionEntriesTest {
     public void testPutAllEntries() {
         PrincipalPermissionEntries ppe = new PrincipalPermissionEntries();
 
-        Map<String, Collection<PermissionEntry>> allEntries = ImmutableMap.of("/path", ImmutableSet.of(permissionEntry));
+        Map<String, Collection<PermissionEntry>> allEntries = ImmutableMap.of("/path",
+            ImmutableSet.of(permissionEntry));
         ppe.putAllEntries(allEntries);
 
         assertEquals(allEntries, ppe.getEntries());
@@ -173,7 +175,7 @@ public class PrincipalPermissionEntriesTest {
         PrincipalPermissionEntries ppe = new PrincipalPermissionEntries(2);
         Collection<PermissionEntry> collection = ImmutableSet.of(permissionEntry);
         Map<String, Collection<PermissionEntry>> allEntries =
-                        ImmutableMap.of("/path", collection, "/path2", collection);
+            ImmutableMap.of("/path", collection, "/path2", collection);
 
         ppe.putAllEntries(allEntries);
 
@@ -203,23 +205,25 @@ public class PrincipalPermissionEntriesTest {
     public void testEmptyPathsWithMaxSize() throws Exception {
         PrincipalPermissionEntries ppe = new PrincipalPermissionEntries();
         assertEquals(0, inspectEmptyPathSize(ppe));
-        for (int i = 0; i<1010; i++) {
-            ppe.rememberNotAccessControlled("/path" +i);
+        for (int i = 0; i < 1010; i++) {
+            ppe.rememberNotAccessControlled("/path" + i);
         }
         assertEquals(1000, inspectEmptyPathSize(ppe));
     }
 
-    private static long inspectExpectedSize(@NotNull PrincipalPermissionEntries ppe) throws Exception {
+    private static long inspectExpectedSize(@NotNull PrincipalPermissionEntries ppe)
+        throws Exception {
         Field f = PrincipalPermissionEntries.class.getDeclaredField("expectedSize");
         f.setAccessible(true);
 
         return (long) f.get(ppe);
     }
 
-    private static int inspectEmptyPathSize(@NotNull PrincipalPermissionEntries ppe) throws Exception {
+    private static int inspectEmptyPathSize(@NotNull PrincipalPermissionEntries ppe)
+        throws Exception {
         Field f = PrincipalPermissionEntries.class.getDeclaredField("emptyPaths");
         f.setAccessible(true);
 
-        return ((Map)f.get(ppe)).size();
+        return ((Map) f.get(ppe)).size();
     }
 }

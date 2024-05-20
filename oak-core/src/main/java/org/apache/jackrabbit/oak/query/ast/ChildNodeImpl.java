@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Collections;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -52,12 +51,12 @@ public class ChildNodeImpl extends ConstraintImpl {
     public void bindSelector(SourceImpl source) {
         selector = source.getExistingSelector(selectorName);
     }
-    
+
     @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
         return Collections.emptySet();
     }
-    
+
     @Override
     public Set<SelectorImpl> getSelectors() {
         return Collections.singleton(selector);

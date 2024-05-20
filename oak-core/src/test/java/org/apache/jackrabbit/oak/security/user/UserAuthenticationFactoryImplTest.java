@@ -38,7 +38,8 @@ public class UserAuthenticationFactoryImplTest extends AbstractSecurityTest {
 
     @Test
     public void testGetAuthentication() {
-        Authentication authentication = factory.getAuthentication(getUserConfiguration(), root, userId);
+        Authentication authentication = factory.getAuthentication(getUserConfiguration(), root,
+            userId);
         assertNotNull(authentication);
         assertTrue(authentication instanceof UserAuthentication);
     }

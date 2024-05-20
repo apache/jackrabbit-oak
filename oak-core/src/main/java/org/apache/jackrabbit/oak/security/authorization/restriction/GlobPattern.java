@@ -30,11 +30,10 @@ import org.jetbrains.annotations.Nullable;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
- * {@code GlobPattern} defines a simplistic pattern matching. It consists
- * of a mandatory (leading) path and an optional "glob" that may contain one or
- * more wildcard characters ("{@code *}") according to the glob matching
- * defined by {@link javax.jcr.Node#getNodes(String[])}. In contrast to that
- * method the {@code GlobPattern} operates on path (not only names).
+ * {@code GlobPattern} defines a simplistic pattern matching. It consists of a mandatory (leading)
+ * path and an optional "glob" that may contain one or more wildcard characters ("{@code *}")
+ * according to the glob matching defined by {@link javax.jcr.Node#getNodes(String[])}. In contrast
+ * to that method the {@code GlobPattern} operates on path (not only names).
  * <p>
  *
  * <p>
@@ -89,7 +88,7 @@ final class GlobPattern implements RestrictionPattern {
 
     private final Pattern pattern;
 
-    private GlobPattern(@NotNull String path, @NotNull String restriction)  {
+    private GlobPattern(@NotNull String path, @NotNull String restriction) {
         this.path = checkNotNull(path);
         this.restriction = restriction;
 
@@ -100,7 +99,7 @@ final class GlobPattern implements RestrictionPattern {
             int lastPos = restriction.lastIndexOf(WILDCARD_CHAR);
             if (lastPos >= 0) {
                 String end;
-                if (lastPos != restriction.length()-1) {
+                if (lastPos != restriction.length() - 1) {
                     end = restriction.substring(lastPos + 1);
                 } else {
                     end = null;
@@ -125,7 +124,8 @@ final class GlobPattern implements RestrictionPattern {
                 cnt++;
             }
             if (cnt > MAX_WILDCARD) {
-                throw new AccessControlException("Number of wildcards in rep:glob exceeds allowed complexity.");
+                throw new AccessControlException(
+                    "Number of wildcards in rep:glob exceeds allowed complexity.");
             }
         }
     }
@@ -133,7 +133,8 @@ final class GlobPattern implements RestrictionPattern {
     //-------------------------------------------------< RestrictionPattern >---
     @Override
     public boolean matches(@NotNull Tree tree, @Nullable PropertyState property) {
-        String itemPath = (property == null) ? tree.getPath() : PathUtils.concat(tree.getPath(), property.getName());
+        String itemPath = (property == null) ? tree.getPath()
+            : PathUtils.concat(tree.getPath(), property.getName());
         return matches(itemPath);
     }
 
@@ -166,16 +167,18 @@ final class GlobPattern implements RestrictionPattern {
         }
         if (obj instanceof GlobPattern) {
             GlobPattern other = (GlobPattern) obj;
-            return path.equals(other.path) &&  restriction.equals(other.restriction);
+            return path.equals(other.path) && restriction.equals(other.restriction);
         }
         return false;
     }
 
     //------------------------------------------------------< inner classes >---
+
     /**
      * Base for PathPattern and WildcardPattern
      */
     private interface Pattern {
+
         boolean matches(@NotNull String toMatch);
     }
 
@@ -221,13 +224,14 @@ final class GlobPattern implements RestrictionPattern {
                 // shortcut: verify if end of pattern matches end of toMatch
                 return false;
             }
-            char[] tm = (toMatch.endsWith("/")) ? toMatch.substring(0, toMatch.length()-1).toCharArray() : toMatch.toCharArray();
+            char[] tm =
+                (toMatch.endsWith("/")) ? toMatch.substring(0, toMatch.length() - 1).toCharArray()
+                    : toMatch.toCharArray();
             // shortcut didn't reveal mismatch -> need to process the internal match method.
             return matches(patternChars, 0, tm, 0, MAX_WILDCARD);
         }
 
         /**
-         *
          * @param pattern The pattern
          * @param pOff
          * @param s
@@ -235,7 +239,7 @@ final class GlobPattern implements RestrictionPattern {
          * @return {@code true} if matches, {@code false} otherwise
          */
         private boolean matches(char[] pattern, int pOff,
-                                char[] s, int sOff, int cnt) {
+            char[] s, int sOff, int cnt) {
 
             if (cnt <= 0) {
                 throw new IllegalArgumentException("Illegal glob pattern " + GlobPattern.this);

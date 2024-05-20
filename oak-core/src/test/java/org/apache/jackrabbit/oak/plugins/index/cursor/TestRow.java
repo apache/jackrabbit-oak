@@ -20,13 +20,13 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 
 public class TestRow implements IndexRow {
-    
+
     private final String path;
 
     TestRow(String path) {
         this.path = path;
     }
-    
+
     @Override
     public String getPath() {
         return path;
@@ -41,5 +41,5 @@ public class TestRow implements IndexRow {
     public boolean isVirtualRow() {
         return false;
     }
-    
+
 }

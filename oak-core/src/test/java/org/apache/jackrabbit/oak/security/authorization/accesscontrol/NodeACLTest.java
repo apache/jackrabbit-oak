@@ -59,7 +59,8 @@ public class NodeACLTest extends AbstractAccessControlTest {
     }
 
     @NotNull
-    private static ACL getNodeAcl(@NotNull JackrabbitAccessControlManager acMgr) throws RepositoryException {
+    private static ACL getNodeAcl(@NotNull JackrabbitAccessControlManager acMgr)
+        throws RepositoryException {
         for (AccessControlPolicy acp : acMgr.getPolicies(AbstractAccessControlTest.TEST_PATH)) {
             if (acp instanceof ACL) {
                 return (ACL) acp;
@@ -77,7 +78,8 @@ public class NodeACLTest extends AbstractAccessControlTest {
     @Test
     public void testEqualsDifferentPath() throws Exception {
         getAccessControlManager(root);
-        AccessControlList acl = AccessControlUtils.getAccessControlList(getAccessControlManager(root), null);
+        AccessControlList acl = AccessControlUtils.getAccessControlList(
+            getAccessControlManager(root), null);
         acl.addAccessControlEntry(testPrincipal, testPrivileges);
         acl.addAccessControlEntry(EveryonePrincipal.getInstance(), testPrivileges);
         assertNotEquals(nodeAcl, acl);
@@ -92,7 +94,8 @@ public class NodeACLTest extends AbstractAccessControlTest {
 
     @Test
     public void testEqualsDifferentAcessControlList() {
-        assertNotEquals(nodeAcl, createACL(TEST_PATH, nodeAcl.getEntries(), getNamePathMapper(), getRestrictionProvider()));
+        assertNotEquals(nodeAcl, createACL(TEST_PATH, nodeAcl.getEntries(), getNamePathMapper(),
+            getRestrictionProvider()));
     }
 
     @Test

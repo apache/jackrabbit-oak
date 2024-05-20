@@ -118,7 +118,8 @@ public class AutoSaveEnabledManagerTest extends AbstractAutoSaveTest {
 
     @Test
     public void testFindAuthorizable() throws RepositoryException {
-        Iterator<Authorizable> res = autosaveMgr.findAuthorizables(UserConstants.REP_AUTHORIZABLE_ID, UserConstants.DEFAULT_ANONYMOUS_ID);
+        Iterator<Authorizable> res = autosaveMgr.findAuthorizables(
+            UserConstants.REP_AUTHORIZABLE_ID, UserConstants.DEFAULT_ANONYMOUS_ID);
         assertTrue(res.hasNext());
 
         Authorizable a = res.next();
@@ -128,10 +129,13 @@ public class AutoSaveEnabledManagerTest extends AbstractAutoSaveTest {
 
     @Test
     public void testFindAuthorizableWithSearchType() throws RepositoryException {
-        Iterator<Authorizable> res = autosaveMgr.findAuthorizables(UserConstants.REP_AUTHORIZABLE_ID, UserConstants.DEFAULT_ANONYMOUS_ID, UserManager.SEARCH_TYPE_GROUP);
+        Iterator<Authorizable> res = autosaveMgr.findAuthorizables(
+            UserConstants.REP_AUTHORIZABLE_ID, UserConstants.DEFAULT_ANONYMOUS_ID,
+            UserManager.SEARCH_TYPE_GROUP);
         assertFalse(res.hasNext());
 
-        verify(mgrDlg, times(1)).findAuthorizables(UserConstants.REP_AUTHORIZABLE_ID, UserConstants.DEFAULT_ANONYMOUS_ID, UserManager.SEARCH_TYPE_GROUP);
+        verify(mgrDlg, times(1)).findAuthorizables(UserConstants.REP_AUTHORIZABLE_ID,
+            UserConstants.DEFAULT_ANONYMOUS_ID, UserManager.SEARCH_TYPE_GROUP);
         verify(autosaveMgr, never()).autosave();
     }
 
@@ -230,7 +234,7 @@ public class AutoSaveEnabledManagerTest extends AbstractAutoSaveTest {
         u.setProperty("prop", getValueFactory().createValue("value"));
         assertFalse(root.hasPendingChanges());
 
-        u.setProperty("prop", new Value[] {getValueFactory().createValue(true)});
+        u.setProperty("prop", new Value[]{getValueFactory().createValue(true)});
         assertFalse(root.hasPendingChanges());
 
         u.removeProperty("prop");

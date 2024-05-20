@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
+
 import java.util.regex.Pattern;
 
 import org.junit.Test;
@@ -46,7 +47,7 @@ public class GlobbingPathHelperTest {
 
         assertMatches("**/bar/**/foo", "bar/foo");
         assertMatches("**/bar/**/foo", "/bar/foo");
-        
+
         assertMatches("**/bar/**/foo", "a/bar/foo");
         assertMatches("**/bar/**/foo", "/a/bar/foo");
 
@@ -55,13 +56,13 @@ public class GlobbingPathHelperTest {
 
         assertMatches("**/bar/**/foo", "bar/a/b/c/foo");
         assertMatches("**/bar/**/foo", "/bar/a/b/c/foo");
-        
+
         assertMatches("/a/b/**/foo/*", "/a/b/foo/xy");
         assertDoesntMatch("/a/b/**/foo/*", "/a/b/barfoo/xy");
         assertDoesntMatch("/a/b/**/foo/*", "/a/bbar/foo/xy");
         assertDoesntMatch("/a/b/**/foo/*", "/a/bbar/barfoo/xy");
     }
-    
+
     @Test
     public void globSubPath2() throws Exception {
         assertMatches("foo", "foo");
@@ -74,11 +75,11 @@ public class GlobbingPathHelperTest {
 
         // '*' doesnt match /
         assertDoesntMatch("*.html", "/foo.html");
-        
+
         assertMatches("**/*.html", "foo.html");
         assertMatches("**/*.*", "foo.html");
         assertDoesntMatch("**/*.*", "foohtml");
-        
+
         assertMatches("**/*.html", "/foo.html");
         assertMatches("**/*.*", "/foo.html");
 
@@ -108,58 +109,58 @@ public class GlobbingPathHelperTest {
         // no '.':
         assertDoesntMatch("**/*.*", "/bar/zoo/foohtml");
     }
-    
+
     @Test
     public void globPath() throws Exception {
         // leading / only matches when path starts with / too
         assertDoesntMatch("/**", "foo");
         assertMatches("**", "foo");
         assertMatches("/**", "/foo");
-        
+
         // leading / only matches when path starts with / too
         assertDoesntMatch("/**", "foo/bar");
         assertMatches("**", "foo/bar");
         assertMatches("/**", "/foo/bar");
-        
+
         // leading / only matches when path starts with / too
         assertDoesntMatch("/**", "foo/bar/zoo");
         assertMatches("**", "foo/bar/zoo");
         assertMatches("/**", "/foo/bar/zoo");
-        
+
         // leading / only matches when path starts with / too
         assertDoesntMatch("/**/*.html", "foo.html");
         assertMatches("/**/*.html", "/foo.html");
-        
+
         // leading / only matches when path starts with / too
         assertDoesntMatch("/**/*.html", "bar/foo.html");
         assertMatches("/**/*.html", "/bar/foo.html");
-        
+
         // leading / only matches when path starts with / too
         assertDoesntMatch("/**/*.html", "bar/zoo/foo.html");
         assertMatches("/**/*.html", "/bar/zoo/foo.html");
-        
+
         // leading / only matches when path starts with / too
         assertDoesntMatch("/*.html", "foo.html");
         assertMatches("/*.html", "/foo.html");
-        
+
         assertMatches("/foo/bar/**", "/foo/bar");
-        
+
         // leading / only matches when path starts with / too
         assertDoesntMatch("/foo/bar/**", "foo/bar");
-        
+
         // /foo/barbar should not match /foo/bar/**
         assertDoesntMatch("/foo/bar/**", "/foo/barbar");
-        
+
         assertMatches("/foo/bar/**", "/foo/bar/zet");
     }
 
     private void assertMatches(String globPath, String path) {
         Pattern p = Pattern.compile(GlobbingPathHelper.globPathAsRegex(globPath));
-        assertTrue("'"+globPath+"' does not match '"+path+"'", p.matcher(path).matches());
+        assertTrue("'" + globPath + "' does not match '" + path + "'", p.matcher(path).matches());
     }
 
     private void assertDoesntMatch(String globPath, String path) {
         Pattern p = Pattern.compile(GlobbingPathHelper.globPathAsRegex(globPath));
-        assertFalse("'"+globPath+"' does match '"+path+"'", p.matcher(path).matches());
+        assertFalse("'" + globPath + "' does match '" + path + "'", p.matcher(path).matches());
     }
 }

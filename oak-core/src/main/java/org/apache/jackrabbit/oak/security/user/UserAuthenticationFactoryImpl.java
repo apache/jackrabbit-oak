@@ -27,13 +27,15 @@ import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Component;
 
 @Component(
-        service = UserAuthenticationFactory.class,
-        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.security.user.UserAuthenticationFactoryImpl")
+    service = UserAuthenticationFactory.class,
+    property = OAK_SECURITY_NAME
+        + "=org.apache.jackrabbit.oak.security.user.UserAuthenticationFactoryImpl")
 public class UserAuthenticationFactoryImpl implements UserAuthenticationFactory {
 
     @NotNull
     @Override
-    public Authentication getAuthentication(@NotNull UserConfiguration userConfiguration, @NotNull Root root, @Nullable String userId) {
+    public Authentication getAuthentication(@NotNull UserConfiguration userConfiguration,
+        @NotNull Root root, @Nullable String userId) {
         return new UserAuthentication(userConfiguration, root, userId);
     }
 }

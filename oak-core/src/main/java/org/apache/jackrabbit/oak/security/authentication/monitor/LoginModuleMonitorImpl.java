@@ -58,7 +58,8 @@ public class LoginModuleMonitorImpl implements LoginModuleMBean, LoginModuleMoni
         loginErrors = statisticsProvider.getMeter(LOGIN_ERRORS, StatsOptions.DEFAULT);
         loginFailed = statisticsProvider.getMeter(LOGIN_FAILED, StatsOptions.DEFAULT);
         loginTokenFailed = statisticsProvider.getMeter(LOGIN_TOKEN_FAILED, StatsOptions.DEFAULT);
-        loginImpersonationFailed = statisticsProvider.getMeter(LOGIN_IMPERSONATION_FAILED, StatsOptions.DEFAULT);
+        loginImpersonationFailed = statisticsProvider.getMeter(LOGIN_IMPERSONATION_FAILED,
+            StatsOptions.DEFAULT);
         principalsSize = statisticsProvider.getMeter(PRINCIPALS_SIZE, StatsOptions.DEFAULT);
         principalsTime = statisticsProvider.getTimer(PRINCIPALS_TIMER, StatsOptions.METRICS_ONLY);
     }
@@ -71,7 +72,8 @@ public class LoginModuleMonitorImpl implements LoginModuleMBean, LoginModuleMoni
     }
 
     @Override
-    public void loginFailed(@NotNull LoginException loginException, @Nullable Credentials credentials) {
+    public void loginFailed(@NotNull LoginException loginException,
+        @Nullable Credentials credentials) {
         if (credentials instanceof ImpersonationCredentials) {
             loginImpersonationFailed.mark();
         } else if (credentials instanceof TokenCredentials) {

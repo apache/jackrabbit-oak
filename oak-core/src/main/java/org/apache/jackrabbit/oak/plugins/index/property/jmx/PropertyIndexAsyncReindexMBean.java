@@ -22,9 +22,8 @@ import javax.management.openmbean.CompositeData;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * MBean for starting and monitoring the progress of asynchronous reindexing of
- * the property index
- * 
+ * MBean for starting and monitoring the progress of asynchronous reindexing of the property index
+ *
  * @see org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean
  */
 public interface PropertyIndexAsyncReindexMBean {
@@ -32,9 +31,8 @@ public interface PropertyIndexAsyncReindexMBean {
     String TYPE = "PropertyIndexAsyncReindex";
 
     /**
-     * Initiate a reindex operation for the property indexes marked for
-     * reindexing
-     * 
+     * Initiate a reindex operation for the property indexes marked for reindexing
+     *
      * @return the status of the operation right after it was initiated
      */
     @NotNull
@@ -42,10 +40,9 @@ public interface PropertyIndexAsyncReindexMBean {
 
     /**
      * Asynchronous Property Index reindexing status
-     * 
-     * @return the status of the ongoing operation or if none the terminal
-     *         status of the last operation or <em>Status not available</em> if
-     *         none.
+     *
+     * @return the status of the ongoing operation or if none the terminal status of the last
+     * operation or <em>Status not available</em> if none.
      */
     @NotNull
     CompositeData getPropertyIndexAsyncReindexStatus();

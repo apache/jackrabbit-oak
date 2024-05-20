@@ -29,19 +29,20 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A selector for selecting a node at a relative path from the node selected by
- * an initial selector.
+ * A selector for selecting a node at a relative path from the node selected by an initial
+ * selector.
  * <p>
  * <em>Note:</em> selecting the parent of the root node will return a non existing
  * {@code NodeState} instance.
  */
 public class RelativePathSelector implements Selector {
+
     private final Iterable<String> path;
     private final Selector selector;
 
     /**
-     * @param path      path to select from
-     * @param selector  selector to base {@code path} upon
+     * @param path     path to select from
+     * @param selector selector to base {@code path} upon
      */
     public RelativePathSelector(@NotNull String path, @NotNull Selector selector) {
         this.path = elements(checkNotNull(path));
@@ -51,14 +52,14 @@ public class RelativePathSelector implements Selector {
     @NotNull
     @Override
     public NodeState select(@NotNull UniversalFilter filter,
-            @Nullable PropertyState before, @Nullable PropertyState after) {
+        @Nullable PropertyState before, @Nullable PropertyState after) {
         return select(selector.select(filter, before, after));
     }
 
     @NotNull
     @Override
     public NodeState select(@NotNull UniversalFilter filter,
-            @NotNull String name, @NotNull NodeState before, @NotNull NodeState after) {
+        @NotNull String name, @NotNull NodeState before, @NotNull NodeState after) {
         return select(selector.select(filter, name, before, after));
     }
 

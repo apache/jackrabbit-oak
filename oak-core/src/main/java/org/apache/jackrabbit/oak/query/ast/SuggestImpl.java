@@ -20,11 +20,10 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Collections;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +47,7 @@ public class SuggestImpl extends ConstraintImpl {
         this.selectorName = selectorName;
         this.expression = expression;
     }
-    
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -59,7 +58,7 @@ public class SuggestImpl extends ConstraintImpl {
         builder.append(')');
         return builder.toString();
     }
-    
+
     @Override
     public boolean evaluate() {
         // disable evaluation if a fulltext index is used,
@@ -85,7 +84,8 @@ public class SuggestImpl extends ConstraintImpl {
             String term = p.getValue(Type.STRING);
             String query = SUGGEST_PREFIX + term;
             PropertyValue v = PropertyValues.newString(query);
-            f.restrictProperty(NativeFunctionImpl.NATIVE_PREFIX + NATIVE_LUCENE_LANGUAGE, Operator.EQUAL, v);
+            f.restrictProperty(NativeFunctionImpl.NATIVE_PREFIX + NATIVE_LUCENE_LANGUAGE,
+                Operator.EQUAL, v);
         }
     }
 
@@ -109,7 +109,7 @@ public class SuggestImpl extends ConstraintImpl {
     public void bindSelector(SourceImpl source) {
         selector = source.getExistingSelector(selectorName);
     }
-    
+
     public StaticOperandImpl getExpression() {
         return expression;
     }

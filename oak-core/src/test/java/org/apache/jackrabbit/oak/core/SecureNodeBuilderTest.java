@@ -52,8 +52,10 @@ public class SecureNodeBuilderTest {
     public void before() throws Exception {
         NodeBuilder rootBuilder = store.getRoot().builder();
         rootBuilder.setProperty("prop", "value").setProperty(NAME_NON_ACCESSIBLE, "value");
-        rootBuilder.child(NAME_ACCESSIBLE).setProperty("prop", "value").setProperty(NAME_NON_ACCESSIBLE, "value");
-        rootBuilder.child(NAME_NON_ACCESSIBLE).setProperty("prop", "value").setProperty(NAME_NON_ACCESSIBLE, "value");
+        rootBuilder.child(NAME_ACCESSIBLE).setProperty("prop", "value")
+                   .setProperty(NAME_NON_ACCESSIBLE, "value");
+        rootBuilder.child(NAME_NON_ACCESSIBLE).setProperty("prop", "value")
+                   .setProperty(NAME_NON_ACCESSIBLE, "value");
         store.merge(rootBuilder, new EmptyHook(), new CommitInfo("id", null));
 
         rootBuilder = store.getRoot().builder();
@@ -147,12 +149,11 @@ public class SecureNodeBuilderTest {
     }
 
     /**
-     * Illustrating usage of {@link SecureNodeBuilder#baseChanged()} as it is
-     * currently present with {@link MutableRoot#commit()}, {@link MutableRoot#rebase()}
-     * and {@link MutableRoot#refresh()}: baseChanged is call <strong>before</strong>
-     * the permission provider is refreshed, which depending on the implementation
-     * may lead to a stale {@code TreePermission} being obtained with the non-lazy
-     * refresh as described in OAK-5355.
+     * Illustrating usage of {@link SecureNodeBuilder#baseChanged()} as it is currently present with
+     * {@link MutableRoot#commit()}, {@link MutableRoot#rebase()} and {@link MutableRoot#refresh()}:
+     * baseChanged is call <strong>before</strong> the permission provider is refreshed, which
+     * depending on the implementation may lead to a stale {@code TreePermission} being obtained
+     * with the non-lazy refresh as described in OAK-5355.
      *
      * @see <a href"https://issues.apache.org/jira/browse/OAK-5355">OAK-5355</a>
      */
@@ -185,17 +186,22 @@ public class SecureNodeBuilderTest {
     @Test
     public void testHasPropertyNonAccessible() {
         assertFalse(secureNodeBuilder.hasProperty(NAME_NON_ACCESSIBLE));
-        assertFalse(secureNodeBuilder.getChildNode(NAME_ACCESSIBLE).hasProperty(NAME_NON_ACCESSIBLE));
-        assertFalse(secureNodeBuilder.getChildNode(NAME_NON_ACCESSIBLE).hasProperty(NAME_NON_ACCESSIBLE));
-        assertFalse(secureNodeBuilder.getChildNode(NAME_NON_EXISTING).hasProperty(NAME_NON_ACCESSIBLE));
+        assertFalse(
+            secureNodeBuilder.getChildNode(NAME_ACCESSIBLE).hasProperty(NAME_NON_ACCESSIBLE));
+        assertFalse(
+            secureNodeBuilder.getChildNode(NAME_NON_ACCESSIBLE).hasProperty(NAME_NON_ACCESSIBLE));
+        assertFalse(
+            secureNodeBuilder.getChildNode(NAME_NON_EXISTING).hasProperty(NAME_NON_ACCESSIBLE));
     }
 
     @Test
     public void testHasPropertyNonExisting() {
         assertFalse(secureNodeBuilder.hasProperty(NAME_NON_EXISTING));
         assertFalse(secureNodeBuilder.getChildNode(NAME_ACCESSIBLE).hasProperty(NAME_NON_EXISTING));
-        assertFalse(secureNodeBuilder.getChildNode(NAME_NON_ACCESSIBLE).hasProperty(NAME_NON_EXISTING));
-        assertFalse(secureNodeBuilder.getChildNode(NAME_NON_EXISTING).hasProperty(NAME_NON_EXISTING));
+        assertFalse(
+            secureNodeBuilder.getChildNode(NAME_NON_ACCESSIBLE).hasProperty(NAME_NON_EXISTING));
+        assertFalse(
+            secureNodeBuilder.getChildNode(NAME_NON_EXISTING).hasProperty(NAME_NON_EXISTING));
     }
 
     @Test
@@ -209,17 +215,22 @@ public class SecureNodeBuilderTest {
     @Test
     public void testGetPropertyNonAccessible() {
         assertNull(secureNodeBuilder.getProperty(NAME_NON_ACCESSIBLE));
-        assertNull(secureNodeBuilder.getChildNode(NAME_ACCESSIBLE).getProperty(NAME_NON_ACCESSIBLE));
-        assertNull(secureNodeBuilder.getChildNode(NAME_NON_ACCESSIBLE).getProperty(NAME_NON_ACCESSIBLE));
-        assertNull(secureNodeBuilder.getChildNode(NAME_NON_EXISTING).getProperty(NAME_NON_ACCESSIBLE));
+        assertNull(
+            secureNodeBuilder.getChildNode(NAME_ACCESSIBLE).getProperty(NAME_NON_ACCESSIBLE));
+        assertNull(
+            secureNodeBuilder.getChildNode(NAME_NON_ACCESSIBLE).getProperty(NAME_NON_ACCESSIBLE));
+        assertNull(
+            secureNodeBuilder.getChildNode(NAME_NON_EXISTING).getProperty(NAME_NON_ACCESSIBLE));
     }
 
     @Test
     public void testGetPropertyNonExisting() {
         assertNull(secureNodeBuilder.getProperty(NAME_NON_EXISTING));
         assertNull(secureNodeBuilder.getChildNode(NAME_ACCESSIBLE).getProperty(NAME_NON_EXISTING));
-        assertNull(secureNodeBuilder.getChildNode(NAME_NON_ACCESSIBLE).getProperty(NAME_NON_EXISTING));
-        assertNull(secureNodeBuilder.getChildNode(NAME_NON_EXISTING).getProperty(NAME_NON_EXISTING));
+        assertNull(
+            secureNodeBuilder.getChildNode(NAME_NON_ACCESSIBLE).getProperty(NAME_NON_EXISTING));
+        assertNull(
+            secureNodeBuilder.getChildNode(NAME_NON_EXISTING).getProperty(NAME_NON_EXISTING));
     }
 
     @Test
@@ -246,9 +257,12 @@ public class SecureNodeBuilderTest {
     @Test
     public void testGetProperties() {
         assertEquals(1, Iterables.size(secureNodeBuilder.getProperties()));
-        assertEquals(1, Iterables.size(secureNodeBuilder.getChildNode(NAME_ACCESSIBLE).getProperties()));
-        assertEquals(1, Iterables.size(secureNodeBuilder.getChildNode(NAME_NON_ACCESSIBLE).getProperties()));
-        assertEquals(0, Iterables.size(secureNodeBuilder.getChildNode(NAME_NON_EXISTING).getProperties()));
+        assertEquals(1,
+            Iterables.size(secureNodeBuilder.getChildNode(NAME_ACCESSIBLE).getProperties()));
+        assertEquals(1,
+            Iterables.size(secureNodeBuilder.getChildNode(NAME_NON_ACCESSIBLE).getProperties()));
+        assertEquals(0,
+            Iterables.size(secureNodeBuilder.getChildNode(NAME_NON_EXISTING).getProperties()));
     }
 
     @Test
@@ -256,9 +270,12 @@ public class SecureNodeBuilderTest {
         try {
             permissionProvider.canReadProperties = true;
             assertEquals(2, Iterables.size(secureNodeBuilder.getProperties()));
-            assertEquals(2, Iterables.size(secureNodeBuilder.getChildNode(NAME_ACCESSIBLE).getProperties()));
-            assertEquals(2, Iterables.size(secureNodeBuilder.getChildNode(NAME_NON_ACCESSIBLE).getProperties()));
-            assertEquals(0, Iterables.size(secureNodeBuilder.getChildNode(NAME_NON_EXISTING).getProperties()));
+            assertEquals(2,
+                Iterables.size(secureNodeBuilder.getChildNode(NAME_ACCESSIBLE).getProperties()));
+            assertEquals(2, Iterables.size(
+                secureNodeBuilder.getChildNode(NAME_NON_ACCESSIBLE).getProperties()));
+            assertEquals(0,
+                Iterables.size(secureNodeBuilder.getChildNode(NAME_NON_EXISTING).getProperties()));
         } finally {
             permissionProvider.canReadProperties = false;
         }
@@ -266,7 +283,8 @@ public class SecureNodeBuilderTest {
 
     @Test
     public void testGetPropertiesAfterSet() {
-        secureNodeBuilder.setProperty(PropertyStates.createProperty("another", ImmutableList.of("v", "v2"), Type.STRINGS));
+        secureNodeBuilder.setProperty(
+            PropertyStates.createProperty("another", ImmutableList.of("v", "v2"), Type.STRINGS));
         assertEquals(2, Iterables.size(secureNodeBuilder.getProperties()));
     }
 
@@ -373,7 +391,7 @@ public class SecureNodeBuilderTest {
 
     @Test
     public void testSetPropertyNewNonAccessible() {
-        String name = NAME_NON_ACCESSIBLE+"-new";
+        String name = NAME_NON_ACCESSIBLE + "-new";
         secureNodeBuilder.setProperty(name, "value");
         // new property must exist irrespective of permission eval
         assertTrue(secureNodeBuilder.hasProperty(name));

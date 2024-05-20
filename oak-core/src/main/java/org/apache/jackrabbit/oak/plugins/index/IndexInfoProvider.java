@@ -25,9 +25,8 @@ import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ConsumerType;
 
 /**
- * Service to be provided by various index implementations.
- * This would then be used by {@code IndexInfoService}
- * for collecting information related to index.
+ * Service to be provided by various index implementations. This would then be used by
+ * {@code IndexInfoService} for collecting information related to index.
  */
 @ConsumerType
 public interface IndexInfoProvider {
@@ -41,8 +40,7 @@ public interface IndexInfoProvider {
     IndexInfo getInfo(String indexPath) throws IOException;
 
     /**
-     * Determined if the index is valid and usable. If the index is corrupt
-     * then it returns false
+     * Determined if the index is valid and usable. If the index is corrupt then it returns false
      */
     boolean isValid(String indexPath) throws IOException;
 }

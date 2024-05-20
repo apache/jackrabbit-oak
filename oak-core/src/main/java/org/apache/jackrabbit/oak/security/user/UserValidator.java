@@ -37,10 +37,9 @@ import org.jetbrains.annotations.Nullable;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
- * Validator that enforces user management specific constraints. Please note that
- * is this validator is making implementation specific assumptions; if the
- * user management implementation is replace it is most probably necessary to
- * provide a custom validator as well.
+ * Validator that enforces user management specific constraints. Please note that is this validator
+ * is making implementation specific assumptions; if the user management implementation is replace
+ * it is most probably necessary to provide a custom validator as well.
  */
 class UserValidator extends DefaultValidator implements UserConstants {
 
@@ -50,7 +49,8 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
     private final AuthorizableType authorizableType;
 
-    UserValidator(@Nullable Tree parentBefore, @Nullable Tree parentAfter, @NotNull UserValidatorProvider provider) {
+    UserValidator(@Nullable Tree parentBefore, @Nullable Tree parentAfter,
+        @NotNull UserValidatorProvider provider) {
         this.parentBefore = parentBefore;
         this.parentAfter = parentAfter;
         this.provider = provider;
@@ -72,21 +72,24 @@ class UserValidator extends DefaultValidator implements UserConstants {
             throw constraintViolation(20, msg);
         }
 
-        if (JcrConstants.JCR_UUID.equals(name) && !isValidUUID(parentAfter, after.getValue(Type.STRING))) {
+        if (JcrConstants.JCR_UUID.equals(name) && !isValidUUID(parentAfter,
+            after.getValue(Type.STRING))) {
             String msg = "Invalid jcr:uuid for authorizable " + parentAfter.getName();
             throw constraintViolation(21, msg);
         }
     }
 
     @Override
-    public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
+    public void propertyChanged(PropertyState before, PropertyState after)
+        throws CommitFailedException {
         if (authorizableType == null) {
             return;
         }
 
         String name = before.getName();
         if (REP_PRINCIPAL_NAME.equals(name) || REP_AUTHORIZABLE_ID.equals(name)) {
-            String msg = "Authorizable property " + name + " may not be altered after user/group creation.";
+            String msg =
+                "Authorizable property " + name + " may not be altered after user/group creation.";
             throw constraintViolation(22, msg);
         } else if (JcrConstants.JCR_UUID.equals(name)) {
             checkNotNull(parentAfter);
@@ -101,7 +104,8 @@ class UserValidator extends DefaultValidator implements UserConstants {
         }
 
         boolean isUser = authorizableType == AuthorizableType.USER;
-        if (isUser && REP_PASSWORD.equals(name) && PasswordUtil.isPlainTextPassword(after.getValue(Type.STRING))) {
+        if (isUser && REP_PASSWORD.equals(name) && PasswordUtil.isPlainTextPassword(
+            after.getValue(Type.STRING))) {
             String msg = "Password may not be plain text.";
             throw constraintViolation(24, msg);
         }
@@ -115,7 +119,8 @@ class UserValidator extends DefaultValidator implements UserConstants {
         }
 
         String name = before.getName();
-        if (REP_PASSWORD.equals(name) || REP_PRINCIPAL_NAME.equals(name) || REP_AUTHORIZABLE_ID.equals(name)) {
+        if (REP_PASSWORD.equals(name) || REP_PRINCIPAL_NAME.equals(name)
+            || REP_AUTHORIZABLE_ID.equals(name)) {
             String msg = "Authorizable property " + name + " may not be removed.";
             throw constraintViolation(25, msg);
         }
@@ -132,7 +137,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) {
         return newValidator(parentBefore.getChild(name),
-                parentAfter.getChild(name), provider);
+            parentAfter.getChild(name), provider);
     }
 
     @Override
@@ -153,12 +158,12 @@ class UserValidator extends DefaultValidator implements UserConstants {
     //------------------------------------------------------------< private >---
 
     private static Validator newValidator(@Nullable Tree parentBefore,
-                                          @Nullable Tree parentAfter,
-                                          @NotNull UserValidatorProvider provider) {
+        @Nullable Tree parentAfter,
+        @NotNull UserValidatorProvider provider) {
         return new VisibleValidator(
-                new UserValidator(parentBefore, parentAfter, provider),
-                true,
-                true);
+            new UserValidator(parentBefore, parentAfter, provider),
+            true,
+            true);
     }
 
     private boolean isAdminUser(@NotNull Tree userTree) {
@@ -170,11 +175,13 @@ class UserValidator extends DefaultValidator implements UserConstants {
         }
     }
 
-    private void validateAuthorizable(@NotNull Tree tree, @Nullable AuthorizableType type) throws CommitFailedException {
+    private void validateAuthorizable(@NotNull Tree tree, @Nullable AuthorizableType type)
+        throws CommitFailedException {
         boolean isSystemUser = (type == AuthorizableType.USER) && UserUtil.isSystemUser(tree);
         String authRoot = UserUtil.getAuthorizableRootPath(provider.getConfig(), type);
         if (isSystemUser) {
-            String sysRelPath = provider.getConfig().getConfigValue(PARAM_SYSTEM_RELATIVE_PATH, DEFAULT_SYSTEM_RELATIVE_PATH);
+            String sysRelPath = provider.getConfig().getConfigValue(PARAM_SYSTEM_RELATIVE_PATH,
+                DEFAULT_SYSTEM_RELATIVE_PATH);
             authRoot = authRoot + '/' + sysRelPath;
         }
         if (authRoot != null) {
@@ -206,16 +213,18 @@ class UserValidator extends DefaultValidator implements UserConstants {
     }
 
     /**
-     * Make sure user and group nodes are located underneath the configured path
-     * and that path consists of rep:authorizableFolder nodes.
+     * Make sure user and group nodes are located underneath the configured path and that path
+     * consists of rep:authorizableFolder nodes.
      *
      * @param tree           The tree representing a user or group.
      * @param pathConstraint The path constraint.
      * @throws CommitFailedException If the hierarchy isn't valid.
      */
-    private static void assertHierarchy(@NotNull Tree tree, @NotNull String pathConstraint) throws CommitFailedException {
+    private static void assertHierarchy(@NotNull Tree tree, @NotNull String pathConstraint)
+        throws CommitFailedException {
         if (!Text.isDescendant(pathConstraint, tree.getPath())) {
-            String msg = "Attempt to create user/group outside of configured scope " + pathConstraint;
+            String msg =
+                "Attempt to create user/group outside of configured scope " + pathConstraint;
             throw constraintViolation(28, msg);
         }
         if (!tree.isRoot()) {

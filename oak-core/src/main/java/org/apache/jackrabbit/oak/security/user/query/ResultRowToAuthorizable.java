@@ -34,8 +34,7 @@ import org.slf4j.LoggerFactory;
 import javax.jcr.RepositoryException;
 
 /**
- * Function to convert query result rows {@link Authorizable}s of a given
- * target type.
+ * Function to convert query result rows {@link Authorizable}s of a given target type.
  */
 class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
 
@@ -47,10 +46,11 @@ class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
     private final String selectorName;
 
     ResultRowToAuthorizable(@NotNull UserManagerImpl userManager, @NotNull Root root,
-                            @Nullable AuthorizableType targetType, @NotNull String[] selectorNames) {
+        @Nullable AuthorizableType targetType, @NotNull String[] selectorNames) {
         this.userManager = userManager;
         this.root = root;
-        this.targetType = (targetType == null || AuthorizableType.AUTHORIZABLE == targetType) ? null : targetType;
+        this.targetType =
+            (targetType == null || AuthorizableType.AUTHORIZABLE == targetType) ? null : targetType;
         this.selectorName = (selectorNames.length == 0) ? null : selectorNames[0];
     }
 

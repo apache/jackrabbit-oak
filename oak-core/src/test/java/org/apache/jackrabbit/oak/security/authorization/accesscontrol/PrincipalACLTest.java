@@ -64,7 +64,8 @@ public class PrincipalACLTest extends AbstractAccessControlTest {
     }
 
     @NotNull
-    private static ACL getPrincipalAcl(@NotNull JackrabbitAccessControlManager acMgr, @NotNull Principal testPrincipal) throws RepositoryException {
+    private static ACL getPrincipalAcl(@NotNull JackrabbitAccessControlManager acMgr,
+        @NotNull Principal testPrincipal) throws RepositoryException {
         for (AccessControlPolicy acp : acMgr.getPolicies(testPrincipal)) {
             if (acp instanceof ACL) {
                 return (ACL) acp;
@@ -87,17 +88,20 @@ public class PrincipalACLTest extends AbstractAccessControlTest {
 
     @Test
     public void testEqualsDifferentPrincipal() throws Exception {
-        assertNotEquals(principalAcl, getPrincipalAcl(getAccessControlManager(root), EveryonePrincipal.getInstance()));
+        assertNotEquals(principalAcl,
+            getPrincipalAcl(getAccessControlManager(root), EveryonePrincipal.getInstance()));
     }
 
     @Test
     public void testEqualsDifferentACL() throws Exception {
-        assertNotEquals(principalAcl, AccessControlUtils.getAccessControlList(getAccessControlManager(root), TEST_PATH));
+        assertNotEquals(principalAcl,
+            AccessControlUtils.getAccessControlList(getAccessControlManager(root), TEST_PATH));
     }
 
     @Test
     public void testEqualsDifferentPath() throws Exception {
-        ACL acl = getPrincipalAcl(getAccessControlManager(root), new PrincipalImpl(testPrincipal.getName()));
+        ACL acl = getPrincipalAcl(getAccessControlManager(root),
+            new PrincipalImpl(testPrincipal.getName()));
         assertNotEquals(principalAcl, acl);
     }
 
@@ -106,7 +110,8 @@ public class PrincipalACLTest extends AbstractAccessControlTest {
         ValueFactory vf = getValueFactory(root);
         ACL acl = getPrincipalAcl(getAccessControlManager(root), testPrincipal);
         acl.addEntry(testPrincipal, privileges, true,
-                ImmutableMap.of(REP_GLOB, vf.createValue("/subtree/*"), REP_NODE_PATH, vf.createValue(TEST_PATH)));
+            ImmutableMap.of(REP_GLOB, vf.createValue("/subtree/*"), REP_NODE_PATH,
+                vf.createValue(TEST_PATH)));
         assertNotEquals(principalAcl, acl);
     }
 
@@ -116,17 +121,19 @@ public class PrincipalACLTest extends AbstractAccessControlTest {
     }
 
     @Test(expected = AccessControlException.class)
-    public void testAddEntryMissingNodePath() throws Exception  {
+    public void testAddEntryMissingNodePath() throws Exception {
         principalAcl.addAccessControlEntry(testPrincipal, privileges);
     }
 
     @Test(expected = AccessControlException.class)
-    public void testAddEntryDifferentPrincipal() throws Exception  {
-        principalAcl.addEntry(EveryonePrincipal.getInstance(), privileges, true, Collections.singletonMap(REP_NODE_PATH, getValueFactory(root).createValue(TEST_PATH)));
+    public void testAddEntryDifferentPrincipal() throws Exception {
+        principalAcl.addEntry(EveryonePrincipal.getInstance(), privileges, true,
+            Collections.singletonMap(REP_NODE_PATH, getValueFactory(root).createValue(TEST_PATH)));
     }
 
     @Test(expected = AccessControlException.class)
-    public void testAddEntryNullPrincipal() throws Exception  {
-        principalAcl.addEntry(null, privileges, true, Collections.singletonMap(REP_NODE_PATH, getValueFactory(root).createValue(TEST_PATH)));
+    public void testAddEntryNullPrincipal() throws Exception {
+        principalAcl.addEntry(null, privileges, true,
+            Collections.singletonMap(REP_NODE_PATH, getValueFactory(root).createValue(TEST_PATH)));
     }
 }

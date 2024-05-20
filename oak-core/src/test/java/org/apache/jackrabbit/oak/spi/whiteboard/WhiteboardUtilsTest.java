@@ -44,25 +44,27 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 public class WhiteboardUtilsTest {
+
     private List<Registration> regs = Lists.newArrayList();
 
     @After
-    public void unregisterRegs(){
+    public void unregisterRegs() {
         new CompositeRegistration(regs).unregister();
     }
 
     @Test
-    public void jmxBeanRegistration() throws Exception{
+    public void jmxBeanRegistration() throws Exception {
         MBeanServer server = ManagementFactory.getPlatformMBeanServer();
         Oak oak = new Oak().with(server);
         Whiteboard wb = oak.getWhiteboard();
         Hello hello = new Hello();
         regs.add(WhiteboardUtils.registerMBean(wb, HelloMBean.class, hello, "test", "hello"));
-        assertNotNull(server.getObjectInstance(new ObjectName("org.apache.jackrabbit.oak:type=test,name=hello")));
+        assertNotNull(server.getObjectInstance(
+            new ObjectName("org.apache.jackrabbit.oak:type=test,name=hello")));
     }
 
     @Test
-    public void jmxBeanRegistrationDuplicate() throws Exception{
+    public void jmxBeanRegistrationDuplicate() throws Exception {
         MBeanServer server = ManagementFactory.getPlatformMBeanServer();
         Oak oak = new Oak().with(server);
         Whiteboard wb = oak.getWhiteboard();
@@ -71,33 +73,38 @@ public class WhiteboardUtilsTest {
 
         //Second one would trigger a warning log but no affect on caller
         regs.add(WhiteboardUtils.registerMBean(wb, HelloMBean.class, hello, "test", "hello"));
-        assertNotNull(server.getObjectInstance(new ObjectName("org.apache.jackrabbit.oak:type=test,name=hello")));
+        assertNotNull(server.getObjectInstance(
+            new ObjectName("org.apache.jackrabbit.oak:type=test,name=hello")));
     }
 
     @Test
-    public void stdMBean() throws Exception{
+    public void stdMBean() throws Exception {
         MBeanServer server = ManagementFactory.getPlatformMBeanServer();
         Oak oak = new Oak().with(server);
         Whiteboard wb = oak.getWhiteboard();
         Hello hello = new HelloTest();
         regs.add(WhiteboardUtils.registerMBean(wb, HelloMBean.class, hello, "test", "hello"));
-        assertNotNull(server.getObjectInstance(new ObjectName("org.apache.jackrabbit.oak:type=test,name=hello")));
+        assertNotNull(server.getObjectInstance(
+            new ObjectName("org.apache.jackrabbit.oak:type=test,name=hello")));
     }
 
     @Test
-    public void queryMBean() throws Exception{
+    public void queryMBean() throws Exception {
         MBeanServer server = ManagementFactory.getPlatformMBeanServer();
         Oak oak = new Oak().with(server);
         Whiteboard wb = oak.getWhiteboard();
         QueryEngineSettings settings = new QueryEngineSettings();
-        regs.add(WhiteboardUtils.registerMBean(wb, QueryEngineSettingsMBean.class, settings, "query", "settings"));
-        assertNotNull(server.getObjectInstance(new ObjectName("org.apache.jackrabbit.oak:type=query,name=settings")));
+        regs.add(
+            WhiteboardUtils.registerMBean(wb, QueryEngineSettingsMBean.class, settings, "query",
+                "settings"));
+        assertNotNull(server.getObjectInstance(
+            new ObjectName("org.apache.jackrabbit.oak:type=query,name=settings")));
     }
 
     @Test
-    public void scheduledJobWithPoolName() throws Exception{
+    public void scheduledJobWithPoolName() throws Exception {
         final AtomicReference<Map<?, ?>> props = new AtomicReference<Map<?, ?>>();
-        Whiteboard wb = new DefaultWhiteboard(){
+        Whiteboard wb = new DefaultWhiteboard() {
             @Override
             public <T> Registration register(Class<T> type, T service, Map<?, ?> properties) {
                 props.set(properties);
@@ -115,9 +122,9 @@ public class WhiteboardUtilsTest {
     }
 
     @Test
-    public void scheduledJobWithExtraProps() throws Exception{
+    public void scheduledJobWithExtraProps() throws Exception {
         final AtomicReference<Map<?, ?>> props = new AtomicReference<Map<?, ?>>();
-        Whiteboard wb = new DefaultWhiteboard(){
+        Whiteboard wb = new DefaultWhiteboard() {
             @Override
             public <T> Registration register(Class<T> type, T service, Map<?, ?> properties) {
                 props.set(properties);
@@ -135,7 +142,7 @@ public class WhiteboardUtilsTest {
     public void scheduledJobDefaultExecutionInstanceType() {
         Map<String, Object> config = Collections.emptyMap();
         final AtomicReference<Map<?, ?>> props = new AtomicReference<Map<?, ?>>();
-        Whiteboard wb = new DefaultWhiteboard(){
+        Whiteboard wb = new DefaultWhiteboard() {
             @Override
             public <T> Registration register(Class<T> type, T service, Map<?, ?> properties) {
                 props.set(properties);
@@ -149,7 +156,7 @@ public class WhiteboardUtilsTest {
         WhiteboardUtils.scheduleWithFixedDelay(wb, new TestRunnable(), 1, false, false);
         assertNull(props.get().get("scheduler.runOn"));
 
-        WhiteboardUtils.scheduleWithFixedDelay(wb, new TestRunnable(), config,1, false, false);
+        WhiteboardUtils.scheduleWithFixedDelay(wb, new TestRunnable(), config, 1, false, false);
         assertNull(props.get().get("scheduler.runOn"));
 
         WhiteboardUtils.scheduleWithFixedDelay(wb, new TestRunnable(), config, 1, DEFAULT, false);
@@ -160,7 +167,7 @@ public class WhiteboardUtilsTest {
     public void scheduledJobOnSingle() {
         Map<String, Object> config = Collections.emptyMap();
         final AtomicReference<Map<?, ?>> props = new AtomicReference<Map<?, ?>>();
-        Whiteboard wb = new DefaultWhiteboard(){
+        Whiteboard wb = new DefaultWhiteboard() {
             @Override
             public <T> Registration register(Class<T> type, T service, Map<?, ?> properties) {
                 props.set(properties);
@@ -174,7 +181,8 @@ public class WhiteboardUtilsTest {
         WhiteboardUtils.scheduleWithFixedDelay(wb, new TestRunnable(), config, 1, true, false);
         assertEquals("SINGLE", props.get().get("scheduler.runOn"));
 
-        WhiteboardUtils.scheduleWithFixedDelay(wb, new TestRunnable(), config, 1, RUN_ON_SINGLE, false);
+        WhiteboardUtils.scheduleWithFixedDelay(wb, new TestRunnable(), config, 1, RUN_ON_SINGLE,
+            false);
         assertEquals("SINGLE", props.get().get("scheduler.runOn"));
     }
 
@@ -182,7 +190,7 @@ public class WhiteboardUtilsTest {
     public void scheduledJobOnLeader() {
         Map<String, Object> config = Collections.emptyMap();
         final AtomicReference<Map<?, ?>> props = new AtomicReference<Map<?, ?>>();
-        Whiteboard wb = new DefaultWhiteboard(){
+        Whiteboard wb = new DefaultWhiteboard() {
             @Override
             public <T> Registration register(Class<T> type, T service, Map<?, ?> properties) {
                 props.set(properties);
@@ -190,16 +198,20 @@ public class WhiteboardUtilsTest {
             }
         };
 
-        WhiteboardUtils.scheduleWithFixedDelay(wb, new TestRunnable(), config, 1, RUN_ON_LEADER, false);
+        WhiteboardUtils.scheduleWithFixedDelay(wb, new TestRunnable(), config, 1, RUN_ON_LEADER,
+            false);
         assertEquals("LEADER", props.get().get("scheduler.runOn"));
     }
 
     public interface HelloMBean {
+
         boolean isRunning();
+
         int getCount();
     }
 
     private static class Hello implements HelloMBean {
+
         int count;
         boolean running;
 
@@ -219,6 +231,7 @@ public class WhiteboardUtilsTest {
     }
 
     private static class TestRunnable implements Runnable {
+
         @Override
         public void run() {
 

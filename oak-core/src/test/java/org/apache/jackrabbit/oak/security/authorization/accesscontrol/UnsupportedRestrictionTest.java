@@ -68,39 +68,47 @@ public class UnsupportedRestrictionTest extends AbstractAccessControlTest {
     private final boolean useCompositeRestrictionProvider;
     private final TestRestrictionProvider testRestrictionProvider;
     private final RestrictionProvider rp;
-    
+
     private JackrabbitAccessControlManager acMgr;
 
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
         return Arrays.asList(
-                new Object[]{false, "Singular restriction provider"},
-                new Object[]{true, "Composite restriction provider"});
+            new Object[]{false, "Singular restriction provider"},
+            new Object[]{true, "Composite restriction provider"});
     }
 
-    public UnsupportedRestrictionTest(boolean useCompositeRestrictionProvider, @NotNull String name) {
+    public UnsupportedRestrictionTest(boolean useCompositeRestrictionProvider,
+        @NotNull String name) {
         this.useCompositeRestrictionProvider = useCompositeRestrictionProvider;
-        this.testRestrictionProvider = new TestRestrictionProvider(new RestrictionDefinitionImpl(RESTRICTION_NAME, Type.STRING, false));
+        this.testRestrictionProvider = new TestRestrictionProvider(
+            new RestrictionDefinitionImpl(RESTRICTION_NAME, Type.STRING, false));
 
         if (useCompositeRestrictionProvider) {
-            rp = CompositeRestrictionProvider.newInstance(testRestrictionProvider, new TestRestrictionProvider(new RestrictionDefinitionImpl(RESTRICTION_NAME_2, STRINGS, false)));
+            rp = CompositeRestrictionProvider.newInstance(testRestrictionProvider,
+                new TestRestrictionProvider(
+                    new RestrictionDefinitionImpl(RESTRICTION_NAME_2, STRINGS, false)));
         } else {
             rp = testRestrictionProvider;
         }
     }
-    
+
     @Override
     public void before() throws Exception {
         super.before();
-        
+
         assertRestrictionProvider();
 
         acMgr = getAccessControlManager(root);
 
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, TEST_PATH);
-        assertTrue(acl.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_READ), false, createRestrictions("value1")));
-        assertTrue(acl.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_READ), false, createRestrictions("value2")));
-        
+        assertTrue(
+            acl.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_READ), false,
+                createRestrictions("value1")));
+        assertTrue(
+            acl.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_READ), false,
+                createRestrictions("value2")));
+
         acMgr.setPolicy(acl.getPath(), acl);
         root.commit();
 
@@ -120,7 +128,7 @@ public class UnsupportedRestrictionTest extends AbstractAccessControlTest {
             assertSame(rp, getRestrictionProvider());
         }
     }
-    
+
     @NotNull
     private Map<String, Value> createRestrictions(@NotNull String value) {
         ValueFactory vf = getValueFactory(root);
@@ -129,20 +137,21 @@ public class UnsupportedRestrictionTest extends AbstractAccessControlTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        ConfigurationParameters cp = ConfigurationParameters.of(AccessControlConstants.PARAM_RESTRICTION_PROVIDER, rp);
+        ConfigurationParameters cp = ConfigurationParameters.of(
+            AccessControlConstants.PARAM_RESTRICTION_PROVIDER, rp);
         return ConfigurationParameters.of(AuthorizationConfiguration.NAME, cp);
     }
-    
+
     @Test
     public void testUpdateAclForDifferentPrincipal() throws Exception {
         // edit the ACL for a different principal and write it back
         Principal testPrincipal = getTestUser().getPrincipal();
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, TEST_PATH);
         assertEquals(0, acl.size());
-        
+
         acl.addEntry(testPrincipal, privilegesFromNames(JCR_READ), true);
         assertEquals(1, acl.size());
-        
+
         acMgr.setPolicy(acl.getPath(), acl);
         // this root.commit resulted in 'OakAccessControl0013: Duplicate ACE found exception' in AccessControlValidator
         // which prior to the fix got read into the ACL without restrictions (resulting in 2 identical entries)
@@ -151,7 +160,8 @@ public class UnsupportedRestrictionTest extends AbstractAccessControlTest {
 
         acl = AccessControlUtils.getAccessControlList(acMgr, TEST_PATH);
         assertEquals(1, acl.size());
-        assertTrue(acMgr.hasPrivileges(TEST_PATH, Collections.singleton(testPrincipal), privilegesFromNames(JCR_READ)));
+        assertTrue(acMgr.hasPrivileges(TEST_PATH, Collections.singleton(testPrincipal),
+            privilegesFromNames(JCR_READ)));
     }
 
     @Test
@@ -170,68 +180,82 @@ public class UnsupportedRestrictionTest extends AbstractAccessControlTest {
 
         acl = AccessControlUtils.getAccessControlList(acMgr, TEST_PATH);
         assertEquals(1, acl.size());
-        assertTrue(acMgr.hasPrivileges(TEST_PATH, Collections.singleton(EveryonePrincipal.getInstance()), privilegesFromNames(JCR_READ)));
+        assertTrue(
+            acMgr.hasPrivileges(TEST_PATH, Collections.singleton(EveryonePrincipal.getInstance()),
+                privilegesFromNames(JCR_READ)));
     }
-    
-    private static final class TestRestrictionProvider implements RestrictionProvider, AggregationAware {
-        
+
+    private static final class TestRestrictionProvider implements RestrictionProvider,
+        AggregationAware {
+
         private AbstractRestrictionProvider base;
 
         public TestRestrictionProvider(@NotNull RestrictionDefinition definition) {
-            base = new AbstractRestrictionProvider(Collections.singletonMap(definition.getName(), definition)) {
+            base = new AbstractRestrictionProvider(
+                Collections.singletonMap(definition.getName(), definition)) {
                 @Override
-                public @NotNull RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Tree tree) {
+                public @NotNull RestrictionPattern getPattern(@Nullable String oakPath,
+                    @NotNull Tree tree) {
                     return RestrictionPattern.EMPTY;
                 }
 
                 @Override
-                public @NotNull RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
+                public @NotNull RestrictionPattern getPattern(@Nullable String oakPath,
+                    @NotNull Set<Restriction> restrictions) {
                     return RestrictionPattern.EMPTY;
                 }
             };
         }
-        
+
         void disable() {
             base = new RestrictionProviderImpl();
         }
 
         @Override
-        public @NotNull Set<RestrictionDefinition> getSupportedRestrictions(@Nullable String oakPath) {
+        public @NotNull Set<RestrictionDefinition> getSupportedRestrictions(
+            @Nullable String oakPath) {
             return base.getSupportedRestrictions(oakPath);
         }
 
         @Override
-        public @NotNull Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value value) throws RepositoryException {
+        public @NotNull Restriction createRestriction(@Nullable String oakPath,
+            @NotNull String oakName, @NotNull Value value) throws RepositoryException {
             return base.createRestriction(oakPath, oakName, value);
         }
 
         @Override
-        public @NotNull Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value... values) throws RepositoryException {
+        public @NotNull Restriction createRestriction(@Nullable String oakPath,
+            @NotNull String oakName, @NotNull Value... values) throws RepositoryException {
             return base.createRestriction(oakPath, oakName, values);
         }
 
         @Override
-        public @NotNull Set<Restriction> readRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) {
+        public @NotNull Set<Restriction> readRestrictions(@Nullable String oakPath,
+            @NotNull Tree aceTree) {
             return base.readRestrictions(oakPath, aceTree);
         }
 
         @Override
-        public void writeRestrictions(@Nullable String oakPath, @NotNull Tree aceTree, @NotNull Set<Restriction> restrictions) throws RepositoryException {
+        public void writeRestrictions(@Nullable String oakPath, @NotNull Tree aceTree,
+            @NotNull Set<Restriction> restrictions) throws RepositoryException {
             base.writeRestrictions(oakPath, aceTree, restrictions);
         }
 
         @Override
-        public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) throws RepositoryException {
+        public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree)
+            throws RepositoryException {
             base.validateRestrictions(oakPath, aceTree);
         }
 
         @Override
-        public @NotNull RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Tree tree) {
+        public @NotNull RestrictionPattern getPattern(@Nullable String oakPath,
+            @NotNull Tree tree) {
             return base.getPattern(oakPath, tree);
         }
 
         @Override
-        public @NotNull RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
+        public @NotNull RestrictionPattern getPattern(@Nullable String oakPath,
+            @NotNull Set<Restriction> restrictions) {
             return base.getPattern(oakPath, restrictions);
         }
 

@@ -67,12 +67,16 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
             for (Set<String> granted1 : Sets.powerSet(supp1)) {
                 for (Set<String> granted2 : Sets.powerSet(supp2)) {
                     for (Set<String> ps : Sets.powerSet(all)) {
-                        CompositePermissionProvider cpp = buildCpp(supp1, granted1, supp2, granted2, type, null);
+                        CompositePermissionProvider cpp = buildCpp(supp1, granted1, supp2, granted2,
+                            type, null);
 
-                        boolean expected = expected(ps, supp1, granted1, supp2, granted2, type, true);
-                        boolean result = cpp.hasPrivileges(null, ps.toArray(new String[] {}));
+                        boolean expected = expected(ps, supp1, granted1, supp2, granted2, type,
+                            true);
+                        boolean result = cpp.hasPrivileges(null, ps.toArray(new String[]{}));
 
-                        String err = "Checking " + ps + " in {supported: " + supp1 + ", granted: " + granted1 + "} "
+                        String err =
+                            "Checking " + ps + " in {supported: " + supp1 + ", granted: " + granted1
+                                + "} "
                                 + type + " {supported: " + supp2 + ", granted: " + granted2 + "}";
                         assertEquals(err, expected, result);
                     }
@@ -103,24 +107,33 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
             for (Set<String> granted1 : Sets.powerSet(supp1)) {
                 for (Set<String> granted2 : Sets.powerSet(supp2)) {
                     for (Set<String> ps : Sets.powerSet(all)) {
-                        CompositePermissionProvider cpp = buildCpp(supp1, granted1, supp2, granted2, type, grantMap);
-                        boolean expected = expected(ps, supp1, granted1, supp2, granted2, type, false);
+                        CompositePermissionProvider cpp = buildCpp(supp1, granted1, supp2, granted2,
+                            type, grantMap);
+                        boolean expected = expected(ps, supp1, granted1, supp2, granted2, type,
+                            false);
 
                         boolean result1 = cpp.isGranted(tree, null, mapToPermissions(ps, grantMap));
-                        String err1 = "[isGranted1] Checking " + ps + " in {supported: " + supp1 + ", granted: "
-                                + granted1 + "} " + type + " {supported: " + supp2 + ", granted: " + granted2 + "}";
+                        String err1 = "[isGranted1] Checking " + ps + " in {supported: " + supp1
+                            + ", granted: "
+                            + granted1 + "} " + type + " {supported: " + supp2 + ", granted: "
+                            + granted2 + "}";
                         assertEquals(err1, expected, result1);
 
                         // check existing path
                         boolean result2 = cpp.isGranted("/", mapToActions(ps, actionMap));
-                        String err2 = "[isGranted2] Checking " + ps + " in {supported: " + supp1 + ", granted: "
-                                + granted1 + "} " + type + " {supported: " + supp2 + ", granted: " + granted2 + "}";
+                        String err2 = "[isGranted2] Checking " + ps + " in {supported: " + supp1
+                            + ", granted: "
+                            + granted1 + "} " + type + " {supported: " + supp2 + ", granted: "
+                            + granted2 + "}";
                         assertEquals(err2, expected, result2);
 
                         // check non existing path
-                        boolean result3 = cpp.isGranted("/doesnotexist", mapToActions(ps, actionMap));
-                        String err3 = "[isGranted3] Checking " + ps + " in {supported: " + supp1 + ", granted: "
-                                + granted1 + "} " + type + " {supported: " + supp2 + ", granted: " + granted2 + "}";
+                        boolean result3 = cpp.isGranted("/doesnotexist",
+                            mapToActions(ps, actionMap));
+                        String err3 = "[isGranted3] Checking " + ps + " in {supported: " + supp1
+                            + ", granted: "
+                            + granted1 + "} " + type + " {supported: " + supp2 + ", granted: "
+                            + granted2 + "}";
                         assertEquals(err3, expected, result3);
                     }
                 }
@@ -144,12 +157,17 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
             for (Set<String> granted1 : Sets.powerSet(supp1)) {
                 for (Set<String> granted2 : Sets.powerSet(supp2)) {
                     for (Set<String> ps : Sets.powerSet(all)) {
-                        CompositePermissionProvider cpp = buildCpp(supp1, granted1, supp2, granted2, type, grantMap);
+                        CompositePermissionProvider cpp = buildCpp(supp1, granted1, supp2, granted2,
+                            type, grantMap);
 
-                        boolean expected = expected(ps, supp1, granted1, supp2, granted2, type, false);
-                        boolean result = cpp.getRepositoryPermission().isGranted(mapToPermissions(ps, grantMap));
+                        boolean expected = expected(ps, supp1, granted1, supp2, granted2, type,
+                            false);
+                        boolean result = cpp.getRepositoryPermission()
+                                            .isGranted(mapToPermissions(ps, grantMap));
 
-                        String err = "Checking " + ps + " in {supported: " + supp1 + ", granted: " + granted1 + "} "
+                        String err =
+                            "Checking " + ps + " in {supported: " + supp1 + ", granted: " + granted1
+                                + "} "
                                 + type + " {supported: " + supp2 + ", granted: " + granted2 + "}";
                         assertEquals(err, expected, result);
                     }
@@ -174,13 +192,18 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
             for (Set<String> granted1 : Sets.powerSet(supp1)) {
                 for (Set<String> granted2 : Sets.powerSet(supp2)) {
                     for (Set<String> ps : Sets.powerSet(all)) {
-                        CompositePermissionProvider cpp = buildCpp(supp1, granted1, supp2, granted2, type, grantMap);
+                        CompositePermissionProvider cpp = buildCpp(supp1, granted1, supp2, granted2,
+                            type, grantMap);
 
-                        boolean expected = expected(ps, supp1, granted1, supp2, granted2, type, false);
-                        boolean result = cpp.getTreePermission(root.getTree("/"), TreePermission.EMPTY)
-                                .isGranted(mapToPermissions(ps, grantMap));
+                        boolean expected = expected(ps, supp1, granted1, supp2, granted2, type,
+                            false);
+                        boolean result = cpp.getTreePermission(root.getTree("/"),
+                                                TreePermission.EMPTY)
+                                            .isGranted(mapToPermissions(ps, grantMap));
 
-                        String err = "Checking " + ps + " in {supported: " + supp1 + ", granted: " + granted1 + "} "
+                        String err =
+                            "Checking " + ps + " in {supported: " + supp1 + ", granted: " + granted1
+                                + "} "
                                 + type + " {supported: " + supp2 + ", granted: " + granted2 + "}";
                         assertEquals(err, expected, result);
                     }
@@ -208,8 +231,9 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         return actions.substring(0, actions.length() - 1);
     }
 
-    private boolean expected(Set<String> check, Set<String> supported1, Set<String> granted1, Set<String> supported2,
-            Set<String> granted2, CompositionType type, boolean emptyIsTrue) {
+    private boolean expected(Set<String> check, Set<String> supported1, Set<String> granted1,
+        Set<String> supported2,
+        Set<String> granted2, CompositionType type, boolean emptyIsTrue) {
         // Special case handled differently in the composite permissions vs.
         // actions
         if (check.isEmpty()) {
@@ -227,14 +251,16 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         }
     }
 
-    private CompositePermissionProvider buildCpp(Set<String> supported1, Set<String> granted1, Set<String> supported2,
-            Set<String> granted2, CompositionType type, Map<String, Long> grantMap) {
+    private CompositePermissionProvider buildCpp(Set<String> supported1, Set<String> granted1,
+        Set<String> supported2,
+        Set<String> granted2, CompositionType type, Map<String, Long> grantMap) {
         AggregatedPermissionProvider a1 = new CustomProvider(root, supported1, granted1, grantMap);
         AggregatedPermissionProvider a2 = new CustomProvider(root, supported2, granted2, grantMap);
 
         AuthorizationConfiguration config = getConfig(AuthorizationConfiguration.class);
         List<AggregatedPermissionProvider> composite = ImmutableList.of(a1, a2);
-        return CompositePermissionProvider.create(root, composite, config.getContext(), type, getRootProvider(), getTreeProvider());
+        return CompositePermissionProvider.create(root, composite, config.getContext(), type,
+            getRootProvider(), getTreeProvider());
     }
 
     private static class CustomProvider implements AggregatedPermissionProvider {
@@ -246,7 +272,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         private final Map<String, Long> grantMap;
 
         private CustomProvider(@NotNull Root root, Set<String> supported, Set<String> granted,
-                Map<String, Long> grantMap) {
+            Map<String, Long> grantMap) {
             this.pbp = new PrivilegeBitsProvider(root);
 
             this.supported = supported;
@@ -264,7 +290,8 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
         @NotNull
         @Override
-        public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
+        public PrivilegeBits supportedPrivileges(@Nullable Tree tree,
+            @Nullable PrivilegeBits privilegeBits) {
             return toBits(supported, pbp).retain(privilegeBits);
         }
 
@@ -281,7 +308,8 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         }
 
         @Override
-        public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
+        public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property,
+            long permissions) {
             return supportedPermissions(permissions);
         }
 
@@ -291,12 +319,14 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         }
 
         @Override
-        public long supportedPermissions(@NotNull TreePermission treePermission, PropertyState property, long permissions) {
+        public long supportedPermissions(@NotNull TreePermission treePermission,
+            PropertyState property, long permissions) {
             return supportedPermissions(permissions);
         }
 
         @Override
-        public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
+        public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property,
+            long permissions) {
             long myperms = mapToPermissions(granted, grantMap);
             return Permissions.includes(myperms, permissions);
         }
@@ -322,7 +352,8 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
         @NotNull
         @Override
-        public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission) {
+        public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type,
+            @NotNull TreePermission parentPermission) {
             return new CustomTreePermission(granted, grantMap);
         }
 
@@ -340,7 +371,8 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
         @NotNull
         @Override
-        public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
+        public TreePermission getTreePermission(@NotNull Tree tree,
+            @NotNull TreePermission parentPermission) {
             Assert.fail("method should not be called");
             return null;
         }
@@ -369,7 +401,8 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
         @NotNull
         @Override
-        public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
+        public TreePermission getChildPermission(@NotNull String childName,
+            @NotNull NodeState childState) {
             Assert.fail("method should not be called");
             return null;
         }

@@ -44,7 +44,7 @@ public class BindVariableValueImpl extends StaticOperandImpl {
     public PropertyValue currentValue() {
         return query.getBindVariableValue(bindVariableName);
     }
-    
+
     @Override
     int getPropertyType() {
         PropertyValue v = currentValue();
@@ -64,7 +64,7 @@ public class BindVariableValueImpl extends StaticOperandImpl {
             return true;
         } else if (that instanceof BindVariableValueImpl) {
             return bindVariableName.equals(
-                    ((BindVariableValueImpl) that).bindVariableName);
+                ((BindVariableValueImpl) that).bindVariableName);
         } else {
             return false;
         }

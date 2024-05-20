@@ -28,6 +28,7 @@ import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 
 public class PropertyIndexUtil {
+
     // TODO the max string length should be removed, or made configurable
     private static final int MAX_STRING_LENGTH = 100;
 
@@ -46,7 +47,7 @@ public class PropertyIndexUtil {
         }
         try {
             Set<String> values = new HashSet<String>();
-            for(String v : set) {
+            for (String v : set) {
                 if (v.length() > MAX_STRING_LENGTH) {
                     v = v.substring(0, MAX_STRING_LENGTH);
                 }

@@ -30,13 +30,13 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * An universal {@code Filter} implementation, which can be parametrised by
- * a {@link Selector} and a {@code Predicate}. The selector maps a call back
- * on this filter to a {@code NodeState}. That node state is in turn passed
- * to the predicate for determining whether to include or to exclude the
+ * An universal {@code Filter} implementation, which can be parametrised by a {@link Selector} and a
+ * {@code Predicate}. The selector maps a call back on this filter to a {@code NodeState}. That node
+ * state is in turn passed to the predicate for determining whether to include or to exclude the
  * respective event.
  */
 public class UniversalFilter implements EventFilter {
+
     private final NodeState beforeState;
     private final NodeState afterState;
     private final Selector selector;
@@ -45,14 +45,14 @@ public class UniversalFilter implements EventFilter {
     /**
      * Create a new instance of an universal filter rooted at the passed trees.
      *
-     * @param before          before state
-     * @param after           after state
-     * @param selector        selector for selecting the tree to match the predicate against
-     * @param predicate       predicate for determining whether to include or to exclude an event
+     * @param before    before state
+     * @param after     after state
+     * @param selector  selector for selecting the tree to match the predicate against
+     * @param predicate predicate for determining whether to include or to exclude an event
      */
     public UniversalFilter(
-            @NotNull NodeState before, @NotNull NodeState after,
-            @NotNull Selector selector, @NotNull Predicate<NodeState> predicate) {
+        @NotNull NodeState before, @NotNull NodeState after,
+        @NotNull Selector selector, @NotNull Predicate<NodeState> predicate) {
         this.beforeState = checkNotNull(before);
         this.afterState = checkNotNull(after);
         this.predicate = checkNotNull(predicate);
@@ -60,41 +60,43 @@ public class UniversalFilter implements EventFilter {
     }
 
     /**
-     * A selector instance maps call backs on {@code Filters} to {@code NodeState} instances,
-     * which should be used for determining inclusion or exclusion of the associated event.
+     * A selector instance maps call backs on {@code Filters} to {@code NodeState} instances, which
+     * should be used for determining inclusion or exclusion of the associated event.
      */
     public interface Selector {
 
         /**
          * Map a property event.
-         * @param filter  filter instance on which respective call back occurred.
-         * @param before  before state or {@code null} for
-         *                {@link EventFilter#includeAdd(PropertyState)}
-         * @param after   after state or {@code null} for
-         *                {@link EventFilter#includeDelete(PropertyState)}
+         *
+         * @param filter filter instance on which respective call back occurred.
+         * @param before before state or {@code null} for
+         *               {@link EventFilter#includeAdd(PropertyState)}
+         * @param after  after state or {@code null} for
+         *               {@link EventFilter#includeDelete(PropertyState)}
          * @return a {@code NodeState} instance for basing the filtering criterion (predicate) upon
          */
         @NotNull
         NodeState select(@NotNull UniversalFilter filter,
-                @Nullable PropertyState before, @Nullable PropertyState after);
+            @Nullable PropertyState before, @Nullable PropertyState after);
 
         /**
          * Map a node event.
-         * @param filter  filter instance on which respective call back occurred.
-         * @param name    name of the child node state
-         * @param before  before state or {@code null} for
-         *                {@link EventFilter#includeAdd(String, NodeState)}
-         * @param after   after state or {@code null} for
-         *                {@link EventFilter#includeDelete(String, NodeState)}
+         *
+         * @param filter filter instance on which respective call back occurred.
+         * @param name   name of the child node state
+         * @param before before state or {@code null} for
+         *               {@link EventFilter#includeAdd(String, NodeState)}
+         * @param after  after state or {@code null} for
+         *               {@link EventFilter#includeDelete(String, NodeState)}
          * @return a NodeState instance for basing the filtering criterion (predicate) upon
          */
         @NotNull
         NodeState select(@NotNull UniversalFilter filter, @NotNull String name,
-                @NotNull NodeState before, @NotNull NodeState after);
+            @NotNull NodeState before, @NotNull NodeState after);
     }
 
     /**
-     * @return  before state for this filter
+     * @return before state for this filter
      */
     @NotNull
     public NodeState getBeforeState() {
@@ -102,7 +104,7 @@ public class UniversalFilter implements EventFilter {
     }
 
     /**
-     * @return  after state for this filter
+     * @return after state for this filter
      */
     @NotNull
     public NodeState getAfterState() {
@@ -147,7 +149,7 @@ public class UniversalFilter implements EventFilter {
     @Override
     public EventFilter create(String name, NodeState before, NodeState after) {
         return new UniversalFilter(
-                beforeState.getChildNode(name), afterState.getChildNode(name),
-                selector, predicate);
+            beforeState.getChildNode(name), afterState.getChildNode(name),
+            selector, predicate);
     }
 }

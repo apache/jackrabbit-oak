@@ -46,40 +46,36 @@ import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static java.util.Collections.emptySet;
 
 /**
- * The NodeStateCopier and NodeStateCopier.Builder classes allow
- * recursively copying a NodeState to a NodeBuilder.
+ * The NodeStateCopier and NodeStateCopier.Builder classes allow recursively copying a NodeState to
+ * a NodeBuilder.
  * <br>
- * The copy algorithm is optimized for copying nodes between two
- * different NodeStore instances, i.e. where comparing NodeStates
- * is imprecise and/or expensive.
+ * The copy algorithm is optimized for copying nodes between two different NodeStore instances, i.e.
+ * where comparing NodeStates is imprecise and/or expensive.
  * <br>
- * The algorithm does a post-order traversal. I.e. it copies
- * changed leaf-nodes first.
+ * The algorithm does a post-order traversal. I.e. it copies changed leaf-nodes first.
  * <br>
- * The work for a traversal without any differences between
- * {@code source} and {@code target} is equivalent to the single
- * execution of a naive equals implementation.
+ * The work for a traversal without any differences between {@code source} and {@code target} is
+ * equivalent to the single execution of a naive equals implementation.
  * <br>
  * <b>Usage:</b> For most use-cases the Builder API should be
- * preferred. It allows setting {@code includePaths},
- * {@code excludePaths} and {@code mergePaths}.
+ * preferred. It allows setting {@code includePaths}, {@code excludePaths} and {@code mergePaths}.
  * <br>
  * <b>Include paths:</b> if include paths are set, only these paths
- * and their sub-trees are copied. Any nodes that are not within the
- * scope of an include path are <i>implicitly excluded</i>.
+ * and their sub-trees are copied. Any nodes that are not within the scope of an include path are
+ * <i>implicitly excluded</i>.
  * <br>
  * <b>Exclude paths:</b> if exclude paths are set, any nodes matching
- * or below the excluded path are not copied. If an excluded node does
- * exist in the target, it is removed (see also merge paths).
+ * or below the excluded path are not copied. If an excluded node does exist in the target, it is
+ * removed (see also merge paths).
  * <b>Exclude fragments:</b> if exclude fragments are set, nodes with names
- * matching any of the fragments (and their subtrees) are not copied. If an
- * excluded node does exist in the target, it is removed.
+ * matching any of the fragments (and their subtrees) are not copied. If an excluded node does exist
+ * in the target, it is removed.
  * <b>Merge paths:</b> if merge paths are set, any nodes matching or
- * below the merged path will not be deleted from target, even if they
- * are missing in (or excluded from) the source.
- * <b>Preserve on Target</b> if set to true the nodes on target under the included 
- * paths are not deleted and the merge paths property is ignored. If false 
- * the deletion rules default to the case for merge paths. 
+ * below the merged path will not be deleted from target, even if they are missing in (or excluded
+ * from) the source.
+ * <b>Preserve on Target</b> if set to true the nodes on target under the included
+ * paths are not deleted and the merge paths property is ignored. If false the deletion rules
+ * default to the case for merge paths.
  */
 public class NodeStateCopier {
 
@@ -98,17 +94,17 @@ public class NodeStateCopier {
     private final boolean referenceableFrozenNodes;
 
     private final boolean preserveOnTarget;
-    
+
     private final Consumer<String> newNodesConsumer;
 
     private NodeStateCopier(Set<String> includePaths,
-                            Set<String> excludePaths,
-                            Set<String> fragmentPaths,
-                            Set<String> excludeFragments,
-                            Set<String> mergePaths,
-                            boolean referenceableFrozenNodes,
-                            boolean preserveOnTarget,
-                            Consumer<String> newNodesConsumer) {
+        Set<String> excludePaths,
+        Set<String> fragmentPaths,
+        Set<String> excludeFragments,
+        Set<String> mergePaths,
+        boolean referenceableFrozenNodes,
+        boolean preserveOnTarget,
+        Consumer<String> newNodesConsumer) {
         this.includePaths = includePaths;
         this.excludePaths = excludePaths;
         this.fragmentPaths = fragmentPaths;
@@ -130,8 +126,8 @@ public class NodeStateCopier {
     }
 
     /**
-     * Shorthand method to copy one NodeStore to another. The changes in the
-     * target NodeStore are automatically persisted.
+     * Shorthand method to copy one NodeStore to another. The changes in the target NodeStore are
+     * automatically persisted.
      *
      * @param source NodeStore to copy from.
      * @param target NodeStore to copy to.
@@ -139,22 +135,23 @@ public class NodeStateCopier {
      * @throws CommitFailedException if the operation fails
      * @see NodeStateCopier.Builder#copy(NodeStore, NodeStore)
      */
-    public static boolean copyNodeStore(@NotNull final NodeStore source, @NotNull final NodeStore target)
-            throws CommitFailedException {
+    public static boolean copyNodeStore(@NotNull final NodeStore source,
+        @NotNull final NodeStore target)
+        throws CommitFailedException {
         return builder().copy(checkNotNull(source), checkNotNull(target));
     }
 
     /**
-     * Copies all changed properties from the source NodeState to the target
-     * NodeBuilder instance.
+     * Copies all changed properties from the source NodeState to the target NodeBuilder instance.
      *
-     * @param source The NodeState to copy from.
-     * @param target The NodeBuilder to copy to.
+     * @param source           The NodeState to copy from.
+     * @param target           The NodeBuilder to copy to.
      * @param preserveOnTarget boolean to indicate no changes on target except additions
-     * @param path current path
+     * @param path             current path
      * @return Whether changes were made or not.
      */
-    public static boolean copyProperties(NodeState source, NodeBuilder target, boolean preserveOnTarget, String path) {
+    public static boolean copyProperties(NodeState source, NodeBuilder target,
+        boolean preserveOnTarget, String path) {
         boolean hasChanges = false;
 
         // remove removed properties
@@ -179,27 +176,31 @@ public class NodeStateCopier {
         }
         return hasChanges;
     }
-    
+
     private static Set<String> getValues(NodeState nodeState, String prop) {
         PropertyState ps = nodeState.getProperty(prop);
         if (ps != null) {
             Iterable<String> values = ps.getValue(Type.STRINGS);
-            return StreamSupport.stream(values.spliterator(), false).filter(s -> !s.isEmpty()).collect(Collectors.toSet());
+            return StreamSupport.stream(values.spliterator(), false).filter(s -> !s.isEmpty())
+                                .collect(Collectors.toSet());
         }
         return Collections.emptySet();
     }
-    
-    private static boolean isVersionPropertyEmpty(NodeState source, PropertyState property, boolean preserveOnTarget,
+
+    private static boolean isVersionPropertyEmpty(NodeState source, PropertyState property,
+        boolean preserveOnTarget,
         String path) {
         if (preserveOnTarget) {
-            if (property.getName().equals(JcrConstants.JCR_UUID) || 
-                property.getName().equals(JcrConstants.JCR_SUCCESSORS) || 
+            if (property.getName().equals(JcrConstants.JCR_UUID) ||
+                property.getName().equals(JcrConstants.JCR_SUCCESSORS) ||
                 property.getName().equals(JcrConstants.JCR_PREDECESSORS)) {
                 boolean versionPropertyEmpty = getValues(source, property.getName()).isEmpty();
                 if (versionPropertyEmpty) {
-                    LOG.info("Version Property {} will be skipped for path {}", property.getName(), path);
+                    LOG.info("Version Property {} will be skipped for path {}", property.getName(),
+                        path);
                 } else {
-                    LOG.info("Version Property {} will be changed for path {}", property.getName(), path);
+                    LOG.info("Version Property {} will be changed for path {}", property.getName(),
+                        path);
                 }
                 return versionPropertyEmpty;
             }
@@ -208,8 +209,7 @@ public class NodeStateCopier {
     }
 
     /**
-     * Copies all changed properties from the source NodeState to the target
-     * NodeBuilder instance.
+     * Copies all changed properties from the source NodeState to the target NodeBuilder instance.
      *
      * @param source The NodeState to copy from.
      * @param target The NodeBuilder to copy to.
@@ -219,8 +219,11 @@ public class NodeStateCopier {
         return copyProperties(source, target, false, "");
     }
 
-    private boolean copyNodeState(@NotNull final NodeState sourceRoot, @NotNull final NodeBuilder targetRoot) {
-        final NodeState wrappedSource = FilteringNodeState.wrap("/", sourceRoot, this.includePaths, this.excludePaths, this.fragmentPaths, this.excludeFragments, this.referenceableFrozenNodes);
+    private boolean copyNodeState(@NotNull final NodeState sourceRoot,
+        @NotNull final NodeBuilder targetRoot) {
+        final NodeState wrappedSource = FilteringNodeState.wrap("/", sourceRoot, this.includePaths,
+            this.excludePaths, this.fragmentPaths, this.excludeFragments,
+            this.referenceableFrozenNodes);
         boolean hasChanges = false;
         for (String includePath : this.includePaths) {
             hasChanges = copyMissingAncestors(sourceRoot, targetRoot, includePath) || hasChanges;
@@ -237,32 +240,32 @@ public class NodeStateCopier {
     /**
      * Recursively copies the source NodeState to the target NodeBuilder.
      * <br>
-     * Nodes that exist in the {@code target} but not in the {@code source}
-     * are removed, unless they are descendants of one of the {@code mergePaths}.
-     * This is determined by checking if the {@code currentPath} is a descendant
-     * of any of the {@code mergePaths}.
+     * Nodes that exist in the {@code target} but not in the {@code source} are removed, unless they
+     * are descendants of one of the {@code mergePaths}. This is determined by checking if the
+     * {@code currentPath} is a descendant of any of the {@code mergePaths}.
      * <br>
      * <b>Note:</b> changes are not persisted.
      *
-     * @param source NodeState to copy from
-     * @param target NodeBuilder to copy to
-     * @param currentPath The path of both the source and target arguments.
-     * @param mergePaths A Set of paths under which existing nodes should be
-     *                   preserved, even if the do not exist in the source.
+     * @param source           NodeState to copy from
+     * @param target           NodeBuilder to copy to
+     * @param currentPath      The path of both the source and target arguments.
+     * @param mergePaths       A Set of paths under which existing nodes should be preserved, even
+     *                         if the do not exist in the source.
      * @param newNodesConsumer A newNodesConsumer for the node paths being added
      * @return An indication of whether there were changes or not.
      */
-    private static boolean copyNodeState(@NotNull final NodeState source, @NotNull final NodeBuilder target,
+    private static boolean copyNodeState(@NotNull final NodeState source,
+        @NotNull final NodeBuilder target,
         @NotNull final String currentPath, @NotNull final Set<String> mergePaths,
-       final boolean preserveOnTarget, Consumer newNodesConsumer) {
-
+        final boolean preserveOnTarget, Consumer newNodesConsumer) {
 
         boolean hasChanges = false;
 
         // delete deleted children
         for (final String childName : target.getChildNodeNames()) {
-            if (!preserveOnTarget && !source.hasChildNode(childName) && !isMerge(PathUtils.concat(currentPath,
-                childName), mergePaths)) {
+            if (!preserveOnTarget && !source.hasChildNode(childName) && !isMerge(
+                PathUtils.concat(currentPath,
+                    childName), mergePaths)) {
                 target.setChildNode(childName, EmptyNodeState.MISSING_NODE);
                 hasChanges = true;
             }
@@ -280,12 +283,14 @@ public class NodeStateCopier {
             } else {
                 // recurse into existing children
                 final NodeBuilder childTarget = target.getChildNode(childName);
-                hasChanges = copyNodeState(childSource, childTarget, childPath, mergePaths, preserveOnTarget, newNodesConsumer) || hasChanges;
+                hasChanges =
+                    copyNodeState(childSource, childTarget, childPath, mergePaths, preserveOnTarget,
+                        newNodesConsumer) || hasChanges;
             }
         }
 
         hasChanges = copyProperties(source, target, preserveOnTarget, currentPath) || hasChanges;
-        
+
         if (hasChanges) {
             LOG.trace("Node {} has changes", target);
         }
@@ -308,10 +313,10 @@ public class NodeStateCopier {
      *
      * @param sourceRoot NodeState to copy from
      * @param targetRoot NodeBuilder to copy to
-     * @param path The path along which ancestors should be copied.
+     * @param path       The path along which ancestors should be copied.
      */
     private static boolean copyMissingAncestors(
-            final NodeState sourceRoot, final NodeBuilder targetRoot, final String path) {
+        final NodeState sourceRoot, final NodeBuilder targetRoot, final String path) {
         NodeState current = sourceRoot;
         NodeBuilder currentBuilder = targetRoot;
         boolean hasChanges = false;
@@ -330,16 +335,18 @@ public class NodeStateCopier {
 
     /**
      * Allows retrieving a NodeBuilder by path relative to the given root NodeBuilder.
-     *
-     * All NodeBuilders are created via {@link NodeBuilder#child(String)} and are thus
-     * implicitly created.
+     * <p>
+     * All NodeBuilders are created via {@link NodeBuilder#child(String)} and are thus implicitly
+     * created.
      *
      * @param root The NodeBuilder to consider the root node.
-     * @param path An absolute or relative path, which is evaluated as a relative path under the root NodeBuilder.
+     * @param path An absolute or relative path, which is evaluated as a relative path under the
+     *             root NodeBuilder.
      * @return a NodeBuilder instance, never null
      */
     @NotNull
-    private static NodeBuilder getChildNodeBuilder(@NotNull final NodeBuilder root, @NotNull final String path) {
+    private static NodeBuilder getChildNodeBuilder(@NotNull final NodeBuilder root,
+        @NotNull final String path) {
         NodeBuilder child = root;
         for (String name : PathUtils.elements(path)) {
             child = child.child(name);
@@ -355,22 +362,20 @@ public class NodeStateCopier {
      * target.
      * <br>
      * <b>Exclude paths</b> allow restricting which paths should be copied. This is
-     * especially useful when there are individual nodes in an included path that
-     * should not be copied.
+     * especially useful when there are individual nodes in an included path that should not be
+     * copied.
      * <br>
-     * By default copying will remove items that already exist in the target but do
-     * not exist in the source. If this behaviour is undesired that is where merge
-     * paths come in.
+     * By default copying will remove items that already exist in the target but do not exist in the
+     * source. If this behaviour is undesired that is where merge paths come in.
      * <br>
      * <b>Merge paths</b> dictate in which parts of the tree the copy operation should
-     * be <i>additive</i>, i.e. the content from source is merged with the content
-     * in the target. Nodes that are present in the target but not in the source are
-     * then not deleted. However, in the case where nodes are present in both the source
-     * and the target, the node from the source is copied with its properties and any
-     * properties previously present on the target's node are lost.
+     * be <i>additive</i>, i.e. the content from source is merged with the content in the target.
+     * Nodes that are present in the target but not in the source are then not deleted. However, in
+     * the case where nodes are present in both the source and the target, the node from the source
+     * is copied with its properties and any properties previously present on the target's node are
+     * lost.
      * <br>
-     * Finally, using one of the {@code copy} methods, NodeStores or NodeStates can
-     * be copied.
+     * Finally, using one of the {@code copy} methods, NodeStores or NodeStates can be copied.
      */
     public static class Builder {
 
@@ -385,12 +390,14 @@ public class NodeStateCopier {
         private Set<String> mergePaths = emptySet();
 
         private boolean referenceableFrozenNodes = true;
-        
+
         private boolean preserveOnTarget;
-        
-        private Consumer<String> newNodesConsumer = path -> {};
-        
-        private Builder() {}
+
+        private Consumer<String> newNodesConsumer = path -> {
+        };
+
+        private Builder() {
+        }
 
 
         /**
@@ -432,7 +439,7 @@ public class NodeStateCopier {
             this.preserveOnTarget = preserveOnTarget;
             return this;
         }
-        
+
         /**
          * Set exclude paths.
          *
@@ -549,7 +556,7 @@ public class NodeStateCopier {
 
         /**
          * Set consumer for node additions.
-         * 
+         *
          * @param consumer consumer to listen to path additions
          * @return this Builder instance
          */
@@ -557,42 +564,45 @@ public class NodeStateCopier {
             this.newNodesConsumer = consumer;
             return this;
         }
-        
+
         /**
          * Creates a NodeStateCopier to copy the {@code sourceRoot} NodeState to the
-         * {@code targetRoot} NodeBuilder, using any include, exclude, merge paths and
-         * consumer set on this NodeStateCopier.Builder.
+         * {@code targetRoot} NodeBuilder, using any include, exclude, merge paths and consumer set
+         * on this NodeStateCopier.Builder.
          * <br>
          * It is the responsibility of the caller to persist any changes using e.g.
          * {@link NodeStore#merge(NodeBuilder, CommitHook, CommitInfo)}.
          *
          * @param sourceRoot NodeState to copy from
          * @param targetRoot NodeBuilder to copy to
-         * @return true if there were any changes, false if sourceRoot and targetRoot represent
-         *         the same content
+         * @return true if there were any changes, false if sourceRoot and targetRoot represent the
+         * same content
          */
-        public boolean copy(@NotNull final NodeState sourceRoot, @NotNull final NodeBuilder targetRoot) {
-            final NodeStateCopier copier = new NodeStateCopier(includePaths, excludePaths, fragmentPaths,
-                excludeFragments, mergePaths, referenceableFrozenNodes, preserveOnTarget, newNodesConsumer);
+        public boolean copy(@NotNull final NodeState sourceRoot,
+            @NotNull final NodeBuilder targetRoot) {
+            final NodeStateCopier copier = new NodeStateCopier(includePaths, excludePaths,
+                fragmentPaths,
+                excludeFragments, mergePaths, referenceableFrozenNodes, preserveOnTarget,
+                newNodesConsumer);
             return copier.copyNodeState(checkNotNull(sourceRoot), checkNotNull(targetRoot));
         }
 
         /**
-         * Creates a NodeStateCopier to copy the {@code source} NodeStore to the
-         * {@code target} NodeStore, using any include, exclude, merge paths and
-         * consumer set on this NodeStateCopier.Builder.
+         * Creates a NodeStateCopier to copy the {@code source} NodeStore to the {@code target}
+         * NodeStore, using any include, exclude, merge paths and consumer set on this
+         * NodeStateCopier.Builder.
          * <br>
-         * Changes are automatically persisted with empty CommitHooks and CommitInfo
-         * via {@link NodeStore#merge(NodeBuilder, CommitHook, CommitInfo)}.
+         * Changes are automatically persisted with empty CommitHooks and CommitInfo via
+         * {@link NodeStore#merge(NodeBuilder, CommitHook, CommitInfo)}.
          *
          * @param source NodeStore to copy from
          * @param target NodeStore to copy to
-         * @return true if there were any changes, false if source and target represent
-         *         the same content
+         * @return true if there were any changes, false if source and target represent the same
+         * content
          * @throws CommitFailedException if the copy operation fails
          */
         public boolean copy(@NotNull final NodeStore source, @NotNull final NodeStore target)
-                throws CommitFailedException {
+            throws CommitFailedException {
             final NodeBuilder targetRoot = checkNotNull(target).getRoot().builder();
             if (copy(checkNotNull(source).getRoot(), targetRoot)) {
                 target.merge(targetRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);

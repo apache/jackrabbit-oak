@@ -64,11 +64,15 @@ public class NoPermissionsTest extends AbstractSecurityTest {
             Tree tree = getRootProvider().createReadOnlyRoot(root).getTree(path);
             assertTrue(tree.exists());
 
-            assertSame(TreePermission.EMPTY, noPermissions.getTreePermission(tree, TreePermission.EMPTY));
-            assertSame(TreePermission.EMPTY, noPermissions.getTreePermission(tree, TreeType.DEFAULT, TreePermission.EMPTY));
+            assertSame(TreePermission.EMPTY,
+                noPermissions.getTreePermission(tree, TreePermission.EMPTY));
+            assertSame(TreePermission.EMPTY,
+                noPermissions.getTreePermission(tree, TreeType.DEFAULT, TreePermission.EMPTY));
             for (Tree child : tree.getChildren()) {
-                assertSame(TreePermission.EMPTY, noPermissions.getTreePermission(child, TreePermission.EMPTY));
-                assertSame(TreePermission.EMPTY, noPermissions.getTreePermission(child, TreeType.DEFAULT, TreePermission.EMPTY));
+                assertSame(TreePermission.EMPTY,
+                    noPermissions.getTreePermission(child, TreePermission.EMPTY));
+                assertSame(TreePermission.EMPTY,
+                    noPermissions.getTreePermission(child, TreeType.DEFAULT, TreePermission.EMPTY));
             }
         }
     }

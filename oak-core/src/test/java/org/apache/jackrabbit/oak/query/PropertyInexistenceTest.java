@@ -32,12 +32,13 @@ import org.junit.Test;
 import java.util.List;
 
 public class PropertyInexistenceTest extends AbstractQueryTest {
+
     @Override
     protected ContentRepository createRepository() {
         return new Oak()
-                .with(new OpenSecurityProvider())
-                .with(new InitialContent())
-                .createContentRepository();
+            .with(new OpenSecurityProvider())
+            .with(new InitialContent())
+            .createContentRepository();
     }
 
     private String initVal = null;
@@ -104,7 +105,6 @@ public class PropertyInexistenceTest extends AbstractQueryTest {
         assertQuery(query1, expectedOld1);
         assertQuery(query2, expectedOld2);
 
-
         rootTree.addChild("x2").addChild("z").setProperty("y", "bar");
         rootTree.addChild("x2").addChild("z1").addChild("y").setProperty("z", "bar");
         root.commit();
@@ -131,7 +131,8 @@ public class PropertyInexistenceTest extends AbstractQueryTest {
         root.commit();
 
         String query = "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/a') AND [w/y/z] IS NULL";
-        List<String> expected = ImmutableList.of("/a/x", "/a/x1", "/a/x1/w", "/a/x2", "/a/x2/w", "/a/x2/w/y");
+        List<String> expected = ImmutableList.of("/a/x", "/a/x1", "/a/x1/w", "/a/x2", "/a/x2/w",
+            "/a/x2/w/y");
         List<String> expectedOld = ImmutableList.of("/a/x2");
 
         assertQuery(query, expected);

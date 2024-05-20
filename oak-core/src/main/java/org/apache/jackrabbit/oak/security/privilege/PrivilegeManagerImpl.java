@@ -38,8 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@code PrivilegeManager} implementation reading from and storing privileges
- * into the repository.
+ * {@code PrivilegeManager} implementation reading from and storing privileges into the repository.
  */
 class PrivilegeManagerImpl implements PrivilegeManager {
 
@@ -67,7 +66,8 @@ class PrivilegeManagerImpl implements PrivilegeManager {
     @NotNull
     @Override
     public Privilege getPrivilege(@NotNull String privilegeName) throws RepositoryException {
-        PrivilegeDefinition def = getPrivilegeDefinition(PrivilegeUtil.getOakName(privilegeName, namePathMapper));
+        PrivilegeDefinition def = getPrivilegeDefinition(
+            PrivilegeUtil.getOakName(privilegeName, namePathMapper));
         if (def == null) {
             throw new AccessControlException("No such privilege " + privilegeName);
         } else {
@@ -78,14 +78,17 @@ class PrivilegeManagerImpl implements PrivilegeManager {
     @NotNull
     @Override
     public Privilege registerPrivilege(@NotNull String privilegeName, boolean isAbstract,
-                                       @Nullable String[] declaredAggregateNames) throws RepositoryException {
+        @Nullable String[] declaredAggregateNames) throws RepositoryException {
         if (root.hasPendingChanges()) {
-            throw new InvalidItemStateException("Attempt to register a new privilege while there are pending changes.");
+            throw new InvalidItemStateException(
+                "Attempt to register a new privilege while there are pending changes.");
         }
         if (Strings.isNullOrEmpty(privilegeName)) {
             throw new RepositoryException("Invalid privilege name " + privilegeName);
         }
-        PrivilegeDefinition definition = new ImmutablePrivilegeDefinition(PrivilegeUtil.getOakName(privilegeName, namePathMapper), isAbstract, PrivilegeUtil.getOakNames(declaredAggregateNames, namePathMapper));
+        PrivilegeDefinition definition = new ImmutablePrivilegeDefinition(
+            PrivilegeUtil.getOakName(privilegeName, namePathMapper), isAbstract,
+            PrivilegeUtil.getOakNames(declaredAggregateNames, namePathMapper));
         PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(getWriteRoot());
         writer.writeDefinition(definition);
 
@@ -124,7 +127,8 @@ class PrivilegeManagerImpl implements PrivilegeManager {
     //--------------------------------------------------------------------------
 
     /**
-     * Privilege implementation based on a {@link org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition}.
+     * Privilege implementation based on a
+     * {@link org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition}.
      */
     private final class PrivilegeImpl implements Privilege {
 
@@ -156,14 +160,16 @@ class PrivilegeManagerImpl implements PrivilegeManager {
             Set<Privilege> declaredAggregates = new HashSet<>(declaredAggregateNames.size());
             for (String oakName : declaredAggregateNames) {
                 if (oakName.equals(definition.getName())) {
-                    log.warn("Found cyclic privilege aggregation -> ignore declared aggregate {}", oakName);
+                    log.warn("Found cyclic privilege aggregation -> ignore declared aggregate {}",
+                        oakName);
                     continue;
                 }
                 PrivilegeDefinition def = getPrivilegeDefinition(oakName);
                 if (def != null) {
                     declaredAggregates.add(getPrivilege(def));
                 } else {
-                    log.warn("Invalid privilege '{}' in declared aggregates of '{}'", oakName, getName());
+                    log.warn("Invalid privilege '{}' in declared aggregates of '{}'", oakName,
+                        getName());
                 }
             }
             return declaredAggregates.toArray(new Privilege[0]);

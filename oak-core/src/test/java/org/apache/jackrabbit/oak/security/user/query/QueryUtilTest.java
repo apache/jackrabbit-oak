@@ -50,11 +50,14 @@ import static org.mockito.Mockito.when;
 
 public class QueryUtilTest {
 
-    private final PartialValueFactory valueFactory = new PartialValueFactory(NamePathMapper.DEFAULT);
+    private final PartialValueFactory valueFactory = new PartialValueFactory(
+        NamePathMapper.DEFAULT);
 
-    private static void assertSearchRoot(@NotNull Map<AuthorizableType, String> mapping, @NotNull ConfigurationParameters params) {
+    private static void assertSearchRoot(@NotNull Map<AuthorizableType, String> mapping,
+        @NotNull ConfigurationParameters params) {
         mapping.forEach((key, s) -> {
-            String expected = (PathUtils.denotesRoot(s)) ? QueryConstants.SEARCH_ROOT_PATH : QueryConstants.SEARCH_ROOT_PATH + s;
+            String expected = (PathUtils.denotesRoot(s)) ? QueryConstants.SEARCH_ROOT_PATH
+                : QueryConstants.SEARCH_ROOT_PATH + s;
             assertEquals(expected, QueryUtil.getSearchRoot(key, params));
         });
     }
@@ -62,9 +65,9 @@ public class QueryUtilTest {
     @Test
     public void testGetSearchRootDefault() {
         Map<AuthorizableType, String> defaultPaths = ImmutableMap.of(
-                AuthorizableType.USER, UserConstants.DEFAULT_USER_PATH,
-                AuthorizableType.GROUP, UserConstants.DEFAULT_GROUP_PATH,
-                AuthorizableType.AUTHORIZABLE, "/rep:security/rep:authorizables");
+            AuthorizableType.USER, UserConstants.DEFAULT_USER_PATH,
+            AuthorizableType.GROUP, UserConstants.DEFAULT_GROUP_PATH,
+            AuthorizableType.AUTHORIZABLE, "/rep:security/rep:authorizables");
 
         assertSearchRoot(defaultPaths, ConfigurationParameters.EMPTY);
     }
@@ -74,20 +77,22 @@ public class QueryUtilTest {
         String path = "/configured/user_and_group/path";
 
         for (AuthorizableType type : AuthorizableType.values()) {
-            assertEquals(QueryConstants.SEARCH_ROOT_PATH + path, QueryUtil.getSearchRoot(type, ConfigurationParameters.of(UserConstants.PARAM_USER_PATH, path, UserConstants.PARAM_GROUP_PATH, path)));
+            assertEquals(QueryConstants.SEARCH_ROOT_PATH + path, QueryUtil.getSearchRoot(type,
+                ConfigurationParameters.of(UserConstants.PARAM_USER_PATH, path,
+                    UserConstants.PARAM_GROUP_PATH, path)));
         }
     }
 
     @Test
     public void testGetSearchRootUserPathParentOfGroup() {
         ConfigurationParameters params = ConfigurationParameters.of(
-                UserConstants.PARAM_USER_PATH, "/configured/users",
-                UserConstants.PARAM_GROUP_PATH, "/configured/users/groups");
+            UserConstants.PARAM_USER_PATH, "/configured/users",
+            UserConstants.PARAM_GROUP_PATH, "/configured/users/groups");
 
         Map<AuthorizableType, String> paths = ImmutableMap.of(
-                AuthorizableType.USER, "/configured/users",
-                AuthorizableType.GROUP, "/configured/users/groups",
-                AuthorizableType.AUTHORIZABLE, "/configured/users");
+            AuthorizableType.USER, "/configured/users",
+            AuthorizableType.GROUP, "/configured/users/groups",
+            AuthorizableType.AUTHORIZABLE, "/configured/users");
 
         assertSearchRoot(paths, params);
     }
@@ -95,13 +100,13 @@ public class QueryUtilTest {
     @Test
     public void testGetSearchRootGroupPathParentOfUser() {
         ConfigurationParameters params = ConfigurationParameters.of(
-                UserConstants.PARAM_USER_PATH, "/configured/groups/users",
-                UserConstants.PARAM_GROUP_PATH, "/configured/groups");
+            UserConstants.PARAM_USER_PATH, "/configured/groups/users",
+            UserConstants.PARAM_GROUP_PATH, "/configured/groups");
 
         Map<AuthorizableType, String> paths = ImmutableMap.of(
-                AuthorizableType.USER, "/configured/groups/users",
-                AuthorizableType.GROUP, "/configured/groups",
-                AuthorizableType.AUTHORIZABLE, "/configured/groups");
+            AuthorizableType.USER, "/configured/groups/users",
+            AuthorizableType.GROUP, "/configured/groups",
+            AuthorizableType.AUTHORIZABLE, "/configured/groups");
 
         assertSearchRoot(paths, params);
     }
@@ -109,13 +114,13 @@ public class QueryUtilTest {
     @Test
     public void testGetSearchRootNoCommonAncestor() {
         ConfigurationParameters params = ConfigurationParameters.of(
-                UserConstants.PARAM_USER_PATH, "/users",
-                UserConstants.PARAM_GROUP_PATH, "/groups");
+            UserConstants.PARAM_USER_PATH, "/users",
+            UserConstants.PARAM_GROUP_PATH, "/groups");
 
         Map<AuthorizableType, String> paths = ImmutableMap.of(
-                AuthorizableType.USER, "/users",
-                AuthorizableType.GROUP, "/groups",
-                AuthorizableType.AUTHORIZABLE, "/");
+            AuthorizableType.USER, "/users",
+            AuthorizableType.GROUP, "/groups",
+            AuthorizableType.AUTHORIZABLE, "/");
 
         assertSearchRoot(paths, params);
     }
@@ -123,13 +128,13 @@ public class QueryUtilTest {
     @Test
     public void testGetSearchRootConfiguredPathDenotesRoot() {
         ConfigurationParameters params = ConfigurationParameters.of(
-                UserConstants.PARAM_USER_PATH, "/users",
-                UserConstants.PARAM_GROUP_PATH, "/");
+            UserConstants.PARAM_USER_PATH, "/users",
+            UserConstants.PARAM_GROUP_PATH, "/");
 
         Map<AuthorizableType, String> paths = ImmutableMap.of(
-                AuthorizableType.USER, "/users",
-                AuthorizableType.GROUP, "/",
-                AuthorizableType.AUTHORIZABLE, "/");
+            AuthorizableType.USER, "/users",
+            AuthorizableType.GROUP, "/",
+            AuthorizableType.AUTHORIZABLE, "/");
 
         assertSearchRoot(paths, params);
     }
@@ -137,13 +142,13 @@ public class QueryUtilTest {
     @Test
     public void testGetSearchRoot() {
         ConfigurationParameters params = ConfigurationParameters.of(
-                UserConstants.PARAM_USER_PATH, "/configured/user/path",
-                UserConstants.PARAM_GROUP_PATH, "/configured/group/path");
+            UserConstants.PARAM_USER_PATH, "/configured/user/path",
+            UserConstants.PARAM_GROUP_PATH, "/configured/group/path");
 
         Map<AuthorizableType, String> paths = ImmutableMap.of(
-                AuthorizableType.USER, "/configured/user/path",
-                AuthorizableType.GROUP, "/configured/group/path",
-                AuthorizableType.AUTHORIZABLE, "/configured");
+            AuthorizableType.USER, "/configured/user/path",
+            AuthorizableType.GROUP, "/configured/group/path",
+            AuthorizableType.AUTHORIZABLE, "/configured");
 
         assertSearchRoot(paths, params);
     }
@@ -151,16 +156,17 @@ public class QueryUtilTest {
     @Test
     public void testNodeTypeName() {
         Map<AuthorizableType, String> ntNames = ImmutableMap.of(
-                AuthorizableType.USER, UserConstants.NT_REP_USER,
-                AuthorizableType.GROUP, UserConstants.NT_REP_GROUP,
-                AuthorizableType.AUTHORIZABLE, UserConstants.NT_REP_AUTHORIZABLE);
+            AuthorizableType.USER, UserConstants.NT_REP_USER,
+            AuthorizableType.GROUP, UserConstants.NT_REP_GROUP,
+            AuthorizableType.AUTHORIZABLE, UserConstants.NT_REP_AUTHORIZABLE);
 
         ntNames.forEach((key, value) -> assertEquals(value, QueryUtil.getNodeTypeName(key)));
     }
 
     @Test
     public void testEscapeNodeName() {
-        List<String> names = ImmutableList.of("name", JcrConstants.JCR_CREATED, "%name", "a%name", "name%");
+        List<String> names = ImmutableList.of("name", JcrConstants.JCR_CREATED, "%name", "a%name",
+            "name%");
         for (String name : names) {
             assertEquals(QueryUtils.escapeNodeName(name), QueryUtil.escapeNodeName(name));
         }
@@ -169,12 +175,14 @@ public class QueryUtilTest {
     @Test
     public void testFormatString() throws Exception {
         String value = "'string\\value";
-        assertEquals("'"+QueryUtils.escapeForQuery(value)+"'", QueryUtil.format(valueFactory.createValue(value)));
+        assertEquals("'" + QueryUtils.escapeForQuery(value) + "'",
+            QueryUtil.format(valueFactory.createValue(value)));
     }
 
     @Test
     public void testFormatBoolean() throws Exception {
-        assertEquals("'"+Boolean.TRUE.toString()+"'", QueryUtil.format(valueFactory.createValue(true)));
+        assertEquals("'" + Boolean.TRUE.toString() + "'",
+            QueryUtil.format(valueFactory.createValue(true)));
 
     }
 
@@ -206,11 +214,12 @@ public class QueryUtilTest {
     @Test
     public void testEscapeForQuery() {
         NamePathMapper namePathMapper = new NamePathMapperImpl(new LocalNameMapper(
-                ImmutableMap.of(NamespaceRegistry.PREFIX_JCR, NamespaceRegistry.NAMESPACE_JCR),
-                ImmutableMap.of("myPrefix", NamespaceRegistry.NAMESPACE_JCR)));
+            ImmutableMap.of(NamespaceRegistry.PREFIX_JCR, NamespaceRegistry.NAMESPACE_JCR),
+            ImmutableMap.of("myPrefix", NamespaceRegistry.NAMESPACE_JCR)));
 
         String value = "'string\\value";
-        assertEquals(QueryUtils.escapeForQuery("myPrefix:"+value), QueryUtil.escapeForQuery("jcr:"+value, namePathMapper));
+        assertEquals(QueryUtils.escapeForQuery("myPrefix:" + value),
+            QueryUtil.escapeForQuery("jcr:" + value, namePathMapper));
     }
 
     @Test
@@ -232,7 +241,8 @@ public class QueryUtilTest {
 
     @Test
     public void testGetIDThrowing() throws RepositoryException {
-        Authorizable a = when(mock(Authorizable.class).getID()).thenThrow(new RepositoryException()).getMock();
+        Authorizable a = when(mock(Authorizable.class).getID()).thenThrow(new RepositoryException())
+                                                               .getMock();
         assertNull(QueryUtil.getID(a));
     }
 }

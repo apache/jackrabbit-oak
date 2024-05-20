@@ -47,7 +47,7 @@ public class TrackingCorruptIndexHandlerTest {
     }
 
     @Test
-    public void basics() throws Exception{
+    public void basics() throws Exception {
         handler.setClock(clock);
         handler.indexUpdateFailed("async", "/oak:index/foo", new Exception());
 
@@ -67,7 +67,8 @@ public class TrackingCorruptIndexHandlerTest {
     @Test
     public void testCorruptCounter() {
         MeterStats meter = new DefaultStatisticsProvider(scheduledExecutorService).
-                getMeter(TrackingCorruptIndexHandler.CORRUPT_INDEX_METER_NAME, StatsOptions.METRICS_ONLY);
+            getMeter(TrackingCorruptIndexHandler.CORRUPT_INDEX_METER_NAME,
+                StatsOptions.METRICS_ONLY);
 
         handler.setMeterStats(meter);
         handler.setClock(clock);
@@ -84,7 +85,7 @@ public class TrackingCorruptIndexHandlerTest {
     }
 
     @Test
-    public void disbaled() throws Exception{
+    public void disbaled() throws Exception {
         handler.setClock(clock);
         handler.indexUpdateFailed("async", "/oak:index/foo", new Exception());
 
@@ -98,16 +99,18 @@ public class TrackingCorruptIndexHandlerTest {
     }
 
     @Test
-    public void warningLoggedAfterSomeTime() throws Exception{
+    public void warningLoggedAfterSomeTime() throws Exception {
         handler.setClock(clock);
         handler.indexUpdateFailed("async", "/oak:index/foo", new Exception());
 
-        assertFalse(handler.skippingCorruptIndex("async", "/oak:index/foo", Calendar.getInstance()));
+        assertFalse(
+            handler.skippingCorruptIndex("async", "/oak:index/foo", Calendar.getInstance()));
 
         clock.waitUntil(clock.getTime() + handler.getErrorWarnIntervalMillis() + 1);
 
         assertTrue(handler.skippingCorruptIndex("async", "/oak:index/foo", Calendar.getInstance()));
-        assertFalse(handler.skippingCorruptIndex("async", "/oak:index/foo", Calendar.getInstance()));
+        assertFalse(
+            handler.skippingCorruptIndex("async", "/oak:index/foo", Calendar.getInstance()));
     }
 
 }

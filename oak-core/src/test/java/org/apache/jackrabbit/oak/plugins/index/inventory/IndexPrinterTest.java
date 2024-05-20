@@ -41,6 +41,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class IndexPrinterTest {
+
     private final AsyncIndexInfoService asyncInfo = mock(AsyncIndexInfoService.class);
     private final IndexInfoService indexInfo = mock(IndexInfoService.class);
 
@@ -51,7 +52,7 @@ public class IndexPrinterTest {
         when(indexInfo.getAllIndexInfo()).thenReturn(emptyList());
         when(asyncInfo.getAsyncLanes()).thenReturn(asList("foo-async", "bar-async"));
         when(asyncInfo.getInfo("foo-async"))
-                .thenReturn(new AsyncIndexInfo("foo-async", 0, 0, false, null));
+            .thenReturn(new AsyncIndexInfo("foo-async", 0, 0, false, null));
 
         String output = getPrintOutput(Format.TEXT);
 
@@ -63,14 +64,15 @@ public class IndexPrinterTest {
         when(indexInfo.getAllIndexInfo()).thenReturn(emptyList());
         when(asyncInfo.getAsyncLanes()).thenReturn(asList("foo-async", "bar-async"));
         when(asyncInfo.getInfo("foo-async"))
-                .thenReturn(new AsyncIndexInfo("foo-async", 0, 0, false, null));
+            .thenReturn(new AsyncIndexInfo("foo-async", 0, 0, false, null));
 
         String output = getPrintOutput(Format.JSON);
 
         JsonObject json = JsonObject.fromJson(output, true);
         Map<String, JsonObject> jsonMap = json.getChildren();
         assertTrue(jsonMap.containsKey("Async Indexers State"));
-        int size = Integer.parseInt(jsonMap.get("Async Indexers State").getProperties().get("Number of async indexer lanes"));
+        int size = Integer.parseInt(jsonMap.get("Async Indexers State").getProperties()
+                                           .get("Number of async indexer lanes"));
         assertEquals(2, size);
 
         assertTrue(jsonMap.get("Async Indexers State").getChildren().containsKey("foo-async"));
@@ -125,6 +127,7 @@ public class IndexPrinterTest {
     }
 
     private static class TestInfo implements IndexInfo {
+
         final String indexPath;
         final String type;
         String laneName;

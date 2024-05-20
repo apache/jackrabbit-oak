@@ -118,10 +118,10 @@ public class AsyncIndexInfoServiceImpl implements AsyncIndexInfoService {
     }
 
     @Reference(name = "statsMBeans",
-            policy = ReferencePolicy.DYNAMIC,
-            cardinality = ReferenceCardinality.MULTIPLE,
-            policyOption = ReferencePolicyOption.GREEDY,
-            service = IndexStatsMBean.class
+        policy = ReferencePolicy.DYNAMIC,
+        cardinality = ReferenceCardinality.MULTIPLE,
+        policyOption = ReferencePolicyOption.GREEDY,
+        service = IndexStatsMBean.class
     )
     protected void bindStatsMBeans(IndexStatsMBean mBean) {
         statsMBeans.put(mBean.getName(), mBean);

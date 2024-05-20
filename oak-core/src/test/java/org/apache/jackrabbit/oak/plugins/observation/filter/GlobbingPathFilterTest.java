@@ -86,7 +86,7 @@ public class GlobbingPathFilterTest {
 
         assertTrue(filter.includeAdd("q", tree.getNodeState()));
     }
-    
+
     @Test
     public void wildcardMatches() {
         EventFilter filter = new GlobbingPathFilter("*.*");
@@ -94,7 +94,7 @@ public class GlobbingPathFilterTest {
         assertTrue(filter.includeAdd(".b", tree.getNodeState()));
         assertTrue(filter.includeAdd("a.b", tree.getNodeState()));
         assertTrue(filter.includeAdd("a.", tree.getNodeState()));
-        
+
         filter = new GlobbingPathFilter("*.html");
         assertFalse(filter.includeAdd("a.b", tree.getNodeState()));
         assertFalse(filter.includeAdd("html", tree.getNodeState()));
@@ -113,17 +113,17 @@ public class GlobbingPathFilterTest {
      */
     @Test
     public void inTheMiddle() {
-        EventFilter filter = new GlobbingPathFilter("/foo/"+STAR_STAR+"/bar");
+        EventFilter filter = new GlobbingPathFilter("/foo/" + STAR_STAR + "/bar");
         ImmutableTree t = tree;
 
-        for(String name : elements("foo/a/b/c")) {
+        for (String name : elements("foo/a/b/c")) {
             t = t.getChild(name);
             assertFalse(filter.includeAdd(name, t.getNodeState()));
             filter = filter.create(name, t.getNodeState(), t.getNodeState());
             assertNotNull(filter);
         }
 
-        for(String name : elements("bar")) {
+        for (String name : elements("bar")) {
             t = t.getChild(name);
             assertTrue(filter.includeAdd(name, t.getNodeState()));
             filter = filter.create(name, t.getNodeState(), t.getNodeState());
@@ -139,7 +139,7 @@ public class GlobbingPathFilterTest {
         EventFilter filter = new GlobbingPathFilter(STAR_STAR);
         ImmutableTree t = tree;
 
-        for(String name : elements("a/b/c/d")) {
+        for (String name : elements("a/b/c/d")) {
             t = t.getChild(name);
             assertTrue(filter.includeAdd(name, t.getNodeState()));
             filter = filter.create(name, t.getNodeState(), t.getNodeState());
@@ -248,15 +248,16 @@ public class GlobbingPathFilterTest {
     }
 
     /**
-     * **&#47r/s/t/u/v should match r/s/t/u/v and r/s/t/u/v/r/s/t/u/v and r/s/t/u/v/r/s/t/u/v/r/s/t/u/v
+     * **&#47r/s/t/u/v should match r/s/t/u/v and r/s/t/u/v/r/s/t/u/v and
+     * r/s/t/u/v/r/s/t/u/v/r/s/t/u/v
      */
     @Test
     public void multipleMatches() {
         EventFilter filter = new GlobbingPathFilter("**/r/s/t/u/v");
         ImmutableTree t = tree;
 
-        for(int c = 0; c < 2; c++) {
-            for(String name : elements("r/s/t/u")) {
+        for (int c = 0; c < 2; c++) {
+            for (String name : elements("r/s/t/u")) {
                 t = t.getChild(name);
                 assertFalse(filter.includeAdd(name, t.getNodeState()));
                 filter = filter.create(name, t.getNodeState(), t.getNodeState());
@@ -278,7 +279,7 @@ public class GlobbingPathFilterTest {
         EventFilter filter = new GlobbingPathFilter("**/r/s/t/u/v/w");
         ImmutableTree t = tree;
 
-        for(String name : elements("r/s/t/u/v/r/s/t/u/v/r/s/t/u/v")) {
+        for (String name : elements("r/s/t/u/v/r/s/t/u/v/r/s/t/u/v")) {
             t = t.getChild(name);
             assertFalse(filter.includeAdd(name, t.getNodeState()));
             filter = filter.create(name, t.getNodeState(), t.getNodeState());
@@ -299,14 +300,14 @@ public class GlobbingPathFilterTest {
         EventFilter filter = new GlobbingPathFilter("a/b/c/d/r/s/t/**");
         ImmutableTree t = tree;
 
-        for(String name : elements("a/b/c/d/r/s")) {
+        for (String name : elements("a/b/c/d/r/s")) {
             t = t.getChild(name);
             assertFalse(filter.includeAdd(name, t.getNodeState()));
             filter = filter.create(name, t.getNodeState(), t.getNodeState());
             assertNotNull(filter);
         }
 
-        for (String name: elements("t/u/v/r/s/t/u/v/r/s/t/u/v/w")) {
+        for (String name : elements("t/u/v/r/s/t/u/v/r/s/t/u/v/w")) {
             t = t.getChild(name);
             assertTrue(filter.includeAdd(name, t.getNodeState()));
             filter = filter.create(name, t.getNodeState(), t.getNodeState());
@@ -319,7 +320,7 @@ public class GlobbingPathFilterTest {
     public void constructorPerformance() throws Exception {
         final int NUM = 5000000;
         final long start = System.currentTimeMillis();
-        for(int i=0; i<NUM; i++) {
+        for (int i = 0; i < NUM; i++) {
             matchSuffix();
             matchAtEnd();
         }

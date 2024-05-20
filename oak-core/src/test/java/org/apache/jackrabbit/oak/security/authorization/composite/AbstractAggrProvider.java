@@ -50,12 +50,14 @@ abstract class AbstractAggrProvider implements AggregatedPermissionProvider {
 
     @NotNull
     @Override
-    public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
+    public PrivilegeBits supportedPrivileges(@Nullable Tree tree,
+        @Nullable PrivilegeBits privilegeBits) {
         return (privilegeBits == null) ? pbp.getBits(PrivilegeConstants.JCR_ALL) : privilegeBits;
     }
 
     @Override
-    public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
+    public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property,
+        long permissions) {
         return permissions;
     }
 
@@ -65,13 +67,15 @@ abstract class AbstractAggrProvider implements AggregatedPermissionProvider {
     }
 
     @Override
-    public long supportedPermissions(@NotNull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
+    public long supportedPermissions(@NotNull TreePermission treePermission,
+        @Nullable PropertyState property, long permissions) {
         return permissions;
     }
 
     @NotNull
     @Override
-    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type,
+        @NotNull TreePermission parentPermission) {
         return getTreePermission(tree, parentPermission);
     }
 }

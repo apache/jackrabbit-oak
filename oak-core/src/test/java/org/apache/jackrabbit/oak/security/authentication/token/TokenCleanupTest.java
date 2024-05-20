@@ -44,13 +44,15 @@ public class TokenCleanupTest extends AbstractTokenTest {
     }
 
     private void assertTokenNodes(int expectedNumber) throws Exception {
-        Tree tokenParent = root.getTree(getTestUser().getPath() + '/' + TokenConstants.TOKENS_NODE_NAME);
-        assertEquals(expectedNumber, tokenParent.getChildrenCount(expectedNumber*2));
+        Tree tokenParent = root.getTree(
+            getTestUser().getPath() + '/' + TokenConstants.TOKENS_NODE_NAME);
+        assertEquals(expectedNumber, tokenParent.getChildrenCount(expectedNumber * 2));
     }
 
     private void createExpiredTokens(int numberOfTokens) {
         for (int i = 0; i < numberOfTokens; i++) {
-            TokenInfo tokenInfo = tokenProvider.createToken(userId, ImmutableMap.of(TokenProvider.PARAM_TOKEN_EXPIRATION, 2));
+            TokenInfo tokenInfo = tokenProvider.createToken(userId,
+                ImmutableMap.of(TokenProvider.PARAM_TOKEN_EXPIRATION, 2));
             // wait until the info created has expired
             if (tokenInfo != null) {
                 waitUntilExpired(tokenInfo);

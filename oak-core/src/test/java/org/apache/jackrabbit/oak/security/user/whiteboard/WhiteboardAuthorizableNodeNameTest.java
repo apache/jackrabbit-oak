@@ -39,13 +39,15 @@ public class WhiteboardAuthorizableNodeNameTest {
 
     @Test
     public void testDefault() {
-        assertEquals(AuthorizableNodeName.DEFAULT.generateNodeName(TEST_ID), authorizableNodeName.generateNodeName(TEST_ID));
+        assertEquals(AuthorizableNodeName.DEFAULT.generateNodeName(TEST_ID),
+            authorizableNodeName.generateNodeName(TEST_ID));
     }
 
     @Test
     public void testStarted() {
         authorizableNodeName.start(whiteboard);
-        assertEquals(AuthorizableNodeName.DEFAULT.generateNodeName(TEST_ID), authorizableNodeName.generateNodeName(TEST_ID));
+        assertEquals(AuthorizableNodeName.DEFAULT.generateNodeName(TEST_ID),
+            authorizableNodeName.generateNodeName(TEST_ID));
     }
 
     @Test
@@ -54,6 +56,7 @@ public class WhiteboardAuthorizableNodeNameTest {
 
         AuthorizableNodeName registered = authorizableId -> "generated";
         whiteboard.register(AuthorizableNodeName.class, registered, ImmutableMap.of());
-        assertEquals(registered.generateNodeName(TEST_ID), authorizableNodeName.generateNodeName(TEST_ID));
+        assertEquals(registered.generateNodeName(TEST_ID),
+            authorizableNodeName.generateNodeName(TEST_ID));
     }
 }

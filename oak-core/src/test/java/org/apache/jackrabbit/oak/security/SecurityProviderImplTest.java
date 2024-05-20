@@ -40,10 +40,10 @@ public class SecurityProviderImplTest {
 
     @Test
     public void testBindPrincipalConfiguration() {
-        PrincipalConfiguration defaultConfig = securityProvider.getConfiguration(PrincipalConfiguration.class);
+        PrincipalConfiguration defaultConfig = securityProvider.getConfiguration(
+            PrincipalConfiguration.class);
         assertTrue(defaultConfig instanceof CompositePrincipalConfiguration);
         CompositePrincipalConfiguration cpc = (CompositePrincipalConfiguration) defaultConfig;
-
 
         PrincipalConfiguration pc = Mockito.mock(PrincipalConfiguration.class);
         when(pc.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
@@ -63,7 +63,8 @@ public class SecurityProviderImplTest {
 
     @Test
     public void testUnbinPrincipalConfiguration() {
-        CompositePrincipalConfiguration cpc = (CompositePrincipalConfiguration) securityProvider.getConfiguration(PrincipalConfiguration.class);
+        CompositePrincipalConfiguration cpc = (CompositePrincipalConfiguration) securityProvider.getConfiguration(
+            PrincipalConfiguration.class);
 
         PrincipalConfiguration pc = Mockito.mock(PrincipalConfiguration.class);
         when(pc.getParameters()).thenReturn(ConfigurationParameters.EMPTY);

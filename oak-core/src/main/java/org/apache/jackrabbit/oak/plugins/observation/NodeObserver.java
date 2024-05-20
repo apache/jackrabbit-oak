@@ -43,14 +43,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Base class for {@code Observer} instances that group changes
- * by node instead of tracking them down to individual properties.
+ * Base class for {@code Observer} instances that group changes by node instead of tracking them
+ * down to individual properties.
  */
 public abstract class NodeObserver implements Observer {
 
     private static final PerfLogger PERF_LOGGER = new PerfLogger(
-            LoggerFactory.getLogger(NodeObserver.class.getName()
-                    + ".perf"));
+        LoggerFactory.getLogger(NodeObserver.class.getName()
+            + ".perf"));
     private static final Logger LOG = LoggerFactory.getLogger(NodeObserver.class);
 
     private final String path;
@@ -60,8 +60,9 @@ public abstract class NodeObserver implements Observer {
 
     /**
      * Create a new instance for observing the given path.
+     *
      * @param path
-     * @param propertyNames  names of properties to report even without a change
+     * @param propertyNames names of properties to report even without a change
      */
     protected NodeObserver(String path, String... propertyNames) {
         this.path = path;
@@ -70,6 +71,7 @@ public abstract class NodeObserver implements Observer {
 
     /**
      * A node at {@code path} has been added.
+     *
      * @param path       Path of the added node.
      * @param added      Names of the added properties.
      * @param deleted    Names of the deleted properties.
@@ -78,15 +80,16 @@ public abstract class NodeObserver implements Observer {
      * @param commitInfo commit info associated with this change.
      */
     protected abstract void added(
-            @NotNull String path,
-            @NotNull Set<String> added,
-            @NotNull Set<String> deleted,
-            @NotNull Set<String> changed,
-            @NotNull Map<String, String> properties,
-            @NotNull CommitInfo commitInfo);
+        @NotNull String path,
+        @NotNull Set<String> added,
+        @NotNull Set<String> deleted,
+        @NotNull Set<String> changed,
+        @NotNull Map<String, String> properties,
+        @NotNull CommitInfo commitInfo);
 
     /**
      * A node at {@code path} has been deleted.
+     *
      * @param path       Path of the deleted node.
      * @param added      Names of the added properties.
      * @param deleted    Names of the deleted properties.
@@ -95,15 +98,16 @@ public abstract class NodeObserver implements Observer {
      * @param commitInfo commit info associated with this change.
      */
     protected abstract void deleted(
-            @NotNull String path,
-            @NotNull Set<String> added,
-            @NotNull Set<String> deleted,
-            @NotNull Set<String> changed,
-            @NotNull Map<String, String> properties,
-            @NotNull CommitInfo commitInfo);
+        @NotNull String path,
+        @NotNull Set<String> added,
+        @NotNull Set<String> deleted,
+        @NotNull Set<String> changed,
+        @NotNull Map<String, String> properties,
+        @NotNull CommitInfo commitInfo);
 
     /**
      * A node at {@code path} has been changed.
+     *
      * @param path       Path of the changed node.
      * @param added      Names of the added properties.
      * @param deleted    Names of the deleted properties.
@@ -112,12 +116,12 @@ public abstract class NodeObserver implements Observer {
      * @param commitInfo commit info associated with this change.
      */
     protected abstract void changed(
-            @NotNull String path,
-            @NotNull Set<String> added,
-            @NotNull Set<String> deleted,
-            @NotNull Set<String> changed,
-            @NotNull Map<String, String> properties,
-            @NotNull CommitInfo commitInfo);
+        @NotNull String path,
+        @NotNull Set<String> added,
+        @NotNull Set<String> deleted,
+        @NotNull Set<String> changed,
+        @NotNull Map<String, String> properties,
+        @NotNull CommitInfo commitInfo);
 
     @Override
     public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
@@ -125,7 +129,7 @@ public abstract class NodeObserver implements Observer {
             try {
                 long start = PERF_LOGGER.start();
                 NamePathMapper namePathMapper = new NamePathMapperImpl(
-                        new GlobalNameMapper(RootFactory.createReadOnlyRoot(root)));
+                    new GlobalNameMapper(RootFactory.createReadOnlyRoot(root)));
 
                 Set<String> oakPropertyNames = Sets.newHashSet();
                 for (String name : propertyNames) {
@@ -140,8 +144,8 @@ public abstract class NodeObserver implements Observer {
                 NodeState before = previousRoot;
                 NodeState after = root;
                 EventHandler handler = new FilteredHandler(
-                        VISIBLE_FILTER,
-                        new NodeEventHandler("/", info, namePathMapper, oakPropertyNames));
+                    VISIBLE_FILTER,
+                    new NodeEventHandler("/", info, namePathMapper, oakPropertyNames));
 
                 String oakPath = namePathMapper.getOakPath(path);
                 if (oakPath == null) {
@@ -160,8 +164,8 @@ public abstract class NodeObserver implements Observer {
                     generator.generate();
                 }
                 PERF_LOGGER.end(start, 100,
-                        "Generated events (before: {}, after: {})",
-                        previousRoot, root);
+                    "Generated events (before: {}, after: {})",
+                    previousRoot, root);
             } catch (Exception e) {
                 LOG.warn("Error while dispatching observation events", e);
             }
@@ -173,6 +177,7 @@ public abstract class NodeObserver implements Observer {
     private enum EventType {ADDED, DELETED, CHANGED}
 
     private class NodeEventHandler extends DefaultEventHandler {
+
         private final String path;
         private final CommitInfo commitInfo;
         private final NamePathMapper namePathMapper;
@@ -183,7 +188,7 @@ public abstract class NodeObserver implements Observer {
         private final Set<String> changed = Sets.newHashSet();
 
         public NodeEventHandler(String path, CommitInfo commitInfo, NamePathMapper namePathMapper,
-                Set<String> propertyNames) {
+            Set<String> propertyNames) {
             this.path = path;
             this.commitInfo = commitInfo;
             this.namePathMapper = namePathMapper;
@@ -204,16 +209,16 @@ public abstract class NodeObserver implements Observer {
             switch (eventType) {
                 case ADDED:
                     added(namePathMapper.getJcrPath(path), added, deleted, changed,
-                            collectProperties(after), commitInfo);
+                        collectProperties(after), commitInfo);
                     break;
                 case DELETED:
                     deleted(namePathMapper.getJcrPath(path), added, deleted, changed,
-                            collectProperties(before), commitInfo);
+                        collectProperties(before), commitInfo);
                     break;
                 case CHANGED:
-                    if (!added.isEmpty() || ! deleted.isEmpty() || !changed.isEmpty()) {
+                    if (!added.isEmpty() || !deleted.isEmpty() || !changed.isEmpty()) {
                         changed(namePathMapper.getJcrPath(path), added, deleted, changed,
-                                collectProperties(after), commitInfo);
+                            collectProperties(after), commitInfo);
                     }
                     break;
             }

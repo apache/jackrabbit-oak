@@ -76,8 +76,8 @@ public class PropertyPredicateTest {
 
     private static NodeState createWithProperty(String name, String value) {
         return EMPTY_NODE.builder()
-                .setProperty(name, value)
-                .getNodeState();
+                         .setProperty(name, value)
+                         .getNodeState();
     }
 
 

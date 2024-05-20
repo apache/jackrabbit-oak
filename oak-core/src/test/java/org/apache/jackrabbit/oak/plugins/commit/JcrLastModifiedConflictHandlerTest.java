@@ -64,7 +64,8 @@ public class JcrLastModifiedConflictHandlerTest {
         String propertyName = "ignored";
         PropertyState ours = mockProperty(propertyName, "invalidDateValue");
         PropertyState theirs = createDateProperty(propertyName);
-        ThreeWayConflictHandler.Resolution resolution = handler.addExistingProperty(nb, ours, theirs);
+        ThreeWayConflictHandler.Resolution resolution = handler.addExistingProperty(nb, ours,
+            theirs);
         assertSame(ThreeWayConflictHandler.Resolution.IGNORED, resolution);
         resolution = handler.changeChangedProperty(nb, ours, theirs, theirs);
         assertSame(ThreeWayConflictHandler.Resolution.IGNORED, resolution);
@@ -80,7 +81,8 @@ public class JcrLastModifiedConflictHandlerTest {
     private void testOursNotValidDate(@NotNull String propertyName) {
         PropertyState ours = mockProperty(propertyName, "invalidDateValue");
         PropertyState theirs = createDateProperty(propertyName);
-        ThreeWayConflictHandler.Resolution resolution = handler.addExistingProperty(nb, ours, theirs);
+        ThreeWayConflictHandler.Resolution resolution = handler.addExistingProperty(nb, ours,
+            theirs);
         assertSame(ThreeWayConflictHandler.Resolution.MERGED, resolution);
         verify(nb).setProperty(propertyName, parse(theirs.getValue(Type.DATE)));
     }
@@ -94,7 +96,8 @@ public class JcrLastModifiedConflictHandlerTest {
     private void testTheirsNotValidDate(@NotNull String propertyName) throws Exception {
         PropertyState ours = createDateProperty(propertyName);
         PropertyState theirs = mockProperty(propertyName, "invalidDateValue");
-        ThreeWayConflictHandler.Resolution resolution = handler.addExistingProperty(nb, ours, theirs);
+        ThreeWayConflictHandler.Resolution resolution = handler.addExistingProperty(nb, ours,
+            theirs);
         assertSame(ThreeWayConflictHandler.Resolution.MERGED, resolution);
         verify(nb).setProperty(propertyName, parse(ours.getValue(Type.DATE)));
     }
@@ -108,10 +111,12 @@ public class JcrLastModifiedConflictHandlerTest {
     private void testBothNotValidDate(@NotNull String propertyName) throws Exception {
         PropertyState ours = mockProperty(propertyName, "invalidDateValue");
         PropertyState theirs = mockProperty(propertyName, "invalidDateValue");
-        ThreeWayConflictHandler.Resolution resolution = handler.addExistingProperty(nb, ours, theirs);
+        ThreeWayConflictHandler.Resolution resolution = handler.addExistingProperty(nb, ours,
+            theirs);
         assertSame(ThreeWayConflictHandler.Resolution.IGNORED, resolution);
         verifyNoInteractions(nb);
-        resolution = handler.changeChangedProperty(nb, ours, theirs, createDateProperty(propertyName));
+        resolution = handler.changeChangedProperty(nb, ours, theirs,
+            createDateProperty(propertyName));
         assertSame(ThreeWayConflictHandler.Resolution.IGNORED, resolution);
         verifyNoInteractions(nb);
     }
@@ -123,7 +128,8 @@ public class JcrLastModifiedConflictHandlerTest {
         Thread.sleep(1);
         PropertyState theirs = createDateProperty(JCR_LASTMODIFIED);
 
-        ThreeWayConflictHandler.Resolution resolution = handler.changeChangedProperty(nb, ours, theirs, createDateProperty(JCR_LASTMODIFIED));
+        ThreeWayConflictHandler.Resolution resolution = handler.changeChangedProperty(nb, ours,
+            theirs, createDateProperty(JCR_LASTMODIFIED));
         assertSame(ThreeWayConflictHandler.Resolution.MERGED, resolution);
         verify(nb).setProperty(JCR_LASTMODIFIED, parse(theirs.getValue(Type.DATE)));
     }
@@ -135,7 +141,8 @@ public class JcrLastModifiedConflictHandlerTest {
         Thread.sleep(1);
         PropertyState theirs = createDateProperty(JCR_CREATED);
 
-        ThreeWayConflictHandler.Resolution resolution = handler.changeChangedProperty(nb, ours, theirs, createDateProperty(JCR_LASTMODIFIED));
+        ThreeWayConflictHandler.Resolution resolution = handler.changeChangedProperty(nb, ours,
+            theirs, createDateProperty(JCR_LASTMODIFIED));
         assertSame(ThreeWayConflictHandler.Resolution.MERGED, resolution);
         verify(nb).setProperty(JCR_CREATED, parse(ours.getValue(Type.DATE)));
     }

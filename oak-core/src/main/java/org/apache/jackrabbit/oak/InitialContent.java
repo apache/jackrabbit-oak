@@ -48,8 +48,8 @@ import org.jetbrains.annotations.NotNull;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 /**
- * {@code InitialContent} implements a {@link RepositoryInitializer} the creates
- * the initial JCR/Oak repository structure. This includes creating
+ * {@code InitialContent} implements a {@link RepositoryInitializer} the creates the initial JCR/Oak
+ * repository structure. This includes creating
  *
  * <pre>
  * - the root node
@@ -77,17 +77,17 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
             system.setProperty(JCR_PRIMARYTYPE, NT_REP_SYSTEM, Type.NAME);
 
             system.child(JCR_VERSIONSTORAGE)
-                    .setProperty(JCR_PRIMARYTYPE, REP_VERSIONSTORAGE, Type.NAME);
+                  .setProperty(JCR_PRIMARYTYPE, REP_VERSIONSTORAGE, Type.NAME);
             system.child(JCR_NODE_TYPES)
-                    .setProperty(JCR_PRIMARYTYPE, NT_REP_NODE_TYPES, Type.NAME);
+                  .setProperty(JCR_PRIMARYTYPE, NT_REP_NODE_TYPES, Type.NAME);
             system.child(VersionConstants.JCR_ACTIVITIES)
-                    .setProperty(JCR_PRIMARYTYPE, VersionConstants.REP_ACTIVITIES, Type.NAME);
+                  .setProperty(JCR_PRIMARYTYPE, VersionConstants.REP_ACTIVITIES, Type.NAME);
 
             Namespaces.setupNamespaces(system);
         }
 
         NodeBuilder versionStorage = builder.child(JCR_SYSTEM)
-                .child(JCR_VERSIONSTORAGE);
+                                            .child(JCR_VERSIONSTORAGE);
         if (prePopulateVS && !isInitialized(versionStorage)) {
             createIntermediateNodes(versionStorage);
         }
@@ -96,24 +96,24 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
             NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
 
             NodeBuilder uuid = IndexUtils.createIndexDefinition(index, "uuid", true, true,
-                    ImmutableList.<String>of(JCR_UUID), null);
+                ImmutableList.<String>of(JCR_UUID), null);
             uuid.setProperty("info",
-                    "Oak index for UUID lookup (direct lookup of nodes with the mixin 'mix:referenceable').");
+                "Oak index for UUID lookup (direct lookup of nodes with the mixin 'mix:referenceable').");
             NodeBuilder nodetype = IndexUtils.createIndexDefinition(index, "nodetype", true, false,
-                    ImmutableList.of(JCR_PRIMARYTYPE, JCR_MIXINTYPES), null);
-            nodetype.setProperty("info", 
-                    "Oak index for queries with node type, and possibly path restrictions, " + 
+                ImmutableList.of(JCR_PRIMARYTYPE, JCR_MIXINTYPES), null);
+            nodetype.setProperty("info",
+                "Oak index for queries with node type, and possibly path restrictions, " +
                     "for example \"/jcr:root/content//element(*, mix:language)\".");
             IndexUtils.createReferenceIndex(index);
-            
+
             index.child("counter")
-                    .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
-                    .setProperty(TYPE_PROPERTY_NAME, NodeCounterEditorProvider.TYPE)
-                    .setProperty(IndexConstants.ASYNC_PROPERTY_NAME, 
-                            IndexConstants.ASYNC_PROPERTY_NAME)
-                    .setProperty("info", "Oak index that allows to estimate " + 
-                            "how many nodes are stored below a given path, " + 
-                            "to decide whether traversing or using an index is faster.");
+                 .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
+                 .setProperty(TYPE_PROPERTY_NAME, NodeCounterEditorProvider.TYPE)
+                 .setProperty(IndexConstants.ASYNC_PROPERTY_NAME,
+                     IndexConstants.ASYNC_PROPERTY_NAME)
+                 .setProperty("info", "Oak index that allows to estimate " +
+                     "how many nodes are stored below a given path, " +
+                     "to decide whether traversing or using an index is faster.");
         }
 
         // squeeze node state before it is passed to store (OAK-2411)
@@ -125,8 +125,7 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
     }
 
     /**
-     * Instructs the initializer to pre-populate the version store with
-     * intermediate nodes.
+     * Instructs the initializer to pre-populate the version store with intermediate nodes.
      *
      * @return this instance.
      */
@@ -134,7 +133,7 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
         this.prePopulateVS = true;
         return this;
     }
-    
+
     //--------------------------< internal >------------------------------------
 
     private static boolean isInitialized(NodeBuilder versionStorage) {

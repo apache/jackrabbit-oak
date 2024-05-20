@@ -47,7 +47,8 @@ public class TokenProviderImplReadOnlyTest extends AbstractTokenTest {
         AccessControlManager acMgr = getAccessControlManager(root);
         String userPath = getTestUser().getPath();
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, userPath);
-        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.JCR_READ));
+        acl.addAccessControlEntry(EveryonePrincipal.getInstance(),
+            privilegesFromNames(PrivilegeConstants.JCR_READ));
         acMgr.setPolicy(userPath, acl);
         root.commit();
 
@@ -100,7 +101,8 @@ public class TokenProviderImplReadOnlyTest extends AbstractTokenTest {
     public void testRefreshToken() throws Exception {
         TokenInfo readOnlyInfo = readOnlyTp.getTokenInfo(generateToken());
         assertNotNull(readOnlyInfo);
-        assertFalse(readOnlyInfo.resetExpiration(System.currentTimeMillis() + TokenProviderImpl.DEFAULT_TOKEN_EXPIRATION - 100));
+        assertFalse(readOnlyInfo.resetExpiration(
+            System.currentTimeMillis() + TokenProviderImpl.DEFAULT_TOKEN_EXPIRATION - 100));
     }
 
     @Test

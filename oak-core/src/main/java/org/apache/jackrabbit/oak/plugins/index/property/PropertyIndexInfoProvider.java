@@ -58,8 +58,9 @@ public class PropertyIndexInfoProvider implements IndexInfoProvider {
     public IndexInfo getInfo(String indexPath) throws IOException {
         NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), indexPath);
 
-        checkArgument(PropertyIndexEditorProvider.TYPE.equals(idxState.getString(IndexConstants.TYPE_PROPERTY_NAME)),
-                "Index definition at [%s] is not of type 'property'", indexPath);
+        checkArgument(PropertyIndexEditorProvider.TYPE.equals(
+                idxState.getString(IndexConstants.TYPE_PROPERTY_NAME)),
+            "Index definition at [%s] is not of type 'property'", indexPath);
         PropertyIndexInfo info = new PropertyIndexInfo(indexPath);
         computeCountEstimate(info, idxState);
         return info;
@@ -94,6 +95,7 @@ public class PropertyIndexInfoProvider implements IndexInfoProvider {
     }
 
     private static class PropertyIndexInfo implements IndexInfo {
+
         private final String indexPath;
         long estimatedCount = -1;
 

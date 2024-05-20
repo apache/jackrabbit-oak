@@ -46,7 +46,8 @@ public class EntryPredicateTest {
     private final String parentPath = PathUtils.getParentPath(path);
 
     private final RestrictionPattern pattern = mock(RestrictionPattern.class);
-    private final PermissionEntry entry = new PermissionEntry(path, true, 1, PrivilegeBits.EMPTY, pattern);
+    private final PermissionEntry entry = new PermissionEntry(path, true, 1, PrivilegeBits.EMPTY,
+        pattern);
 
     private Tree mockTree(@NotNull String path, @Nullable Tree parent) {
         Tree t = mock(Tree.class);
@@ -56,7 +57,7 @@ public class EntryPredicateTest {
         when(t.getPath()).thenReturn(path);
         return t;
     }
-    
+
     @After
     public void after() {
         reset(pattern);
@@ -189,7 +190,7 @@ public class EntryPredicateTest {
     @Test
     public void testPredicatePathDontRespectParent3() {
         EntryPredicate pred = EntryPredicate.create(path, false);
-        
+
         // pattern only matches path
         when(pattern.matches(path)).thenReturn(true);
         when(pattern.matches(parentPath)).thenReturn(false);
@@ -205,7 +206,7 @@ public class EntryPredicateTest {
     @Test
     public void testPredicatePathDontRespectParent4() {
         EntryPredicate pred = EntryPredicate.create(path, false);
-        
+
         // pattern only matches parent path
         when(pattern.matches(path)).thenReturn(false);
         when(pattern.matches(parentPath)).thenReturn(true);
@@ -230,7 +231,7 @@ public class EntryPredicateTest {
         assertFalse(pred.apply(entry));
         assertFalse(pred.apply(entry, true));
         assertFalse(pred.apply(entry, false));
-        
+
         verify(pattern, times(3)).matches(path, true);
         verify(pattern, times(2)).matches(parentPath, false);
         verifyNoMoreInteractions(pattern);
@@ -269,7 +270,7 @@ public class EntryPredicateTest {
 
     @Test
     public void testPredicatePathIsPropertyRespectParent4() {
-        EntryPredicate pred = EntryPredicate.create(path, true, true);    
+        EntryPredicate pred = EntryPredicate.create(path, true, true);
 
         // pattern only matches parent path
         when(pattern.matches(parentPath, false)).thenReturn(true);
@@ -294,7 +295,7 @@ public class EntryPredicateTest {
         assertFalse(pred.apply(entry));
         assertFalse(pred.apply(entry, true));
         assertFalse(pred.apply(entry, false));
-        
+
         verify(pattern, times(3)).matches(path, true);
         verifyNoMoreInteractions(pattern);
     }
@@ -302,7 +303,7 @@ public class EntryPredicateTest {
     @Test
     public void testPredicatePathIsPropertyDontRespectParent2() {
         EntryPredicate pred = EntryPredicate.create(path, true, false);
-        
+
         // pattern matches path and parent path
         when(pattern.matches(anyString(), anyBoolean())).thenReturn(true);
 
@@ -311,7 +312,7 @@ public class EntryPredicateTest {
         assertTrue(pred.apply(entry));
         assertTrue(pred.apply(entry, true));
         assertTrue(pred.apply(entry, false));
-        
+
         verify(pattern, times(3)).matches(path, true);
         verifyNoMoreInteractions(pattern);
     }
@@ -407,7 +408,7 @@ public class EntryPredicateTest {
         PropertyState ps = mock(PropertyState.class);
         when(ps.getName()).thenReturn("property");
 
-        EntryPredicate pred = EntryPredicate.create(tree, ps,false);
+        EntryPredicate pred = EntryPredicate.create(tree, ps, false);
         assertEquals(path, pred.getPath());
 
         // pattern neither matches path nor parent path
@@ -502,7 +503,7 @@ public class EntryPredicateTest {
         Tree tree = mockTree(PathUtils.ROOT_PATH, null);
         when(tree.isRoot()).thenReturn(true);
 
-        EntryPredicate pred = EntryPredicate.create(tree, null,true);
+        EntryPredicate pred = EntryPredicate.create(tree, null, true);
         assertEquals(PathUtils.ROOT_PATH, pred.getPath());
 
         // pattern doesn't match path
@@ -528,7 +529,7 @@ public class EntryPredicateTest {
         Tree tree = mockTree(PathUtils.ROOT_PATH, null);
         when(tree.isRoot()).thenReturn(true);
 
-        EntryPredicate pred = EntryPredicate.create(tree, null,false);
+        EntryPredicate pred = EntryPredicate.create(tree, null, false);
         assertEquals(PathUtils.ROOT_PATH, pred.getPath());
 
         // pattern doesn't match path

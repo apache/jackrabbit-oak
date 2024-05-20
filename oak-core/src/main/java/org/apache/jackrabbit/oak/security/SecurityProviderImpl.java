@@ -60,7 +60,8 @@ import org.osgi.framework.BundleContext;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
- * @deprecated Replaced by {@code org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder}
+ * @deprecated Replaced by
+ * {@code org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder}
  */
 @Deprecated
 public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
@@ -71,16 +72,20 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
 
     private volatile UserConfiguration userConfiguration;
 
-    private final CompositeAuthorizationConfiguration authorizationConfiguration = new CompositeAuthorizationConfiguration(this);
+    private final CompositeAuthorizationConfiguration authorizationConfiguration = new CompositeAuthorizationConfiguration(
+        this);
 
-    private final CompositePrincipalConfiguration principalConfiguration = new CompositePrincipalConfiguration(this);
+    private final CompositePrincipalConfiguration principalConfiguration = new CompositePrincipalConfiguration(
+        this);
 
-    private final CompositeTokenConfiguration tokenConfiguration = new CompositeTokenConfiguration(this);
+    private final CompositeTokenConfiguration tokenConfiguration = new CompositeTokenConfiguration(
+        this);
 
     private final WhiteboardAuthorizableNodeName authorizableNodeName = new WhiteboardAuthorizableNodeName();
     private final WhiteboardAuthorizableActionProvider authorizableActionProvider = new WhiteboardAuthorizableActionProvider();
     private final WhiteboardRestrictionProvider restrictionProvider = new WhiteboardRestrictionProvider();
-    private final WhiteboardUserAuthenticationFactory userAuthenticationFactory = new WhiteboardUserAuthenticationFactory(UserConfigurationImpl.getDefaultAuthenticationFactory());
+    private final WhiteboardUserAuthenticationFactory userAuthenticationFactory = new WhiteboardUserAuthenticationFactory(
+        UserConfigurationImpl.getDefaultAuthenticationFactory());
 
     private ConfigurationParameters configuration;
 
@@ -97,8 +102,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
     }
 
     /**
-     * Create a new {@code SecurityProvider} instance with the given configuration
-     * parameters.
+     * Create a new {@code SecurityProvider} instance with the given configuration parameters.
      *
      * @param configuration security configuration
      */
@@ -106,12 +110,14 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         checkNotNull(configuration);
         this.configuration = configuration;
 
-        authenticationConfiguration = initDefaultConfiguration(new AuthenticationConfigurationImpl(this));
+        authenticationConfiguration = initDefaultConfiguration(
+            new AuthenticationConfigurationImpl(this));
 
         userConfiguration = initDefaultConfiguration(new UserConfigurationImpl(this));
         privilegeConfiguration = initDefaultConfiguration(new PrivilegeConfigurationImpl());
 
-        initCompositeConfiguration(authorizationConfiguration, new AuthorizationConfigurationImpl(this));
+        initCompositeConfiguration(authorizationConfiguration,
+            new AuthorizationConfigurationImpl(this));
         initCompositeConfiguration(principalConfiguration, new PrincipalConfigurationImpl(this));
         initCompositeConfiguration(tokenConfiguration, new TokenConfigurationImpl(this));
     }
@@ -132,7 +138,8 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         if (name == null) {
             return configuration;
         }
-        ConfigurationParameters params = configuration.getConfigValue(name, ConfigurationParameters.EMPTY);
+        ConfigurationParameters params = configuration.getConfigValue(name,
+            ConfigurationParameters.EMPTY);
         for (SecurityConfiguration sc : getConfigurations()) {
             if (sc != null && sc.getName().equals(name)) {
                 return ConfigurationParameters.of(params, sc.getParameters());
@@ -171,7 +178,8 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         } else if (TokenConfiguration.class == configClass) {
             return (T) tokenConfiguration;
         } else {
-            throw new IllegalArgumentException("Unsupported security configuration class " + configClass);
+            throw new IllegalArgumentException(
+                "Unsupported security configuration class " + configClass);
         }
     }
 
@@ -225,13 +233,13 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
     //------------------------------------------------------------< private >---
     private void initializeConfigurations() {
         initConfiguration(authorizationConfiguration, ConfigurationParameters.of(
-                        AccessControlConstants.PARAM_RESTRICTION_PROVIDER, restrictionProvider)
+            AccessControlConstants.PARAM_RESTRICTION_PROVIDER, restrictionProvider)
         );
 
-        Map<String, Object> userMap = ImmutableMap.<String,Object>of(
-                UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, authorizableActionProvider,
-                UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, authorizableNodeName,
-                UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, userAuthenticationFactory);
+        Map<String, Object> userMap = ImmutableMap.<String, Object>of(
+            UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, authorizableActionProvider,
+            UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, authorizableNodeName,
+            UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, userAuthenticationFactory);
         initConfiguration(userConfiguration, ConfigurationParameters.of(userMap));
 
         initConfiguration(authenticationConfiguration);
@@ -242,7 +250,8 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         return initConfiguration(config, ConfigurationParameters.EMPTY);
     }
 
-    private <T extends SecurityConfiguration> T initConfiguration(@NotNull T config, @NotNull ConfigurationParameters params) {
+    private <T extends SecurityConfiguration> T initConfiguration(@NotNull T config,
+        @NotNull ConfigurationParameters params) {
         if (config instanceof ConfigurationBase) {
             ConfigurationBase cfg = (ConfigurationBase) config;
             cfg.setSecurityProvider(this);
@@ -253,7 +262,8 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         return config;
     }
 
-    private CompositeConfiguration initCompositeConfiguration(@NotNull CompositeConfiguration composite, @NotNull SecurityConfiguration defaultConfig) {
+    private CompositeConfiguration initCompositeConfiguration(
+        @NotNull CompositeConfiguration composite, @NotNull SecurityConfiguration defaultConfig) {
         composite.setRootProvider(rootProvider);
         composite.setTreeProvider(treeProvider);
         composite.setDefaultConfig(initDefaultConfiguration(defaultConfig));
@@ -270,12 +280,14 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
     }
 
     @SuppressWarnings("UnusedDeclaration")
-    protected void bindAuthenticationConfiguration(AuthenticationConfiguration authenticationConfiguration) {
+    protected void bindAuthenticationConfiguration(
+        AuthenticationConfiguration authenticationConfiguration) {
         this.authenticationConfiguration = authenticationConfiguration;
     }
 
     @SuppressWarnings("UnusedDeclaration")
-    protected void unbindAuthenticationConfiguration(AuthenticationConfiguration authenticationConfiguration) {
+    protected void unbindAuthenticationConfiguration(
+        AuthenticationConfiguration authenticationConfiguration) {
         this.authenticationConfiguration = null;
     }
 

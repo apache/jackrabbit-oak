@@ -35,15 +35,16 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
 
 public class ValuePatternPropertyIndexTests extends AbstractQueryTest {
+
     private static final String INDEXED_PROPERTY = "indexedProperty";
-    
+
     @Override
     protected ContentRepository createRepository() {
         return new Oak().with(new InitialContent())
-            .with(new OpenSecurityProvider())
-            .with(new PropertyIndexProvider())
-            .with(new PropertyIndexEditorProvider())
-            .createContentRepository();
+                        .with(new OpenSecurityProvider())
+                        .with(new PropertyIndexProvider())
+                        .with(new PropertyIndexEditorProvider())
+                        .createContentRepository();
     }
 
     @Test
@@ -54,7 +55,7 @@ public class ValuePatternPropertyIndexTests extends AbstractQueryTest {
         valuePattern("-", "* property test-index");
         valuePattern("/", "* property test-index");
     }
-    
+
     private void valuePattern(String middle, String plan) throws Exception {
         Tree index = super.createTestIndexNode(root.getTree("/"), TYPE);
         index.setProperty(PROPERTY_NAMES, of(INDEXED_PROPERTY), NAMES);
@@ -65,9 +66,11 @@ public class ValuePatternPropertyIndexTests extends AbstractQueryTest {
         content.addChild("node1").setProperty(INDEXED_PROPERTY, "hello" + middle + "world");
         content.addChild("node2").setProperty(INDEXED_PROPERTY, "hello");
         root.commit();
-        String statement = "explain select * from [nt:base] where [" + INDEXED_PROPERTY + "] = 'hello" + middle + "world'";
+        String statement =
+            "explain select * from [nt:base] where [" + INDEXED_PROPERTY + "] = 'hello" + middle
+                + "world'";
         String result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
         assertTrue(result, result.indexOf(plan) >= 0);
     }
-    
+
 }

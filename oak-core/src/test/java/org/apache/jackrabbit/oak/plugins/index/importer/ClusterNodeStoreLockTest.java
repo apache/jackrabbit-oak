@@ -44,6 +44,7 @@ import org.junit.Test;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 public class ClusterNodeStoreLockTest {
+
     private NodeStore store = new MemoryNodeStore();
     private IndexEditorProvider provider;
     private String name = "async";
@@ -53,12 +54,12 @@ public class ClusterNodeStoreLockTest {
         provider = new PropertyIndexEditorProvider();
         NodeBuilder builder = store.getRoot().builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null)
-                .setProperty(ASYNC_PROPERTY_NAME, name);
+            "rootIndex", true, false, ImmutableSet.of("foo"), null)
+            .setProperty(ASYNC_PROPERTY_NAME, name);
         builder.child("testRoot").setProperty("foo", "abc");
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
-    
+
     @Test
     public void lockConcurrently() throws Exception {
         final List<Throwable> exceptions = Collections.synchronizedList(new ArrayList<>());
@@ -81,7 +82,7 @@ public class ClusterNodeStoreLockTest {
             t.start();
             threads.add(t);
         }
-        for(Thread t : threads) {
+        for (Thread t : threads) {
             t.join();
         }
         if (!exceptions.isEmpty()) {
@@ -90,7 +91,7 @@ public class ClusterNodeStoreLockTest {
     }
 
     @Test
-    public void locking() throws Exception{
+    public void locking() throws Exception {
         new AsyncIndexUpdate(name, store, provider).run();
 
         assertFalse(getAsync().hasProperty(AsyncIndexUpdate.leasify(name)));

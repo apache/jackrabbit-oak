@@ -32,15 +32,15 @@ public class ConsoleIndexingReporterTest {
     @Test
     public void emptyReport() {
         String expected = "Indexes: \n" +
-                "Date: <date>\n" +
-                "OAK Version: SNAPSHOT\n" +
-                "Configuration:\n" +
-                "\n" +
-                "Environment Variables:\n" +
-                "\n" +
-                "Timings:\n" +
-                "\n" +
-                "Metrics:\n";
+            "Date: <date>\n" +
+            "OAK Version: SNAPSHOT\n" +
+            "Configuration:\n" +
+            "\n" +
+            "Environment Variables:\n" +
+            "\n" +
+            "Timings:\n" +
+            "\n" +
+            "Metrics:\n";
 
         ConsoleIndexingReporter consoleIndexingReporter = new ConsoleIndexingReporter();
         String report = consoleIndexingReporter.generateReport();
@@ -51,24 +51,25 @@ public class ConsoleIndexingReporterTest {
     @Test
     public void fullReport() {
         String expected = "Indexes: index1, index2\n" +
-                "Date: <date>\n" +
-                "OAK Version: SNAPSHOT\n" +
-                "Configuration:\n" +
-                "  config1: value1\n" +
-                "  config2: 12\n" +
-                "Environment Variables:\n" +
-                "  ENV_VAR1: <value>\n" +
-                "  ENV_VAR2: <value>\n" +
-                "Timings:\n" +
-                "  stage1: 10:23\n" +
-                "Metrics:\n" +
-                "  metric1: 1\n" +
-                "  metric2: 123\n" +
-                "  metric3: 123456 (120" + DELIM + "56 KiB)\n" +
-                "  metric4: 123456789 (117" + DELIM +"74 MiB)\n" +
-                "  metric5: 1234567890123456 (1" + DELIM + "10 PiB)";
+            "Date: <date>\n" +
+            "OAK Version: SNAPSHOT\n" +
+            "Configuration:\n" +
+            "  config1: value1\n" +
+            "  config2: 12\n" +
+            "Environment Variables:\n" +
+            "  ENV_VAR1: <value>\n" +
+            "  ENV_VAR2: <value>\n" +
+            "Timings:\n" +
+            "  stage1: 10:23\n" +
+            "Metrics:\n" +
+            "  metric1: 1\n" +
+            "  metric2: 123\n" +
+            "  metric3: 123456 (120" + DELIM + "56 KiB)\n" +
+            "  metric4: 123456789 (117" + DELIM + "74 MiB)\n" +
+            "  metric5: 1234567890123456 (1" + DELIM + "10 PiB)";
 
-        ConsoleIndexingReporter consoleIndexingReporter = new ConsoleIndexingReporter(List.of("ENV_VAR1", "ENV_VAR2"));
+        ConsoleIndexingReporter consoleIndexingReporter = new ConsoleIndexingReporter(
+            List.of("ENV_VAR1", "ENV_VAR2"));
 
         consoleIndexingReporter.setIndexNames(List.of("index1", "index2"));
 

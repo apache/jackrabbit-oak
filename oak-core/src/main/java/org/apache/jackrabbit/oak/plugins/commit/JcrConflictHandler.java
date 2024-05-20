@@ -29,15 +29,14 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 public final class JcrConflictHandler {
 
     /**
-     * The conflict handler is a composite of
-     * {@link JcrLastModifiedConflictHandler}, {@link ChildOrderConflictHandler}
-     * and {@link AnnotatingConflictHandler}.
+     * The conflict handler is a composite of {@link JcrLastModifiedConflictHandler},
+     * {@link ChildOrderConflictHandler} and {@link AnnotatingConflictHandler}.
      */
     public static CompositeConflictHandler createJcrConflictHandler() {
         return new CompositeConflictHandler(ImmutableList.of(
-                new JcrLastModifiedConflictHandler(),
-                ConflictHandlers.wrap(new ChildOrderConflictHandler()),
-                new AnnotatingConflictHandler()));
+            new JcrLastModifiedConflictHandler(),
+            ConflictHandlers.wrap(new ChildOrderConflictHandler()),
+            new AnnotatingConflictHandler()));
     }
 
     private JcrConflictHandler() {

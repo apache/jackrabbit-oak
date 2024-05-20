@@ -64,9 +64,9 @@ import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
- * The {@code PrincipalProviderImpl} is a principal provider implementation
- * that operates on principal information read from user information exposed by
- * the configured {@link org.apache.jackrabbit.api.security.user.UserManager}.
+ * The {@code PrincipalProviderImpl} is a principal provider implementation that operates on
+ * principal information read from user information exposed by the configured
+ * {@link org.apache.jackrabbit.api.security.user.UserManager}.
  */
 class UserPrincipalProvider implements PrincipalProvider {
 
@@ -88,8 +88,8 @@ class UserPrincipalProvider implements PrincipalProvider {
     private final boolean cacheEnabled;
 
     UserPrincipalProvider(@NotNull Root root,
-                          @NotNull UserConfiguration userConfiguration,
-                          @NotNull NamePathMapper namePathMapper) {
+        @NotNull UserConfiguration userConfiguration,
+        @NotNull NamePathMapper namePathMapper) {
         this.root = root;
         this.config = userConfiguration;
         this.namePathMapper = namePathMapper;
@@ -97,19 +97,24 @@ class UserPrincipalProvider implements PrincipalProvider {
         this.userProvider = new UserProvider(root, config.getParameters());
         this.membershipProvider = new MembershipProvider(root, config.getParameters());
 
-        expiration = config.getParameters().getConfigValue(PARAM_CACHE_EXPIRATION, EXPIRATION_NO_CACHE);
-        cacheEnabled = (expiration > EXPIRATION_NO_CACHE && root.getContentSession().getAuthInfo().getPrincipals().contains(SystemPrincipal.INSTANCE));
+        expiration = config.getParameters()
+                           .getConfigValue(PARAM_CACHE_EXPIRATION, EXPIRATION_NO_CACHE);
+        cacheEnabled = (expiration > EXPIRATION_NO_CACHE && root.getContentSession().getAuthInfo()
+                                                                .getPrincipals().contains(
+                SystemPrincipal.INSTANCE));
     }
 
     //--------------------------------------------------< PrincipalProvider >---
     @Override
     public Principal getPrincipal(@NotNull String principalName) {
-        Tree authorizableTree = userProvider.getAuthorizableByPrincipal(new PrincipalImpl(principalName));
+        Tree authorizableTree = userProvider.getAuthorizableByPrincipal(
+            new PrincipalImpl(principalName));
         Principal principal = createPrincipal(authorizableTree);
 
         if (principal == null) {
             // no such principal or error while accessing principal from user/group
-            return (EveryonePrincipal.NAME.equals(principalName)) ? EveryonePrincipal.getInstance() : null;
+            return (EveryonePrincipal.NAME.equals(principalName)) ? EveryonePrincipal.getInstance()
+                : null;
         } else {
             return principal;
         }
@@ -157,13 +162,15 @@ class UserPrincipalProvider implements PrincipalProvider {
 
     @NotNull
     @Override
-    public Iterator<? extends Principal> findPrincipals(@Nullable final String nameHint, final int searchType) {
+    public Iterator<? extends Principal> findPrincipals(@Nullable final String nameHint,
+        final int searchType) {
         return findPrincipals(nameHint, false, searchType, 0, -1);
     }
 
     @NotNull
     @Override
-    public Iterator<? extends Principal> findPrincipals(@Nullable final String nameHint, final boolean fullText, final int searchType, long offset, long limit) {
+    public Iterator<? extends Principal> findPrincipals(@Nullable final String nameHint,
+        final boolean fullText, final int searchType, long offset, long limit) {
         if (offset < 0) {
             offset = 0;
         }
@@ -175,24 +182,26 @@ class UserPrincipalProvider implements PrincipalProvider {
             String lookupClause = "";
             if (nameHint != null && !nameHint.isEmpty()) {
                 if (fullText) {
-                    lookupClause = String.format("[jcr:contains(.,'%s')]", buildSearchPatternFT(nameHint));
+                    lookupClause = String.format("[jcr:contains(.,'%s')]",
+                        buildSearchPatternFT(nameHint));
                 } else {
-                    lookupClause = String.format("[jcr:like(@rep:principalName,'%s')]", buildSearchPatternContains(nameHint));
+                    lookupClause = String.format("[jcr:like(@rep:principalName,'%s')]",
+                        buildSearchPatternContains(nameHint));
                 }
             }
             AuthorizableType type = AuthorizableType.getType(searchType);
             StringBuilder statement = new StringBuilder()
-                    .append(QueryUtil.getSearchRoot(type, config.getParameters()))
-                    .append("//element(*,").append(QueryUtil.getNodeTypeName(type)).append(')')
-                    .append(lookupClause)
-                    .append(" order by @rep:principalName");
+                .append(QueryUtil.getSearchRoot(type, config.getParameters()))
+                .append("//element(*,").append(QueryUtil.getNodeTypeName(type)).append(')')
+                .append(lookupClause)
+                .append(" order by @rep:principalName");
             Result result = root.getQueryEngine().executeQuery(
-                    statement.toString(), javax.jcr.query.Query.XPATH,
-                    limit, offset, NO_BINDINGS, namePathMapper.getSessionLocalMappings());
+                statement.toString(), javax.jcr.query.Query.XPATH,
+                limit, offset, NO_BINDINGS, namePathMapper.getSessionLocalMappings());
 
             Iterator<Principal> principals = Iterators.filter(
-                    Iterators.transform(result.getRows().iterator(), new ResultRowToPrincipal()),
-                    Predicates.notNull());
+                Iterators.transform(result.getRows().iterator(), new ResultRowToPrincipal()),
+                Predicates.notNull());
 
             // everyone is injected only in complete set, not on pages
             return EveryoneFilter.filter(principals, nameHint, searchType, offset, limit);
@@ -221,7 +230,9 @@ class UserPrincipalProvider implements PrincipalProvider {
             if (AuthorizableType.GROUP == type) {
                 return createGroupPrincipal(authorizableTree);
             } else if (AuthorizableType.USER == type) {
-                return createUserPrincipal(UserUtil.getAuthorizableId(authorizableTree, AuthorizableType.USER), authorizableTree);
+                return createUserPrincipal(
+                    UserUtil.getAuthorizableId(authorizableTree, AuthorizableType.USER),
+                    authorizableTree);
             }
         }
         return null;
@@ -248,7 +259,8 @@ class UserPrincipalProvider implements PrincipalProvider {
         if (principalName == null) {
             return null;
         }
-        return new GroupPrincipalImpl(principalName, groupTree.getPath(), namePathMapper, root, config);
+        return new GroupPrincipalImpl(principalName, groupTree.getPath(), namePathMapper, root,
+            config);
     }
 
     @Nullable
@@ -297,22 +309,28 @@ class UserPrincipalProvider implements PrincipalProvider {
         return groupPrincipals;
     }
 
-    private void cacheGroups(@NotNull Tree authorizableNode, @NotNull Set<Principal> groupPrincipals) {
+    private void cacheGroups(@NotNull Tree authorizableNode,
+        @NotNull Set<Principal> groupPrincipals) {
         try {
             root.refresh();
             Tree cache = authorizableNode.getChild(CacheConstants.REP_CACHE);
             if (!cache.exists()) {
                 if (groupPrincipals.size() <= MEMBERSHIP_THRESHOLD) {
-                    log.debug("Omit cache creation for user without group membership at {}", authorizableNode.getPath());
+                    log.debug("Omit cache creation for user without group membership at {}",
+                        authorizableNode.getPath());
                     return;
                 } else {
-                    log.debug("Create new group membership cache at {}", authorizableNode.getPath());
-                    cache = TreeUtil.addChild(authorizableNode, CacheConstants.REP_CACHE, CacheConstants.NT_REP_CACHE);
+                    log.debug("Create new group membership cache at {}",
+                        authorizableNode.getPath());
+                    cache = TreeUtil.addChild(authorizableNode, CacheConstants.REP_CACHE,
+                        CacheConstants.NT_REP_CACHE);
                 }
             }
 
-            cache.setProperty(CacheConstants.REP_EXPIRATION, LongUtils.calculateExpirationTime(expiration));
-            String value = (groupPrincipals.isEmpty()) ? "" : Joiner.on(",").join(Iterables.transform(groupPrincipals, input -> Text.escape(input.getName())));
+            cache.setProperty(CacheConstants.REP_EXPIRATION,
+                LongUtils.calculateExpirationTime(expiration));
+            String value = (groupPrincipals.isEmpty()) ? "" : Joiner.on(",").join(
+                Iterables.transform(groupPrincipals, input -> Text.escape(input.getName())));
             cache.setProperty(CacheConstants.REP_GROUP_PRINCIPAL_NAMES, value);
 
             root.commit(CacheValidatorProvider.asCommitAttributes());
@@ -325,7 +343,8 @@ class UserPrincipalProvider implements PrincipalProvider {
         }
     }
 
-    private boolean readGroupsFromCache(@NotNull Tree authorizableNode, @NotNull Set<Principal> groups) {
+    private boolean readGroupsFromCache(@NotNull Tree authorizableNode,
+        @NotNull Set<Principal> groups) {
         Tree principalCache = authorizableNode.getChild(CacheConstants.REP_CACHE);
         if (!principalCache.exists()) {
             log.debug("No group cache at {}", authorizableNode.getPath());
@@ -335,7 +354,8 @@ class UserPrincipalProvider implements PrincipalProvider {
         if (isValidCache(principalCache)) {
             log.debug("Reading group membership at {}", authorizableNode.getPath());
 
-            String str = TreeUtil.getString(principalCache, CacheConstants.REP_GROUP_PRINCIPAL_NAMES);
+            String str = TreeUtil.getString(principalCache,
+                CacheConstants.REP_GROUP_PRINCIPAL_NAMES);
             if (Strings.isNullOrEmpty(str)) {
                 return false;
             }
@@ -351,8 +371,9 @@ class UserPrincipalProvider implements PrincipalProvider {
         }
     }
 
-    private static boolean isValidCache(Tree principalCache)  {
-        long expirationTime = TreeUtil.getLong(principalCache, CacheConstants.REP_EXPIRATION, EXPIRATION_NO_CACHE);
+    private static boolean isValidCache(Tree principalCache) {
+        long expirationTime = TreeUtil.getLong(principalCache, CacheConstants.REP_EXPIRATION,
+            EXPIRATION_NO_CACHE);
         long now = new Date().getTime();
         return expirationTime > EXPIRATION_NO_CACHE && now < expirationTime;
     }
@@ -374,10 +395,12 @@ class UserPrincipalProvider implements PrincipalProvider {
     }
 
     //--------------------------------------------------------------------------
+
     /**
      * Function to covert an authorizable tree (as obtained from the query result) to a principal.
      */
     private final class ResultRowToPrincipal implements Function<ResultRow, Principal> {
+
         @Override
         public Principal apply(ResultRow resultRow) {
             return createPrincipal(resultRow.getTree(null));
@@ -395,7 +418,8 @@ class UserPrincipalProvider implements PrincipalProvider {
         private UserManager userManager;
 
         BaseGroupPrincipal(@NotNull String principalName, @NotNull String groupPath,
-                @NotNull NamePathMapper namePathMapper, @NotNull Root root, @NotNull UserConfiguration config) {
+            @NotNull NamePathMapper namePathMapper, @NotNull Root root,
+            @NotNull UserConfiguration config) {
             super(principalName, groupPath, namePathMapper);
             this.root = root;
             this.config = config;
@@ -429,19 +453,21 @@ class UserPrincipalProvider implements PrincipalProvider {
         }
 
         @Nullable
-        abstract org.apache.jackrabbit.api.security.user.Group getGroup()throws RepositoryException;
+        abstract org.apache.jackrabbit.api.security.user.Group getGroup()
+            throws RepositoryException;
     }
 
     /**
-     * Implementation of {@link AbstractGroupPrincipal} that reads the underlying
-     * authorizable group lazily in case the group membership must be retrieved.
+     * Implementation of {@link AbstractGroupPrincipal} that reads the underlying authorizable group
+     * lazily in case the group membership must be retrieved.
      */
     private static final class GroupPrincipalImpl extends BaseGroupPrincipal {
 
         private org.apache.jackrabbit.api.security.user.Group group;
 
         GroupPrincipalImpl(@NotNull String principalName, @NotNull String groupPath,
-                @NotNull NamePathMapper namePathMapper, @NotNull Root root, @NotNull UserConfiguration config) {
+            @NotNull NamePathMapper namePathMapper, @NotNull Root root,
+            @NotNull UserConfiguration config) {
             super(principalName, groupPath, namePathMapper, root, config);
         }
 
@@ -463,7 +489,7 @@ class UserPrincipalProvider implements PrincipalProvider {
         private org.apache.jackrabbit.api.security.user.Group group;
 
         CachedGroupPrincipal(@NotNull String principalName, @NotNull NamePathMapper namePathMapper,
-                @NotNull Root root, @NotNull UserConfiguration config) {
+            @NotNull Root root, @NotNull UserConfiguration config) {
             super(principalName, "", namePathMapper, root, config);
         }
 
@@ -472,7 +498,8 @@ class UserPrincipalProvider implements PrincipalProvider {
         String getOakPath() throws RepositoryException {
             String oakPath = getNamePathMapper().getOakPath(getPath());
             if (oakPath == null) {
-                throw new RepositoryException("Failed to retrieve path of group principal " + getName());
+                throw new RepositoryException(
+                    "Failed to retrieve path of group principal " + getName());
             }
             return oakPath;
         }
@@ -482,7 +509,8 @@ class UserPrincipalProvider implements PrincipalProvider {
         public String getPath() throws RepositoryException {
             org.apache.jackrabbit.api.security.user.Group gr = getGroup();
             if (gr == null) {
-                throw new RepositoryException("Failed to retrieve path of group principal " + getName());
+                throw new RepositoryException(
+                    "Failed to retrieve path of group principal " + getName());
             }
             return gr.getPath();
         }
@@ -491,7 +519,8 @@ class UserPrincipalProvider implements PrincipalProvider {
         @Nullable
         org.apache.jackrabbit.api.security.user.Group getGroup() throws RepositoryException {
             if (group == null) {
-                Authorizable authorizable = getUserManager().getAuthorizable(new PrincipalImpl(getName()));
+                Authorizable authorizable = getUserManager().getAuthorizable(
+                    new PrincipalImpl(getName()));
                 if (authorizable != null && authorizable.isGroup()) {
                     group = (org.apache.jackrabbit.api.security.user.Group) authorizable;
                 }

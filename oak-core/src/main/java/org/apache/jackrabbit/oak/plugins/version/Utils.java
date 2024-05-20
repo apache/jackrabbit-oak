@@ -60,7 +60,7 @@ public final class Utils {
      */
     @NotNull
     static String uuidFromNode(@NotNull NodeBuilder node)
-            throws IllegalArgumentException {
+        throws IllegalArgumentException {
         return uuidFromNode(node.getNodeState());
     }
 
@@ -74,17 +74,15 @@ public final class Utils {
     }
 
     /**
-     * Returns the {@code jcr:primaryType} value of the given
-     * {@code node}.
+     * Returns the {@code jcr:primaryType} value of the given {@code node}.
      *
      * @param node a node.
      * @return the {@code jcr:primaryType} value.
-     * @throws IllegalStateException if the node does not have a {@code jcr:primaryType}
-     *                               property.
+     * @throws IllegalStateException if the node does not have a {@code jcr:primaryType} property.
      */
     @NotNull
     static String primaryTypeOf(@NotNull NodeBuilder node)
-            throws IllegalStateException {
+        throws IllegalStateException {
         String primaryType = checkNotNull(node).getName(JCR_PRIMARYTYPE);
         if (primaryType == null) {
             throw new IllegalStateException("Node does not have a jcr:primaryType");
@@ -93,28 +91,25 @@ public final class Utils {
     }
 
     /**
-     * Returns {@code true} iff there is a {@code nt:frozenNode} definition and
-     * the definition has a {@code mix:referenceable} supertype.
+     * Returns {@code true} iff there is a {@code nt:frozenNode} definition and the definition has a
+     * {@code mix:referenceable} supertype.
      *
-     * @param root the root of a repository from where to read the node type
-     *      information.
-     * @return {@code true} if frozen nodes are referenceable, {@code false}
-     *      otherwise.
+     * @param root the root of a repository from where to read the node type information.
+     * @return {@code true} if frozen nodes are referenceable, {@code false} otherwise.
      */
     public static boolean isFrozenNodeReferenceable(@NotNull NodeState root) {
         return isFrozenNodeReferenceable(
-                ReadOnlyNodeTypeManager.getInstance(
-                        RootFactory.createReadOnlyRoot(root),
-                        NamePathMapper.DEFAULT));
+            ReadOnlyNodeTypeManager.getInstance(
+                RootFactory.createReadOnlyRoot(root),
+                NamePathMapper.DEFAULT));
     }
 
     /**
-     * Returns {@code true} iff there is a {@code nt:frozenNode} definition and
-     * the definition has a {@code mix:referenceable} supertype.
+     * Returns {@code true} iff there is a {@code nt:frozenNode} definition and the definition has a
+     * {@code mix:referenceable} supertype.
      *
      * @param ntMgr a node type manager to access the node types.
-     * @return {@code true} if frozen nodes are referenceable, {@code false}
-     *      otherwise.
+     * @return {@code true} if frozen nodes are referenceable, {@code false} otherwise.
      */
     public static boolean isFrozenNodeReferenceable(@NotNull ReadOnlyNodeTypeManager ntMgr) {
         try {
@@ -126,7 +121,8 @@ public final class Utils {
                 }
             }
         } catch (NoSuchNodeTypeException e) {
-            LOG.info("Repository does not define nt:frozenNode. Assuming frozen nodes are not referenceable.");
+            LOG.info(
+                "Repository does not define nt:frozenNode. Assuming frozen nodes are not referenceable.");
         } catch (RepositoryException e) {
             throw new RuntimeException(e);
         }
@@ -135,6 +131,6 @@ public final class Utils {
 
     static <T> T throwProtected(String path) throws CommitFailedException {
         throw new CommitFailedException(CONSTRAINT, 100,
-                "Item is protected: " + path);
+            "Item is protected: " + path);
     }
 }

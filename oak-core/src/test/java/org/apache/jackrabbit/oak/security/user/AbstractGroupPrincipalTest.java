@@ -88,8 +88,8 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
     @Test
     public void testIsMemberMissingAuthorizable() {
         List<Principal> principals = ImmutableList.of(
-                new PrincipalImpl("name"),
-                () -> "name"
+            new PrincipalImpl("name"),
+            () -> "name"
         );
 
         for (Principal p : principals) {
@@ -109,8 +109,8 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
     @Test
     public void testIsMemberOfEveryoneMissingAuthorizable() {
         List<Principal> principals = ImmutableList.of(
-                new PrincipalImpl("name"),
-                () -> "name"
+            new PrincipalImpl("name"),
+            () -> "name"
         );
 
         for (Principal p : principals) {
@@ -143,7 +143,8 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
 
     @Test(expected = IllegalStateException.class)
     public void testMembersHandlesFailingPrincipalAccess() throws Exception {
-        Authorizable a = when(mock(Authorizable.class).getPrincipal()).thenThrow(new RepositoryException()).getMock();
+        Authorizable a = when(mock(Authorizable.class).getPrincipal()).thenThrow(
+            new RepositoryException()).getMock();
         AbstractGroupPrincipal agp = mock(AbstractGroupPrincipal.class);
         when(agp.getMembers()).thenReturn(Iterators.singletonIterator(a));
         when(agp.members()).thenCallRealMethod();
@@ -166,7 +167,8 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
         private boolean isEveryone;
 
         AGP() throws Exception {
-            super(testGroup.getPrincipal().getName(), root.getTree(testGroup.getPath()), AbstractGroupPrincipalTest.this.getNamePathMapper());
+            super(testGroup.getPrincipal().getName(), root.getTree(testGroup.getPath()),
+                AbstractGroupPrincipalTest.this.getNamePathMapper());
             member = getTestUser();
         }
 
@@ -200,7 +202,8 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
 
         @Override
         UserManager getUserManager() {
-            return mock(UserManager.class, withSettings().defaultAnswer(new ThrowsException(new RepositoryException())));
+            return mock(UserManager.class,
+                withSettings().defaultAnswer(new ThrowsException(new RepositoryException())));
         }
 
         @Override

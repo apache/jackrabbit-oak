@@ -30,15 +30,15 @@ public class UtilsTest {
         assertEquals(Long.MAX_VALUE, QueryImpl.saturatedAdd(1, Long.MAX_VALUE));
         assertEquals(Long.MAX_VALUE, QueryImpl.saturatedAdd(Long.MAX_VALUE, 1));
         assertEquals(Long.MAX_VALUE, QueryImpl.saturatedAdd(Long.MAX_VALUE, Long.MAX_VALUE));
-        long[] test = {Long.MIN_VALUE, Long.MIN_VALUE + 1, Long.MIN_VALUE + 10, 
+        long[] test = {Long.MIN_VALUE, Long.MIN_VALUE + 1, Long.MIN_VALUE + 10,
             -1000, -10, -1, 0, 1, 3, 10000,
             Long.MAX_VALUE - 20, Long.MAX_VALUE - 1, Long.MAX_VALUE};
         Random r = new Random(1);
         for (int i = 0; i < 10000; i++) {
             long x = r.nextBoolean() ? test[r.nextInt(test.length)] : r
-                    .nextLong();
+                .nextLong();
             long y = r.nextBoolean() ? test[r.nextInt(test.length)] : r
-                    .nextLong();
+                .nextLong();
             long alt = altSaturatedAdd(x, y);
             long got = QueryImpl.saturatedAdd(x, y);
             assertEquals(x + "+" + y, alt, got);

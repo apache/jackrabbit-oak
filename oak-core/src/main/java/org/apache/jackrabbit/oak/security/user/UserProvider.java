@@ -50,14 +50,14 @@ import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
- * User provider implementation and manager for group memberships with the
- * following characteristics:
+ * User provider implementation and manager for group memberships with the following
+ * characteristics:
  * <p>
  * <h1>UserProvider</h1>
  * <p>
  * <h2>User and Group Creation</h2>
- * This implementation creates the JCR nodes corresponding the a given
- * authorizable ID with the following behavior:
+ * This implementation creates the JCR nodes corresponding the a given authorizable ID with the
+ * following behavior:
  * <ul>
  * <li>Users are created below /rep:security/rep:authorizables/rep:users or
  * the path configured in the {@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_USER_PATH}
@@ -130,7 +130,7 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPE
  * </ul>
  *
  * <h3>Compatibility with Jackrabbit 2.x</h3>
- *
+ * <p>
  * Due to the fact that this JCR implementation is expected to deal with huge amount
  * of child nodes the following configuration options are no longer supported:
  * <ul>
@@ -178,25 +178,31 @@ class UserProvider extends AuthorizableBaseProvider {
     }
 
     @NotNull
-    Tree createUser(@NotNull String userID, @Nullable String intermediateJcrPath) throws RepositoryException {
+    Tree createUser(@NotNull String userID, @Nullable String intermediateJcrPath)
+        throws RepositoryException {
         return createAuthorizableNode(userID, NT_REP_USER, intermediateJcrPath);
     }
 
     @NotNull
-    Tree createGroup(@NotNull String groupID, @Nullable String intermediateJcrPath) throws RepositoryException {
+    Tree createGroup(@NotNull String groupID, @Nullable String intermediateJcrPath)
+        throws RepositoryException {
         return createAuthorizableNode(groupID, NT_REP_GROUP, intermediateJcrPath);
     }
 
     @NotNull
-    Tree createSystemUser(@NotNull String userID, @Nullable String intermediateJcrPath) throws RepositoryException {
-        String relSysPath = config.getConfigValue(PARAM_SYSTEM_RELATIVE_PATH, DEFAULT_SYSTEM_RELATIVE_PATH);
+    Tree createSystemUser(@NotNull String userID, @Nullable String intermediateJcrPath)
+        throws RepositoryException {
+        String relSysPath = config.getConfigValue(PARAM_SYSTEM_RELATIVE_PATH,
+            DEFAULT_SYSTEM_RELATIVE_PATH);
         String relPath;
         if (intermediateJcrPath == null) {
             relPath = relSysPath;
         } else {
             if (!(intermediateJcrPath.startsWith(relSysPath) ||
                 intermediateJcrPath.startsWith(userPath + '/' + relSysPath))) {
-                throw new ConstraintViolationException("System users must be located in the '"+relSysPath+"' subtree of the user root.");
+                throw new ConstraintViolationException(
+                    "System users must be located in the '" + relSysPath
+                        + "' subtree of the user root.");
             }
             relPath = intermediateJcrPath;
         }
@@ -230,13 +236,15 @@ class UserProvider extends AuthorizableBaseProvider {
         try {
             StringBuilder stmt = new StringBuilder();
             stmt.append("SELECT * FROM [").append(UserConstants.NT_REP_AUTHORIZABLE).append(']');
-            stmt.append(" WHERE [").append(UserConstants.REP_PRINCIPAL_NAME).append("] = $principalName");
+            stmt.append(" WHERE [").append(UserConstants.REP_PRINCIPAL_NAME)
+                .append("] = $principalName");
             stmt.append(QueryEngine.INTERNAL_SQL2_QUERY);
 
             Result result = root.getQueryEngine().executeQuery(stmt.toString(),
-                    Query.JCR_SQL2, 1, 0,
-                    Collections.singletonMap("principalName", PropertyValues.newString(principal.getName())),
-                    NO_MAPPINGS);
+                Query.JCR_SQL2, 1, 0,
+                Collections.singletonMap("principalName",
+                    PropertyValues.newString(principal.getName())),
+                NO_MAPPINGS);
 
             Iterator<? extends ResultRow> rows = result.getRows().iterator();
             if (rows.hasNext()) {
@@ -252,8 +260,8 @@ class UserProvider extends AuthorizableBaseProvider {
     //------------------------------------------------------------< private >---
 
     private Tree createAuthorizableNode(@NotNull String authorizableId,
-                                        @NotNull String ntName,
-                                        @Nullable String intermediatePath) throws RepositoryException {
+        @NotNull String ntName,
+        @Nullable String intermediatePath) throws RepositoryException {
         String nodeName = getNodeName(authorizableId);
         Tree folder = createFolderNodes(nodeName, NT_REP_GROUP.equals(ntName), intermediatePath);
 
@@ -277,10 +285,9 @@ class UserProvider extends AuthorizableBaseProvider {
     }
 
     /**
-     * Create folder structure for the authorizable to be created. The structure
-     * consists of a tree of rep:AuthorizableFolder node(s) starting at the
-     * configured user or group path. Note that Authorizable nodes are never
-     * nested.
+     * Create folder structure for the authorizable to be created. The structure consists of a tree
+     * of rep:AuthorizableFolder node(s) starting at the configured user or group path. Note that
+     * Authorizable nodes are never nested.
      *
      * @param nodeName         The name of the authorizable node.
      * @param isGroup          Flag indicating whether the new authorizable is a group or a user.
@@ -289,12 +296,12 @@ class UserProvider extends AuthorizableBaseProvider {
      * @throws RepositoryException If an error occurs
      */
     private Tree createFolderNodes(@NotNull String nodeName,
-                                   boolean isGroup,
-                                   @Nullable String intermediatePath) throws RepositoryException {
+        boolean isGroup,
+        @Nullable String intermediatePath) throws RepositoryException {
         String authRoot = (isGroup) ? groupPath : userPath;
         String folderPath = new StringBuilder()
-                .append(authRoot)
-                .append(getFolderPath(nodeName, intermediatePath, authRoot)).toString();
+            .append(authRoot)
+            .append(getFolderPath(nodeName, intermediatePath, authRoot)).toString();
         Tree folder;
         Tree tree = root.getTree(folderPath);
         while (!tree.isRoot() && !tree.exists()) {
@@ -307,7 +314,8 @@ class UserProvider extends AuthorizableBaseProvider {
                 folder = Utils.getOrAddTree(folder, relativePath, NT_REP_AUTHORIZABLE_FOLDER);
             }
         } else {
-            throw new AccessDeniedException("Missing permission to create intermediate authorizable folders.");
+            throw new AccessDeniedException(
+                "Missing permission to create intermediate authorizable folders.");
         }
 
         // test for colliding folder child node.
@@ -315,7 +323,9 @@ class UserProvider extends AuthorizableBaseProvider {
             Tree colliding = folder.getChild(nodeName);
             String primaryType = TreeUtil.getPrimaryTypeName(colliding);
             if (NT_REP_AUTHORIZABLE_FOLDER.equals(primaryType)) {
-                log.debug("Existing folder node collides with user/group to be created. Expanding path by: {}", colliding.getName());
+                log.debug(
+                    "Existing folder node collides with user/group to be created. Expanding path by: {}",
+                    colliding.getName());
                 folder = colliding;
             } else {
                 break;
@@ -326,15 +336,18 @@ class UserProvider extends AuthorizableBaseProvider {
 
     @NotNull
     private String getFolderPath(@NotNull String nodeName,
-                                 @Nullable String intermediatePath,
-                                 @NotNull String authRoot) throws ConstraintViolationException {
-        boolean emptyOrNull = (intermediatePath == null || intermediatePath.isEmpty() || authRoot.equals(intermediatePath));
+        @Nullable String intermediatePath,
+        @NotNull String authRoot) throws ConstraintViolationException {
+        boolean emptyOrNull = (intermediatePath == null || intermediatePath.isEmpty()
+            || authRoot.equals(intermediatePath));
         StringBuilder sb = new StringBuilder();
         if (!emptyOrNull) {
             // convert absolute paths into relative paths wrt the authRoot
             if (intermediatePath.charAt(0) == '/') {
                 if (!intermediatePath.startsWith(authRoot)) {
-                    throw new ConstraintViolationException("Attempt to create authorizable at '" + intermediatePath +"' outside of the configured root '" + authRoot + '\'');
+                    throw new ConstraintViolationException(
+                        "Attempt to create authorizable at '" + intermediatePath
+                            + "' outside of the configured root '" + authRoot + '\'');
                 } else {
                     intermediatePath = intermediatePath.substring(authRoot.length() + 1);
                 }
@@ -358,7 +371,9 @@ class UserProvider extends AuthorizableBaseProvider {
     }
 
     private String getNodeName(@NotNull String authorizableId) {
-        AuthorizableNodeName generator = checkNotNull(config.getConfigValue(PARAM_AUTHORIZABLE_NODE_NAME, AuthorizableNodeName.DEFAULT, AuthorizableNodeName.class));
+        AuthorizableNodeName generator = checkNotNull(
+            config.getConfigValue(PARAM_AUTHORIZABLE_NODE_NAME, AuthorizableNodeName.DEFAULT,
+                AuthorizableNodeName.class));
         return generator.generateNodeName(authorizableId);
     }
 }

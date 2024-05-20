@@ -54,7 +54,8 @@ public class PrivilegeConfigurationImplTest {
 
     @Test
     public void testGetPrivilegeManager() {
-        PrivilegeManager pMgr = configuration.getPrivilegeManager(Mockito.mock(Root.class), NamePathMapper.DEFAULT);
+        PrivilegeManager pMgr = configuration.getPrivilegeManager(Mockito.mock(Root.class),
+            NamePathMapper.DEFAULT);
         assertTrue(pMgr instanceof PrivilegeManagerImpl);
     }
 
@@ -72,7 +73,8 @@ public class PrivilegeConfigurationImplTest {
 
     @Test
     public void testGetValidators() {
-        List<? extends ValidatorProvider> l = configuration.getValidators("wspName", ImmutableSet.<Principal>of(), new MoveTracker());
+        List<? extends ValidatorProvider> l = configuration.getValidators("wspName",
+            ImmutableSet.<Principal>of(), new MoveTracker());
         assertEquals(1, l.size());
         assertTrue(l.get(0) instanceof PrivilegeValidatorProvider);
     }

@@ -24,21 +24,24 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * This implementation of a {@link ConflictHandler} always returns the same resolution.
- * It can be used to implement default behaviour or as a base class for more specialised
- * implementations.
- * @deprecated Use {@link org.apache.jackrabbit.oak.plugins.commit.DefaultThreeWayConflictHandler} instead.
+ * This implementation of a {@link ConflictHandler} always returns the same resolution. It can be
+ * used to implement default behaviour or as a base class for more specialised implementations.
+ *
+ * @deprecated Use {@link org.apache.jackrabbit.oak.plugins.commit.DefaultThreeWayConflictHandler}
+ * instead.
  */
 @Deprecated
 public class DefaultConflictHandler implements ConflictHandler {
 
     /**
-     * A {@code ConflictHandler} which always return {@link org.apache.jackrabbit.oak.spi.commit.ConflictHandler.Resolution#OURS}.
+     * A {@code ConflictHandler} which always return
+     * {@link org.apache.jackrabbit.oak.spi.commit.ConflictHandler.Resolution#OURS}.
      */
     public static final ConflictHandler OURS = new DefaultConflictHandler(Resolution.OURS);
 
     /**
-     * A {@code ConflictHandler} which always return {@link org.apache.jackrabbit.oak.spi.commit.ConflictHandler.Resolution#THEIRS}.
+     * A {@code ConflictHandler} which always return
+     * {@link org.apache.jackrabbit.oak.spi.commit.ConflictHandler.Resolution#THEIRS}.
      */
     public static final ConflictHandler THEIRS = new DefaultConflictHandler(Resolution.THEIRS);
 
@@ -47,15 +50,16 @@ public class DefaultConflictHandler implements ConflictHandler {
     /**
      * Create a new {@code ConflictHandler} which always returns {@code resolution}.
      *
-     * @param resolution  the resolution to return from all methods of this
-     * {@code ConflictHandler} instance.
+     * @param resolution the resolution to return from all methods of this {@code ConflictHandler}
+     *                   instance.
      */
     public DefaultConflictHandler(Resolution resolution) {
         this.resolution = resolution;
     }
 
     @Override
-    public Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
+    public Resolution addExistingProperty(NodeBuilder parent, PropertyState ours,
+        PropertyState theirs) {
         return resolution;
     }
 
@@ -65,7 +69,8 @@ public class DefaultConflictHandler implements ConflictHandler {
     }
 
     @Override
-    public Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
+    public Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours,
+        PropertyState theirs) {
         return resolution;
     }
 
@@ -80,7 +85,8 @@ public class DefaultConflictHandler implements ConflictHandler {
     }
 
     @Override
-    public Resolution addExistingNode(NodeBuilder parent, String name, NodeState ours, NodeState theirs) {
+    public Resolution addExistingNode(NodeBuilder parent, String name, NodeState ours,
+        NodeState theirs) {
         return resolution;
     }
 

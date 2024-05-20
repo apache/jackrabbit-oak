@@ -116,15 +116,17 @@ class UserImpl extends AuthorizableImpl implements User {
 
         pwHistory.updatePasswordHistory(getTree(), password);
 
-        userManager.setPassword(getTree(), getID(),  password, false);
+        userManager.setPassword(getTree(), getID(), password, false);
     }
 
     @Override
-    public void changePassword(@Nullable String password, @NotNull String oldPassword) throws RepositoryException {
+    public void changePassword(@Nullable String password, @NotNull String oldPassword)
+        throws RepositoryException {
         // make sure the old password matches.
         String pwHash = getPasswordHash();
         if (!PasswordUtil.isSame(pwHash, oldPassword)) {
-            throw new RepositoryException("Failed to change password: Old password does not match.");
+            throw new RepositoryException(
+                "Failed to change password: Old password does not match.");
         }
         changePassword(password);
     }

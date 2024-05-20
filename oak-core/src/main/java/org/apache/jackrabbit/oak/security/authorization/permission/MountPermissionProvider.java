@@ -47,16 +47,17 @@ public class MountPermissionProvider extends PermissionProviderImpl {
     private final MountInfoProvider mountInfoProvider;
 
     public MountPermissionProvider(@NotNull Root root, @NotNull String workspaceName,
-                                   @NotNull Set<Principal> principals, @NotNull RestrictionProvider restrictionProvider,
-                                   @NotNull ConfigurationParameters options, @NotNull Context ctx,
-                                   @NotNull ProviderCtx providerCtx) {
+        @NotNull Set<Principal> principals, @NotNull RestrictionProvider restrictionProvider,
+        @NotNull ConfigurationParameters options, @NotNull Context ctx,
+        @NotNull ProviderCtx providerCtx) {
         super(root, workspaceName, principals, restrictionProvider, options, ctx, providerCtx);
         this.mountInfoProvider = providerCtx.getMountInfoProvider();
     }
 
     @NotNull
     @Override
-    protected PermissionStore getPermissionStore(@NotNull Root root, @NotNull String workspaceName, @NotNull RestrictionProvider restrictionProvider) {
+    protected PermissionStore getPermissionStore(@NotNull Root root, @NotNull String workspaceName,
+        @NotNull RestrictionProvider restrictionProvider) {
         List<PermissionStore> stores = newArrayList();
         stores.add(super.getPermissionStore(root, workspaceName, restrictionProvider));
         for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
@@ -78,7 +79,7 @@ public class MountPermissionProvider extends PermissionProviderImpl {
         @Nullable
         @Override
         public Collection<PermissionEntry> load(@NotNull String principalName,
-                                                @NotNull String path) {
+            @NotNull String path) {
             for (PermissionStore store : stores) {
                 Collection<PermissionEntry> col = store.load(principalName, path);
                 if (col != null) {

@@ -29,9 +29,10 @@ public class AdminPrincipalsAbortTest extends AdminPrincipalsBaseTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         return ConfigurationParameters.of(AuthorizationConfiguration.NAME,
-                ConfigurationParameters.of(
-                        PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS, new String[]{ADMINISTRATORS_PRINCIPAL_NAME},
-                        ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT)
+            ConfigurationParameters.of(
+                PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS,
+                new String[]{ADMINISTRATORS_PRINCIPAL_NAME},
+                ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT)
         );
     }
 

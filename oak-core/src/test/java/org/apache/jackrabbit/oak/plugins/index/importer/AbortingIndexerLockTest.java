@@ -38,15 +38,15 @@ public class AbortingIndexerLockTest {
     private IndexStatsMBean statsMBean = mock(IndexStatsMBean.class);
 
     @Before
-    public void setup(){
+    public void setup() {
         infoService = mock(AsyncIndexInfoService.class);
 
-        AsyncIndexInfo info = new AsyncIndexInfo("async", -1,-1, false, statsMBean);
+        AsyncIndexInfo info = new AsyncIndexInfo("async", -1, -1, false, statsMBean);
         when(infoService.getInfo("async")).thenReturn(info);
     }
 
     @Test
-    public void lockBasics() throws Exception{
+    public void lockBasics() throws Exception {
         AbortingIndexerLock lock = new AbortingIndexerLock(infoService);
 
         when(statsMBean.getStatus()).thenReturn(IndexStatsMBean.STATUS_DONE);
@@ -61,13 +61,13 @@ public class AbortingIndexerLockTest {
     }
 
     @Test
-    public void lockWithRetry() throws Exception{
+    public void lockWithRetry() throws Exception {
         AbortingIndexerLock lock = new AbortingIndexerLock(infoService);
 
         when(statsMBean.getStatus())
-                .thenReturn(IndexStatsMBean.STATUS_RUNNING)
-                .thenReturn(IndexStatsMBean.STATUS_RUNNING)
-                .thenReturn(IndexStatsMBean.STATUS_DONE);
+            .thenReturn(IndexStatsMBean.STATUS_RUNNING)
+            .thenReturn(IndexStatsMBean.STATUS_RUNNING)
+            .thenReturn(IndexStatsMBean.STATUS_DONE);
 
         SimpleToken lockToken = lock.lock("async");
         assertNotNull(lockToken);
@@ -77,17 +77,17 @@ public class AbortingIndexerLockTest {
     }
 
     @Test
-    public void lockTimedout() throws Exception{
+    public void lockTimedout() throws Exception {
         Clock.Virtual clock = new Clock.Virtual();
         AbortingIndexerLock lock = new AbortingIndexerLock(infoService, clock);
 
         when(statsMBean.getStatus())
-                .thenReturn(IndexStatsMBean.STATUS_RUNNING)
-                .thenReturn(IndexStatsMBean.STATUS_RUNNING)
-                .then(invocation -> {
-                    clock.waitUntil(AbortingIndexerLock.TIMEOUT_SECONDS * 1000 + 1);
-                    return IndexStatsMBean.STATUS_RUNNING;
-                });
+            .thenReturn(IndexStatsMBean.STATUS_RUNNING)
+            .thenReturn(IndexStatsMBean.STATUS_RUNNING)
+            .then(invocation -> {
+                clock.waitUntil(AbortingIndexerLock.TIMEOUT_SECONDS * 1000 + 1);
+                return IndexStatsMBean.STATUS_RUNNING;
+            });
 
         try {
             lock.lock("async");

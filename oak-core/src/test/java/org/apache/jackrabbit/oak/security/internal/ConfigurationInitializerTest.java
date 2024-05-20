@@ -44,26 +44,32 @@ public class ConfigurationInitializerTest {
     public void testInitConfigurationReturnsSame() {
         SecurityConfiguration sc = new SecurityConfiguration.Default();
 
-        assertSame(sc, ConfigurationInitializer.initializeConfiguration(sc, sp, rootProvider, treeProvider));
+        assertSame(sc,
+            ConfigurationInitializer.initializeConfiguration(sc, sp, rootProvider, treeProvider));
     }
 
     @Test
     public void testInitBaseConfigurationReturnsSame() {
         SecurityConfiguration sc = new TestConfiguration();
 
-        assertSame(sc, ConfigurationInitializer.initializeConfiguration(sc, sp, rootProvider, treeProvider));
+        assertSame(sc,
+            ConfigurationInitializer.initializeConfiguration(sc, sp, rootProvider, treeProvider));
     }
 
     @Test
     public void testInitConfigurationWithParamReturnsSame() {
         SecurityConfiguration sc = new SecurityConfiguration.Default();
-        assertSame(sc, ConfigurationInitializer.initializeConfiguration(sc, sp, params, rootProvider, treeProvider));
+        assertSame(sc,
+            ConfigurationInitializer.initializeConfiguration(sc, sp, params, rootProvider,
+                treeProvider));
     }
 
     @Test
     public void testInitBaseConfigurationWithParamReturnsSame() {
         SecurityConfiguration sc = new TestConfiguration();
-        assertSame(sc, ConfigurationInitializer.initializeConfiguration(sc, sp, params, rootProvider, treeProvider));
+        assertSame(sc,
+            ConfigurationInitializer.initializeConfiguration(sc, sp, params, rootProvider,
+                treeProvider));
     }
 
     @Test
@@ -78,7 +84,8 @@ public class ConfigurationInitializerTest {
     public void testInitBaseConfiguration() {
         TestConfiguration sc = new TestConfiguration();
 
-        SecurityConfiguration afterInit = ConfigurationInitializer.initializeConfiguration(sc, sp, rootProvider, treeProvider);
+        SecurityConfiguration afterInit = ConfigurationInitializer.initializeConfiguration(sc, sp,
+            rootProvider, treeProvider);
         assertSame(sc, afterInit);
 
         // verify securityprovider
@@ -96,7 +103,8 @@ public class ConfigurationInitializerTest {
     public void testInitBaseConfigurationWithParam() {
         TestConfiguration sc = new TestConfiguration();
 
-        SecurityConfiguration afterInit = ConfigurationInitializer.initializeConfiguration(sc, sp, params, rootProvider, treeProvider);
+        SecurityConfiguration afterInit = ConfigurationInitializer.initializeConfiguration(sc, sp,
+            params, rootProvider, treeProvider);
         assertSame(sc, afterInit);
 
         // verify securityprovider
@@ -120,7 +128,8 @@ public class ConfigurationInitializerTest {
         composite.addConfiguration(new SecurityConfiguration.Default());
         composite.addConfiguration(new SecurityConfiguration.Default());
 
-        ConfigurationInitializer.initializeConfigurations(composite, sp, params, rootProvider, treeProvider);
+        ConfigurationInitializer.initializeConfigurations(composite, sp, params, rootProvider,
+            treeProvider);
 
         // verify securityprovider
         assertSame(sp, composite.getSecurityProvider());
@@ -137,7 +146,8 @@ public class ConfigurationInitializerTest {
         composite.addConfiguration(new TestConfiguration());
         composite.addConfiguration(new TestConfiguration());
 
-        ConfigurationInitializer.initializeConfigurations(composite, sp, params, rootProvider, treeProvider);
+        ConfigurationInitializer.initializeConfigurations(composite, sp, params, rootProvider,
+            treeProvider);
 
         // verify securityprovider
         assertSame(sp, composite.getSecurityProvider());
@@ -159,7 +169,8 @@ public class ConfigurationInitializerTest {
         }
     }
 
-    private final class TestComposite<T extends SecurityConfiguration> extends CompositeConfiguration<T> {
+    private final class TestComposite<T extends SecurityConfiguration> extends
+        CompositeConfiguration<T> {
 
         public TestComposite() {
             super("name");

@@ -27,19 +27,16 @@ import org.jetbrains.annotations.Nullable;
 /**
  * <i>Inspired by Jackrabbit 2.x</i>
  * <p>
- * This Interface defines the version selector that needs to provide a version,
- * given some hints and a version history. the selector is used in the various
- * restore methods in order to select the correct version of previously versioned
- * OPV=Version children upon restore. JSR170 states: <em>"This determination
- * [of the version] depends on the configuration of the workspace and is outside
- * the scope of this specification."</em>
+ * This Interface defines the version selector that needs to provide a version, given some hints and
+ * a version history. the selector is used in the various restore methods in order to select the
+ * correct version of previously versioned OPV=Version children upon restore. JSR170 states:
+ * <em>"This determination [of the version] depends on the configuration of the workspace and is
+ * outside the scope of this specification."</em>
  * <p>
- * The version selection in jackrabbit works as follows:<br>
- * The {@code Node.restore()} methods uses the
- * {@link DateVersionSelector} which is initialized with the creation date of
- * the parent version. This selector selects the latest version that is equal
- * or older than the given date. if no such version exists, the initial one
- * is restored.<br>
+ * The version selection in jackrabbit works as follows:<br> The {@code Node.restore()} methods uses
+ * the {@link DateVersionSelector} which is initialized with the creation date of the parent
+ * version. This selector selects the latest version that is equal or older than the given date. if
+ * no such version exists, the initial one is restored.<br>
  * <p>
  *
  * @see DateVersionSelector
@@ -48,9 +45,9 @@ import org.jetbrains.annotations.Nullable;
 interface VersionSelector {
 
     /**
-     * Selects a version of the given version history. If this VersionSelector
-     * is unable to select one, it can return {@code null}. Please note,
-     * that a version selector is not allowed to return the root version.
+     * Selects a version of the given version history. If this VersionSelector is unable to select
+     * one, it can return {@code null}. Please note, that a version selector is not allowed to
+     * return the root version.
      *
      * @param versionHistory version history to select a version from
      * @return A version or {@code null}.

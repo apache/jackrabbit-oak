@@ -45,8 +45,8 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * This {@link ThreeWayConflictHandler} implementation resolves conflicts to
- * {@link org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler.Resolution#THEIRS} and in addition marks nodes where a
- * conflict occurred with the mixin {@code rep:MergeConflict}:
+ * {@link org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler.Resolution#THEIRS} and in
+ * addition marks nodes where a conflict occurred with the mixin {@code rep:MergeConflict}:
  *
  * <pre>
  * [rep:MergeConflict]
@@ -54,9 +54,8 @@ import org.jetbrains.annotations.NotNull;
  *   primaryitem rep:ours
  *   + rep:ours (rep:Unstructured) protected IGNORE
  * </pre>
- *
- * The {@code rep:ours} sub node contains our version of the node prior to
- * the conflict.
+ * <p>
+ * The {@code rep:ours} sub node contains our version of the node prior to the conflict.
  *
  * @see ConflictValidator
  */
@@ -64,7 +63,8 @@ public class AnnotatingConflictHandler implements ThreeWayConflictHandler {
 
     @NotNull
     @Override
-    public Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs) {
+    public Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
+        @NotNull PropertyState theirs) {
         NodeBuilder marker = addConflictMarker(parent);
         createChild(marker, ADD_EXISTING_PROPERTY).setProperty(ours);
         return Resolution.THEIRS;
@@ -72,7 +72,8 @@ public class AnnotatingConflictHandler implements ThreeWayConflictHandler {
 
     @NotNull
     @Override
-    public Resolution changeDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState base) {
+    public Resolution changeDeletedProperty(@NotNull NodeBuilder parent,
+        @NotNull PropertyState ours, @NotNull PropertyState base) {
         NodeBuilder marker = addConflictMarker(parent);
         createChild(marker, CHANGE_DELETED_PROPERTY).setProperty(ours);
         return Resolution.THEIRS;
@@ -80,8 +81,9 @@ public class AnnotatingConflictHandler implements ThreeWayConflictHandler {
 
     @NotNull
     @Override
-    public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs,
-                                            @NotNull PropertyState base) {
+    public Resolution changeChangedProperty(@NotNull NodeBuilder parent,
+        @NotNull PropertyState ours, @NotNull PropertyState theirs,
+        @NotNull PropertyState base) {
         NodeBuilder marker = addConflictMarker(parent);
         createChild(marker, CHANGE_CHANGED_PROPERTY).setProperty(ours);
         return Resolution.THEIRS;
@@ -89,7 +91,8 @@ public class AnnotatingConflictHandler implements ThreeWayConflictHandler {
 
     @NotNull
     @Override
-    public Resolution deleteChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState theirs, @NotNull PropertyState base) {
+    public Resolution deleteChangedProperty(@NotNull NodeBuilder parent,
+        @NotNull PropertyState theirs, @NotNull PropertyState base) {
         NodeBuilder marker = addConflictMarker(parent);
         createChild(marker, DELETE_CHANGED_PROPERTY).setProperty(theirs);
         return Resolution.THEIRS;
@@ -97,7 +100,8 @@ public class AnnotatingConflictHandler implements ThreeWayConflictHandler {
 
     @NotNull
     @Override
-    public Resolution deleteDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState base) {
+    public Resolution deleteDeletedProperty(@NotNull NodeBuilder parent,
+        @NotNull PropertyState base) {
         NodeBuilder marker = addConflictMarker(parent);
         createChild(marker, DELETE_DELETED_PROPERTY).setProperty(base);
         return Resolution.THEIRS;
@@ -105,7 +109,8 @@ public class AnnotatingConflictHandler implements ThreeWayConflictHandler {
 
     @NotNull
     @Override
-    public Resolution addExistingNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours, @NotNull NodeState theirs) {
+    public Resolution addExistingNode(@NotNull NodeBuilder parent, @NotNull String name,
+        @NotNull NodeState ours, @NotNull NodeState theirs) {
         NodeBuilder marker = addConflictMarker(parent);
         createChild(marker, ADD_EXISTING_NODE).setChildNode(name, ours);
         return Resolution.THEIRS;
@@ -113,7 +118,8 @@ public class AnnotatingConflictHandler implements ThreeWayConflictHandler {
 
     @NotNull
     @Override
-    public Resolution changeDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours, @NotNull NodeState base) {
+    public Resolution changeDeletedNode(@NotNull NodeBuilder parent, @NotNull String name,
+        @NotNull NodeState ours, @NotNull NodeState base) {
         NodeBuilder marker = addConflictMarker(parent);
         createChild(marker, CHANGE_DELETED_NODE).setChildNode(name, ours);
         return Resolution.THEIRS;
@@ -121,7 +127,8 @@ public class AnnotatingConflictHandler implements ThreeWayConflictHandler {
 
     @NotNull
     @Override
-    public Resolution deleteChangedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState theirs, @NotNull NodeState base) {
+    public Resolution deleteChangedNode(@NotNull NodeBuilder parent, @NotNull String name,
+        @NotNull NodeState theirs, @NotNull NodeState base) {
         NodeBuilder marker = addConflictMarker(parent);
         markChild(createChild(marker, DELETE_CHANGED_NODE), name);
         return Resolution.THEIRS;
@@ -129,7 +136,8 @@ public class AnnotatingConflictHandler implements ThreeWayConflictHandler {
 
     @NotNull
     @Override
-    public Resolution deleteDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState base) {
+    public Resolution deleteDeletedNode(@NotNull NodeBuilder parent, @NotNull String name,
+        @NotNull NodeState base) {
         NodeBuilder marker = addConflictMarker(parent);
         markChild(createChild(marker, DELETE_DELETED_NODE), name);
         return Resolution.THEIRS;

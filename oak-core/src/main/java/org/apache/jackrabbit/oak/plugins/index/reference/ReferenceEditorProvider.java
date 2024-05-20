@@ -31,8 +31,8 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
 @Component(
-        service = IndexEditorProvider.class,
-        property = IndexConstants.TYPE_PROPERTY_NAME + "=" + NodeReferenceConstants.TYPE)
+    service = IndexEditorProvider.class,
+    property = IndexConstants.TYPE_PROPERTY_NAME + "=" + NodeReferenceConstants.TYPE)
 public class ReferenceEditorProvider implements IndexEditorProvider {
 
     @Reference
@@ -40,7 +40,7 @@ public class ReferenceEditorProvider implements IndexEditorProvider {
 
     @Override
     public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
-            @NotNull NodeState root, @NotNull IndexUpdateCallback callback) {
+        @NotNull NodeState root, @NotNull IndexUpdateCallback callback) {
         if (TYPE.equals(type)) {
             return new ReferenceEditor(definition, root, mountInfoProvider);
         }

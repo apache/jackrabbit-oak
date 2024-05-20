@@ -45,13 +45,13 @@ import org.osgi.service.component.annotations.Reference;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 @Component(
-        service = InventoryPrinter.class,
-        property = {
-                "felix.inventory.printer.name=oak-index-stats",
-                "felix.inventory.printer.title=Oak Index Stats",
-                "felix.inventory.printer.format=TEXT",
-                "felix.inventory.printer.format=JSON"
-        })
+    service = InventoryPrinter.class,
+    property = {
+        "felix.inventory.printer.name=oak-index-stats",
+        "felix.inventory.printer.title=Oak Index Stats",
+        "felix.inventory.printer.format=TEXT",
+        "felix.inventory.printer.format=JSON"
+    })
 public class IndexPrinter implements InventoryPrinter {
 
     @Reference
@@ -63,14 +63,16 @@ public class IndexPrinter implements InventoryPrinter {
     public IndexPrinter() {
     }
 
-    public IndexPrinter(IndexInfoService indexInfoService, AsyncIndexInfoService asyncIndexInfoService) {
+    public IndexPrinter(IndexInfoService indexInfoService,
+        AsyncIndexInfoService asyncIndexInfoService) {
         this.indexInfoService = checkNotNull(indexInfoService);
         this.asyncIndexInfoService = checkNotNull(asyncIndexInfoService);
     }
 
     @Override
     public void print(PrintWriter pw, Format format, boolean isZip) {
-        PrinterOutput po = format == Format.JSON ? new JsonPrinterOutput() : new TextPrinterOutput();
+        PrinterOutput po =
+            format == Format.JSON ? new JsonPrinterOutput() : new TextPrinterOutput();
         asyncLanesInfo(po);
         indexInfo(po);
         pw.print(po.output());
@@ -103,10 +105,13 @@ public class IndexPrinter implements InventoryPrinter {
     }
 
     private void indexInfo(PrinterOutput po) {
-        Map<String, List<IndexInfo>> indexesByType = StreamSupport.stream(indexInfoService.getAllIndexInfo().spliterator(), false)
-                .collect(Collectors.groupingBy(IndexInfo::getType));
+        Map<String, List<IndexInfo>> indexesByType = StreamSupport.stream(
+                                                                      indexInfoService.getAllIndexInfo().spliterator(), false)
+                                                                  .collect(Collectors.groupingBy(
+                                                                      IndexInfo::getType));
 
-        po.text("Total number of indexes", indexesByType.values().stream().mapToInt(List::size).sum());
+        po.text("Total number of indexes",
+            indexesByType.values().stream().mapToInt(List::size).sum());
 
         for (String type : indexesByType.keySet()) {
             List<IndexInfo> typedInfo = indexesByType.get(type);
@@ -232,7 +237,8 @@ public class IndexPrinter implements InventoryPrinter {
             } else if (value instanceof Integer) {
                 json.value((Integer) value);
             } else {
-                throw new IllegalArgumentException("Unsupported type of value while creating the json output");
+                throw new IllegalArgumentException(
+                    "Unsupported type of value while creating the json output");
             }
         }
     }
@@ -266,7 +272,9 @@ public class IndexPrinter implements InventoryPrinter {
 
         @Override
         void endSection() {
-            if (leftPadding >= 4) leftPadding -= 4;
+            if (leftPadding >= 4) {
+                leftPadding -= 4;
+            }
         }
 
         @Override
@@ -279,9 +287,10 @@ public class IndexPrinter implements InventoryPrinter {
         }
 
         private void appendLine(String key, Object value) {
-            String leftPaddedKey = leftPadding > 0 ? String.format("%" + leftPadding + "s", key) : key;
+            String leftPaddedKey =
+                leftPadding > 0 ? String.format("%" + leftPadding + "s", key) : key;
             sb.append(String.format("%-29s", leftPaddedKey))
-                    .append(":").append(value).append(System.lineSeparator());
+              .append(":").append(value).append(System.lineSeparator());
         }
 
         private void newLine() {

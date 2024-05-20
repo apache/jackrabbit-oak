@@ -28,10 +28,9 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * {@link TreePermission} implementations for those items in the version storage
- * that are linked to a versionable node (i.e. the subtree spanned by every version
- * history node. For those items, the effective permissions are defined by
- * the corresponding versionable node (and it's ancestors).
+ * {@link TreePermission} implementations for those items in the version storage that are linked to
+ * a versionable node (i.e. the subtree spanned by every version history node. For those items, the
+ * effective permissions are defined by the corresponding versionable node (and it's ancestors).
  */
 class VersionTreePermission implements TreePermission, VersionConstants {
 
@@ -41,7 +40,8 @@ class VersionTreePermission implements TreePermission, VersionConstants {
     private final TreePermission versionablePermission;
     private final TreeProvider treeProvider;
 
-    VersionTreePermission(@NotNull Tree versionTree, @NotNull TreePermission versionablePermission, @NotNull TreeProvider treeProvider) {
+    VersionTreePermission(@NotNull Tree versionTree, @NotNull TreePermission versionablePermission,
+        @NotNull TreeProvider treeProvider) {
         this.versionTree = versionTree;
         this.versionablePermission = versionablePermission;
         this.treeProvider = treeProvider;
@@ -50,10 +50,12 @@ class VersionTreePermission implements TreePermission, VersionConstants {
     @NotNull
     VersionTreePermission createChildPermission(@NotNull Tree versionTree) {
         TreePermission delegatee;
-        if (JCR_FROZENNODE.equals(versionTree.getName()) || NT_NAMES.contains(TreeUtil.getPrimaryTypeName(versionTree))) {
+        if (JCR_FROZENNODE.equals(versionTree.getName()) || NT_NAMES.contains(
+            TreeUtil.getPrimaryTypeName(versionTree))) {
             delegatee = versionablePermission;
         } else {
-            delegatee = versionablePermission.getChildPermission(versionTree.getName(), treeProvider.asNodeState(versionTree));
+            delegatee = versionablePermission.getChildPermission(versionTree.getName(),
+                treeProvider.asNodeState(versionTree));
         }
         return new VersionTreePermission(versionTree, delegatee, treeProvider);
     }
@@ -62,8 +64,10 @@ class VersionTreePermission implements TreePermission, VersionConstants {
 
     @NotNull
     @Override
-    public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
-        return createChildPermission(treeProvider.createReadOnlyTree(versionTree, childName, childState));
+    public TreePermission getChildPermission(@NotNull String childName,
+        @NotNull NodeState childState) {
+        return createChildPermission(
+            treeProvider.createReadOnlyTree(versionTree, childName, childState));
     }
 
     @Override

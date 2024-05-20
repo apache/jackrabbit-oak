@@ -100,7 +100,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        Tree t = addChild(root.getTree(PathUtils.ROOT_PATH), "test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree t = addChild(root.getTree(PathUtils.ROOT_PATH), "test",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         addChild(t, "subtree", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         addChild(t, "accessControlled", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
 
@@ -132,17 +133,22 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
 
     @NotNull
     private PermissionStore mockPermissionStore(@NotNull Root r, @NotNull String wspName) {
-        return spy(new PermissionStoreImpl(r, wspName, getConfig(AuthorizationConfiguration.class).getRestrictionProvider(), mock(AuthorizationMonitor.class)));
+        return spy(new PermissionStoreImpl(r, wspName,
+            getConfig(AuthorizationConfiguration.class).getRestrictionProvider(),
+            mock(AuthorizationMonitor.class)));
     }
 
-    private CompiledPermissionImpl create(@NotNull Root r, @NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull PermissionStore store, @NotNull ConfigurationParameters options) {
+    private CompiledPermissionImpl create(@NotNull Root r, @NotNull String workspaceName,
+        @NotNull Set<Principal> principals, @NotNull PermissionStore store,
+        @NotNull ConfigurationParameters options) {
         AuthorizationConfiguration config = getConfig(AuthorizationConfiguration.class);
         assertTrue(config instanceof CompositeAuthorizationConfiguration);
 
         AuthorizationConfiguration defConfig = ((CompositeAuthorizationConfiguration) config).getDefaultConfig();
         assertTrue(defConfig instanceof AuthorizationConfigurationImpl);
 
-        CompiledPermissions cp = CompiledPermissionImpl.create(r, workspaceName, store, principals, options, config.getContext(), (AuthorizationConfigurationImpl) defConfig);
+        CompiledPermissions cp = CompiledPermissionImpl.create(r, workspaceName, store, principals,
+            options, config.getContext(), (AuthorizationConfigurationImpl) defConfig);
         assertTrue(cp instanceof CompiledPermissionImpl);
 
         return (CompiledPermissionImpl) cp;
@@ -163,7 +169,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
     }
 
     @NotNull
-    private TreePermission createTreePermission(@NotNull CompiledPermissionImpl cp, @NotNull String path) {
+    private TreePermission createTreePermission(@NotNull CompiledPermissionImpl cp,
+        @NotNull String path) {
         Tree t = createReadonlyTree(PathUtils.ROOT_PATH);
         TreePermission tp = cp.getTreePermission(t, TreePermission.EMPTY);
         for (String elem : PathUtils.elements(path)) {
@@ -174,7 +181,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         return tp;
     }
 
-    private void grant(@Nullable String path, @NotNull Principal principal, @NotNull String... privNames) throws Exception {
+    private void grant(@Nullable String path, @NotNull Principal principal,
+        @NotNull String... privNames) throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
         acl.addAccessControlEntry(principal, privilegesFromNames(privNames));
@@ -185,7 +193,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
     @NotNull
     private Tree createVersions(@NotNull String path) throws Exception {
         Tree tree = root.getTree(path);
-        TreeUtil.addMixin(tree, MIX_VERSIONABLE, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), "uid");
+        TreeUtil.addMixin(tree, MIX_VERSIONABLE, root.getTree(NodeTypeConstants.NODE_TYPES_PATH),
+            "uid");
         root.commit();
         for (int i = 0; i < 3; i++) {
             tree.setProperty(PropertyStates.createProperty(JCR_ISCHECKEDOUT, false));
@@ -201,7 +210,9 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
     @Test
     public void testCreateFromEmptyPrincipals() {
         Set<Principal> principals = ImmutableSet.of();
-        assertSame(NoPermissions.getInstance(), CompiledPermissionImpl.create(root, "wspName", mock(PermissionStore.class), principals, ConfigurationParameters.EMPTY, mock(Context.class), mock(ProviderCtx.class)));
+        assertSame(NoPermissions.getInstance(),
+            CompiledPermissionImpl.create(root, "wspName", mock(PermissionStore.class), principals,
+                ConfigurationParameters.EMPTY, mock(Context.class), mock(ProviderCtx.class)));
     }
 
     @Test
@@ -210,12 +221,15 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         Root r = when(mock(Root.class).getTree(anyString())).thenReturn(t).getMock();
         Set<Principal> principals = ImmutableSet.of(new PrincipalImpl("principalName"));
 
-        assertSame(NoPermissions.getInstance(), CompiledPermissionImpl.create(r, "wspName", mock(PermissionStore.class), principals, ConfigurationParameters.EMPTY, mock(Context.class), mock(ProviderCtx.class)));
+        assertSame(NoPermissions.getInstance(),
+            CompiledPermissionImpl.create(r, "wspName", mock(PermissionStore.class), principals,
+                ConfigurationParameters.EMPTY, mock(Context.class), mock(ProviderCtx.class)));
     }
 
     @Test
     public void testEmpyReadPaths() {
-        CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of()));
+        CompiledPermissionImpl cp = createForTestSession(
+            ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of()));
         // cp with EmptyReadPolicy
         for (String readPath : PermissionConstants.DEFAULT_READ_PATHS) {
             assertFalse(cp.isGranted(readPath, Permissions.READ_NODE));
@@ -249,7 +263,9 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
     @Test
     public void testNonDefaultReadPath() {
         // cp with DefaultReadPolicy but not default paths
-        CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of(TEST_PATH, "/another", "/yet/another")));
+        CompiledPermissionImpl cp = createForTestSession(
+            ConfigurationParameters.of(PARAM_READ_PATHS,
+                ImmutableSet.of(TEST_PATH, "/another", "/yet/another")));
 
         for (String readPath : new String[]{TEST_PATH, SUBTREE_PATH, TEST_PATH + "/nonExisting"}) {
             assertReadPath(cp, readPath);
@@ -276,7 +292,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
 
     @Test
     public void testHidden() {
-        CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of()));
+        CompiledPermissionImpl cp = createForTestSession(
+            ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of()));
 
         String hiddenPath = "/oak:index/acPrincipalName/:index";
         Tree hiddenTree = createReadonlyTree(hiddenPath);
@@ -300,9 +317,9 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
 
         CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.EMPTY);
 
-        String[] internalPaths = new String[] {
-                PERMISSIONS_STORE_PATH,
-                PathUtils.concat(PERMISSIONS_STORE_PATH, testSession.getWorkspaceName())
+        String[] internalPaths = new String[]{
+            PERMISSIONS_STORE_PATH,
+            PathUtils.concat(PERMISSIONS_STORE_PATH, testSession.getWorkspaceName())
         };
         for (String internalPath : internalPaths) {
             Tree internalTree = createReadonlyTree(internalPath);
@@ -324,7 +341,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         Tree versionHistory = createVersions(SUBTREE_PATH);
 
         // subtree path is made readable through PARAM_READ_PATHS
-        CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of(TEST_PATH)));
+        CompiledPermissionImpl cp = createForTestSession(
+            ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of(TEST_PATH)));
 
         assertTrue(cp.isGranted(versionHistory, null, Permissions.READ));
         // isGranted(String, long) serves as fallback when no versionable node available
@@ -343,7 +361,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         assertEquals(NT_VERSION, TreeUtil.getPrimaryTypeName(version));
 
         // subtree path is made readable through PARAM_READ_PATHS
-        CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of(TEST_PATH)));
+        CompiledPermissionImpl cp = createForTestSession(
+            ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of(TEST_PATH)));
 
         assertTrue(cp.isGranted(version, null, Permissions.READ));
         // isGranted(String, long) serves as fallback when no versionable node available
@@ -365,9 +384,9 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.EMPTY);
 
         for (Tree tree : new Tree[]{
-                frozenNode,
-                frozenNode.getChild("subtree"),
-                frozenNode.getChild("nonExistingChild")}) {
+            frozenNode,
+            frozenNode.getChild("subtree"),
+            frozenNode.getChild("nonExistingChild")}) {
 
             String path = tree.getPath();
             assertFalse(path, cp.isGranted(tree, null, Permissions.READ));
@@ -389,11 +408,13 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         // default read-paths -> only accessControlled tree readable
         CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.EMPTY);
 
-        assertTrue(cp.isGranted(copiedAccessControlledChild, null, Permissions.READ | Permissions.SET_PROPERTY));
+        assertTrue(cp.isGranted(copiedAccessControlledChild, null,
+            Permissions.READ | Permissions.SET_PROPERTY));
         // isGranted(String, long) serves as fallback when no versionable node available
         // -> just regular permission eval based on path, no tree-type taken into account
         assertFalse(cp.isGranted(copiedAccessControlledChild.getPath(), Permissions.READ));
-        assertEquals(ImmutableSet.of(JCR_READ, JCR_WRITE), cp.getPrivileges(copiedAccessControlledChild));
+        assertEquals(ImmutableSet.of(JCR_READ, JCR_WRITE),
+            cp.getPrivileges(copiedAccessControlledChild));
         assertTrue(cp.hasPrivileges(copiedAccessControlledChild, JCR_READ, JCR_WRITE));
 
         TreePermission tp = createTreePermission(cp, version.getPath());
@@ -405,7 +426,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         Tree versionStoreTree = createVersions(SUBTREE_PATH).getParent();
 
         // subtree path is made readable through PARAM_READ_PATHS
-        CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of(TEST_PATH)));
+        CompiledPermissionImpl cp = createForTestSession(
+            ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of(TEST_PATH)));
 
         // but: permissions for version store tree is evaluated based on regular permissions
         // and not tied to a versionable tree
@@ -454,8 +476,10 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         String wspName = testSession.getWorkspaceName();
 
         PermissionStore store = mockPermissionStore(readOnlyRoot, wspName);
-        Set<Principal> principals = ImmutableSet.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
-        CompiledPermissionImpl cp = create(readOnlyRoot, wspName, principals, store, ConfigurationParameters.EMPTY);
+        Set<Principal> principals = ImmutableSet.of(getTestUser().getPrincipal(),
+            EveryonePrincipal.getInstance());
+        CompiledPermissionImpl cp = create(readOnlyRoot, wspName, principals, store,
+            ConfigurationParameters.EMPTY);
 
         // verify lazy initialization of the permission cache
         verify(store, never()).getNumEntries(anyString(), anyLong());
@@ -492,7 +516,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
 
         // create cp for user principal only (no group principals that hold the permission setup)
         PermissionStore store = mockPermissionStore(readOnlyRoot, wspName);
-        CompiledPermissionImpl cp = create(readOnlyRoot, wspName, ImmutableSet.of(getTestUser().getPrincipal()), store, ConfigurationParameters.EMPTY);
+        CompiledPermissionImpl cp = create(readOnlyRoot, wspName,
+            ImmutableSet.of(getTestUser().getPrincipal()), store, ConfigurationParameters.EMPTY);
 
         verify(store, never()).getNumEntries(anyString(), anyLong());
 
@@ -510,7 +535,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         Tree t = createReadonlyTree(ACCESS_CONTROLLED_PATH);
         assertFalse(cp.hasPrivileges(t, JCR_WRITE));
         assertTrue(cp.hasPrivileges(t, JCR_VERSION_MANAGEMENT));
-        assertEquals(ImmutableSet.of(JCR_VERSION_MANAGEMENT), cp.getPrivileges(createReadonlyTree(ACCESS_CONTROLLED_PATH)));
+        assertEquals(ImmutableSet.of(JCR_VERSION_MANAGEMENT),
+            cp.getPrivileges(createReadonlyTree(ACCESS_CONTROLLED_PATH)));
 
         TreePermission tp = createTreePermission(cp, ACCESS_CONTROLLED_PATH);
         assertTrue(tp.isGranted(VERSION_MANAGEMENT));
@@ -530,7 +556,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
 
         // create cp for group principal only (no user principal)
         PermissionStore store = mockPermissionStore(readOnlyRoot, wspName);
-        CompiledPermissionImpl cp = create(readOnlyRoot, wspName, ImmutableSet.of(EveryonePrincipal.getInstance()), store, ConfigurationParameters.EMPTY);
+        CompiledPermissionImpl cp = create(readOnlyRoot, wspName,
+            ImmutableSet.of(EveryonePrincipal.getInstance()), store, ConfigurationParameters.EMPTY);
 
         verify(store, never()).getNumEntries(anyString(), anyLong());
 
@@ -545,7 +572,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
 
         assertTrue(cp.isGranted(ACCESS_CONTROLLED_PATH, SET_PROPERTY));
         assertTrue(cp.hasPrivileges(createReadonlyTree(ACCESS_CONTROLLED_PATH), JCR_WRITE));
-        assertEquals(ImmutableSet.of(JCR_READ, JCR_WRITE), cp.getPrivileges(createReadonlyTree(ACCESS_CONTROLLED_PATH)));
+        assertEquals(ImmutableSet.of(JCR_READ, JCR_WRITE),
+            cp.getPrivileges(createReadonlyTree(ACCESS_CONTROLLED_PATH)));
 
         TreePermission tp = createTreePermission(cp, ACCESS_CONTROLLED_PATH);
         assertTrue(tp.isGranted(SET_PROPERTY));
@@ -560,7 +588,9 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
     @Test(expected = IllegalArgumentException.class)
     public void testGetTreePermissionInvalidParent() {
         String wspName = adminSession.getWorkspaceName();
-        CompiledPermissionImpl cp = create(root, wspName, Collections.singleton(EveryonePrincipal.getInstance()), mockPermissionStore(root, wspName), ConfigurationParameters.EMPTY);
+        CompiledPermissionImpl cp = create(root, wspName,
+            Collections.singleton(EveryonePrincipal.getInstance()),
+            mockPermissionStore(root, wspName), ConfigurationParameters.EMPTY);
         TreePermission invalidParentTreePermission = mock(TreePermission.class);
         cp.getTreePermission(root.getTree("/jcr:system"), invalidParentTreePermission);
     }
@@ -568,7 +598,9 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
     @Test
     public void testGetTreePermissionForHiddenVersionable() throws Exception {
         String wspName = adminSession.getWorkspaceName();
-        CompiledPermissionImpl cp = create(root, wspName, Collections.singleton(EveryonePrincipal.getInstance()), mockPermissionStore(root, wspName), ConfigurationParameters.EMPTY);
+        CompiledPermissionImpl cp = create(root, wspName,
+            Collections.singleton(EveryonePrincipal.getInstance()),
+            mockPermissionStore(root, wspName), ConfigurationParameters.EMPTY);
 
         Tree hidden = mock(Tree.class, withSettings().extraInterfaces(TreeTypeAware.class));
         when(((TreeTypeAware) hidden).getType()).thenReturn(TreeType.HIDDEN);
@@ -585,7 +617,9 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
     @Test
     public void testGetTreePermissionForInternalVersionable() throws Exception {
         String wspName = adminSession.getWorkspaceName();
-        CompiledPermissionImpl cp = create(root, wspName, Collections.singleton(EveryonePrincipal.getInstance()), mockPermissionStore(root, wspName), ConfigurationParameters.EMPTY);
+        CompiledPermissionImpl cp = create(root, wspName,
+            Collections.singleton(EveryonePrincipal.getInstance()),
+            mockPermissionStore(root, wspName), ConfigurationParameters.EMPTY);
 
         Tree internal = mock(Tree.class, withSettings().extraInterfaces(TreeTypeAware.class));
         when(((TreeTypeAware) internal).getType()).thenReturn(TreeType.INTERNAL);
@@ -602,7 +636,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         assertFalse(tp.isGranted(Permissions.NO_PERMISSION));
     }
 
-    private static void setVersionManager(@NotNull CompiledPermissionImpl cp, @NotNull Tree t) throws Exception {
+    private static void setVersionManager(@NotNull CompiledPermissionImpl cp, @NotNull Tree t)
+        throws Exception {
         ReadOnlyVersionManager versionManager = createVersionManager(t);
         Field f = CompiledPermissionImpl.class.getDeclaredField("versionManager");
         f.setAccessible(true);
@@ -627,7 +662,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
             }
 
             @Override
-            public @Nullable Tree getVersionable(@NotNull Tree versionTree, @NotNull String workspaceName) {
+            public @Nullable Tree getVersionable(@NotNull Tree versionTree,
+                @NotNull String workspaceName) {
                 return t;
             }
         };

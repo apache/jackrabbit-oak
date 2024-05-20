@@ -76,113 +76,130 @@ import static org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory.DE
  */
 @Component(service = {UserConfiguration.class, SecurityConfiguration.class})
 @Designate(ocd = UserConfigurationImpl.Configuration.class)
-public class UserConfigurationImpl extends ConfigurationBase implements UserConfiguration, SecurityConfiguration {
+public class UserConfigurationImpl extends ConfigurationBase implements UserConfiguration,
+    SecurityConfiguration {
 
     @ObjectClassDefinition(name = "Apache Jackrabbit Oak UserConfiguration")
     @interface Configuration {
+
         @AttributeDefinition(
-                name = "User Path",
-                description = "Path underneath which user nodes are being created.")
+            name = "User Path",
+            description = "Path underneath which user nodes are being created.")
         String usersPath() default UserConstants.DEFAULT_USER_PATH;
 
         @AttributeDefinition(
-                name = "Impersonator principals",
-                description = "List of users who can impersonate and groups whose members can impersonate any user.",
-                type = AttributeType.STRING)
+            name = "Impersonator principals",
+            description = "List of users who can impersonate and groups whose members can impersonate any user.",
+            type = AttributeType.STRING)
         String[] impersonatorPrincipals() default {};
 
         @AttributeDefinition(
-                name = "Group Path",
-                description = "Path underneath which group nodes are being created.")
+            name = "Group Path",
+            description = "Path underneath which group nodes are being created.")
         String groupsPath() default UserConstants.DEFAULT_GROUP_PATH;
 
         @AttributeDefinition(
-                name = "System User Relative Path",
-                description = "Path relative to the user root path underneath which system user nodes are being " +
-                        "created. The default value is 'system'.")
+            name = "System User Relative Path",
+            description =
+                "Path relative to the user root path underneath which system user nodes are being "
+                    +
+                    "created. The default value is 'system'.")
         String systemRelativePath() default UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH;
 
         @AttributeDefinition(
-                name = "Default Depth",
-                description = "Number of levels that are used by default to store authorizable nodes")
+            name = "Default Depth",
+            description = "Number of levels that are used by default to store authorizable nodes")
         int defaultDepth() default UserConstants.DEFAULT_DEPTH;
 
         @AttributeDefinition(
-                name = "Import Behavior",
-                description = "Behavior for user/group related items upon XML import.",
-                options = {
-                        @Option(label = ImportBehavior.NAME_ABORT, value = ImportBehavior.NAME_ABORT),
-                        @Option(label = ImportBehavior.NAME_BESTEFFORT, value = ImportBehavior.NAME_BESTEFFORT),
-                        @Option(label = ImportBehavior.NAME_IGNORE, value = ImportBehavior.NAME_IGNORE)
-                })
+            name = "Import Behavior",
+            description = "Behavior for user/group related items upon XML import.",
+            options = {
+                @Option(label = ImportBehavior.NAME_ABORT, value = ImportBehavior.NAME_ABORT),
+                @Option(label = ImportBehavior.NAME_BESTEFFORT, value = ImportBehavior.NAME_BESTEFFORT),
+                @Option(label = ImportBehavior.NAME_IGNORE, value = ImportBehavior.NAME_IGNORE)
+            })
         String importBehavior() default ImportBehavior.NAME_IGNORE;
 
         @AttributeDefinition(
-                name = "Hash Algorithm",
-                description = "Name of the algorithm used to generate the password hash.")
+            name = "Hash Algorithm",
+            description = "Name of the algorithm used to generate the password hash.")
         String passwordHashAlgorithm() default PasswordUtil.DEFAULT_ALGORITHM;
 
         @AttributeDefinition(
-                name = "Hash Iterations",
-                description = "Number of iterations to generate the password hash.")
+            name = "Hash Iterations",
+            description = "Number of iterations to generate the password hash.")
         int passwordHashIterations() default PasswordUtil.DEFAULT_ITERATIONS;
 
         @AttributeDefinition(
-                name = "Hash Salt Size",
-                description = "Salt size to generate the password hash.")
+            name = "Hash Salt Size",
+            description = "Salt size to generate the password hash.")
         int passwordSaltSize() default PasswordUtil.DEFAULT_SALT_SIZE;
 
         @AttributeDefinition(
-                name = "Omit Admin Password",
-                description = "Boolean flag to prevent the administrator account to be created with a password " +
-                        "upon repository initialization. Please note that changing this option after the initial " +
-                        "repository setup will have no effect.")
+            name = "Omit Admin Password",
+            description =
+                "Boolean flag to prevent the administrator account to be created with a password " +
+                    "upon repository initialization. Please note that changing this option after the initial "
+                    +
+                    "repository setup will have no effect.")
         boolean omitAdminPw() default false;
 
         @AttributeDefinition(
-                name = "Autosave Support",
-                description = "Configuration option to enable autosave behavior. Note: this config option is " +
-                        "present for backwards compatibility with Jackrabbit 2.x and should only be used for " +
-                        "broken code that doesn't properly verify the autosave behavior (see Jackrabbit API). " +
-                        "If this option is turned on autosave will be enabled by default; otherwise autosave is " +
-                        "not supported.")
+            name = "Autosave Support",
+            description =
+                "Configuration option to enable autosave behavior. Note: this config option is " +
+                    "present for backwards compatibility with Jackrabbit 2.x and should only be used for "
+                    +
+                    "broken code that doesn't properly verify the autosave behavior (see Jackrabbit API). "
+                    +
+                    "If this option is turned on autosave will be enabled by default; otherwise autosave is "
+                    +
+                    "not supported.")
         boolean supportAutoSave() default false;
 
         @AttributeDefinition(
-                name = "Maximum Password Age",
-                description = "Maximum age in days a password may have. Values greater 0 will implicitly enable " +
-                        "password expiry. A value of 0 indicates unlimited password age.")
+            name = "Maximum Password Age",
+            description =
+                "Maximum age in days a password may have. Values greater 0 will implicitly enable "
+                    +
+                    "password expiry. A value of 0 indicates unlimited password age.")
         int passwordMaxAge() default UserConstants.DEFAULT_PASSWORD_MAX_AGE;
 
         @AttributeDefinition(
-                name = "Change Password On First Login",
-                description = "When enabled, forces users to change their password upon first login.")
+            name = "Change Password On First Login",
+            description = "When enabled, forces users to change their password upon first login.")
         boolean initialPasswordChange() default UserConstants.DEFAULT_PASSWORD_INITIAL_CHANGE;
 
         @AttributeDefinition(
-                name = "Maximum Password History Size",
-                description = "Maximum number of passwords recorded for a user after changing her password (NOTE: " +
-                        "upper limit is 1000). When changing the password the new password must not be present in the " +
-                        "password history. A value of 0 indicates no password history is recorded.")
+            name = "Maximum Password History Size",
+            description =
+                "Maximum number of passwords recorded for a user after changing her password (NOTE: "
+                    +
+                    "upper limit is 1000). When changing the password the new password must not be present in the "
+                    +
+                    "password history. A value of 0 indicates no password history is recorded.")
         int passwordHistorySize() default UserConstants.PASSWORD_HISTORY_DISABLED_SIZE;
 
         @AttributeDefinition(
-                name = "Enable Password Expiry for Admin User",
-                description = "When enabled, the admin user will also be subject to password expiry. The default value is false for backwards compatibility."
+            name = "Enable Password Expiry for Admin User",
+            description = "When enabled, the admin user will also be subject to password expiry. The default value is false for backwards compatibility."
         )
         boolean passwordExpiryForAdmin() default false;
 
         @AttributeDefinition(
-                name = "Principal Cache Expiration",
-                description = "Optional configuration defining the number of milliseconds " +
-                        "until the principal cache expires (NOTE: currently only respected for principal resolution " +
-                        "with the internal system session such as used for login). If not set or equal/lower than zero " +
-                        "no caches are created/evaluated.")
+            name = "Principal Cache Expiration",
+            description = "Optional configuration defining the number of milliseconds " +
+                "until the principal cache expires (NOTE: currently only respected for principal resolution "
+                +
+                "with the internal system session such as used for login). If not set or equal/lower than zero "
+                +
+                "no caches are created/evaluated.")
         long cacheExpiration() default UserPrincipalProvider.EXPIRATION_NO_CACHE;
 
         @AttributeDefinition(
-                name = "RFC7613 Username Comparison Profile",
-                description = "Enable the UsercaseMappedProfile defined in RFC7613 for username comparison.")
+            name = "RFC7613 Username Comparison Profile",
+            description = "Enable the UsercaseMappedProfile defined in RFC7613 for username comparison.")
         boolean enableRFC7613UsercaseMappedProfile() default false;
     }
 
@@ -193,7 +210,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     private BlobAccessProvider blobAccessProvider;
 
     private final DynamicMembershipTracker dynamicMembership = new DynamicMembershipTracker();
-    
+
     public UserConfigurationImpl() {
         super();
     }
@@ -209,16 +226,17 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @SuppressWarnings("UnusedDeclaration")
     @Activate
     // reference to @Configuration class needed for correct DS xml generation
-    private void activate(Configuration configuration, BundleContext bundleContext, Map<String, Object> properties) {
+    private void activate(Configuration configuration, BundleContext bundleContext,
+        Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
         dynamicMembership.start(new OsgiWhiteboard(bundleContext));
     }
-    
+
     @Deactivate
     private void deactivate() {
         dynamicMembership.stop();
     }
-    
+
     @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
     void bindBlobAccessProvider(BlobAccessProvider bap) {
         blobAccessProvider = bap;
@@ -241,8 +259,9 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
         ConfigurationParameters params = super.getParameters();
         if (!params.containsKey(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY)) {
             return ConfigurationParameters.of(
-                    params,
-                    ConfigurationParameters.of(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, DEFAULT_AUTH_FACTORY));
+                params,
+                ConfigurationParameters.of(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY,
+                    DEFAULT_AUTH_FACTORY));
         } else {
             return params;
         }
@@ -256,8 +275,11 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
 
     @NotNull
     @Override
-    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-        return ImmutableList.of(new UserValidatorProvider(getParameters(), getRootProvider(), getTreeProvider()), new CacheValidatorProvider(principals, getTreeProvider()));
+    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName,
+        @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
+        return ImmutableList.of(
+            new UserValidatorProvider(getParameters(), getRootProvider(), getTreeProvider()),
+            new CacheValidatorProvider(principals, getTreeProvider()));
     }
 
     @NotNull
@@ -279,7 +301,8 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     }
 
     @Override
-    public @NotNull Iterable<Monitor<?>> getMonitors(@NotNull StatisticsProvider statisticsProvider) {
+    public @NotNull Iterable<Monitor<?>> getMonitors(
+        @NotNull StatisticsProvider statisticsProvider) {
         monitor = new UserMonitorImpl(statisticsProvider);
         return Collections.singleton(monitor);
     }
@@ -289,7 +312,8 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @Override
     public UserManager getUserManager(Root root, NamePathMapper namePathMapper) {
         PartialValueFactory vf = new PartialValueFactory(namePathMapper, getBlobAccessProvider());
-        UserManagerImpl umgr = new UserManagerImpl(root, vf, getSecurityProvider(), monitor, dynamicMembership);
+        UserManagerImpl umgr = new UserManagerImpl(root, vf, getSecurityProvider(), monitor,
+            dynamicMembership);
         if (getParameters().getConfigValue(UserConstants.PARAM_SUPPORT_AUTOSAVE, false)) {
             return new AutoSaveEnabledManager(umgr, root);
         } else {
@@ -299,10 +323,11 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
 
     @Nullable
     @Override
-    public PrincipalProvider getUserPrincipalProvider(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
+    public PrincipalProvider getUserPrincipalProvider(@NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) {
         return new UserPrincipalProvider(root, this, namePathMapper);
     }
-    
+
     @NotNull
     private BlobAccessProvider getBlobAccessProvider() {
         BlobAccessProvider provider = blobAccessProvider;

@@ -41,7 +41,7 @@ public class ReferenceIndexProvider implements QueryIndexProvider {
     @Override
     @NotNull
     public List<QueryIndex> getQueryIndexes(NodeState state) {
-        return ImmutableList.<QueryIndex> of(new ReferenceIndex(mountInfoProvider));
+        return ImmutableList.<QueryIndex>of(new ReferenceIndex(mountInfoProvider));
     }
 
     public ReferenceIndexProvider with(MountInfoProvider mountInfoProvider) {

@@ -34,7 +34,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class AuthorizationInitializerTest  {
+public class AuthorizationInitializerTest {
 
     private AuthorizationInitializer initializer;
     private NodeBuilder builder;
@@ -42,15 +42,19 @@ public class AuthorizationInitializerTest  {
     @Before
     public void before() {
         Mount m = when(mock(Mount.class).getPathFragmentName()).thenReturn("mount").getMock();
-        MountInfoProvider mip = when(mock(MountInfoProvider.class).getNonDefaultMounts()).thenReturn(ImmutableSet.of(m)).getMock();
+        MountInfoProvider mip = when(
+            mock(MountInfoProvider.class).getNonDefaultMounts()).thenReturn(ImmutableSet.of(m))
+                                                                .getMock();
         initializer = new AuthorizationInitializer(mip);
 
         builder = mock(NodeBuilder.class);
         when(builder.child(anyString())).thenReturn(builder);
-        when(builder.setProperty(anyString(), any(Object.class), any(Type.class))).thenReturn(builder);
+        when(builder.setProperty(anyString(), any(Object.class), any(Type.class))).thenReturn(
+            builder);
         when(builder.setProperty(anyString(), any(Object.class))).thenReturn(builder);
         when(builder.setProperty(any(PropertyState.class))).thenReturn(builder);
     }
+
     @Test
     public void testFirstInit() {
         when(builder.hasChildNode(anyString())).thenReturn(false);

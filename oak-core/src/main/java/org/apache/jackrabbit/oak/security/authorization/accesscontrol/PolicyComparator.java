@@ -29,8 +29,10 @@ final class PolicyComparator implements Comparator<AccessControlPolicy> {
     public int compare(AccessControlPolicy policy1, AccessControlPolicy policy2) {
         if (policy1.equals(policy2)) {
             return 0;
-        } else if (policy1 instanceof JackrabbitAccessControlPolicy && policy2 instanceof JackrabbitAccessControlPolicy) {
-            return compare((JackrabbitAccessControlPolicy) policy1, (JackrabbitAccessControlPolicy) policy2);
+        } else if (policy1 instanceof JackrabbitAccessControlPolicy
+            && policy2 instanceof JackrabbitAccessControlPolicy) {
+            return compare((JackrabbitAccessControlPolicy) policy1,
+                (JackrabbitAccessControlPolicy) policy2);
         } else {
             if (policy1 instanceof JackrabbitAccessControlPolicy) {
                 return -1;
@@ -42,7 +44,8 @@ final class PolicyComparator implements Comparator<AccessControlPolicy> {
         }
     }
 
-    private static int compare(JackrabbitAccessControlPolicy policy1, JackrabbitAccessControlPolicy policy2) {
+    private static int compare(JackrabbitAccessControlPolicy policy1,
+        JackrabbitAccessControlPolicy policy2) {
         String p1 = policy1.getPath();
         String p2 = policy2.getPath();
 

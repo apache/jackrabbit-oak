@@ -22,12 +22,12 @@ import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Implementation of the {@code SystemUserPrincipal} for this user management
- * implementation.
+ * Implementation of the {@code SystemUserPrincipal} for this user management implementation.
  */
 final class SystemUserPrincipalImpl extends TreeBasedPrincipal implements SystemUserPrincipal {
 
-    SystemUserPrincipalImpl(@NotNull String principalName, @NotNull Tree tree, @NotNull NamePathMapper pathMapper) {
+    SystemUserPrincipalImpl(@NotNull String principalName, @NotNull Tree tree,
+        @NotNull NamePathMapper pathMapper) {
         super(principalName, tree, pathMapper);
     }
 }

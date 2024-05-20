@@ -38,15 +38,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.jackrabbit.JcrConstants;
 
 /**
- * A <code>NodeTypeDefDiff</code> represents the result of the comparison of
- * two node type definitions.
+ * A <code>NodeTypeDefDiff</code> represents the result of the comparison of two node type
+ * definitions.
  * <p>
  * The result of the comparison can be categorized as one of the following types:
  * <p>
  * <b><code>NONE</code></b> indicates that there is no modification at all.
  * <p>
- * A <b><code>TRIVIAL</code></b> modification has no impact on the consistency
- * of existing content. The following modifications are considered
+ * A <b><code>TRIVIAL</code></b> modification has no impact on the consistency of existing content.
+ * The following modifications are considered
  * <code>TRIVIAL</code>:
  * <ul>
  * <li>changing node type <code>orderableChildNodes</code> flag
@@ -69,7 +69,7 @@ import org.apache.jackrabbit.JcrConstants;
  * <p>
  * A <b><code>MAJOR</code></b> modification potentially <i>affects</i> the
  * consistency of existing content.
- *
+ * <p>
  * All modifications that are not <b><code>TRIVIAL</code></b> are considered
  * <b><code>MAJOR</code></b>.
  *
@@ -101,6 +101,7 @@ public class NodeTypeDefDiff {
 
     /**
      * Constructor
+     *
      * @param oldDef old definition
      * @param newDef new definition
      */
@@ -234,8 +235,8 @@ public class NodeTypeDefDiff {
     }
 
     /**
-     * Returns the set of declared supertype names without 'nt:base', which is
-     * irrelevant for a diff of supertypes.
+     * Returns the set of declared supertype names without 'nt:base', which is irrelevant for a diff
+     * of supertypes.
      *
      * @param def a NodeTypeDefinition.
      * @return the set of declared supertype names.
@@ -298,17 +299,21 @@ public class NodeTypeDefDiff {
      */
     private int buildChildNodeDefDiffs() {
         int maxType = NONE;
-        final Map<NodeDefinitionId, List<NodeDefinition>> oldDefs = collectChildNodeDefs(oldDef.getDeclaredChildNodeDefinitions());
-        final Map<NodeDefinitionId, List<NodeDefinition>> newDefs = collectChildNodeDefs(newDef.getDeclaredChildNodeDefinitions());
+        final Map<NodeDefinitionId, List<NodeDefinition>> oldDefs = collectChildNodeDefs(
+            oldDef.getDeclaredChildNodeDefinitions());
+        final Map<NodeDefinitionId, List<NodeDefinition>> newDefs = collectChildNodeDefs(
+            newDef.getDeclaredChildNodeDefinitions());
 
         for (NodeDefinitionId defId : oldDefs.keySet()) {
-            final ChildNodeDefDiffs childNodeDefDiffs = new ChildNodeDefDiffs(oldDefs.get(defId), newDefs.get(defId));
+            final ChildNodeDefDiffs childNodeDefDiffs = new ChildNodeDefDiffs(oldDefs.get(defId),
+                newDefs.get(defId));
             this.childNodeDefDiffs.addAll(childNodeDefDiffs.getChildNodeDefDiffs());
             newDefs.remove(defId);
         }
 
         for (NodeDefinitionId defId : newDefs.keySet()) {
-            final ChildNodeDefDiffs childNodeDefDiffs = new ChildNodeDefDiffs(null, newDefs.get(defId));
+            final ChildNodeDefDiffs childNodeDefDiffs = new ChildNodeDefDiffs(null,
+                newDefs.get(defId));
             this.childNodeDefDiffs.addAll(childNodeDefDiffs.getChildNodeDefDiffs());
         }
 
@@ -321,7 +326,8 @@ public class NodeTypeDefDiff {
         return maxType;
     }
 
-    private Map<NodeDefinitionId, List<NodeDefinition>> collectChildNodeDefs(final NodeDefinition[] cnda1) {
+    private Map<NodeDefinitionId, List<NodeDefinition>> collectChildNodeDefs(
+        final NodeDefinition[] cnda1) {
         Map<NodeDefinitionId, List<NodeDefinition>> defs1 = new HashMap<NodeDefinitionId, List<NodeDefinition>>();
         for (NodeDefinition def1 : cnda1) {
             final NodeDefinitionId def1Id = new NodeDefinitionId(def1);
@@ -338,7 +344,7 @@ public class NodeTypeDefDiff {
     @Override
     public String toString() {
         String result = getClass().getName() + "[\n\tnodeTypeName="
-                + oldDef.getName();
+            + oldDef.getName();
 
         result += ",\n\tmixinFlagDiff=" + modificationTypeToString(mixinFlagDiff());
         result += ",\n\tsupertypesDiff=" + modificationTypeToString(supertypesDiff());
@@ -357,7 +363,8 @@ public class NodeTypeDefDiff {
 
     private String toString(List<? extends ChildItemDefDiff> childItemDefDiffs) {
         String result = "";
-        for (Iterator<? extends ChildItemDefDiff> iter = childItemDefDiffs.iterator(); iter.hasNext();) {
+        for (Iterator<? extends ChildItemDefDiff> iter = childItemDefDiffs.iterator();
+            iter.hasNext(); ) {
             ChildItemDefDiff propDefDiff = iter.next();
             result += "\t\t" + propDefDiff;
             if (iter.hasNext()) {
@@ -384,10 +391,10 @@ public class NodeTypeDefDiff {
         return typeString;
     }
 
-
     //--------------------------------------------------------< inner classes >
 
     abstract class ChildItemDefDiff {
+
         protected final ItemDefinition oldDef;
         protected final ItemDefinition newDef;
         protected int type;
@@ -422,12 +429,12 @@ public class NodeTypeDefDiff {
                 } else {
                     // modified
                     if (oldDef.isMandatory() != newDef.isMandatory()
-                            && newDef.isMandatory()) {
+                        && newDef.isMandatory()) {
                         // making a child item mandatory is a MAJOR change
                         type = MAJOR;
                     } else {
                         if (!"*".equals(oldDef.getName())
-                                && "*".equals(newDef.getName())) {
+                            && "*".equals(newDef.getName())) {
                             // just making a child item residual is a TRIVIAL change
                             type = TRIVIAL;
                         } else {
@@ -458,7 +465,7 @@ public class NodeTypeDefDiff {
 
         public boolean isModified() {
             return oldDef != null && newDef != null
-                    && !oldDef.equals(newDef);
+                && !oldDef.equals(newDef);
         }
 
         @Override
@@ -479,8 +486,8 @@ public class NodeTypeDefDiff {
             ItemDefinition itemDefinition = (oldDef != null) ? oldDef : newDef;
 
             return getClass().getName() + "[itemName="
-                    + itemDefinition.getName() + ", type=" + typeString
-                    + ", operation=" + operationString + "]";
+                + itemDefinition.getName() + ", type=" + typeString
+                + ", operation=" + operationString + "]";
         }
 
     }
@@ -613,8 +620,10 @@ public class NodeTypeDefDiff {
                 // no need to check defaultPrimaryType (TRIVIAL change)
 
                 if (type == TRIVIAL) {
-                    Set<String> s1 = new HashSet<String>(Arrays.asList(getOldDef().getRequiredPrimaryTypeNames()));
-                    Set<String> s2 = new HashSet<String>(Arrays.asList(getNewDef().getRequiredPrimaryTypeNames()));
+                    Set<String> s1 = new HashSet<String>(
+                        Arrays.asList(getOldDef().getRequiredPrimaryTypeNames()));
+                    Set<String> s2 = new HashSet<String>(
+                        Arrays.asList(getNewDef().getRequiredPrimaryTypeNames()));
                     // normalize sets by removing nt:base (adding/removing nt:base is irrelevant for the diff)
                     s1.remove("nt:base");
                     s2.remove("nt:base");
@@ -659,8 +668,8 @@ public class NodeTypeDefDiff {
             if (obj instanceof PropertyDefinitionId) {
                 PropertyDefinitionId other = (PropertyDefinitionId) obj;
                 return declaringNodeType.equals(other.declaringNodeType)
-                        && name.equals(other.name)
-                        && definesResidual == other.definesResidual;
+                    && name.equals(other.name)
+                    && definesResidual == other.definesResidual;
             }
             return false;
         }
@@ -697,7 +706,7 @@ public class NodeTypeDefDiff {
             if (obj instanceof NodeDefinitionId) {
                 NodeDefinitionId other = (NodeDefinitionId) obj;
                 return declaringNodeType.equals(other.declaringNodeType)
-                        && name.equals(other.name);
+                    && name.equals(other.name);
             }
             return false;
         }
@@ -716,7 +725,8 @@ public class NodeTypeDefDiff {
         private final List<NodeDefinition> defs1;
         private final List<NodeDefinition> defs2;
 
-        private ChildNodeDefDiffs(final List<NodeDefinition> defs1, final List<NodeDefinition> defs2) {
+        private ChildNodeDefDiffs(final List<NodeDefinition> defs1,
+            final List<NodeDefinition> defs2) {
             this.defs1 = defs1 != null ? defs1 : Collections.<NodeDefinition>emptyList();
             this.defs2 = defs2 != null ? defs2 : Collections.<NodeDefinition>emptyList();
         }
@@ -752,7 +762,8 @@ public class NodeTypeDefDiff {
             AtomicInteger allowedOldNull = new AtomicInteger(defs2.size() - defs1.size());
             final List<ChildNodeDefDiff> results = new ArrayList<ChildNodeDefDiff>();
             for (ChildNodeDefDiff diff : diffs) {
-                if (!alreadyMatched(results, diff.getNewDef(), diff.getOldDef(), allowedNewNull, allowedOldNull)) {
+                if (!alreadyMatched(results, diff.getNewDef(), diff.getOldDef(), allowedNewNull,
+                    allowedOldNull)) {
                     results.add(diff);
                     if (diff.getNewDef() == null) {
                         allowedNewNull.decrementAndGet();
@@ -768,7 +779,9 @@ public class NodeTypeDefDiff {
             return results;
         }
 
-        private boolean alreadyMatched(final List<ChildNodeDefDiff> result, final NodeDefinition newDef, final NodeDefinition oldDef, final AtomicInteger allowedNewNull, final AtomicInteger allowedOldNull) {
+        private boolean alreadyMatched(final List<ChildNodeDefDiff> result,
+            final NodeDefinition newDef, final NodeDefinition oldDef,
+            final AtomicInteger allowedNewNull, final AtomicInteger allowedOldNull) {
             boolean containsNewDef = false, containsOldDef = false;
             for (ChildNodeDefDiff d : result) {
                 if (d.getNewDef() != null && d.getNewDef().equals(newDef)) {

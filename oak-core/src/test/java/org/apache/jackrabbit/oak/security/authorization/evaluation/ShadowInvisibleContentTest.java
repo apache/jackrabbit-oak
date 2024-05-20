@@ -33,7 +33,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class ShadowInvisibleContentTest extends AbstractOakCoreTest {
-     
+
     @Test
     public void testShadowInvisibleNode() throws Exception {
         setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_ALL);

@@ -45,7 +45,8 @@ public class WhiteboardAuthorizableActionProviderTest {
 
     @Test
     public void testDefault() {
-        List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(Mockito.mock(SecurityProvider.class));
+        List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(
+            Mockito.mock(SecurityProvider.class));
         assertNotNull(actions);
         assertTrue(actions.isEmpty());
     }
@@ -54,7 +55,8 @@ public class WhiteboardAuthorizableActionProviderTest {
     public void testStarted() {
         actionProvider.start(whiteboard);
 
-        List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(Mockito.mock(SecurityProvider.class));
+        List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(
+            Mockito.mock(SecurityProvider.class));
         assertNotNull(actions);
         assertTrue(actions.isEmpty());
     }
@@ -63,15 +65,19 @@ public class WhiteboardAuthorizableActionProviderTest {
     public void testRegisteredImplementation() {
         actionProvider.start(whiteboard);
 
-        AuthorizableActionProvider registered = securityProvider -> ImmutableList.of(new TestAction());
+        AuthorizableActionProvider registered = securityProvider -> ImmutableList.of(
+            new TestAction());
         whiteboard.register(AuthorizableActionProvider.class, registered, ImmutableMap.of());
 
-        List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(Mockito.mock(SecurityProvider.class));
+        List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(
+            Mockito.mock(SecurityProvider.class));
         assertNotNull(actions);
         assertEquals(1, actions.size());
         assertTrue(actions.get(0) instanceof TestAction);
     }
 
-    private static final class TestAction extends AbstractAuthorizableAction {}
+    private static final class TestAction extends AbstractAuthorizableAction {
+
+    }
 
 }

@@ -43,7 +43,8 @@ public class RepoLevelPolicyTest extends AbstractOakCoreTest implements Privileg
 
     @Test(expected = PathNotFoundException.class)
     public void testGetApplicablePoliciesRootNotReadable2() throws Exception {
-        setupPermission(null, getTestUser().getPrincipal(), true, JCR_READ, JCR_READ_ACCESS_CONTROL);
+        setupPermission(null, getTestUser().getPrincipal(), true, JCR_READ,
+            JCR_READ_ACCESS_CONTROL);
 
         getAccessControlManager(getTestRoot()).getApplicablePolicies((String) null);
     }
@@ -57,7 +58,8 @@ public class RepoLevelPolicyTest extends AbstractOakCoreTest implements Privileg
 
     @Test(expected = AccessDeniedException.class)
     public void testGetApplicablePoliciesMissingAcPermission2() throws Exception {
-        setupPermission(PathUtils.ROOT_PATH, getTestUser().getPrincipal(), true, JCR_READ, JCR_READ_ACCESS_CONTROL);
+        setupPermission(PathUtils.ROOT_PATH, getTestUser().getPrincipal(), true, JCR_READ,
+            JCR_READ_ACCESS_CONTROL);
 
         getAccessControlManager(getTestRoot()).getApplicablePolicies((String) null);
     }
@@ -75,51 +77,64 @@ public class RepoLevelPolicyTest extends AbstractOakCoreTest implements Privileg
         setupPermission(PathUtils.ROOT_PATH, getTestUser().getPrincipal(), true, JCR_READ);
         setupPermission(null, getTestUser().getPrincipal(), true, JCR_READ_ACCESS_CONTROL);
 
-        setupPermission(getTestRoot(), null, EveryonePrincipal.getInstance(), false, JCR_NAMESPACE_MANAGEMENT);
+        setupPermission(getTestRoot(), null, EveryonePrincipal.getInstance(), false,
+            JCR_NAMESPACE_MANAGEMENT);
     }
 
     @Test(expected = AccessDeniedException.class)
     public void testSetPolicyMissingAcPermission2() throws Exception {
-        setupPermission(PathUtils.ROOT_PATH, getTestUser().getPrincipal(), true, JCR_READ, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
+        setupPermission(PathUtils.ROOT_PATH, getTestUser().getPrincipal(), true, JCR_READ,
+            JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
         setupPermission(null, getTestUser().getPrincipal(), true, JCR_READ_ACCESS_CONTROL);
 
-        setupPermission(getTestRoot(), null, EveryonePrincipal.getInstance(), false, JCR_NAMESPACE_MANAGEMENT);
+        setupPermission(getTestRoot(), null, EveryonePrincipal.getInstance(), false,
+            JCR_NAMESPACE_MANAGEMENT);
     }
 
     @Test
     public void testSetPolicy() throws Exception {
         setupPermission(PathUtils.ROOT_PATH, getTestUser().getPrincipal(), true, JCR_READ);
-        setupPermission(null, getTestUser().getPrincipal(), true, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
+        setupPermission(null, getTestUser().getPrincipal(), true, JCR_READ_ACCESS_CONTROL,
+            JCR_MODIFY_ACCESS_CONTROL);
 
-        setupPermission(getTestRoot(), null, EveryonePrincipal.getInstance(), false, JCR_NAMESPACE_MANAGEMENT);
+        setupPermission(getTestRoot(), null, EveryonePrincipal.getInstance(), false,
+            JCR_NAMESPACE_MANAGEMENT);
     }
 
     @Test
     public void testSetPolicy2() throws Exception {
         // see above: ac-related permissions should not be required on ROOT_PATH (workaround for OAK-5947)
-        setupPermission(PathUtils.ROOT_PATH, getTestUser().getPrincipal(), true, JCR_READ, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
-        setupPermission(null, getTestUser().getPrincipal(), true, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
+        setupPermission(PathUtils.ROOT_PATH, getTestUser().getPrincipal(), true, JCR_READ,
+            JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
+        setupPermission(null, getTestUser().getPrincipal(), true, JCR_READ_ACCESS_CONTROL,
+            JCR_MODIFY_ACCESS_CONTROL);
 
-        setupPermission(getTestRoot(), null, EveryonePrincipal.getInstance(), false, JCR_NAMESPACE_MANAGEMENT);
+        setupPermission(getTestRoot(), null, EveryonePrincipal.getInstance(), false,
+            JCR_NAMESPACE_MANAGEMENT);
     }
 
     @Test
     public void testHasPrivilege() throws Exception {
-        setupPermission(null, getTestUser().getPrincipal(), true, JCR_READ_ACCESS_CONTROL, JCR_NAMESPACE_MANAGEMENT);
+        setupPermission(null, getTestUser().getPrincipal(), true, JCR_READ_ACCESS_CONTROL,
+            JCR_NAMESPACE_MANAGEMENT);
 
         AccessControlManager testAcMgr = getAccessControlManager(getTestRoot());
         assertTrue(testAcMgr.hasPrivileges(null, privilegesFromNames(JCR_NAMESPACE_MANAGEMENT)));
         assertTrue(testAcMgr.hasPrivileges(null, privilegesFromNames(JCR_READ_ACCESS_CONTROL)));
-        assertTrue(testAcMgr.hasPrivileges(null, privilegesFromNames(JCR_READ_ACCESS_CONTROL, JCR_NAMESPACE_MANAGEMENT)));
-        assertFalse(testAcMgr.hasPrivileges(null, privilegesFromNames(JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL)));
+        assertTrue(testAcMgr.hasPrivileges(null,
+            privilegesFromNames(JCR_READ_ACCESS_CONTROL, JCR_NAMESPACE_MANAGEMENT)));
+        assertFalse(testAcMgr.hasPrivileges(null,
+            privilegesFromNames(JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL)));
         assertFalse(testAcMgr.hasPrivileges(null, privilegesFromNames(JCR_ALL)));
     }
 
     @Test
     public void testGetPrivileges() throws Exception {
-        setupPermission(null, getTestUser().getPrincipal(), true, JCR_READ_ACCESS_CONTROL, JCR_NAMESPACE_MANAGEMENT);
+        setupPermission(null, getTestUser().getPrincipal(), true, JCR_READ_ACCESS_CONTROL,
+            JCR_NAMESPACE_MANAGEMENT);
 
-        Set<Privilege> expected = ImmutableSet.copyOf(privilegesFromNames(JCR_READ_ACCESS_CONTROL, JCR_NAMESPACE_MANAGEMENT));
+        Set<Privilege> expected = ImmutableSet.copyOf(
+            privilegesFromNames(JCR_READ_ACCESS_CONTROL, JCR_NAMESPACE_MANAGEMENT));
 
         AccessControlManager testAcMgr = getAccessControlManager(getTestRoot());
         assertEquals(expected, ImmutableSet.copyOf(testAcMgr.getPrivileges(null)));

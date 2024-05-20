@@ -31,9 +31,10 @@ public class AdminPrincipalsIgnoreTest extends AdminPrincipalsBaseTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         return ConfigurationParameters.of(AuthorizationConfiguration.NAME,
-                ConfigurationParameters.of(
-                        PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS, new String[]{ADMINISTRATORS_PRINCIPAL_NAME},
-                        ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_IGNORE)
+            ConfigurationParameters.of(
+                PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS,
+                new String[]{ADMINISTRATORS_PRINCIPAL_NAME},
+                ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_IGNORE)
         );
     }
 
@@ -45,6 +46,7 @@ public class AdminPrincipalsIgnoreTest extends AdminPrincipalsBaseTest {
 
     @Override
     void assertException() {
-        fail("Adding entry for administrative principal should be ignored without throwing an exception");
+        fail(
+            "Adding entry for administrative principal should be ignored without throwing an exception");
     }
 }

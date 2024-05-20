@@ -32,15 +32,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Implementation of the user management that allows to set the autosave flag.
- * Since OAK does no longer support the auto-save flag out of the box and this
- * part of the user management is targeted for deprecation, this {@code UserManager}
- * implementation should only be used for those cases where strict backwards
- * compatibility is really required.
+ * Implementation of the user management that allows to set the autosave flag. Since OAK does no
+ * longer support the auto-save flag out of the box and this part of the user management is targeted
+ * for deprecation, this {@code UserManager} implementation should only be used for those cases
+ * where strict backwards compatibility is really required.
  *
  * <p>In general any consumer of the Jackrabbit user management API should stick
- * to the API contract and verify that the autosave flag is enabled before
- * relying on the implementation to have it turned on:</p>
+ * to the API contract and verify that the autosave flag is enabled before relying on the
+ * implementation to have it turned on:</p>
  *
  * <pre>
  *     JackrabbitSession session = ...;
@@ -76,7 +75,8 @@ public class AutoSaveEnabledManager implements UserManager {
 
     @Nullable
     @Override
-    public <T extends Authorizable> T getAuthorizable(@NotNull String id, @NotNull Class<T> authorizableClass) throws RepositoryException {
+    public <T extends Authorizable> T getAuthorizable(@NotNull String id,
+        @NotNull Class<T> authorizableClass) throws RepositoryException {
         return UserUtil.castAuthorizable(wrap(dlg.getAuthorizable(id)), authorizableClass);
     }
 
@@ -94,25 +94,30 @@ public class AutoSaveEnabledManager implements UserManager {
 
     @NotNull
     @Override
-    public Iterator<Authorizable> findAuthorizables(@NotNull String relPath, @Nullable String value) throws RepositoryException {
+    public Iterator<Authorizable> findAuthorizables(@NotNull String relPath, @Nullable String value)
+        throws RepositoryException {
         return AuthorizableWrapper.createIterator(dlg.findAuthorizables(relPath, value), this);
     }
 
     @NotNull
     @Override
-    public Iterator<Authorizable> findAuthorizables(@NotNull String relPath, @Nullable String value, int searchType) throws RepositoryException {
-        return AuthorizableWrapper.createIterator(dlg.findAuthorizables(relPath, value, searchType), this);
+    public Iterator<Authorizable> findAuthorizables(@NotNull String relPath, @Nullable String value,
+        int searchType) throws RepositoryException {
+        return AuthorizableWrapper.createIterator(dlg.findAuthorizables(relPath, value, searchType),
+            this);
     }
 
     @NotNull
     @Override
-    public Iterator<Authorizable> findAuthorizables(@NotNull Query query) throws RepositoryException {
+    public Iterator<Authorizable> findAuthorizables(@NotNull Query query)
+        throws RepositoryException {
         return AuthorizableWrapper.createIterator(dlg.findAuthorizables(query), this);
     }
 
     @NotNull
     @Override
-    public User createUser(@NotNull String userID, @Nullable String password) throws RepositoryException {
+    public User createUser(@NotNull String userID, @Nullable String password)
+        throws RepositoryException {
         try {
             return wrap(dlg.createUser(userID, password));
         } finally {
@@ -122,7 +127,9 @@ public class AutoSaveEnabledManager implements UserManager {
 
     @NotNull
     @Override
-    public User createUser(@NotNull String userID, @Nullable String password, @NotNull Principal principal, @Nullable String intermediatePath) throws RepositoryException {
+    public User createUser(@NotNull String userID, @Nullable String password,
+        @NotNull Principal principal, @Nullable String intermediatePath)
+        throws RepositoryException {
         try {
             return wrap(dlg.createUser(userID, password, principal, intermediatePath));
         } finally {
@@ -132,7 +139,8 @@ public class AutoSaveEnabledManager implements UserManager {
 
     @NotNull
     @Override
-    public User createSystemUser(@NotNull String userID, @Nullable String intermediatePath) throws RepositoryException {
+    public User createSystemUser(@NotNull String userID, @Nullable String intermediatePath)
+        throws RepositoryException {
         try {
             return wrap(dlg.createSystemUser(userID, intermediatePath));
         } finally {
@@ -162,7 +170,8 @@ public class AutoSaveEnabledManager implements UserManager {
 
     @NotNull
     @Override
-    public Group createGroup(@NotNull Principal principal, @Nullable String intermediatePath) throws RepositoryException {
+    public Group createGroup(@NotNull Principal principal, @Nullable String intermediatePath)
+        throws RepositoryException {
         try {
             return wrap(dlg.createGroup(principal, intermediatePath));
         } finally {
@@ -172,7 +181,8 @@ public class AutoSaveEnabledManager implements UserManager {
 
     @NotNull
     @Override
-    public Group createGroup(@NotNull String groupID, @NotNull Principal principal, @Nullable String intermediatePath) throws RepositoryException {
+    public Group createGroup(@NotNull String groupID, @NotNull Principal principal,
+        @Nullable String intermediatePath) throws RepositoryException {
         try {
             return wrap(dlg.createGroup(groupID, principal, intermediatePath));
         } finally {

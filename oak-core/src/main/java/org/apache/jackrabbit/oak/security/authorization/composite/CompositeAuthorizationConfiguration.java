@@ -41,8 +41,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@link CompositeAuthorizationConfiguration} that combines different
- * authorization models. This implementation has the following characteristics:
+ * {@link CompositeAuthorizationConfiguration} that combines different authorization models. This
+ * implementation has the following characteristics:
  *
  * <h2>AccessControlManager</h2>
  * <ul>
@@ -66,40 +66,40 @@ import org.slf4j.LoggerFactory;
  * </ul>
  *
  * <h2>RestrictionProvider</h2>
-  * <ul>
-  *     <li>This method will return an aggregation of {@code RestrictionProvider}s in case
-  *     multiple {@code AuthorizationConfiguration}s are present (see {@code CompositeRestrictionProvider}).</li>
-  *     <li>If the composite only contains a single entry the {@code RestrictionProvider}
-  *     of this implementation is return without extra wrapping.</li>
-  *     <li>If the list of configurations is empty {@link RestrictionProvider#EMPTY } is returned.</li>
-  * </ul>
- *
+ * <ul>
+ *     <li>This method will return an aggregation of {@code RestrictionProvider}s in case
+ *     multiple {@code AuthorizationConfiguration}s are present (see {@code CompositeRestrictionProvider}).</li>
+ *     <li>If the composite only contains a single entry the {@code RestrictionProvider}
+ *     of this implementation is return without extra wrapping.</li>
+ *     <li>If the list of configurations is empty {@link RestrictionProvider#EMPTY } is returned.</li>
+ * </ul>
  */
-public class CompositeAuthorizationConfiguration extends CompositeConfiguration<AuthorizationConfiguration> implements AuthorizationConfiguration {
+public class CompositeAuthorizationConfiguration extends
+    CompositeConfiguration<AuthorizationConfiguration> implements AuthorizationConfiguration {
 
-    private static final Logger log = LoggerFactory.getLogger(CompositeAuthorizationConfiguration.class);
+    private static final Logger log = LoggerFactory.getLogger(
+        CompositeAuthorizationConfiguration.class);
 
     public enum CompositionType {
 
         /**
-         * Break as soon as any one of the aggregated permission providers
-         * denies a privilege (default setup)
+         * Break as soon as any one of the aggregated permission providers denies a privilege
+         * (default setup)
          */
         AND,
 
         /**
-         * Check all aggregated permission providers for one that could provide
-         * a privilege (multiplexing setup)
+         * Check all aggregated permission providers for one that could provide a privilege
+         * (multiplexing setup)
          */
         OR;
 
         /**
          * Returns the corresponding composition type.
-         * @param type
-         *            String representation of the composition type, or
-         *            {@code null}
-         * @return corresponding composition type, or {@code AND} if the
-         *         provided type is {@code null}
+         *
+         * @param type String representation of the composition type, or {@code null}
+         * @return corresponding composition type, or {@code AND} if the provided type is
+         * {@code null}
          */
         static CompositionType fromString(@Nullable String type) {
             String or = OR.name();
@@ -134,14 +134,19 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
     @NotNull
     @Override
     public AccessControlManager getAccessControlManager(@NotNull final Root root,
-                                                        @NotNull final NamePathMapper namePathMapper) {
+        @NotNull final NamePathMapper namePathMapper) {
         List<AuthorizationConfiguration> configurations = getConfigurations();
         switch (configurations.size()) {
-            case 0: throw new IllegalStateException();
-            case 1: return configurations.get(0).getAccessControlManager(root, namePathMapper);
+            case 0:
+                throw new IllegalStateException();
+            case 1:
+                return configurations.get(0).getAccessControlManager(root, namePathMapper);
             default:
-                List<AccessControlManager> mgrs = Lists.transform(configurations, authorizationConfiguration -> authorizationConfiguration.getAccessControlManager(root, namePathMapper));
-                return new CompositeAccessControlManager(root, namePathMapper, getSecurityProvider(), mgrs, aggregationFilter);
+                List<AccessControlManager> mgrs = Lists.transform(configurations,
+                    authorizationConfiguration -> authorizationConfiguration.getAccessControlManager(
+                        root, namePathMapper));
+                return new CompositeAccessControlManager(root, namePathMapper,
+                    getSecurityProvider(), mgrs, aggregationFilter);
         }
     }
 
@@ -150,8 +155,10 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
     public RestrictionProvider getRestrictionProvider() {
         List<AuthorizationConfiguration> configurations = getConfigurations();
         switch (configurations.size()) {
-            case 0: return RestrictionProvider.EMPTY;
-            case 1: return configurations.get(0).getRestrictionProvider();
+            case 0:
+                return RestrictionProvider.EMPTY;
+            case 1:
+                return configurations.get(0).getRestrictionProvider();
             default:
                 Set<RestrictionProvider> rps = new LinkedHashSet<>(configurations.size());
                 for (AuthorizationConfiguration c : configurations) {
@@ -167,16 +174,20 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
     @NotNull
     @Override
     public PermissionProvider getPermissionProvider(@NotNull final Root root,
-                                                    @NotNull final String workspaceName,
-                                                    @NotNull final Set<Principal> principals) {
+        @NotNull final String workspaceName,
+        @NotNull final Set<Principal> principals) {
         List<AuthorizationConfiguration> configurations = getConfigurations();
         switch (configurations.size()) {
-            case 0: throw new IllegalStateException();
-            case 1: return configurations.get(0).getPermissionProvider(root, workspaceName, principals);
+            case 0:
+                throw new IllegalStateException();
+            case 1:
+                return configurations.get(0).getPermissionProvider(root, workspaceName, principals);
             default:
-                List<AggregatedPermissionProvider> aggrPermissionProviders = new ArrayList<>(configurations.size());
+                List<AggregatedPermissionProvider> aggrPermissionProviders = new ArrayList<>(
+                    configurations.size());
                 for (AuthorizationConfiguration conf : configurations) {
-                    PermissionProvider pProvider = conf.getPermissionProvider(root, workspaceName, principals);
+                    PermissionProvider pProvider = conf.getPermissionProvider(root, workspaceName,
+                        principals);
                     if (pProvider instanceof AggregatedPermissionProvider) {
                         AggregatedPermissionProvider aggrProvider = (AggregatedPermissionProvider) pProvider;
                         aggrPermissionProviders.add(aggrProvider);
@@ -184,19 +195,22 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
                             break;
                         }
                     } else {
-                        log.debug("Ignoring permission provider of '{}': Not an AggregatedPermissionProvider", conf.getClass().getName());
+                        log.debug(
+                            "Ignoring permission provider of '{}': Not an AggregatedPermissionProvider",
+                            conf.getClass().getName());
                     }
                 }
                 PermissionProvider pp;
                 switch (aggrPermissionProviders.size()) {
-                    case 0 :
+                    case 0:
                         pp = EmptyPermissionProvider.getInstance();
                         break;
-                    case 1 :
+                    case 1:
                         pp = aggrPermissionProviders.get(0);
                         break;
-                    default :
-                        pp = CompositePermissionProvider.create(root, aggrPermissionProviders, getContext(), compositionType, getRootProvider(), getTreeProvider());
+                    default:
+                        pp = CompositePermissionProvider.create(root, aggrPermissionProviders,
+                            getContext(), compositionType, getRootProvider(), getTreeProvider());
                 }
                 return pp;
         }

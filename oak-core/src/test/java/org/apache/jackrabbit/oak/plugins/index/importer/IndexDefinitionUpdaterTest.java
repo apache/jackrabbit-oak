@@ -61,7 +61,7 @@ public class IndexDefinitionUpdaterTest {
     private NodeStore store = new MemoryNodeStore();
 
     @Test
-    public void update() throws Exception{
+    public void update() throws Exception {
         NodeBuilder builder = store.getRoot().builder();
         builder.child("oak:index").child("fooIndex").setProperty("foo", "bar");
         builder.child("oak:index").child("fooIndex").child("a").setProperty("foo2", 2);
@@ -73,15 +73,15 @@ public class IndexDefinitionUpdaterTest {
 
         NodeState root = store.getRoot();
 
-        assertTrue(NodeStateUtils.getNode(root,"/oak:index/fooIndex").exists());
-        assertTrue(NodeStateUtils.getNode(root,"/oak:index/fooIndex/b").exists());
-        assertFalse(NodeStateUtils.getNode(root,"/oak:index/fooIndex/a").exists());
+        assertTrue(NodeStateUtils.getNode(root, "/oak:index/fooIndex").exists());
+        assertTrue(NodeStateUtils.getNode(root, "/oak:index/fooIndex/b").exists());
+        assertFalse(NodeStateUtils.getNode(root, "/oak:index/fooIndex/a").exists());
 
-        assertTrue(NodeStateUtils.getNode(root,"/oak:index/barIndex").exists());
+        assertTrue(NodeStateUtils.getNode(root, "/oak:index/barIndex").exists());
     }
 
-    @Test (expected = IllegalStateException.class)
-    public void updateNonExistingParent() throws Exception{
+    @Test(expected = IllegalStateException.class)
+    public void updateNonExistingParent() throws Exception {
         NodeBuilder builder = store.getRoot().builder();
         builder.child("oak:index").child("fooIndex").setProperty("foo", "bar");
 
@@ -89,12 +89,13 @@ public class IndexDefinitionUpdaterTest {
 
         NodeBuilder builder2 = EMPTY_NODE.builder();
         builder2.child("a").child("oak:index").child("barIndex").setProperty("foo", "bar");
-        String json = createIndexDefn(builder2.getNodeState(), "/oak:index/fooIndex", "/a/oak:index/barIndex");
+        String json = createIndexDefn(builder2.getNodeState(), "/oak:index/fooIndex",
+            "/a/oak:index/barIndex");
         applyJson(json);
     }
 
-    @Test (expected = IllegalArgumentException.class)
-    public void invalidJson() throws Exception{
+    @Test(expected = IllegalArgumentException.class)
+    public void invalidJson() throws Exception {
         Map<String, Object> map = new HashMap<>();
         map.put("a", ImmutableMap.of("a2", "b2"));
         String json = JSONObject.toJSONString(map);
@@ -102,14 +103,14 @@ public class IndexDefinitionUpdaterTest {
     }
 
     @Test
-    public void applyToIndexPath() throws Exception{
+    public void applyToIndexPath() throws Exception {
         String json = "{\"/oak:index/barIndex\": {\n" +
-                "    \"compatVersion\": 2,\n" +
-                "    \"type\": \"lucene\",\n" +
-                "    \"barIndexProp\": \"barbar\",\n" +
-                "    \"async\": \"async\",\n" +
-                "    \"jcr:primaryType\": \"oak:QueryIndexDefinition\"\n" +
-                "  }}";
+            "    \"compatVersion\": 2,\n" +
+            "    \"type\": \"lucene\",\n" +
+            "    \"barIndexProp\": \"barbar\",\n" +
+            "    \"async\": \"async\",\n" +
+            "    \"jcr:primaryType\": \"oak:QueryIndexDefinition\"\n" +
+            "  }}";
 
         NodeBuilder builder = store.getRoot().builder();
         builder.child("oak:index");
@@ -124,14 +125,14 @@ public class IndexDefinitionUpdaterTest {
     }
 
     @Test
-    public void newIndexAndOrderableChildren() throws Exception{
+    public void newIndexAndOrderableChildren() throws Exception {
         String json = "{\"/oak:index/barIndex\": {\n" +
-                "    \"compatVersion\": 2,\n" +
-                "    \"type\": \"lucene\",\n" +
-                "    \"barIndexProp\": \"barbar\",\n" +
-                "    \"async\": \"async\",\n" +
-                "    \"jcr:primaryType\": \"oak:QueryIndexDefinition\"\n" +
-                "  }}";
+            "    \"compatVersion\": 2,\n" +
+            "    \"type\": \"lucene\",\n" +
+            "    \"barIndexProp\": \"barbar\",\n" +
+            "    \"async\": \"async\",\n" +
+            "    \"jcr:primaryType\": \"oak:QueryIndexDefinition\"\n" +
+            "  }}";
 
         NodeBuilder builder = store.getRoot().builder();
         Tree root = TreeFactory.createTree(builder);
@@ -167,10 +168,12 @@ public class IndexDefinitionUpdaterTest {
 
         builder.child("oak:index").child("barIndex").setProperty("foo", "bar");
         builder.child("oak:index").child("barIndex").child("c").setProperty("foo5", 5);
-        return createIndexDefn(builder.getNodeState(), "/oak:index/fooIndex", "/oak:index/barIndex");
+        return createIndexDefn(builder.getNodeState(), "/oak:index/fooIndex",
+            "/oak:index/barIndex");
     }
 
-    private String createIndexDefn(NodeState nodeState, String... indexPaths) throws CommitFailedException {
+    private String createIndexDefn(NodeState nodeState, String... indexPaths)
+        throws CommitFailedException {
         NodeStore store = new MemoryNodeStore();
         NodeBuilder builder = store.getRoot().builder();
         for (ChildNodeEntry cne : nodeState.getChildNodeEntries()) {
@@ -180,7 +183,7 @@ public class IndexDefinitionUpdaterTest {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         IndexDefinitionPrinter printer = new IndexDefinitionPrinter(store,
-                () -> asList(indexPaths));
+            () -> asList(indexPaths));
 
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);

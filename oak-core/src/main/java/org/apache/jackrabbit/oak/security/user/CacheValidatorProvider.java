@@ -38,9 +38,9 @@ import org.jetbrains.annotations.Nullable;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
- * Validator provider to ensure that the principal-cache stored with a given
- * user is only maintained by the {@link org.apache.jackrabbit.oak.security.user.UserPrincipalProvider}
- * associated with a internal system session.
+ * Validator provider to ensure that the principal-cache stored with a given user is only maintained
+ * by the {@link org.apache.jackrabbit.oak.security.user.UserPrincipalProvider} associated with a
+ * internal system session.
  */
 class CacheValidatorProvider extends ValidatorProvider implements CacheConstants {
 
@@ -58,7 +58,8 @@ class CacheValidatorProvider extends ValidatorProvider implements CacheConstants
     protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
         TypePredicate cachePredicate = new TypePredicate(after, NT_REP_CACHE);
         boolean isValidCommitInfo = CommitMarker.isValidCommitInfo(info);
-        return new CacheValidator(treeProvider.createReadOnlyTree(before), treeProvider.createReadOnlyTree(after), cachePredicate, isValidCommitInfo);
+        return new CacheValidator(treeProvider.createReadOnlyTree(before),
+            treeProvider.createReadOnlyTree(after), cachePredicate, isValidCommitInfo);
     }
 
     //--------------------------------------------------------------------------
@@ -77,7 +78,8 @@ class CacheValidatorProvider extends ValidatorProvider implements CacheConstants
             return CommitMarker.INSTANCE == commitInfo.getInfo().get(CommitMarker.KEY);
         }
 
-        private CommitMarker() {}
+        private CommitMarker() {
+        }
     }
 
     //-----------------------------------------------------< CacheValidator >---
@@ -91,7 +93,8 @@ class CacheValidatorProvider extends ValidatorProvider implements CacheConstants
 
         private final boolean isCache;
 
-        private CacheValidator(@Nullable Tree parentBefore, @NotNull Tree parentAfter, TypePredicate cachePredicate, boolean isValidCommitInfo) {
+        private CacheValidator(@Nullable Tree parentBefore, @NotNull Tree parentAfter,
+            TypePredicate cachePredicate, boolean isValidCommitInfo) {
             this.parentBefore = parentBefore;
             this.parentAfter = parentAfter;
 
@@ -109,14 +112,16 @@ class CacheValidatorProvider extends ValidatorProvider implements CacheConstants
         }
 
         @Override
-        public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
+        public void propertyChanged(PropertyState before, PropertyState after)
+            throws CommitFailedException {
             if (isCache) {
                 checkValidCommit();
             }
         }
 
         @Override
-        public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+        public Validator childNodeChanged(String name, NodeState before, NodeState after)
+            throws CommitFailedException {
             Tree beforeTree = checkNotNull(parentBefore).getChild(name);
             Tree afterTree = parentAfter.getChild(name);
 
@@ -124,7 +129,9 @@ class CacheValidatorProvider extends ValidatorProvider implements CacheConstants
                 checkValidCommit();
             }
 
-            return new VisibleValidator(new CacheValidator(beforeTree, afterTree, cachePredicate, isValidCommitInfo), true, true);
+            return new VisibleValidator(
+                new CacheValidator(beforeTree, afterTree, cachePredicate, isValidCommitInfo), true,
+                true);
         }
 
         @Override
@@ -133,7 +140,8 @@ class CacheValidatorProvider extends ValidatorProvider implements CacheConstants
             if (isCache || isCache(tree)) {
                 checkValidCommit();
             }
-            return new VisibleValidator(new CacheValidator(null, tree, cachePredicate, isValidCommitInfo), true, true);
+            return new VisibleValidator(
+                new CacheValidator(null, tree, cachePredicate, isValidCommitInfo), true, true);
         }
 
         private boolean isCache(@NotNull Tree tree) {
@@ -142,7 +150,8 @@ class CacheValidatorProvider extends ValidatorProvider implements CacheConstants
 
         private void checkValidCommit() throws CommitFailedException {
             if (!(isSystem && isValidCommitInfo)) {
-                throw new CommitFailedException(CommitFailedException.CONSTRAINT, 34, "Attempt to create or change the system maintained cache.");
+                throw new CommitFailedException(CommitFailedException.CONSTRAINT, 34,
+                    "Attempt to create or change the system maintained cache.");
             }
         }
     }

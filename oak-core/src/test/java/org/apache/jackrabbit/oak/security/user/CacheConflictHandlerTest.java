@@ -51,7 +51,8 @@ public class CacheConflictHandlerTest extends AbstractSecurityTest {
         when(theirs.getValue(Type.LONG)).thenReturn(2000L);
 
         CacheConflictHandler handler = new CacheConflictHandler();
-        assertEquals(CacheConflictHandler.Resolution.MERGED, handler.changeChangedProperty(parent, ours, theirs, base));
+        assertEquals(CacheConflictHandler.Resolution.MERGED,
+            handler.changeChangedProperty(parent, ours, theirs, base));
         PropertyBuilder<Long> merged = PropertyBuilder.scalar(Type.LONG);
         merged.setName(CacheConstants.REP_EXPIRATION);
         merged.setValue(2000L);
@@ -77,7 +78,8 @@ public class CacheConflictHandlerTest extends AbstractSecurityTest {
         when(theirs.getValue(Type.LONG)).thenReturn(1000L);
 
         CacheConflictHandler handler = new CacheConflictHandler();
-        assertEquals(CacheConflictHandler.Resolution.MERGED, handler.changeChangedProperty(parent, ours, theirs, base));
+        assertEquals(CacheConflictHandler.Resolution.MERGED,
+            handler.changeChangedProperty(parent, ours, theirs, base));
         PropertyBuilder<Long> merged = PropertyBuilder.scalar(Type.LONG);
         merged.setName(CacheConstants.REP_EXPIRATION);
         merged.setValue(2000L);
@@ -102,7 +104,8 @@ public class CacheConflictHandlerTest extends AbstractSecurityTest {
         when(theirs.getValue(Type.LONG)).thenReturn(900L);
 
         CacheConflictHandler handler = new CacheConflictHandler();
-        assertEquals(CacheConflictHandler.Resolution.MERGED, handler.changeChangedProperty(parent, ours, theirs, base));
+        assertEquals(CacheConflictHandler.Resolution.MERGED,
+            handler.changeChangedProperty(parent, ours, theirs, base));
 
     }
 
@@ -115,7 +118,8 @@ public class CacheConflictHandlerTest extends AbstractSecurityTest {
         PropertyState theirs = mock(PropertyState.class);
 
         CacheConflictHandler handler = new CacheConflictHandler();
-        assertEquals(CacheConflictHandler.Resolution.IGNORED, handler.changeChangedProperty(parent, ours, theirs, base));
+        assertEquals(CacheConflictHandler.Resolution.IGNORED,
+            handler.changeChangedProperty(parent, ours, theirs, base));
 
     }
 }

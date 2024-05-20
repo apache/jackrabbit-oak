@@ -17,10 +17,10 @@
 package org.apache.jackrabbit.oak.security.user;
 
 /**
- * Constants for persisted user management related caches. Currently this only
- * includes a basic cache for group principals names that is used to populate
- * the set of {@link java.security.Principal}s as present on the
- * {@link javax.security.auth.Subject} in the commit phase of the authentication.
+ * Constants for persisted user management related caches. Currently this only includes a basic
+ * cache for group principals names that is used to populate the set of
+ * {@link java.security.Principal}s as present on the {@link javax.security.auth.Subject} in the
+ * commit phase of the authentication.
  */
 interface CacheConstants {
 

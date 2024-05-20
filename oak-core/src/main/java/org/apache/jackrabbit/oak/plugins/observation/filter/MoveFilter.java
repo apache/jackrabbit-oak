@@ -26,10 +26,11 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * This filter implementation excludes generating add node
- * events for child nodes of the destination of a move operation.
+ * This filter implementation excludes generating add node events for child nodes of the destination
+ * of a move operation.
  */
 public class MoveFilter implements EventFilter {
+
     private final Set<String> movedNodes = Sets.newHashSet();
 
     @Override

@@ -25,35 +25,34 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Extension point for plugging in different kinds of IndexEditor providers.
- * 
+ *
  * @see IndexEditor
  */
 public interface IndexEditorProvider {
 
     /**
-     * Each provider knows how to produce a certain type of index. If the
-     * {@code type} param is of an unknown value, the provider is expected
-     * to return {@code null}.
-     * 
+     * Each provider knows how to produce a certain type of index. If the {@code type} param is of
+     * an unknown value, the provider is expected to return {@code null}.
+     *
      * <p>
-     * The {@code definition} builder must points to the index definition
-     * node under which the indexer is expected to store the index content.
+     * The {@code definition} builder must points to the index definition node under which the
+     * indexer is expected to store the index content.
      * </p>
      *
      * <p>
-     * The <code>callback</code> instance may be of type {@link ContextAwareCallback}
-     * and that can be used to access {@link IndexingContext}
+     * The <code>callback</code> instance may be of type {@link ContextAwareCallback} and that can
+     * be used to access {@link IndexingContext}
      * </p>
-     * 
-     * @param type  index type
+     *
+     * @param type       index type
      * @param definition index definition node builder, used for updates
-     * @param root root node state, used for things like node type information
-     * @param callback used to register for index update notifications
+     * @param root       root node state, used for things like node type information
+     * @param callback   used to register for index update notifications
      * @return index update editor, or {@code null} if type is unknown
      */
     @Nullable
     Editor getIndexEditor(
-            @NotNull String type, @NotNull NodeBuilder definition,
-            @NotNull NodeState root, 
-            @NotNull IndexUpdateCallback callback) throws CommitFailedException;
+        @NotNull String type, @NotNull NodeBuilder definition,
+        @NotNull NodeState root,
+        @NotNull IndexUpdateCallback callback) throws CommitFailedException;
 }

@@ -56,10 +56,11 @@ public class ReadOnlyVersionManagerTest extends AbstractSecurityTest {
 
         NodeUtil node = new NodeUtil(root.getTree("/"));
         NodeUtil a = node.addChild("a", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        a.addChild("b", NodeTypeConstants.NT_OAK_UNSTRUCTURED).addChild("c", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        a.addChild("b", NodeTypeConstants.NT_OAK_UNSTRUCTURED)
+         .addChild("c", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
 
-
-        TreeUtil.addMixin(a.getTree(), JcrConstants.MIX_VERSIONABLE, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
+        TreeUtil.addMixin(a.getTree(), JcrConstants.MIX_VERSIONABLE,
+            root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
         root.commit();
 
         versionable = root.getTree("/a");
@@ -96,7 +97,8 @@ public class ReadOnlyVersionManagerTest extends AbstractSecurityTest {
         assertFalse(ReadOnlyVersionManager.isVersionStoreTree(root.getTree("/a")));
         assertFalse(ReadOnlyVersionManager.isVersionStoreTree(root.getTree("/a/b/c")));
 
-        assertTrue(ReadOnlyVersionManager.isVersionStoreTree(root.getTree(VersionConstants.VERSION_STORE_PATH)));
+        assertTrue(ReadOnlyVersionManager.isVersionStoreTree(
+            root.getTree(VersionConstants.VERSION_STORE_PATH)));
 
         Tree versionHistory = versionManager.getVersionHistory(root.getTree("/a"));
         assertNotNull(versionHistory);
@@ -137,7 +139,8 @@ public class ReadOnlyVersionManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testGetVersionableForNonVersionTree() throws Exception {
-        assertNull(versionManager.getVersionable(versionManager.getVersionStorage(), workspaceName));
+        assertNull(
+            versionManager.getVersionable(versionManager.getVersionStorage(), workspaceName));
         assertNull(versionManager.getVersionable(versionable, workspaceName));
         assertNull(versionManager.getVersionable(root.getTree("/"), workspaceName));
     }
@@ -148,7 +151,9 @@ public class ReadOnlyVersionManagerTest extends AbstractSecurityTest {
         versionHistory.removeProperty(workspaceName);
 
         assertNull(versionManager.getVersionable(versionHistory, workspaceName));
-        assertNull(versionManager.getVersionable(versionHistory.getChild(JcrConstants.JCR_ROOTVERSION), workspaceName));
+        assertNull(
+            versionManager.getVersionable(versionHistory.getChild(JcrConstants.JCR_ROOTVERSION),
+                workspaceName));
     }
 
     @Test
@@ -156,7 +161,9 @@ public class ReadOnlyVersionManagerTest extends AbstractSecurityTest {
         Tree versionHistory = checkNotNull(versionManager.getVersionHistory(root.getTree("/a")));
 
         assertNull(versionManager.getVersionable(versionHistory, "nonExistingWorkspaceName"));
-        assertNull(versionManager.getVersionable(versionHistory.getChild(JcrConstants.JCR_ROOTVERSION), "nonExistingWorkspaceName"));
+        assertNull(
+            versionManager.getVersionable(versionHistory.getChild(JcrConstants.JCR_ROOTVERSION),
+                "nonExistingWorkspaceName"));
     }
 
     @Test
@@ -172,10 +179,13 @@ public class ReadOnlyVersionManagerTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testRemoveEmptyHistoryAfterRemovingVersionable() throws RepositoryException, CommitFailedException {
+    public void testRemoveEmptyHistoryAfterRemovingVersionable()
+        throws RepositoryException, CommitFailedException {
         NodeUtil node = new NodeUtil(root.getTree("/"));
-        NodeUtil testVersionable = node.addChild("testVersionable", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        TreeUtil.addMixin(testVersionable.getTree(), JcrConstants.MIX_VERSIONABLE, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
+        NodeUtil testVersionable = node.addChild("testVersionable",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        TreeUtil.addMixin(testVersionable.getTree(), JcrConstants.MIX_VERSIONABLE,
+            root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
         root.commit();
 
         String historyPath = versionManager.getVersionHistory(testVersionable.getTree()).getPath();
@@ -188,7 +198,8 @@ public class ReadOnlyVersionManagerTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testPreserveNonEmptyHistoryAfterRemovingVersionable() throws RepositoryException, CommitFailedException {
+    public void testPreserveNonEmptyHistoryAfterRemovingVersionable()
+        throws RepositoryException, CommitFailedException {
         String historyPath = versionManager.getVersionHistory(versionable).getPath();
         assertTrue(root.getTree(historyPath).exists());
 
@@ -199,10 +210,13 @@ public class ReadOnlyVersionManagerTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testPreserveHistoryAfterMovingVersionable() throws RepositoryException, CommitFailedException {
+    public void testPreserveHistoryAfterMovingVersionable()
+        throws RepositoryException, CommitFailedException {
         NodeUtil node = new NodeUtil(root.getTree("/"));
-        NodeUtil testVersionable = node.addChild("testVersionable", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        TreeUtil.addMixin(testVersionable.getTree(), JcrConstants.MIX_VERSIONABLE, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
+        NodeUtil testVersionable = node.addChild("testVersionable",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        TreeUtil.addMixin(testVersionable.getTree(), JcrConstants.MIX_VERSIONABLE,
+            root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
         root.commit();
 
         Tree history = versionManager.getVersionHistory(testVersionable.getTree());
@@ -228,4 +242,5 @@ public class ReadOnlyVersionManagerTest extends AbstractSecurityTest {
         root.commit();
 
         assertTrue(versionManager.isCheckedOut(nonVersionable));
-    }}
+    }
+}

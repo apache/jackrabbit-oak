@@ -28,7 +28,8 @@ public class UtilsTest {
 
     @Test
     public void frozenNodeReferenceable() {
-        assertTrue(Utils.isFrozenNodeReferenceable(InitialContentHelper.INITIAL_CONTENT_FROZEN_NODE_REFERENCEABLE));
+        assertTrue(Utils.isFrozenNodeReferenceable(
+            InitialContentHelper.INITIAL_CONTENT_FROZEN_NODE_REFERENCEABLE));
     }
 
     @Test

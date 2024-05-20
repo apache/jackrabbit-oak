@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.query;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
@@ -44,7 +43,7 @@ public class ResultImpl implements Result {
         }
         return names;
     }
-    
+
     @Override
     public String[] getColumnSelectorNames() {
         ArrayList<String> list = new ArrayList<String>();

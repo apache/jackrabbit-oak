@@ -90,7 +90,7 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
 
     @Test
     public void testChildOrderWithoutPropertyReadAccess() throws Exception {
-        root.getTree("/a").setOrderableChildren(true);        
+        root.getTree("/a").setOrderableChildren(true);
         root.getTree("/a/bb").orderBefore("b");
         root.commit();
         setupPermission("/", testPrincipal, true, PrivilegeConstants.REP_READ_NODES);
@@ -101,13 +101,14 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
         assertFalse(aTree.hasProperty(JcrConstants.JCR_PRIMARYTYPE));
 
         List<String> expected = ImmutableList.of("/a/bb", "/a/b");
-        Iterable<String> childPaths = Iterables.transform(aTree.getChildren(), new Function<Tree, String>() {
-            @Nullable
-            @Override
-            public String apply(Tree input) {
-                return input.getPath();
-            }
-        });
+        Iterable<String> childPaths = Iterables.transform(aTree.getChildren(),
+            new Function<Tree, String>() {
+                @Nullable
+                @Override
+                public String apply(Tree input) {
+                    return input.getPath();
+                }
+            });
         assertTrue(childPaths.toString(), Iterables.elementsEqual(expected, childPaths));
     }
 }

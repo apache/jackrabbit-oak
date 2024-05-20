@@ -55,8 +55,8 @@ public class PropertyIndexDisabledTest {
     private NodeState root;
     private NodeBuilder rootBuilder;
     private static final EditorHook HOOK = new EditorHook(
-            new IndexUpdateProvider(new PropertyIndexEditorProvider()));
- 
+        new IndexUpdateProvider(new PropertyIndexEditorProvider()));
+
     @Before
     public void setup() throws Exception {
         root = EmptyNodeState.EMPTY_NODE;
@@ -66,8 +66,8 @@ public class PropertyIndexDisabledTest {
 
     @Test
     public void disabled() throws Exception {
-        NodeBuilder index = createIndexDefinition(rootBuilder.child(INDEX_DEFINITIONS_NAME), 
-                "foo", true, false, ImmutableSet.of("foo"), null);
+        NodeBuilder index = createIndexDefinition(rootBuilder.child(INDEX_DEFINITIONS_NAME),
+            "foo", true, false, ImmutableSet.of("foo"), null);
         index.setProperty(IndexConstants.USE_IF_EXISTS, "/");
         commit();
         for (int i = 0; i < MANY; i++) {
@@ -79,8 +79,8 @@ public class PropertyIndexDisabledTest {
         PropertyIndex propertyIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
         assertTrue(propertyIndex.getCost(f, root) != Double.POSITIVE_INFINITY);
         assertThat(propertyIndex.getPlan(f, root), containsString("property foo\n"
-                + "    indexDefinition: /oak:index/foo\n"
-                + "    values: 'x10'\n"));
+            + "    indexDefinition: /oak:index/foo\n"
+            + "    values: 'x10'\n"));
 
         // now test with a node that doesn't exist
         index = rootBuilder.child(INDEX_DEFINITIONS_NAME).child("foo");
@@ -90,7 +90,7 @@ public class PropertyIndexDisabledTest {
         propertyIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
         assertTrue(propertyIndex.getCost(f, root) == Double.POSITIVE_INFINITY);
         assertEquals("property index not applicable", propertyIndex.getPlan(f, root));
-        
+
         // test with a property that does exist
         index = rootBuilder.child(INDEX_DEFINITIONS_NAME).child("foo");
         index.setProperty(IndexConstants.USE_IF_EXISTS, "/oak:index/@jcr:primaryType");
@@ -99,9 +99,9 @@ public class PropertyIndexDisabledTest {
         propertyIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
         assertTrue(propertyIndex.getCost(f, root) != Double.POSITIVE_INFINITY);
         assertThat(propertyIndex.getPlan(f, root), containsString("property foo\n"
-                + "    indexDefinition: /oak:index/foo\n"
-                + "    values: 'x10'\n"));
-        
+            + "    indexDefinition: /oak:index/foo\n"
+            + "    values: 'x10'\n"));
+
         // test with a property that does not exist
         index = rootBuilder.child(INDEX_DEFINITIONS_NAME).child("foo");
         index.setProperty(IndexConstants.USE_IF_EXISTS, "/oak:index/@unknownProperty");
@@ -111,7 +111,7 @@ public class PropertyIndexDisabledTest {
         assertTrue(propertyIndex.getCost(f, root) == Double.POSITIVE_INFINITY);
         assertEquals("property index not applicable", propertyIndex.getPlan(f, root));
     }
-    
+
     private void commit() throws Exception {
         root = HOOK.processCommit(rootBuilder.getBaseState(), rootBuilder.getNodeState(), EMPTY);
         rootBuilder = root.builder();
@@ -119,9 +119,10 @@ public class PropertyIndexDisabledTest {
 
     private static FilterImpl createFilter(NodeState root, String nodeTypeName) {
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
-        NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);        
+        NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
-        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
+        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]",
+            new QueryEngineSettings());
     }
 
 }

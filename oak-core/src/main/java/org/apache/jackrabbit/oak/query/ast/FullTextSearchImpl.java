@@ -24,18 +24,17 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextParser;
-import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
-import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 
 /**
  * A fulltext "contains(...)" condition.
@@ -49,8 +48,8 @@ public class FullTextSearchImpl extends ConstraintImpl {
     private SelectorImpl selector;
 
     public FullTextSearchImpl(
-            String selectorName, String propertyName,
-            StaticOperandImpl fullTextSearchExpression) {
+        String selectorName, String propertyName,
+        StaticOperandImpl fullTextSearchExpression) {
         this.selectorName = selectorName;
 
         int slash = -1;
@@ -69,7 +68,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
         } else {
             this.propertyName = propertyName;
         }
-        
+
         this.fullTextSearchExpression = fullTextSearchExpression;
     }
 
@@ -140,14 +139,15 @@ public class FullTextSearchImpl extends ConstraintImpl {
             FullTextExpression e = FullTextParser.parse(p2, rawText);
             return new FullTextContains(p2, rawText, e);
         } catch (ParseException e) {
-            throw new IllegalArgumentException("Invalid expression: " + fullTextSearchExpression, e);
+            throw new IllegalArgumentException("Invalid expression: " + fullTextSearchExpression,
+                e);
         }
     }
-    
+
     String getRawText(PropertyValue v) {
         return v.getValue(Type.STRING);
     }
-    
+
     @Override
     public Set<SelectorImpl> getSelectors() {
         return Collections.singleton(selector);
@@ -155,9 +155,9 @@ public class FullTextSearchImpl extends ConstraintImpl {
 
     /**
      * verify that a property exists in the node. {@code property IS NOT NULL}
-     * 
+     *
      * @param propertyName the property to check
-     * @param selector the selector to work with
+     * @param selector     the selector to work with
      * @return true if the property is there, false otherwise.
      */
     boolean enforcePropertyExistence(String propertyName, SelectorImpl selector) {
@@ -167,7 +167,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
         }
         return true;
     }
-    
+
     @Override
     public boolean evaluate() {
         // disable evaluation if a fulltext index is used,
@@ -198,7 +198,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
             String path = selector.currentPath();
             if (!PathUtils.denotesRoot(path)) {
                 appendString(buff,
-                        PropertyValues.newString(PathUtils.getName(path)));
+                    PropertyValues.newString(PathUtils.getName(path)));
             }
             if (relativePath != null) {
                 String rp = normalizePath(relativePath);
@@ -225,7 +225,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
         }
         return getFullTextConstraint(selector).evaluate(buff.toString());
     }
-    
+
     @Override
     public boolean evaluateStop() {
         // if a fulltext index is used, then we are fine
@@ -242,7 +242,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
     private static void appendString(StringBuilder buff, PropertyValue p) {
         if (p.isArray()) {
             if (p.getType() == Type.BINARIES) {
-                // OAK-2050: don't try to load binaries as this would 
+                // OAK-2050: don't try to load binaries as this would
                 // run out of memory
             } else {
                 for (String v : p.getValue(STRINGS)) {
@@ -251,7 +251,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
             }
         } else {
             if (p.getType() == Type.BINARY) {
-                // OAK-2050: don't try to load binaries as this would 
+                // OAK-2050: don't try to load binaries as this would
                 // run out of memory
             } else {
                 buff.append(p.getValue(STRING)).append(' ');
@@ -278,7 +278,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
     /**
      * restrict the provided property to the property to the provided filter achieving so
      * {@code property IS NOT NULL}
-     * 
+     *
      * @param propertyName
      * @param f
      */

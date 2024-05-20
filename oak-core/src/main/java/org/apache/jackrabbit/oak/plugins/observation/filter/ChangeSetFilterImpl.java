@@ -36,10 +36,10 @@ import org.slf4j.LoggerFactory;
 public class ChangeSetFilterImpl implements ChangeSetFilter {
 
     private static final Logger LOG = LoggerFactory.getLogger(ChangeSetFilterImpl.class);
-    
+
     private static final int MAX_EXCLUDED_PATHS = 11;
     private static final int MAX_EXCLUDE_PATH_CUTOFF_LEVEL = 6;
-    
+
     private final Set<String> rootIncludePaths;
     private final Set<String> firstLevelIncludeNames;
     private final Set<Pattern> includePathPatterns;
@@ -48,25 +48,28 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
     private final Set<String> parentNodeNames;
     private final Set<String> parentNodeTypes;
     private final Set<String> propertyNames;
-    
+
     @Override
     public String toString() {
-        return "ChangeSetFilterImpl[rootIncludePaths="+rootIncludePaths+", includePathPatterns="+includePathPatterns+
-                ", excludePathPatterns="+excludePathPatterns+", parentNodeNames="+parentNodeNames+", parentNodeTypes="+
-                parentNodeTypes+", propertyNames="+propertyNames+"]";
+        return "ChangeSetFilterImpl[rootIncludePaths=" + rootIncludePaths + ", includePathPatterns="
+            + includePathPatterns +
+            ", excludePathPatterns=" + excludePathPatterns + ", parentNodeNames=" + parentNodeNames
+            + ", parentNodeTypes=" +
+            parentNodeTypes + ", propertyNames=" + propertyNames + "]";
     }
 
     public ChangeSetFilterImpl(@NotNull Set<String> includedParentPaths, boolean isDeep,
-            @Nullable Set<String> additionalIncludedParentPaths, Set<String> excludedParentPaths,
-            Set<String> parentNodeNames, Set<String> parentNodeTypes, Set<String> propertyNames) {
-        this(includedParentPaths, isDeep, additionalIncludedParentPaths, excludedParentPaths, parentNodeNames, parentNodeTypes, propertyNames,
-                MAX_EXCLUDED_PATHS);
+        @Nullable Set<String> additionalIncludedParentPaths, Set<String> excludedParentPaths,
+        Set<String> parentNodeNames, Set<String> parentNodeTypes, Set<String> propertyNames) {
+        this(includedParentPaths, isDeep, additionalIncludedParentPaths, excludedParentPaths,
+            parentNodeNames, parentNodeTypes, propertyNames,
+            MAX_EXCLUDED_PATHS);
     }
 
     public ChangeSetFilterImpl(@NotNull Set<String> includedParentPaths, boolean isDeep,
-            @Nullable Set<String> additionalIncludedParentPaths, Set<String> excludedParentPaths,
-            Set<String> parentNodeNames, Set<String> parentNodeTypes, Set<String> propertyNames,
-            int maxExcludedPaths) {
+        @Nullable Set<String> additionalIncludedParentPaths, Set<String> excludedParentPaths,
+        Set<String> parentNodeNames, Set<String> parentNodeTypes, Set<String> propertyNames,
+        int maxExcludedPaths) {
         this.rootIncludePaths = new HashSet<String>();
         this.includePathPatterns = new HashSet<Pattern>();
         Set<String> firstLevelIncludePaths = new HashSet<String>();
@@ -104,7 +107,7 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
             }
         }
         this.firstLevelIncludeNames = firstLevelIncludePaths;
-        
+
         // OAK-5169:
         // excludedParentPaths could in theory be a large list, in which case
         // the excludes() algorithm becomes non-performing. Reason is, that it
@@ -116,7 +119,7 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
         // unprecise set, then we have to include it (with the risk of
         // false negative) - but if the change is outside of this unprecise
         // set, then we are certain that we are not excluding it.
-        // one way this unprecise filter can be implemented is by 
+        // one way this unprecise filter can be implemented is by
         // starting off with eg 6 levels deep paths, and check if that brings
         // down the number far enough (to eg 11), if it's still too high,
         // cut off exclude paths at level 5 and repeat until the figure ends
@@ -128,16 +131,19 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
                 this.excludePathPatterns.add(asPattern(concat(aRawExcludePath, "**")));
             }
         } else {
-            final Set<String> unprecisePaths = unprecisePaths(excludedParentPaths, maxExcludedPaths, MAX_EXCLUDE_PATH_CUTOFF_LEVEL);
+            final Set<String> unprecisePaths = unprecisePaths(excludedParentPaths, maxExcludedPaths,
+                MAX_EXCLUDE_PATH_CUTOFF_LEVEL);
             for (String anUnprecisePath : unprecisePaths) {
                 this.unpreciseExcludePathPatterns.add(asPattern(concat(anUnprecisePath, "**")));
             }
         }
         this.propertyNames = propertyNames == null ? null : new HashSet<String>(propertyNames);
-        this.parentNodeTypes = parentNodeTypes == null ? null : new HashSet<String>(parentNodeTypes);
-        this.parentNodeNames = parentNodeNames == null ? null : new HashSet<String>(parentNodeNames);
+        this.parentNodeTypes =
+            parentNodeTypes == null ? null : new HashSet<String>(parentNodeTypes);
+        this.parentNodeNames =
+            parentNodeNames == null ? null : new HashSet<String>(parentNodeNames);
     }
-    
+
     private String firstLevelName(String path) {
         if (path.isEmpty() || path.equals("/")) {
             return null;
@@ -150,16 +156,17 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
         }
     }
 
-    private Set<String> unprecisePaths(Set<String> paths, int maxExcludedPaths, int maxExcludePathCutOffLevel) {
+    private Set<String> unprecisePaths(Set<String> paths, int maxExcludedPaths,
+        int maxExcludePathCutOffLevel) {
         int level = maxExcludePathCutOffLevel;
-        while(level > 1) {
+        while (level > 1) {
             Set<String> unprecise = unprecisePaths(paths, level);
             if (unprecise.size() < maxExcludedPaths) {
                 return unprecise;
             }
             level--;
         }
-        // worst case: we even have too many top-level paths, so 
+        // worst case: we even have too many top-level paths, so
         // the only way out here is by returning a set containing only "/"
         HashSet<String> result = new HashSet<String>();
         result.add("/");
@@ -170,7 +177,7 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
         Set<String> result = new HashSet<String>();
         for (String path : paths) {
             String unprecise = path;
-            while(PathUtils.getDepth(unprecise) > level) {
+            while (PathUtils.getDepth(unprecise) > level) {
                 unprecise = PathUtils.getParentPath(unprecise);
             }
             result.add(unprecise);
@@ -178,7 +185,9 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
         return result;
     }
 
-    /** for testing only **/
+    /**
+     * for testing only
+     **/
     public Set<String> getRootIncludePaths() {
         return rootIncludePaths;
     }
@@ -189,15 +198,15 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
 
     @Override
     public boolean excludes(ChangeSet changeSet) {
-        try{
+        try {
             return doExcludes(changeSet);
-        } catch(Exception e) {
-            LOG.warn("excludes: got an Exception while evaluating excludes: " + e.getMessage() + 
-                    ", changeSet=" + changeSet, e);
+        } catch (Exception e) {
+            LOG.warn("excludes: got an Exception while evaluating excludes: " + e.getMessage() +
+                ", changeSet=" + changeSet, e);
             return false; // false is the safer option
         }
     }
-    
+
     private boolean doExcludes(ChangeSet changeSet) {
         if (changeSet.anyOverflow()) {
             // in case of an overflow we could
@@ -242,7 +251,7 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
                 }
             }
         }
-        
+
         // first go through excludes to remove those that are explicitly
         // excluded
         if (this.excludePathPatterns.size() != 0) {

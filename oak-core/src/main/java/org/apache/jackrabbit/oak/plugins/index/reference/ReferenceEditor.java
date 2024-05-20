@@ -54,17 +54,22 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Index editor for keeping a references to a node up to date.
- * 
  */
 class ReferenceEditor extends DefaultEditor implements IndexEditor {
 
-    /** Parent editor, or {@code null} if this is the root editor. */
+    /**
+     * Parent editor, or {@code null} if this is the root editor.
+     */
     private final ReferenceEditor parent;
 
-    /** Name of this node, or {@code null} for the root node. */
+    /**
+     * Name of this node, or {@code null} for the root node.
+     */
     private final String name;
 
-    /** Path of this editor, built lazily in {@link #getPath()}. */
+    /**
+     * Path of this editor, built lazily in {@link #getPath()}.
+     */
     private String path;
 
     private final NodeState root;
@@ -92,26 +97,25 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
     private final Map<String, Set<String>> rmWeakRefs;
 
     /**
-     * set of removed Ids of nodes that have a :reference property. These UUIDs
-     * need to be verified in the #after call
+     * set of removed Ids of nodes that have a :reference property. These UUIDs need to be verified
+     * in the #after call
      */
     private final Set<String> rmIds;
 
     /**
-     * set of ids that were added during this commit. we need it to reconcile
-     * moves
+     * set of ids that were added during this commit. we need it to reconcile moves
      */
     private final Set<String> newIds;
 
     private final MountInfoProvider mountInfoProvider;
 
     /**
-     * flag marking a reindex, case in which we don't need to keep track of the
-     * newIds set
+     * flag marking a reindex, case in which we don't need to keep track of the newIds set
      */
     private boolean isReindex;
 
-    public ReferenceEditor(NodeBuilder definition, NodeState root,MountInfoProvider mountInfoProvider) {
+    public ReferenceEditor(NodeBuilder definition, NodeState root,
+        MountInfoProvider mountInfoProvider) {
         this.parent = null;
         this.name = null;
         this.path = "/";
@@ -154,7 +158,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
 
     @Override
     public void enter(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (MISSING_NODE == before && parent == null) {
             isReindex = true;
         }
@@ -162,7 +166,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
 
     @Override
     public void leave(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (parent == null) {
             Set<IndexStoreStrategy> refStores = getStrategies(false, REF_NAME);
             Set<IndexStoreStrategy> weakRefStores = getStrategies(false, WEAK_REF_NAME);
@@ -187,7 +191,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
             }
 
             checkReferentialIntegrity(refStores, root, definition.getNodeState(),
-                    Sets.difference(rmIds, newIds));
+                Sets.difference(rmIds, newIds));
 
             // update weak references
             for (Entry<String, Set<String>> ref : rmWeakRefs.entrySet()) {
@@ -210,7 +214,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
 
     Set<IndexStoreStrategy> getStrategies(boolean unique, String index) {
         return Multiplexers.getStrategies(unique, mountInfoProvider,
-                definition, index);
+            definition, index);
     }
 
     @Override
@@ -225,12 +229,12 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
             if (before.getType().tag() == REFERENCE) {
                 if (!isVersionStorePath(getPath())) {
                     put(rmRefs, before.getValue(STRINGS),
-                            concat(getPath(), before.getName()));
+                        concat(getPath(), before.getName()));
                 }
             }
             if (before.getType().tag() == WEAKREFERENCE) {
                 put(rmWeakRefs, before.getValue(STRINGS),
-                        concat(getPath(), before.getName()));
+                    concat(getPath(), before.getName()));
             }
             if (JCR_UUID.equals(before.getName())) {
                 // node remove + add -> changed uuid
@@ -241,12 +245,12 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
             if (after.getType().tag() == REFERENCE) {
                 if (!isVersionStorePath(getPath())) {
                     put(newRefs, after.getValue(STRINGS),
-                            concat(getPath(), after.getName()));
+                        concat(getPath(), after.getName()));
                 }
             }
             if (after.getType().tag() == WEAKREFERENCE) {
                 put(newWeakRefs, after.getValue(STRINGS),
-                        concat(getPath(), after.getName()));
+                    concat(getPath(), after.getName()));
             }
             if (JCR_UUID.equals(after.getName())) {
                 // node remove + add -> changed uuid
@@ -271,13 +275,13 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
 
     @Override
     public Editor childNodeChanged(String name, NodeState before,
-            NodeState after) {
+        NodeState after) {
         return new ReferenceEditor(this, name);
     }
 
     @Override
     public Editor childNodeDeleted(String name, NodeState before)
-            throws CommitFailedException {
+        throws CommitFailedException {
         String uuid = before.getString(JCR_UUID);
         if (uuid != null) {
             rmIds.add(uuid);
@@ -289,11 +293,11 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
 
     private static boolean isVersionStorePath(String oakPath) {
         return oakPath != null
-                && oakPath.startsWith(VERSION_STORE_PATH);
+            && oakPath.startsWith(VERSION_STORE_PATH);
     }
 
     private static void put(Map<String, Set<String>> map,
-            Iterable<String> keys, String value) {
+        Iterable<String> keys, String value) {
         String asRelative = isAbsolute(value) ? value.substring(1) : value;
         for (String key : keys) {
             Set<String> values = map.get(key);
@@ -306,41 +310,43 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
     }
 
     private void update(Set<IndexStoreStrategy> refStores,
-            NodeBuilder definition, String name, String key, Set<String> add,
-            Set<String> rm) throws CommitFailedException {
+        NodeBuilder definition, String name, String key, Set<String> add,
+        Set<String> rm) throws CommitFailedException {
         for (IndexStoreStrategy store : refStores) {
             Set<String> empty = of();
             for (String p : rm) {
-                Supplier<NodeBuilder> index = memoize(() -> definition.child(store.getIndexNodeName()));
+                Supplier<NodeBuilder> index = memoize(
+                    () -> definition.child(store.getIndexNodeName()));
                 store.update(index, p, name, definition, of(key), empty);
             }
             for (String p : add) {
                 // TODO do we still need to encode the values?
-                Supplier<NodeBuilder> index = memoize(() -> definition.child(store.getIndexNodeName()));
+                Supplier<NodeBuilder> index = memoize(
+                    () -> definition.child(store.getIndexNodeName()));
                 store.update(index, p, name, definition, empty, of(key));
             }
         }
     }
 
     private static boolean hasReferences(IndexStoreStrategy refStore,
-                                  NodeState root,
-                                  NodeState definition,
-                                  String name,
-                                  String key) {
+        NodeState root,
+        NodeState definition,
+        String name,
+        String key) {
         return definition.hasChildNode(name)
-                && refStore.count(root, definition, of(key), 1) > 0;
+            && refStore.count(root, definition, of(key), 1) > 0;
     }
 
     private static void checkReferentialIntegrity(Set<IndexStoreStrategy> refStores,
-                                           NodeState root,
-                                           NodeState definition,
-                                           Set<String> idsOfRemovedNodes)
-            throws CommitFailedException {
+        NodeState root,
+        NodeState definition,
+        Set<String> idsOfRemovedNodes)
+        throws CommitFailedException {
         for (IndexStoreStrategy store : refStores) {
             for (String id : idsOfRemovedNodes) {
                 if (hasReferences(store, root, definition, REF_NAME, id)) {
                     throw new CommitFailedException(INTEGRITY, 1,
-                            "Unable to delete referenced node: " + id);
+                        "Unable to delete referenced node: " + id);
                 }
             }
         }

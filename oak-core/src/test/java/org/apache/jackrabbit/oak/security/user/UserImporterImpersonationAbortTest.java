@@ -34,7 +34,9 @@ public class UserImporterImpersonationAbortTest extends UserImporterImpersonatio
 
     @Test(expected = ConstraintViolationException.class)
     public void testUnknownImpersonators() throws Exception {
-        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS, "impersonator1", "impersonator2"), mockPropertyDefinition(NT_REP_USER, true)));
+        assertTrue(importer.handlePropInfo(userTree,
+            createPropInfo(REP_IMPERSONATORS, "impersonator1", "impersonator2"),
+            mockPropertyDefinition(NT_REP_USER, true)));
         importer.processReferences();
     }
 

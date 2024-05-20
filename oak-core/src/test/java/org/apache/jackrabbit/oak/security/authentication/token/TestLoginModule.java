@@ -40,7 +40,8 @@ public class TestLoginModule extends AbstractLoginModule {
     private String userId;
 
     @Override
-    public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> sharedState, Map<String, ?> options) {
+    public void initialize(Subject subject, CallbackHandler callbackHandler,
+        Map<String, ?> sharedState, Map<String, ?> options) {
         super.initialize(subject, callbackHandler, sharedState, options);
 
         credentialsSupport = (CredentialsSupport) options.get("credsSupport");
@@ -79,7 +80,8 @@ public class TestLoginModule extends AbstractLoginModule {
     public boolean commit() {
         if (userId != null) {
             subject.getPrincipals().add(EveryonePrincipal.getInstance());
-            AuthInfo info = new AuthInfoImpl(userId, credentialsSupport.getAttributes(credentials), subject.getPrincipals());
+            AuthInfo info = new AuthInfoImpl(userId, credentialsSupport.getAttributes(credentials),
+                subject.getPrincipals());
             setAuthInfo(info, subject);
             return true;
         } else {

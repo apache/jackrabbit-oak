@@ -49,6 +49,7 @@ import static org.apache.jackrabbit.oak.plugins.index.importer.NodeStoreUtils.ch
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 public class IndexDefinitionUpdater {
+
     /**
      * Name of file which would be check for presence of index-definitions
      */
@@ -80,20 +81,20 @@ public class IndexDefinitionUpdater {
         NodeState parent = NodeStateUtils.getNode(rootBuilder.getBaseState(), parentPath);
 
         checkState(parent.exists(), "Parent node at path [%s] not found while " +
-                "adding new index definition for [%s]. Intermediate paths node must exist for new index " +
-                "nodes to be created", parentPath,indexPath);
+            "adding new index definition for [%s]. Intermediate paths node must exist for new index "
+            +
+            "nodes to be created", parentPath, indexPath);
 
         NodeState indexDefinitionNode = parent.getChildNode(indexNodeName);
 
         if (indexDefinitionNode.exists()) {
             log.info("Updating index definition at path [{}]. Changes are ", indexPath);
-            String diff = JsopDiff.diffToJsop(cloneVisibleState(indexDefinitionNode), cloneVisibleState(newDefinition));
+            String diff = JsopDiff.diffToJsop(cloneVisibleState(indexDefinitionNode),
+                cloneVisibleState(newDefinition));
             log.info(diff);
         } else {
             log.info("Adding new index definition at path [{}]", indexPath);
         }
-
-
 
         NodeBuilder indexBuilderParent = childBuilder(rootBuilder, parentPath);
 
@@ -105,11 +106,11 @@ public class IndexDefinitionUpdater {
         return indexBuilderParent.getChildNode(indexNodeName);
     }
 
-    public Set<String> getIndexPaths(){
+    public Set<String> getIndexPaths() {
         return indexNodeStates.keySet();
     }
 
-    public NodeState getIndexState(String indexPath){
+    public NodeState getIndexState(String indexPath) {
         return indexNodeStates.getOrDefault(indexPath, EMPTY_NODE);
     }
 
@@ -123,7 +124,8 @@ public class IndexDefinitionUpdater {
                 String indexPath = reader.readString();
 
                 if (!indexPath.startsWith("/")) {
-                    String msg = String.format("Invalid format of index definitions. The key name [%s] should " +
+                    String msg = String.format(
+                        "Invalid format of index definitions. The key name [%s] should " +
                             "be index path ", indexPath);
                     throw new IllegalArgumentException(msg);
                 }
@@ -140,24 +142,25 @@ public class IndexDefinitionUpdater {
         return indexDefns;
     }
 
-    private static NodeState cloneVisibleState(NodeState state){
+    private static NodeState cloneVisibleState(NodeState state) {
         NodeBuilder builder = EMPTY_NODE.builder();
         new ApplyVisibleDiff(builder).apply(state);
         return builder.getNodeState();
     }
 
     private static class ApplyVisibleDiff extends ApplyDiff {
+
         public ApplyVisibleDiff(NodeBuilder builder) {
             super(builder);
         }
 
         @Override
         public boolean childNodeAdded(String name, NodeState after) {
-            if (NodeStateUtils.isHidden(name)){
+            if (NodeStateUtils.isHidden(name)) {
                 return true;
             }
             return after.compareAgainstBaseState(
-                    EMPTY_NODE, new ApplyVisibleDiff(builder.child(name)));
+                EMPTY_NODE, new ApplyVisibleDiff(builder.child(name)));
         }
     }
 }

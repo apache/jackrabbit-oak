@@ -32,8 +32,9 @@ public class AuthorizableWrapperTest extends AbstractAutoSaveTest {
 
     @Test
     public void testApplyNull() {
-        Iterator<Authorizable> it = AuthorizableWrapper.createIterator(Lists.newArrayList(null, (Authorizable) null).iterator(), autosaveMgr);
-        while(it.hasNext()) {
+        Iterator<Authorizable> it = AuthorizableWrapper.createIterator(
+            Lists.newArrayList(null, (Authorizable) null).iterator(), autosaveMgr);
+        while (it.hasNext()) {
             assertNull(it.next());
         }
         verify(autosaveMgr, never()).wrap(any(Authorizable.class));
@@ -41,8 +42,9 @@ public class AuthorizableWrapperTest extends AbstractAutoSaveTest {
 
     @Test
     public void testApply() throws Exception {
-        Iterator<Authorizable> it = AuthorizableWrapper.createIterator(Lists.newArrayList(getTestUser(), (Authorizable) null).iterator(), autosaveMgr);
-        while(it.hasNext()) {
+        Iterator<Authorizable> it = AuthorizableWrapper.createIterator(
+            Lists.newArrayList(getTestUser(), (Authorizable) null).iterator(), autosaveMgr);
+        while (it.hasNext()) {
             it.next();
         }
         verify(autosaveMgr, times(1)).wrap(any(Authorizable.class));

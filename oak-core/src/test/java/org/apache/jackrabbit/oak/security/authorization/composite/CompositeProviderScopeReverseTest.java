@@ -17,8 +17,7 @@
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
 /**
- * Same as {@link CompositeProviderScopeTest}
- * with reverse order of the aggregated providers.
+ * Same as {@link CompositeProviderScopeTest} with reverse order of the aggregated providers.
  */
 public class CompositeProviderScopeReverseTest extends CompositeProviderScopeTest {
 

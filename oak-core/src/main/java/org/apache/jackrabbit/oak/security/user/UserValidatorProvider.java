@@ -36,7 +36,8 @@ class UserValidatorProvider extends ValidatorProvider {
 
     private MembershipProvider membershipProvider;
 
-    UserValidatorProvider(@NotNull ConfigurationParameters config, @NotNull RootProvider rootProvider, @NotNull TreeProvider treeProvider) {
+    UserValidatorProvider(@NotNull ConfigurationParameters config,
+        @NotNull RootProvider rootProvider, @NotNull TreeProvider treeProvider) {
         this.config = config;
         this.rootProvider = rootProvider;
         this.treeProvider = treeProvider;
@@ -44,11 +45,13 @@ class UserValidatorProvider extends ValidatorProvider {
 
     //--------------------------------------------------< ValidatorProvider >---
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Validator getRootValidator(
-            NodeState before, NodeState after, CommitInfo info) {
+        NodeState before, NodeState after, CommitInfo info) {
         membershipProvider = new MembershipProvider(rootProvider.createReadOnlyRoot(after), config);
-        return new UserValidator(treeProvider.createReadOnlyTree(before), treeProvider.createReadOnlyTree(after), this);
+        return new UserValidator(treeProvider.createReadOnlyTree(before),
+            treeProvider.createReadOnlyTree(after), this);
     }
 
     //-----------------------------------------------------------< internal >---

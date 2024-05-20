@@ -19,10 +19,9 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 /**
  * The "a.x = b.y" join condition.
@@ -37,7 +36,7 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
     private SelectorImpl selector2;
 
     public EquiJoinConditionImpl(String selector1Name, String property1Name, String selector2Name,
-            String property2Name) {
+        String property2Name) {
         this.selector1Name = selector1Name;
         this.property1Name = property1Name;
         this.selector2Name = selector2Name;
@@ -52,7 +51,7 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
     @Override
     public String toString() {
         return quote(selector1Name) + '.' + quote(property1Name) +
-                " = " + quote(selector2Name) + '.' + quote(property2Name);
+            " = " + quote(selector2Name) + '.' + quote(property2Name);
     }
 
     public void bindSelector(SourceImpl source) {
@@ -74,7 +73,7 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
             // the selector2Name node has a property named property2Name, and
             return false;
         }
-        // the value of property property1Name is equal to the value of property property2Name, 
+        // the value of property property1Name is equal to the value of property property2Name,
         // as defined in §3.6.5 Comparison of Values.
         // -> that can be interpreted as follows: if the property types
         // don't match, then they don't match, however for compatibility
@@ -122,7 +121,7 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
             }
             String p1n = normalizePropertyName(property1Name);
             if (p2 == null) {
-                // always set the condition, 
+                // always set the condition,
                 // even if unknown (in which case it is converted to "is not null")
                 f.restrictProperty(p1n, Operator.NOT_EQUAL, null);
             } else {
@@ -152,21 +151,23 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
     public void restrictPushDown(SelectorImpl s) {
         // both properties may not be null
         if (s.equals(selector1)) {
-            PropertyExistenceImpl ex = new PropertyExistenceImpl(s.getSelectorName(), property1Name);
+            PropertyExistenceImpl ex = new PropertyExistenceImpl(s.getSelectorName(),
+                property1Name);
             ex.bindSelector(s);
             s.restrictSelector(ex);
         } else if (s.equals(selector2)) {
-            PropertyExistenceImpl ex = new PropertyExistenceImpl(s.getSelectorName(), property2Name);
+            PropertyExistenceImpl ex = new PropertyExistenceImpl(s.getSelectorName(),
+                property2Name);
             ex.bindSelector(s);
             s.restrictSelector(ex);
         }
     }
-    
+
     @Override
     public boolean isParent(SourceImpl source) {
         return false;
     }
-    
+
     @Override
     public boolean canEvaluate(Set<SourceImpl> available) {
         return available.contains(selector1) && available.contains(selector2);
@@ -174,6 +175,7 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
 
     @Override
     public AstElement copyOf() {
-        return new EquiJoinConditionImpl(selector1Name, property1Name, selector2Name, property2Name);
+        return new EquiJoinConditionImpl(selector1Name, property1Name, selector2Name,
+            property2Name);
     }
 }

@@ -24,25 +24,24 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A FilteringAwareObserver is the stateless-variant of
- * an Observer which gets an explicit before as well as the
- * after NodeState.
+ * A FilteringAwareObserver is the stateless-variant of an Observer which gets an explicit before as
+ * well as the after NodeState.
  * <p>
- * It is used by the FilteringObserver (or more precisely
- * by the FilteringDispatcher) to support skipping (ie filtering)
- * of content changes.
+ * It is used by the FilteringObserver (or more precisely by the FilteringDispatcher) to support
+ * skipping (ie filtering) of content changes.
  */
 public interface FilteringAwareObserver {
 
     /**
-     * Equivalent to the state-full contentChanged() method of the Observer
-     * with one important difference being that this variation explicitly
-     * passes the before NodeState (thus the observer must in this case
-     * not remember the previous state)
+     * Equivalent to the state-full contentChanged() method of the Observer with one important
+     * difference being that this variation explicitly passes the before NodeState (thus the
+     * observer must in this case not remember the previous state)
+     *
      * @param before the before NodeState
-     * @param after the after NodeState
-     * @param info the associated CommitInfo
+     * @param after  the after NodeState
+     * @param info   the associated CommitInfo
      */
-    void contentChanged(@NotNull NodeState before, @NotNull NodeState after, @NotNull CommitInfo info);
-    
+    void contentChanged(@NotNull NodeState before, @NotNull NodeState after,
+        @NotNull CommitInfo info);
+
 }

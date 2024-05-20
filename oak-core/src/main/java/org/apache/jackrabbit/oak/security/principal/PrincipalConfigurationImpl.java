@@ -39,9 +39,11 @@ import org.osgi.service.component.annotations.Component;
  * Default implementation of the {@code PrincipalConfiguration}
  */
 @Component(
-        service = {PrincipalConfiguration.class, SecurityConfiguration.class},
-        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.security.principal.PrincipalConfigurationImpl")
-public class PrincipalConfigurationImpl extends ConfigurationBase implements PrincipalConfiguration {
+    service = {PrincipalConfiguration.class, SecurityConfiguration.class},
+    property = OAK_SECURITY_NAME
+        + "=org.apache.jackrabbit.oak.security.principal.PrincipalConfigurationImpl")
+public class PrincipalConfigurationImpl extends ConfigurationBase implements
+    PrincipalConfiguration {
 
     @SuppressWarnings("UnusedDeclaration")
     public PrincipalConfigurationImpl() {

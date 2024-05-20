@@ -64,7 +64,8 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
 
     private final PartialValueFactory valueFactory;
 
-    EffectiveNodeTypeImpl(@NotNull NodeTypeImpl primary, @NotNull NodeTypeImpl[] mixins, @NotNull ReadOnlyNodeTypeManager ntMgr) {
+    EffectiveNodeTypeImpl(@NotNull NodeTypeImpl primary, @NotNull NodeTypeImpl[] mixins,
+        @NotNull ReadOnlyNodeTypeManager ntMgr) {
         this.ntMgr = ntMgr;
         this.valueFactory = new PartialValueFactory(ntMgr.getNamePathMapper());
 
@@ -75,8 +76,8 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
         if (!nodeTypes.containsKey(NT_BASE)) {
             try {
                 nodeTypes.put(
-                        NT_BASE,
-                        (NodeTypeImpl) ntMgr.getNodeType(NT_BASE)); // FIXME
+                    NT_BASE,
+                    (NodeTypeImpl) ntMgr.getNodeType(NT_BASE)); // FIXME
             } catch (RepositoryException e) {
                 // TODO: ignore/warning/error?
             }
@@ -99,8 +100,8 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     }
 
     /**
-     * Determines whether this effective node type representation includes
-     * (either through inheritance or aggregation) the given node type.
+     * Determines whether this effective node type representation includes (either through
+     * inheritance or aggregation) the given node type.
      *
      * @param nodeTypeName name of node type
      * @return {@code true} if the given node type is included, otherwise {@code false}.
@@ -112,12 +113,11 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
 
 
     /**
-     * Determines whether this effective node type representation includes
-     * (either through inheritance or aggregation) all of the given node types.
+     * Determines whether this effective node type representation includes (either through
+     * inheritance or aggregation) all of the given node types.
      *
      * @param nodeTypeNames array of node type names
-     * @return {@code true} if all of the given node types are included,
-     *         otherwise {@code false}
+     * @return {@code true} if all of the given node types are included, otherwise {@code false}
      */
     @Override
     public boolean includesNodeTypes(@NotNull String[] nodeTypeNames) {
@@ -130,8 +130,8 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     }
 
     /**
-     * Determines whether this effective node type supports adding
-     * the specified mixin.
+     * Determines whether this effective node type supports adding the specified mixin.
+     *
      * @param mixin name of mixin type
      * @return {@code true} if the mixin type is supported, otherwise {@code false}
      */
@@ -228,13 +228,13 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     @Override
     public Iterable<NodeDefinition> getNamedNodeDefinitions(@NotNull final String oakName) {
         return Iterables.concat(Iterables.transform(
-                nodeTypes.values(),
-                new Function<NodeTypeImpl, Iterable<NodeDefinition>>() {
-                    @Override
-                    public Iterable<NodeDefinition> apply(NodeTypeImpl input) {
-                        return input.getDeclaredNamedNodeDefinitions(oakName);
-                    }
-                }));
+            nodeTypes.values(),
+            new Function<NodeTypeImpl, Iterable<NodeDefinition>>() {
+                @Override
+                public Iterable<NodeDefinition> apply(NodeTypeImpl input) {
+                    return input.getDeclaredNamedNodeDefinitions(oakName);
+                }
+            }));
     }
 
     /**
@@ -294,12 +294,14 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
         if (definition.isMultiple()) {
             List<Value> values = valueFactory.createValues(property);
             if (!nt.canSetProperty(property.getName(), values.toArray(new Value[values.size()]))) {
-                throw new ConstraintViolationException("Cannot set property '" + property.getName() + "' to '" + values + '\'');
+                throw new ConstraintViolationException(
+                    "Cannot set property '" + property.getName() + "' to '" + values + '\'');
             }
         } else {
             Value v = valueFactory.createValue(property);
             if (!nt.canSetProperty(property.getName(), v)) {
-                throw new ConstraintViolationException("Cannot set property '" + property.getName() + "' to '" + v + '\'');
+                throw new ConstraintViolationException(
+                    "Cannot set property '" + property.getName() + "' to '" + v + '\'');
             }
         }
     }
@@ -312,7 +314,8 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
         }
 
         if (!definition.getDeclaringNodeType().canRemoveProperty(property.getName())) {
-            throw new ConstraintViolationException("Cannot remove property '" + property.getName() + '\'');
+            throw new ConstraintViolationException(
+                "Cannot remove property '" + property.getName() + '\'');
         }
     }
 
@@ -323,14 +326,14 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
                 String name = pd.getName();
                 if (pd.isMandatory() && !pd.isProtected() && tree.getProperty(name) == null) {
                     throw new ConstraintViolationException(
-                            "Property '" + name + "' in '" + nodeType.getName() + "' is mandatory");
+                        "Property '" + name + "' in '" + nodeType.getName() + "' is mandatory");
                 }
             }
             for (NodeDefinition nd : nodeType.getChildNodeDefinitions()) {
                 String name = nd.getName();
                 if (nd.isMandatory() && !nd.isProtected() && !tree.hasChild(name)) {
                     throw new ConstraintViolationException(
-                            "Node '" + name + "' in '" + nodeType.getName() + "' is mandatory");
+                        "Node '" + name + "' in '" + nodeType.getName() + "' is mandatory");
                 }
             }
         }
@@ -344,84 +347,94 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
             }
         }
 
-        throw new UnsupportedRepositoryOperationException("Child node ordering is not supported on this node");
+        throw new UnsupportedRepositoryOperationException(
+            "Child node ordering is not supported on this node");
     }
 
     /**
-     * Calculates the applicable definition for the property with the specified
-     * characteristics under a parent with this effective type.
+     * Calculates the applicable definition for the property with the specified characteristics
+     * under a parent with this effective type.
      *
-     * @param propertyName The internal oak name of the property for which the
-     * definition should be retrieved.
-     * @param isMultiple {@code true} if the target property is multi-valued.
-     * @param type The target type of the property.
-     * @param exactTypeMatch {@code true} if the required type of the definition
-     * must exactly match the type of the target property.
+     * @param propertyName   The internal oak name of the property for which the definition should
+     *                       be retrieved.
+     * @param isMultiple     {@code true} if the target property is multi-valued.
+     * @param type           The target type of the property.
+     * @param exactTypeMatch {@code true} if the required type of the definition must exactly match
+     *                       the type of the target property.
      * @return the applicable definition for the target property.
      * @throws ConstraintViolationException If no matching definition can be found.
      */
     @NotNull
     @Override
     public PropertyDefinition getPropertyDefinition(
-            @NotNull String propertyName, boolean isMultiple,
-            int type, boolean exactTypeMatch)
-            throws ConstraintViolationException {
-       // TODO: This may need to be optimized
-       for (PropertyDefinition def : getNamedPropertyDefinitions(propertyName)) {
-           int defType = def.getRequiredType();
-           if (isMultiple == def.isMultiple()
-                   &&(!exactTypeMatch || (type == defType || UNDEFINED == type || UNDEFINED == defType))) {
-               return def;
-           }
-       }
+        @NotNull String propertyName, boolean isMultiple,
+        int type, boolean exactTypeMatch)
+        throws ConstraintViolationException {
+        // TODO: This may need to be optimized
+        for (PropertyDefinition def : getNamedPropertyDefinitions(propertyName)) {
+            int defType = def.getRequiredType();
+            if (isMultiple == def.isMultiple()
+                && (!exactTypeMatch || (type == defType || UNDEFINED == type
+                || UNDEFINED == defType))) {
+                return def;
+            }
+        }
 
-       // try if there is a residual definition
-       for (PropertyDefinition def : getResidualPropertyDefinitions()) {
-           int defType = def.getRequiredType();
-           if (isMultiple == def.isMultiple()
-                   && (!exactTypeMatch || (type == defType || UNDEFINED == type || UNDEFINED == defType))) {
-               return def;
-           }
-       }
+        // try if there is a residual definition
+        for (PropertyDefinition def : getResidualPropertyDefinitions()) {
+            int defType = def.getRequiredType();
+            if (isMultiple == def.isMultiple()
+                && (!exactTypeMatch || (type == defType || UNDEFINED == type
+                || UNDEFINED == defType))) {
+                return def;
+            }
+        }
 
-       throw new ConstraintViolationException(
-               "No matching property definition found for " + propertyName);
-   }
+        throw new ConstraintViolationException(
+            "No matching property definition found for " + propertyName);
+    }
 
     /**
-     * Calculates the applicable definition for the property with the specified
-     * characteristics under a parent with this effective type.
+     * Calculates the applicable definition for the property with the specified characteristics
+     * under a parent with this effective type.
      *
-     * @param name The internal oak name of the property for which the definition should be retrieved.
-     * @param type The target type of the property.
-     * @param unknownMultiple {@code true} if the target property has an unknown type, {@code false} if it is known to be a multi-valued property.
-     * @return the applicable definition for the target property or {@code null} if no matching definition can be found.
+     * @param name            The internal oak name of the property for which the definition should
+     *                        be retrieved.
+     * @param type            The target type of the property.
+     * @param unknownMultiple {@code true} if the target property has an unknown type, {@code false}
+     *                        if it is known to be a multi-valued property.
+     * @return the applicable definition for the target property or {@code null} if no matching
+     * definition can be found.
      */
     @Nullable
     @Override
-    public PropertyDefinition getPropertyDefinition(@NotNull String name, int type, boolean unknownMultiple) {
+    public PropertyDefinition getPropertyDefinition(@NotNull String name, int type,
+        boolean unknownMultiple) {
         // TODO check multivalue handling
         Iterable<PropertyDefinition> definitions = getNamedPropertyDefinitions(name);
 
         for (PropertyDefinition def : definitions) {
             int requiredType = def.getRequiredType();
-            if ((requiredType == PropertyType.UNDEFINED || type == PropertyType.UNDEFINED || requiredType == type)
-                    && (def.isMultiple() || unknownMultiple)) {
+            if ((requiredType == PropertyType.UNDEFINED || type == PropertyType.UNDEFINED
+                || requiredType == type)
+                && (def.isMultiple() || unknownMultiple)) {
                 return def;
             }
         }
         definitions = getResidualPropertyDefinitions();
         for (PropertyDefinition def : definitions) {
             int requiredType = def.getRequiredType();
-            if ((requiredType == PropertyType.UNDEFINED || type == PropertyType.UNDEFINED || requiredType == type)
-                    && !def.isMultiple() && unknownMultiple) {
+            if ((requiredType == PropertyType.UNDEFINED || type == PropertyType.UNDEFINED
+                || requiredType == type)
+                && !def.isMultiple() && unknownMultiple) {
                 return def;
             }
         }
         for (PropertyDefinition def : definitions) {
             int requiredType = def.getRequiredType();
-            if ((requiredType == PropertyType.UNDEFINED || type == PropertyType.UNDEFINED || requiredType == type)
-                    && def.isMultiple()) {
+            if ((requiredType == PropertyType.UNDEFINED || type == PropertyType.UNDEFINED
+                || requiredType == type)
+                && def.isMultiple()) {
                 return def;
             }
         }
@@ -429,42 +442,45 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     }
 
     /**
-     *
-     * @param childName The internal oak name of the target node.
+     * @param childName      The internal oak name of the target node.
      * @param childEffective
      * @return the node definition
      * @throws ConstraintViolationException
      */
     @NotNull
     @Override
-    public NodeDefinition getNodeDefinition(@NotNull String childName, @Nullable EffectiveNodeType childEffective) throws ConstraintViolationException {
-       for (NodeDefinition def : getNamedNodeDefinitions(childName)) {
-           boolean match = true;
-           if (childEffective != null && !childEffective.includesNodeTypes(def.getRequiredPrimaryTypeNames())) {
-               match = false;
-           }
-           if (match) {
-               return def;
-           }
-       }
+    public NodeDefinition getNodeDefinition(@NotNull String childName,
+        @Nullable EffectiveNodeType childEffective) throws ConstraintViolationException {
+        for (NodeDefinition def : getNamedNodeDefinitions(childName)) {
+            boolean match = true;
+            if (childEffective != null && !childEffective.includesNodeTypes(
+                def.getRequiredPrimaryTypeNames())) {
+                match = false;
+            }
+            if (match) {
+                return def;
+            }
+        }
 
-       for (NodeDefinition def : getResidualNodeDefinitions()) {
-           boolean match = true;
-           if (childEffective != null && !childEffective.includesNodeTypes(def.getRequiredPrimaryTypeNames())) {
-               match = false;
-           }
-           if (match) {
-               return def;
-           }
-       }
+        for (NodeDefinition def : getResidualNodeDefinitions()) {
+            boolean match = true;
+            if (childEffective != null && !childEffective.includesNodeTypes(
+                def.getRequiredPrimaryTypeNames())) {
+                match = false;
+            }
+            if (match) {
+                return def;
+            }
+        }
 
-       throw new ConstraintViolationException(
-               "No matching node definition found for " + childName);
-   }
+        throw new ConstraintViolationException(
+            "No matching node definition found for " + childName);
+    }
 
     //------------------------------------------------------------< private >---
     @NotNull
-    private PropertyDefinition getDefinition(@NotNull PropertyState property) throws RepositoryException {
+    private PropertyDefinition getDefinition(@NotNull PropertyState property)
+        throws RepositoryException {
         String propertyName = property.getName();
         int propertyType = property.getType().tag();
         boolean isMultiple = property.isArray();

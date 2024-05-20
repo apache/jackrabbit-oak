@@ -90,8 +90,10 @@ public class UserManagerImplTest extends AbstractSecurityTest {
         }
     }
 
-    private UserManagerImpl createUserManager(@NotNull Root root, @NotNull PartialValueFactory pvf) {
-        return new UserManagerImpl(root, pvf, getSecurityProvider(), UserMonitor.NOOP, mock(DynamicMembershipService.class));
+    private UserManagerImpl createUserManager(@NotNull Root root,
+        @NotNull PartialValueFactory pvf) {
+        return new UserManagerImpl(root, pvf, getSecurityProvider(), UserMonitor.NOOP,
+            mock(DynamicMembershipService.class));
     }
 
     /**
@@ -144,7 +146,8 @@ public class UserManagerImplTest extends AbstractSecurityTest {
 
     @Test(expected = RepositoryException.class)
     public void testAuthorizableByUnresolvablePath() throws Exception {
-        NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, ImmutableMap.of("a","internal")));
+        NamePathMapper mapper = new NamePathMapperImpl(
+            new LocalNameMapper(root, ImmutableMap.of("a", "internal")));
         UserManagerImpl um = createUserManager(root, new PartialValueFactory(mapper));
         um.getAuthorizableByPath(getTestUser().getPath());
     }
@@ -221,7 +224,8 @@ public class UserManagerImplTest extends AbstractSecurityTest {
         User user = getTestUser();
         Tree userNode = root.getTree(user.getPath());
 
-        Tree folder = TreeUtil.addChild(userNode, "folder", UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
+        Tree folder = TreeUtil.addChild(userNode, "folder",
+            UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
         String path = folder.getPath();
 
         // authNode - authFolder -> create User
@@ -262,7 +266,8 @@ public class UserManagerImplTest extends AbstractSecurityTest {
             }
 
             // authNode - anyNode - authFolder -> create User
-            folder = TreeUtil.addChild(someContent,"folder", UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
+            folder = TreeUtil.addChild(someContent, "folder",
+                UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
             root.commit(); // this time save node structure
             try {
                 Principal p = new PrincipalImpl("test4");
@@ -292,13 +297,15 @@ public class UserManagerImplTest extends AbstractSecurityTest {
 
     @Test
     public void testFindWithNullValue() throws RepositoryException {
-        Iterator<Authorizable> result = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, null);
+        Iterator<Authorizable> result = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME,
+            null);
         assertTrue(result.hasNext());
     }
 
     @Test
     public void testFindWithNullValue2() throws RepositoryException {
-        Iterator<Authorizable> result = userMgr.findAuthorizables("./" + UserConstants.REP_PRINCIPAL_NAME, null);
+        Iterator<Authorizable> result = userMgr.findAuthorizables(
+            "./" + UserConstants.REP_PRINCIPAL_NAME, null);
         assertTrue(result.hasNext());
     }
 
@@ -314,8 +321,10 @@ public class UserManagerImplTest extends AbstractSecurityTest {
                         try {
                             ContentSession admin = login(getAdminCredentials());
                             Root root = admin.getLatestRoot();
-                            UserManager userManager = createUserManager(root, getPartialValueFactory());
-                            userManager.createUser(userId, "pass", new PrincipalImpl(userId), "relPath");
+                            UserManager userManager = createUserManager(root,
+                                getPartialValueFactory());
+                            userManager.createUser(userId, "pass", new PrincipalImpl(userId),
+                                "relPath");
                             root.commit();
                             admin.close();
                         } catch (Exception e) {
@@ -347,8 +356,8 @@ public class UserManagerImplTest extends AbstractSecurityTest {
     }
 
     /**
-     * Test related to OAK-1922: Asserting that the default behavior is such that
-     * no rep:pwd node is created upon user-creation.
+     * Test related to OAK-1922: Asserting that the default behavior is such that no rep:pwd node is
+     * created upon user-creation.
      *
      * @since Oak 1.1
      */
@@ -358,7 +367,8 @@ public class UserManagerImplTest extends AbstractSecurityTest {
         User user = getUserManager(root).createUser(newUserId, newUserId);
 
         Assert.assertFalse(root.getTree(user.getPath()).hasChild(UserConstants.REP_PWD));
-        Assert.assertFalse(user.hasProperty(UserConstants.REP_PWD + "/" + UserConstants.REP_PASSWORD_LAST_MODIFIED));
+        Assert.assertFalse(user.hasProperty(
+            UserConstants.REP_PWD + "/" + UserConstants.REP_PASSWORD_LAST_MODIFIED));
     }
 
     @Test(expected = IllegalArgumentException.class)

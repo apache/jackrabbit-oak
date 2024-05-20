@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -35,7 +34,7 @@ public class DescendantNodeJoinConditionImpl extends JoinConditionImpl {
     private SelectorImpl ancestorSelector;
 
     public DescendantNodeJoinConditionImpl(String descendantSelectorName,
-            String ancestorSelectorName) {
+        String ancestorSelectorName) {
         this.descendantSelectorName = descendantSelectorName;
         this.ancestorSelectorName = ancestorSelectorName;
     }
@@ -47,9 +46,9 @@ public class DescendantNodeJoinConditionImpl extends JoinConditionImpl {
 
     @Override
     public String toString() {
-        return "isdescendantnode(" + 
-                quote(descendantSelectorName) + 
-                ", " + quote(ancestorSelectorName) + ')';
+        return "isdescendantnode(" +
+            quote(descendantSelectorName) +
+            ", " + quote(ancestorSelectorName) + ')';
     }
 
     public void bindSelector(SourceImpl source) {
@@ -91,7 +90,7 @@ public class DescendantNodeJoinConditionImpl extends JoinConditionImpl {
     public boolean isParent(SourceImpl source) {
         return source.equals(ancestorSelector);
     }
-    
+
     @Override
     public boolean canEvaluate(Set<SourceImpl> available) {
         return available.contains(descendantSelector) && available.contains(ancestorSelector);

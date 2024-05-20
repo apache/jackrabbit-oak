@@ -25,10 +25,10 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * This {@code EventFilter} implementation excludes events for child nodes
- * of removed nodes.
+ * This {@code EventFilter} implementation excludes events for child nodes of removed nodes.
  */
 public class DeleteSubtreeFilter implements EventFilter {
+
     private static final DeleteSubtreeFilter INCLUDE_DELETE = new DeleteSubtreeFilter(true);
     private static final DeleteSubtreeFilter EXCLUDE_DELETE = new DeleteSubtreeFilter(false);
 

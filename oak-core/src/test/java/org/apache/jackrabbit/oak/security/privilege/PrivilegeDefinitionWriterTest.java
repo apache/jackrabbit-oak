@@ -40,7 +40,8 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doThrow;
 
-public class PrivilegeDefinitionWriterTest extends AbstractSecurityTest implements PrivilegeConstants {
+public class PrivilegeDefinitionWriterTest extends AbstractSecurityTest implements
+    PrivilegeConstants {
 
     @After
     @Override
@@ -60,7 +61,8 @@ public class PrivilegeDefinitionWriterTest extends AbstractSecurityTest implemen
 
     @Test(expected = RepositoryException.class)
     public void testMissingPrivilegeRoot() throws Exception {
-        ContentRepository repo = new Oak().with(new OpenSecurityProvider()).createContentRepository();
+        ContentRepository repo = new Oak().with(new OpenSecurityProvider())
+                                          .createContentRepository();
         try (ContentSession cs = repo.login(null, null)) {
             Root tmpRoot = cs.getLatestRoot();
             PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(tmpRoot);
@@ -72,7 +74,7 @@ public class PrivilegeDefinitionWriterTest extends AbstractSecurityTest implemen
     public void testWriteDefinition() throws Exception {
         PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(root);
         writer.writeDefinition(new ImmutablePrivilegeDefinition(
-                "tmp", true, asList(JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL)));
+            "tmp", true, asList(JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL)));
 
         Tree privRoot = root.getTree(PRIVILEGES_PATH);
         assertTrue(privRoot.hasChild("tmp"));
@@ -80,8 +82,8 @@ public class PrivilegeDefinitionWriterTest extends AbstractSecurityTest implemen
         Tree tmpTree = privRoot.getChild("tmp");
         assertTrue(TreeUtil.getBoolean(tmpTree, REP_IS_ABSTRACT));
         assertArrayEquals(
-                new String[] {JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL},
-                Iterables.toArray(TreeUtil.getStrings(tmpTree, REP_AGGREGATES), String.class));
+            new String[]{JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL},
+            Iterables.toArray(TreeUtil.getStrings(tmpTree, REP_AGGREGATES), String.class));
     }
 
     @Test(expected = RepositoryException.class)
@@ -91,6 +93,6 @@ public class PrivilegeDefinitionWriterTest extends AbstractSecurityTest implemen
 
         PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(r);
         writer.writeDefinition(new ImmutablePrivilegeDefinition(
-                "tmp", true, asList(JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL)));
+            "tmp", true, asList(JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL)));
     }
 }

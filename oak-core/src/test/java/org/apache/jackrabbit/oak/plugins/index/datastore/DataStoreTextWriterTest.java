@@ -43,6 +43,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class DataStoreTextWriterTest {
+
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
@@ -66,7 +67,7 @@ public class DataStoreTextWriterTest {
     }
 
     @Test
-    public void noLoadingInReadOnlyMode() throws Exception{
+    public void noLoadingInReadOnlyMode() throws Exception {
         DataStoreTextWriter w = new DataStoreTextWriter(temporaryFolder.getRoot(), true);
         assertEquals(0, w.getEmptyBlobsHolder().getLoadCount());
         assertEquals(0, w.getErrorBlobsHolder().getLoadCount());
@@ -77,19 +78,21 @@ public class DataStoreTextWriterTest {
     }
 
     @Test
-    public void checkEmptyAndErrorBlobs() throws Exception{
+    public void checkEmptyAndErrorBlobs() throws Exception {
         DataStoreTextWriter w = new DataStoreTextWriter(temporaryFolder.getRoot(), false);
         w.markEmpty("a");
         w.markError("b");
         w.close();
 
         DataStoreTextWriter w2 = new DataStoreTextWriter(temporaryFolder.getRoot(), true);
-        assertEquals(ExtractionResult.EMPTY, w2.getText("/a", new IdBlob("foo", "a")).getExtractionResult());
-        assertEquals(ExtractionResult.ERROR, w2.getText("/a", new IdBlob("foo", "b")).getExtractionResult());
+        assertEquals(ExtractionResult.EMPTY,
+            w2.getText("/a", new IdBlob("foo", "a")).getExtractionResult());
+        assertEquals(ExtractionResult.ERROR,
+            w2.getText("/a", new IdBlob("foo", "b")).getExtractionResult());
     }
 
     @Test
-    public void nonExistingEntry() throws Exception{
+    public void nonExistingEntry() throws Exception {
         File fdsDir = temporaryFolder.newFolder();
         FileDataStore fds = DataStoreUtils.createFDS(fdsDir, 0);
         ByteArrayInputStream is = new ByteArrayInputStream("hello".getBytes());
@@ -111,9 +114,9 @@ public class DataStoreTextWriterTest {
         assertTrue(w.isProcessed("a"));
 
     }
-    
+
     @Test
-    public void inMemoryRecord() throws Exception{
+    public void inMemoryRecord() throws Exception {
         File fdsDir = temporaryFolder.newFolder();
         FileDataStore fds = DataStoreUtils.createFDS(fdsDir, 10000);
         DataStoreBlobStore dbs = new DataStoreBlobStore(fds);
@@ -126,6 +129,7 @@ public class DataStoreTextWriterTest {
     }
 
     private static class IdBlob extends ArrayBasedBlob {
+
         final String id;
 
         public IdBlob(String value, String id) {

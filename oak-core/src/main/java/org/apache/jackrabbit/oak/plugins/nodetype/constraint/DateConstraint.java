@@ -24,6 +24,7 @@ import javax.jcr.Value;
 import org.apache.jackrabbit.value.DateValue;
 
 public class DateConstraint extends NumericConstraint<Calendar> {
+
     public DateConstraint(String definition) {
         super(definition);
     }
@@ -32,8 +33,7 @@ public class DateConstraint extends NumericConstraint<Calendar> {
     protected Calendar getBound(String bound) {
         try {
             return DateValue.valueOf(bound).getDate();
-        }
-        catch (RepositoryException e) {
+        } catch (RepositoryException e) {
             throw (NumberFormatException) new NumberFormatException().initCause(e);
         }
     }

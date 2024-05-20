@@ -100,7 +100,7 @@ public abstract class AbstractQueryTest {
 
     /**
      * Override this method to add your default index definition
-     *
+     * <p>
      * {@link #createTestIndexNode(Tree, String)} for a helper method
      */
     protected void createTestIndexNode() throws Exception {
@@ -111,9 +111,9 @@ public abstract class AbstractQueryTest {
 
     protected static Tree createTestIndexNode(String indexName, Tree index, String type) {
         Tree indexDef = index.addChild(INDEX_DEFINITIONS_NAME).addChild(
-                indexName);
+            indexName);
         indexDef.setProperty(JcrConstants.JCR_PRIMARYTYPE,
-                INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+            INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
         indexDef.setProperty(TYPE_PROPERTY_NAME, type);
         indexDef.setProperty(REINDEX_PROPERTY_NAME, true);
         return indexDef;
@@ -124,14 +124,15 @@ public abstract class AbstractQueryTest {
     }
 
     protected Result executeQuery(String statement, String language,
-                                  Map<String, PropertyValue> sv) throws ParseException {
+        Map<String, PropertyValue> sv) throws ParseException {
         return qe.executeQuery(statement, language, sv, NO_MAPPINGS);
     }
 
     protected void test(String file) throws Exception {
 
         String className = getClass().getName();
-        String shortClassName = className.replaceAll("org.apache.jackrabbit.oak.plugins.index.", "oajopi.");
+        String shortClassName = className.replaceAll("org.apache.jackrabbit.oak.plugins.index.",
+            "oajopi.");
 
         // OAK-3252 getting the input/output paths for better error reporting. Still using the
         // stream for input as other projects uses dependencies on sql2.txt of oak-core and it fails
@@ -140,9 +141,10 @@ public abstract class AbstractQueryTest {
         File output = new File("target/" + shortClassName + "_" + file);
 
         InputStream in = AbstractQueryTest.class.getResourceAsStream(file);
-        ContinueLineReader r = new ContinueLineReader(new LineNumberReader(new InputStreamReader(in)));
+        ContinueLineReader r = new ContinueLineReader(
+            new LineNumberReader(new InputStreamReader(in)));
         PrintWriter w = new PrintWriter(new OutputStreamWriter(
-                new FileOutputStream(output)));
+            new FileOutputStream(output)));
         HashSet<String> knownQueries = new HashSet<String>();
         boolean errors = false;
         try {
@@ -177,9 +179,9 @@ public abstract class AbstractQueryTest {
                         errors = true;
                     }
                 } else if (line.startsWith("select")
-                        || line.startsWith("explain")
-                        || line.startsWith("measure")
-                        || line.startsWith("sql1") || line.startsWith("xpath")) {
+                    || line.startsWith("explain")
+                    || line.startsWith("measure")
+                    || line.startsWith("sql1") || line.startsWith("xpath")) {
                     w.println(line);
                     String language = QueryEngineImpl.SQL2;
                     if (line.startsWith("sql1 ")) {
@@ -249,10 +251,10 @@ public abstract class AbstractQueryTest {
             f.readFully(data);
             f.close();
             throw new Exception("Results in " + output.getPath()
-                    + " don't match expected "
-                    + "results in " + input.getPath()
-                    + "; compare the files for details; got=\n" +
-                    new String(data, StandardCharsets.UTF_8));
+                + " don't match expected "
+                + "results in " + input.getPath()
+                + "; compare the files for details; got=\n" +
+                new String(data, StandardCharsets.UTF_8));
         }
     }
 
@@ -268,7 +270,8 @@ public abstract class AbstractQueryTest {
         return executeQuery(query, language, pathsOnly, false);
     }
 
-    protected List<String> executeQuery(String query, String language, boolean pathsOnly, boolean skipSort) {
+    protected List<String> executeQuery(String query, String language, boolean pathsOnly,
+        boolean skipSort) {
         long time = System.currentTimeMillis();
         List<String> lines = new ArrayList<String>();
         try {
@@ -317,17 +320,17 @@ public abstract class AbstractQueryTest {
     }
 
     protected List<String> assertQuery(String sql, String language,
-                                       List<String> expected) {
+        List<String> expected) {
         return assertQuery(sql, language, expected, false);
     }
 
     protected List<String> assertQuery(String sql, String language,
-                                       List<String> expected, boolean skipSort) {
+        List<String> expected, boolean skipSort) {
         return assertQuery(sql, language, expected, skipSort, false);
     }
 
     protected List<String> assertQuery(String sql, String language,
-                                       List<String> expected, boolean skipSort, boolean checkSort) {
+        List<String> expected, boolean skipSort, boolean checkSort) {
         List<String> paths = executeQuery(sql, language, true, skipSort);
         if (checkSort) {
             assertResultSorted(expected, paths);
@@ -337,20 +340,22 @@ public abstract class AbstractQueryTest {
         return paths;
     }
 
-    protected static void assertResultSorted(@NotNull List<String> expected, @NotNull List<String> actual) {
+    protected static void assertResultSorted(@NotNull List<String> expected,
+        @NotNull List<String> actual) {
         assertEquals("Result set size is different: " + actual, expected.size(),
-                actual.size());
+            actual.size());
 
         assertEquals("Expected sorted result not found", expected, actual);
     }
 
-    protected static void assertResult(@NotNull List<String> expected, @NotNull List<String> actual) {
+    protected static void assertResult(@NotNull List<String> expected,
+        @NotNull List<String> actual) {
         for (String p : checkNotNull(expected)) {
             assertTrue("Expected path " + p + " not found, got " + actual, checkNotNull(actual)
-                    .contains(p));
+                .contains(p));
         }
         assertEquals("Result set size is different: " + actual, expected.size(),
-                actual.size());
+            actual.size());
     }
 
     protected void setTraversalEnabled(boolean traversalEnabled) {
@@ -401,12 +406,13 @@ public abstract class AbstractQueryTest {
      */
     protected static boolean isDebugModeEnabled() {
         return java.lang.management.ManagementFactory.getRuntimeMXBean()
-                .getInputArguments().toString().indexOf("-agentlib:jdwp") > 0;
+                                                     .getInputArguments().toString()
+                                                     .indexOf("-agentlib:jdwp") > 0;
     }
 
     /**
      * Applies the commit string to a given Root instance
-     *
+     * <p>
      * The commit string represents a sequence of operations, jsonp style:
      *
      * <p>
@@ -422,7 +428,7 @@ public abstract class AbstractQueryTest {
      * @throws UnsupportedOperationException if the operation is not supported
      */
     private static void apply(Root root, String commit)
-            throws UnsupportedOperationException {
+        throws UnsupportedOperationException {
         int index = commit.indexOf(' ');
         String path = commit.substring(0, index).trim();
         Tree c = root.getTree(path);
@@ -438,8 +444,8 @@ public abstract class AbstractQueryTest {
             addTree(c, tokenizer);
         } else {
             throw new UnsupportedOperationException(
-                    "Unsupported " + (char) tokenizer.read()
-                            + ". This should be either '+' or '-'.");
+                "Unsupported " + (char) tokenizer.read()
+                    + ". This should be either '+' or '-'.");
         }
     }
 
@@ -474,8 +480,9 @@ public abstract class AbstractQueryTest {
 
     /**
      * Read a {@code PropertyState} from a {@link JsopReader}
-     * @param name  The name of the property state
-     * @param reader  The reader
+     *
+     * @param name   The name of the property state
+     * @param reader The reader
      * @return new property state
      */
     private static PropertyState readProperty(String name, JsopReader reader) {
@@ -507,8 +514,9 @@ public abstract class AbstractQueryTest {
 
     /**
      * Read a multi valued {@code PropertyState} from a {@link JsopReader}
-     * @param name  The name of the property state
-     * @param reader  The reader
+     *
+     * @param name   The name of the property state
+     * @param reader The reader
      * @return new property state
      */
     private static PropertyState readArrayProperty(String name, JsopReader reader) {
@@ -589,8 +597,8 @@ public abstract class AbstractQueryTest {
     }
 
     /**
-     * A line reader that supports multi-line statements, where lines that start
-     * with a space belong to the previous line.
+     * A line reader that supports multi-line statements, where lines that start with a space belong
+     * to the previous line.
      */
     class ContinueLineReader {
 

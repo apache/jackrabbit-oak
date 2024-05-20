@@ -25,20 +25,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BooleanConstraint implements Predicate<Value> {
+
     private static final Logger log = LoggerFactory.getLogger(BooleanConstraint.class);
 
     private final Boolean requiredValue;
 
-    public BooleanConstraint(String definition)  {
+    public BooleanConstraint(String definition) {
         if ("true".equals(definition)) {
             requiredValue = true;
-        }
-        else if ("false".equals(definition)) {
+        } else if ("false".equals(definition)) {
             requiredValue = false;
-        }
-        else {
+        } else {
             requiredValue = null;
-            log.warn('\'' + definition + "' is not a valid value constraint format for boolean values");
+            log.warn(
+                '\'' + definition + "' is not a valid value constraint format for boolean values");
         }
     }
 
@@ -46,8 +46,7 @@ public class BooleanConstraint implements Predicate<Value> {
     public boolean test(Value value) {
         try {
             return value != null && requiredValue != null && value.getBoolean() == requiredValue;
-        }
-        catch (RepositoryException e) {
+        } catch (RepositoryException e) {
             log.warn("Error checking boolean constraint " + this, e);
             return false;
         }

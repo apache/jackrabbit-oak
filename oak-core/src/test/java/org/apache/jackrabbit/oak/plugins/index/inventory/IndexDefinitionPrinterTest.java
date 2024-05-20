@@ -43,12 +43,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class IndexDefinitionPrinterTest {
+
     private NodeStore store = new MemoryNodeStore();
     private IndexPathService pathService = mock(IndexPathService.class);
     private IndexDefinitionPrinter printer = new IndexDefinitionPrinter(store, pathService);
 
     @Test
-    public void printer() throws Exception{
+    public void printer() throws Exception {
         NodeBuilder builder = store.getRoot().builder();
         builder.child("a").setProperty("foo", "bar");
         builder.child("a").setProperty(":foo", "bar");
@@ -76,7 +77,7 @@ public class IndexDefinitionPrinterTest {
     }
 
     @Test
-    public void binaryProps() throws Exception{
+    public void binaryProps() throws Exception {
         NodeBuilder builder = store.getRoot().builder();
         builder.child("a").setProperty("foo", new ArrayBasedBlob("hello".getBytes()));
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);

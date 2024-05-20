@@ -44,7 +44,7 @@ import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 
 class PropertyDefinitionTemplateImpl extends ItemDefinitionTemplate
-        implements PropertyDefinitionTemplate {
+    implements PropertyDefinitionTemplate {
 
     private static final String[] ALL_OPERATORS = new String[]{
         QueryObjectModelConstants.JCR_OPERATOR_EQUAL_TO,
@@ -75,8 +75,8 @@ class PropertyDefinitionTemplateImpl extends ItemDefinitionTemplate
     }
 
     PropertyDefinitionTemplateImpl(
-            NameMapper mapper, PropertyDefinition definition)
-            throws ConstraintViolationException {
+        NameMapper mapper, PropertyDefinition definition)
+        throws ConstraintViolationException {
         super(mapper, definition);
         setRequiredType(definition.getRequiredType());
         setMultiple(definition.isMultiple());
@@ -88,8 +88,8 @@ class PropertyDefinitionTemplateImpl extends ItemDefinitionTemplate
     }
 
     /**
-     * Writes the contents of this property definition to the given tree node.
-     * Used when registering new node types.
+     * Writes the contents of this property definition to the given tree node. Used when registering
+     * new node types.
      *
      * @param tree an {@code nt:propertyDefinition} node
      * @throws RepositoryException if this definition could not be written
@@ -99,26 +99,26 @@ class PropertyDefinitionTemplateImpl extends ItemDefinitionTemplate
         super.writeTo(tree);
 
         tree.setProperty(
-                JCR_REQUIREDTYPE,
-                PropertyType.nameFromValue(requiredType).toUpperCase(Locale.ENGLISH));
+            JCR_REQUIREDTYPE,
+            PropertyType.nameFromValue(requiredType).toUpperCase(Locale.ENGLISH));
         tree.setProperty(JCR_MULTIPLE, isMultiple);
         tree.setProperty(JCR_IS_FULLTEXT_SEARCHABLE, fullTextSearchable);
         tree.setProperty(JCR_IS_QUERY_ORDERABLE, queryOrderable);
         tree.setProperty(
-                JCR_AVAILABLE_QUERY_OPERATORS,
-                Arrays.asList(queryOperators), Type.NAMES); // TODO: mapping?
+            JCR_AVAILABLE_QUERY_OPERATORS,
+            Arrays.asList(queryOperators), Type.NAMES); // TODO: mapping?
 
         if (valueConstraints != null) {
             tree.setProperty(
-                    JCR_VALUECONSTRAINTS,
-                    Arrays.asList(valueConstraints), Type.STRINGS);
+                JCR_VALUECONSTRAINTS,
+                Arrays.asList(valueConstraints), Type.STRINGS);
         } else {
             tree.removeProperty(JCR_VALUECONSTRAINTS);
         }
 
         if (defaultValues != null) {
             tree.setProperty(PropertyStates.createProperty(
-                    JCR_DEFAULTVALUES, Arrays.asList(defaultValues)));
+                JCR_DEFAULTVALUES, Arrays.asList(defaultValues)));
         } else {
             tree.removeProperty(JCR_DEFAULTVALUES);
         }
@@ -191,7 +191,7 @@ class PropertyDefinitionTemplateImpl extends ItemDefinitionTemplate
         } else {
             this.valueConstraints = new String[constraints.length];
             System.arraycopy(
-                    constraints, 0, valueConstraints, 0, constraints.length);
+                constraints, 0, valueConstraints, 0, constraints.length);
         }
     }
 

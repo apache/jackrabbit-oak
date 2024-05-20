@@ -53,17 +53,20 @@ public class UserConfigurationImplOSGiTest extends AbstractSecurityTest {
     @Test
     public void testActivate() {
         UserConfiguration userConfiguration = new UserConfigurationImpl(getSecurityProvider());
-        context.registerInjectActivateService(userConfiguration, ImmutableMap.of(PARAM_DEFAULT_DEPTH, "8"));
+        context.registerInjectActivateService(userConfiguration,
+            ImmutableMap.of(PARAM_DEFAULT_DEPTH, "8"));
 
         ConfigurationParameters params = userConfiguration.getParameters();
-        assertEquals(8, params.getConfigValue(PARAM_DEFAULT_DEPTH, UserConstants.DEFAULT_DEPTH).intValue());
+        assertEquals(8,
+            params.getConfigValue(PARAM_DEFAULT_DEPTH, UserConstants.DEFAULT_DEPTH).intValue());
     }
-    
+
     @Test
     public void testDeactivate() {
         UserConfiguration userConfiguration = new UserConfigurationImpl(getSecurityProvider());
-        ServiceRegistration sr = context.bundleContext().registerService(new String[] {UserConfiguration.class.getName(), SecurityConfiguration.class.getName()}, 
-                userConfiguration, null);
+        ServiceRegistration sr = context.bundleContext().registerService(
+            new String[]{UserConfiguration.class.getName(), SecurityConfiguration.class.getName()},
+            userConfiguration, null);
         assertNotNull(context.getService(UserConfiguration.class));
         sr.unregister();
         assertNull(context.getService(UserConfiguration.class));
@@ -71,7 +74,8 @@ public class UserConfigurationImplOSGiTest extends AbstractSecurityTest {
 
     @Test
     public void testBlobAccessProviderFromNullWhiteboard() throws Exception {
-        SecurityProvider sp = mock(SecurityProvider.class, withSettings().extraInterfaces(WhiteboardAware.class));
+        SecurityProvider sp = mock(SecurityProvider.class,
+            withSettings().extraInterfaces(WhiteboardAware.class));
 
         UserConfigurationImpl uc = new UserConfigurationImpl(sp);
         uc.setParameters(ConfigurationParameters.EMPTY);
@@ -88,7 +92,7 @@ public class UserConfigurationImplOSGiTest extends AbstractSecurityTest {
         f.setAccessible(true);
         assertSame(PartialValueFactory.DEFAULT_BLOB_ACCESS_PROVIDER, f.get(vf));
     }
-    
+
     @Test
     public void testBindBlobAccessProvider() throws Exception {
         UserConfigurationImpl uc = new UserConfigurationImpl(getSecurityProvider());
@@ -102,8 +106,8 @@ public class UserConfigurationImplOSGiTest extends AbstractSecurityTest {
         assertSame(PartialValueFactory.DEFAULT_BLOB_ACCESS_PROVIDER, f.get(uc));
 
         ServiceRegistration reg = context.bundleContext().registerService(
-                BlobAccessProvider.class.getName(),
-                bap, new Hashtable<String, Object>());
+            BlobAccessProvider.class.getName(),
+            bap, new Hashtable<String, Object>());
         //Validate newly registered service
         assertSame(bap, f.get(uc));
 

@@ -32,7 +32,8 @@ public class ValidationEntry {
     // optional index not used for equality/hashcode
     protected final int index;
 
-    public ValidationEntry(@NotNull String principalName, @NotNull PrivilegeBits privilegeBits, boolean isAllow, @NotNull Set<Restriction> restrictions) {
+    public ValidationEntry(@NotNull String principalName, @NotNull PrivilegeBits privilegeBits,
+        boolean isAllow, @NotNull Set<Restriction> restrictions) {
         this.principalName = principalName;
         this.privilegeBits = privilegeBits;
         this.isAllow = isAllow;
@@ -40,7 +41,8 @@ public class ValidationEntry {
         this.index = -1;
     }
 
-    public ValidationEntry(@NotNull String principalName, @NotNull PrivilegeBits privilegeBits, boolean isAllow, @NotNull Set<Restriction> restrictions, int index) {
+    public ValidationEntry(@NotNull String principalName, @NotNull PrivilegeBits privilegeBits,
+        boolean isAllow, @NotNull Set<Restriction> restrictions, int index) {
         this.principalName = principalName;
         this.privilegeBits = privilegeBits;
         this.isAllow = isAllow;
@@ -60,10 +62,10 @@ public class ValidationEntry {
         }
         if (o instanceof ValidationEntry) {
             ValidationEntry other = (ValidationEntry) o;
-            return isAllow ==  other.isAllow
-                    && Objects.equal(principalName, other.principalName)
-                    && privilegeBits.equals(other.privilegeBits)
-                    && restrictions.equals(other.restrictions);
+            return isAllow == other.isAllow
+                && Objects.equal(principalName, other.principalName)
+                && privilegeBits.equals(other.privilegeBits)
+                && restrictions.equals(other.restrictions);
         }
         return false;
     }

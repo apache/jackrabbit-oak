@@ -154,7 +154,7 @@ public class AuthorizableImplTest extends AbstractAutoSaveTest {
 
     @Test
     public void testSetPropertyMv() throws Exception {
-        Value[] v = new Value[] {};
+        Value[] v = new Value[]{};
         a.setProperty("propName", v);
         verify(dlg, times(1)).setProperty("propName", v);
         verify(autosaveMgr, times(1)).autosave();
@@ -197,9 +197,10 @@ public class AuthorizableImplTest extends AbstractAutoSaveTest {
     public void testEquals() throws Exception {
         Authorizable dlg = getTestUser();
         AuthorizableImpl wrapped = new AuthorizableImpl(dlg, autosaveMgr);
-        assertEquals(wrapped,  wrapped);
+        assertEquals(wrapped, wrapped);
         assertEquals(wrapped, new AuthorizableImpl(dlg, autosaveMgr));
-        assertEquals(wrapped, new UserImpl(getTestUser(), new AutoSaveEnabledManager(getUserManager(root), root)));
+        assertEquals(wrapped,
+            new UserImpl(getTestUser(), new AutoSaveEnabledManager(getUserManager(root), root)));
     }
 
     @Test

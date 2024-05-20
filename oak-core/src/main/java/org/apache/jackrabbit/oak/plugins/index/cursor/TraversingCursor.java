@@ -49,7 +49,7 @@ class TraversingCursor extends AbstractCursor {
     private final Filter filter;
 
     private final Deque<Iterator<? extends ChildNodeEntry>> nodeIterators =
-            Queues.newArrayDeque();
+        Queues.newArrayDeque();
 
     private String parentPath;
 
@@ -58,11 +58,11 @@ class TraversingCursor extends AbstractCursor {
     private long readCount;
 
     private boolean init;
-    
+
     private boolean closed;
-    
+
     private final QueryLimits settings;
-    
+
     public TraversingCursor(Filter filter, NodeState rootState) {
         this.filter = filter;
         this.settings = filter.getQueryLimits();
@@ -72,7 +72,7 @@ class TraversingCursor extends AbstractCursor {
         currentPath = "/";
         NodeState parent = null;
         NodeState node = rootState;
-        
+
         if (filter.containsNativeConstraint()) {
             // OAK-4313: if no other index was found,
             // then, for native queries, we won't match anything
@@ -87,7 +87,8 @@ class TraversingCursor extends AbstractCursor {
         Filter.PropertyRestriction facetRestriction = filter.getPropertyRestriction(REP_FACET);
         if (facetRestriction != null) {
             // we don't evaluate facets by traversal
-            throw new IllegalArgumentException(facetRestriction + " can't be evaluated by traversal");
+            throw new IllegalArgumentException(
+                facetRestriction + " can't be evaluated by traversal");
         }
 
         if (!path.equals("/")) {
@@ -105,26 +106,26 @@ class TraversingCursor extends AbstractCursor {
         }
         Filter.PathRestriction restriction = filter.getPathRestriction();
         switch (restriction) {
-        case NO_RESTRICTION:
-        case EXACT:
-        case ALL_CHILDREN:
-            nodeIterators.add(Iterators.singletonIterator(
-                    new MemoryChildNodeEntry(currentPath, node)));
-            parentPath = "";
-            break;
-        case PARENT:
-            if (parent != null) {
+            case NO_RESTRICTION:
+            case EXACT:
+            case ALL_CHILDREN:
                 nodeIterators.add(Iterators.singletonIterator(
-                        new MemoryChildNodeEntry(parentPath, parent)));
+                    new MemoryChildNodeEntry(currentPath, node)));
                 parentPath = "";
-            }
-            break;
-        case DIRECT_CHILDREN:
-            nodeIterators.add(node.getChildNodeEntries().iterator());
-            parentPath = currentPath;
-            break;
-        default:
-            throw new IllegalArgumentException("Unknown restriction: " + restriction);
+                break;
+            case PARENT:
+                if (parent != null) {
+                    nodeIterators.add(Iterators.singletonIterator(
+                        new MemoryChildNodeEntry(parentPath, parent)));
+                    parentPath = "";
+                }
+                break;
+            case DIRECT_CHILDREN:
+                nodeIterators.add(node.getChildNodeEntries().iterator());
+                parentPath = currentPath;
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown restriction: " + restriction);
         }
     }
 
@@ -141,8 +142,8 @@ class TraversingCursor extends AbstractCursor {
         fetchNext();
         return result;
     }
-    
-    @Override 
+
+    @Override
     public boolean hasNext() {
         if (!closed && !init) {
             fetchNext();
@@ -160,13 +161,16 @@ class TraversingCursor extends AbstractCursor {
                 readCount++;
                 if (readCount % 1000 == 0) {
                     if (readCount == 20000) {
-                        LOG.warn("Traversed {} nodes with filter {}; consider creating an index or changing the query",
-                                readCount, filter, new Exception("call stack"));
+                        LOG.warn(
+                            "Traversed {} nodes with filter {}; consider creating an index or changing the query",
+                            readCount, filter, new Exception("call stack"));
                     } else {
                         FilterIterators.checkReadLimit(readCount, settings);
-                        String caller = IndexUtils.getCaller(this.settings.getIgnoredClassNamesInCallTrace());
-                        LOG.warn("Traversed {} nodes with filter {} called by {}; consider creating an index or changing the query",
-                                readCount, filter, caller);
+                        String caller = IndexUtils.getCaller(
+                            this.settings.getIgnoredClassNamesInCallTrace());
+                        LOG.warn(
+                            "Traversed {} nodes with filter {} called by {}; consider creating an index or changing the query",
+                            readCount, filter, caller);
                     }
                 }
 
@@ -179,8 +183,8 @@ class TraversingCursor extends AbstractCursor {
                 currentPath = PathUtils.concat(parentPath, name);
 
                 PathRestriction r = filter.getPathRestriction();
-                if (r == PathRestriction.ALL_CHILDREN || 
-                        r == PathRestriction.NO_RESTRICTION) {
+                if (r == PathRestriction.ALL_CHILDREN ||
+                    r == PathRestriction.NO_RESTRICTION) {
                     nodeIterators.addLast(node.getChildNodeEntries().iterator());
                     parentPath = currentPath;
                 }

@@ -65,12 +65,16 @@ public abstract class AbstractTokenTest extends AbstractSecurityTest implements 
     }
 
     @NotNull
-    TokenProviderImpl createTokenProvider(@NotNull Root root, @NotNull UserConfiguration userConfiguration) {
-        return createTokenProvider(root, getTokenConfig(), userConfiguration, SimpleCredentialsSupport.getInstance());
+    TokenProviderImpl createTokenProvider(@NotNull Root root,
+        @NotNull UserConfiguration userConfiguration) {
+        return createTokenProvider(root, getTokenConfig(), userConfiguration,
+            SimpleCredentialsSupport.getInstance());
     }
 
     @NotNull
-    TokenProviderImpl createTokenProvider(@NotNull Root root, @NotNull ConfigurationParameters options, @NotNull UserConfiguration userConfiguration, @NotNull CredentialsSupport credentialsSupport) {
+    TokenProviderImpl createTokenProvider(@NotNull Root root,
+        @NotNull ConfigurationParameters options, @NotNull UserConfiguration userConfiguration,
+        @NotNull CredentialsSupport credentialsSupport) {
         return new TokenProviderImpl(root, options, userConfiguration, credentialsSupport);
     }
 
@@ -91,7 +95,7 @@ public abstract class AbstractTokenTest extends AbstractSecurityTest implements 
 
     @NotNull
     Tree replaceTokenTree(@NotNull TokenInfo base, @NotNull Tree parent,
-                          @NotNull String ntName) throws AccessDeniedException {
+        @NotNull String ntName) throws AccessDeniedException {
         Tree tokenTree = getTokenTree(base);
         Tree tree = TreeUtil.addChild(parent, "token", ntName);
         tree.setProperty(tokenTree.getProperty(JcrConstants.JCR_UUID));

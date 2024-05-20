@@ -106,7 +106,8 @@ public class TokenValidatorTest extends AbstractTokenTest {
         Tree tokenTree = getTokenTree(info);
 
         try {
-            tokenTree.setProperty(TOKEN_ATTRIBUTE_KEY, PasswordUtil.buildPasswordHash("anotherValue"));
+            tokenTree.setProperty(TOKEN_ATTRIBUTE_KEY,
+                PasswordUtil.buildPasswordHash("anotherValue"));
             root.commit(CommitMarker.asCommitAttributes());
             fail("The token key must never be modified.");
         } catch (CommitFailedException e) {
@@ -239,7 +240,8 @@ public class TokenValidatorTest extends AbstractTokenTest {
         Tree userTree = getUserTree(userId);
         Tree t = null;
         try {
-            t = replaceTokenTree(info, userTree.getChild(TOKENS_NODE_NAME), JcrConstants.NT_UNSTRUCTURED);
+            t = replaceTokenTree(info, userTree.getChild(TOKENS_NODE_NAME),
+                JcrConstants.NT_UNSTRUCTURED);
             root.commit(CommitMarker.asCommitAttributes());
 
             fail("The token node must be of type rep:Token.");
@@ -351,10 +353,12 @@ public class TokenValidatorTest extends AbstractTokenTest {
 
         try {
             Tree tokensTree = getTokenTree(info).getParent();
-            tokensTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
+            tokensTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED,
+                Type.NAME);
 
             root.commit();
-            fail("The primary type of the token parent must not be changed from rep:Unstructured to another type.");
+            fail(
+                "The primary type of the token parent must not be changed from rep:Unstructured to another type.");
         } catch (CommitFailedException e) {
             assertEquals(69, e.getCode());
         } finally {
@@ -365,7 +369,7 @@ public class TokenValidatorTest extends AbstractTokenTest {
     @Test
     public void testChangeRegularRepUnstructuredPrimaryType() throws Exception {
         Tree userTree = getUserTree(userId);
-        Tree n = TreeUtil.getOrAddChild(userTree,"test", NodeTypeConstants.NT_REP_UNSTRUCTURED);
+        Tree n = TreeUtil.getOrAddChild(userTree, "test", NodeTypeConstants.NT_REP_UNSTRUCTURED);
         root.commit();
 
         n.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
@@ -374,18 +378,21 @@ public class TokenValidatorTest extends AbstractTokenTest {
 
     @Test
     public void testChangeToReservedTokenNodeType() throws Exception {
-        String parentPath = getTestUser().getPath() + "/"+TokenConstants.TOKENS_NODE_NAME;
-        String path = parentPath+"/node";
+        String parentPath = getTestUser().getPath() + "/" + TokenConstants.TOKENS_NODE_NAME;
+        String path = parentPath + "/node";
         try {
-            Tree t = root.getTree(getTestUser().getPath()).addChild(TokenConstants.TOKENS_NODE_NAME);
+            Tree t = root.getTree(getTestUser().getPath())
+                         .addChild(TokenConstants.TOKENS_NODE_NAME);
             t.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
-            t.addChild("node").setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
+            t.addChild("node")
+             .setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
             root.commit();
 
             Tree node = root.getTree(path);
             node.setProperty(JcrConstants.JCR_PRIMARYTYPE, TokenConstants.TOKEN_NT_NAME, Type.NAME);
             node.setProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
-            node.setProperty(TokenConstants.TOKEN_ATTRIBUTE_KEY, PasswordUtil.buildPasswordHash("key"));
+            node.setProperty(TokenConstants.TOKEN_ATTRIBUTE_KEY,
+                PasswordUtil.buildPasswordHash("key"));
             node.setProperty(TokenConstants.TOKEN_ATTRIBUTE_EXPIRY, getDateValue(), Type.DATE);
             root.commit(CommitMarker.asCommitAttributes());
         } catch (CommitFailedException e) {
@@ -399,9 +406,11 @@ public class TokenValidatorTest extends AbstractTokenTest {
 
     @Test
     public void testReservedPropertyAddedValidParent() throws Exception {
-        Tree tokenTree = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "name", TOKEN_NT_NAME);
+        Tree tokenTree = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "name",
+            TOKEN_NT_NAME);
         Validator v = createRootValidator(tokenTree, tokenTree);
-        v.propertyAdded(PropertyStates.createProperty(TokenConstants.TOKEN_ATTRIBUTE_EXPIRY, "anyValue"));
+        v.propertyAdded(
+            PropertyStates.createProperty(TokenConstants.TOKEN_ATTRIBUTE_EXPIRY, "anyValue"));
     }
 
     @Test(expected = CommitFailedException.class)
@@ -409,7 +418,8 @@ public class TokenValidatorTest extends AbstractTokenTest {
         Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
         try {
             Validator v = createRootValidator(rootTree, rootTree);
-            v.propertyAdded(PropertyStates.createProperty(TokenConstants.TOKEN_ATTRIBUTE_EXPIRY, "anyValue"));
+            v.propertyAdded(
+                PropertyStates.createProperty(TokenConstants.TOKEN_ATTRIBUTE_EXPIRY, "anyValue"));
         } catch (CommitFailedException e) {
             assertTrue(e.isConstraintViolation());
             assertEquals(60, e.getCode());
@@ -424,7 +434,8 @@ public class TokenValidatorTest extends AbstractTokenTest {
 
         Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
         try {
-            Validator v = createValidator(rootTree, rootTree, tokenTree.getParent().getPath(), false);
+            Validator v = createValidator(rootTree, rootTree, tokenTree.getParent().getPath(),
+                false);
             v.childNodeAdded(tokenTree.getName(), getTreeProvider().asNodeState(tokenTree));
         } catch (CommitFailedException e) {
             assertTrue(e.isConstraintViolation());
@@ -438,7 +449,8 @@ public class TokenValidatorTest extends AbstractTokenTest {
     @Test(expected = CommitFailedException.class)
     public void testAddTokenTreeMissingTokensParent() throws Exception {
         Tree tokenTree = getTokenTree(createTokenInfo(tokenProvider, userId));
-        root.move(tokenTree.getPath(), PathUtils.concat(getTestUser().getPath(), tokenTree.getName()));
+        root.move(tokenTree.getPath(),
+            PathUtils.concat(getTestUser().getPath(), tokenTree.getName()));
         Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
 
         try {
@@ -460,14 +472,18 @@ public class TokenValidatorTest extends AbstractTokenTest {
         Tree tokenTree = getTokenTree(createTokenInfo(tokenProvider, userId));
         Tree tokensTree = tokenTree.getParent();
         // move .tokens node one level up
-        String destPath = PathUtils.concat(PathUtils.getParentPath(getTestUser().getPath()), tokensTree.getName());
+        String destPath = PathUtils.concat(PathUtils.getParentPath(getTestUser().getPath()),
+            tokensTree.getName());
         root.move(tokensTree.getPath(), destPath);
         try {
             // create a validator that has 'tokensTree' as parentBefore and parentAfter
             NodeState ns = getTreeProvider().asNodeState(tokensTree);
-            TreeProvider tp = when(mock(TreeProvider.class).createReadOnlyTree(ns)).thenReturn(tokensTree).getMock();
-            TokenValidatorProvider tvp = new TokenValidatorProvider(ConfigurationParameters.EMPTY, tp);
-            Validator v = tvp.getRootValidator(ns, ns, new CommitInfo("sid", "uid", CommitMarker.asCommitAttributes()));
+            TreeProvider tp = when(mock(TreeProvider.class).createReadOnlyTree(ns)).thenReturn(
+                tokensTree).getMock();
+            TokenValidatorProvider tvp = new TokenValidatorProvider(ConfigurationParameters.EMPTY,
+                tp);
+            Validator v = tvp.getRootValidator(ns, ns,
+                new CommitInfo("sid", "uid", CommitMarker.asCommitAttributes()));
             assertNotNull(v);
             v.childNodeChanged(tokenTree.getName(), mock(NodeState.class), mock(NodeState.class));
         } catch (CommitFailedException e) {
@@ -486,7 +502,8 @@ public class TokenValidatorTest extends AbstractTokenTest {
 
         Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
         try {
-            Validator v = createValidator(rootTree, rootTree, tokenTree.getParent().getPath(), true);
+            Validator v = createValidator(rootTree, rootTree, tokenTree.getParent().getPath(),
+                true);
             v.childNodeAdded(tokenTree.getName(), getTreeProvider().asNodeState(tokenTree));
         } catch (CommitFailedException e) {
             assertTrue(e.isConstraintViolation());
@@ -527,18 +544,24 @@ public class TokenValidatorTest extends AbstractTokenTest {
 
     @NotNull
     private Validator createRootValidator(@NotNull Tree before, @NotNull Tree after) {
-        TokenValidatorProvider tvp = new TokenValidatorProvider(ConfigurationParameters.EMPTY, getTreeProvider());
-        Validator v = tvp.getRootValidator(getTreeProvider().asNodeState(before), getTreeProvider().asNodeState(after), new CommitInfo("sid", "uid", CommitMarker.asCommitAttributes()));
+        TokenValidatorProvider tvp = new TokenValidatorProvider(ConfigurationParameters.EMPTY,
+            getTreeProvider());
+        Validator v = tvp.getRootValidator(getTreeProvider().asNodeState(before),
+            getTreeProvider().asNodeState(after),
+            new CommitInfo("sid", "uid", CommitMarker.asCommitAttributes()));
         assertNotNull(v);
         return v;
     }
 
     @NotNull
-    private Validator createValidator(@NotNull Tree before, @NotNull Tree after, @NotNull String path, boolean isAdd) throws CommitFailedException {
-        TokenValidatorProvider tvp = new TokenValidatorProvider(ConfigurationParameters.EMPTY, getTreeProvider());
+    private Validator createValidator(@NotNull Tree before, @NotNull Tree after,
+        @NotNull String path, boolean isAdd) throws CommitFailedException {
+        TokenValidatorProvider tvp = new TokenValidatorProvider(ConfigurationParameters.EMPTY,
+            getTreeProvider());
         NodeState b = getTreeProvider().asNodeState(before);
         NodeState a = getTreeProvider().asNodeState(after);
-        Validator v = tvp.getRootValidator(b, a, new CommitInfo("sid", "uid", CommitMarker.asCommitAttributes()));
+        Validator v = tvp.getRootValidator(b, a,
+            new CommitInfo("sid", "uid", CommitMarker.asCommitAttributes()));
         for (String name : PathUtils.elements(path)) {
             assertNotNull(v);
             b = b.getChildNode(name);

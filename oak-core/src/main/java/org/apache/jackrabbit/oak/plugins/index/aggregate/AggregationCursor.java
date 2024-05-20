@@ -65,7 +65,7 @@ class AggregationCursor extends AbstractCursor {
     private Set<String> seenPaths = new HashSet<String>();
 
     public AggregationCursor(Cursor cursor, QueryIndex.NodeAggregator aggregator,
-            NodeState rootState) {
+        NodeState rootState) {
         this.cursor = cursor;
         this.aggregator = aggregator;
         this.rootState = rootState;
@@ -92,9 +92,9 @@ class AggregationCursor extends AbstractCursor {
             if (!currentRow.isVirtualRow()) {
                 String path = currentRow.getPath();
                 aggregates = Iterators.filter(Iterators.concat(
-                        Iterators.singletonIterator(path),
-                        aggregator.getParents(rootState, path)), Predicates
-                        .not(Predicates.in(seenPaths)));
+                    Iterators.singletonIterator(path),
+                    aggregator.getParents(rootState, path)), Predicates
+                    .not(Predicates.in(seenPaths)));
             }
             fetchNext();
             return;
@@ -131,13 +131,13 @@ class AggregationCursor extends AbstractCursor {
             public PropertyValue getValue(String columnName) {
                 return currentRow.getValue(columnName);
             }
-            
+
         };
     }
-    
+
     @Override
     public long getSize(SizePrecision precision, long max) {
         return cursor.getSize(precision, max);
     }
-    
+
 }

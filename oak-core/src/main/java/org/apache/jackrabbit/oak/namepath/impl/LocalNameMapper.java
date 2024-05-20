@@ -42,17 +42,19 @@ public class LocalNameMapper extends GlobalNameMapper {
     }
 
     public LocalNameMapper(
-            Map<String, String> global, Map<String, String> local) {
+        Map<String, String> global, Map<String, String> local) {
         super(global);
         this.local = local;
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public synchronized Map<String, String> getSessionLocalMappings() {
         return local;
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public synchronized String getJcrName(@NotNull String oakName) {
         checkNotNull(oakName);
         checkArgument(!oakName.startsWith(":"), oakName); // hidden name
@@ -65,7 +67,7 @@ public class LocalNameMapper extends GlobalNameMapper {
                 String uri = getNamespacesProperty(oakPrefix);
                 if (uri == null) {
                     throw new IllegalStateException(
-                            "No namespace mapping found for " + oakName);
+                        "No namespace mapping found for " + oakName);
                 }
 
                 for (Map.Entry<String, String> entry : local.entrySet()) {
@@ -85,8 +87,9 @@ public class LocalNameMapper extends GlobalNameMapper {
                     for (int i = 2; true; i++) {
                         String jcrPrefix = oakPrefix + i;
                         if (!local.containsKey(jcrPrefix)) {
-                            log.warn("no prefix found for namespace name '" + uri + "', using unmapped temporary prefix '"
-                                    + jcrPrefix + "' for now (see OAK-10544)");
+                            log.warn("no prefix found for namespace name '" + uri
+                                + "', using unmapped temporary prefix '"
+                                + jcrPrefix + "' for now (see OAK-10544)");
                             return jcrPrefix + oakName.substring(colon);
                         }
                     }
@@ -97,7 +100,8 @@ public class LocalNameMapper extends GlobalNameMapper {
         return oakName;
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public synchronized String getOakNameOrNull(@NotNull String jcrName) {
         checkNotNull(jcrName);
 
@@ -127,7 +131,7 @@ public class LocalNameMapper extends GlobalNameMapper {
                 // Check that a global mapping is present and not remapped
                 String mapping = getNamespacesProperty(jcrPrefix);
                 if (mapping != null
-                        && local.values().contains(mapping)) {
+                    && local.values().contains(mapping)) {
                     return null;
                 }
             }

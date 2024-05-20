@@ -29,14 +29,14 @@ public class ReadWriteVersionManagerUtil {
      * Remove a version at the given path.
      *
      * @param builder the root builder.
-     * @param path the path of a version to remove.
+     * @param path    the path of a version to remove.
      * @throws CommitFailedException if a constraint is violated.
      */
     public static void removeVersion(NodeBuilder builder, String path)
-            throws CommitFailedException {
+        throws CommitFailedException {
         ReadWriteVersionManager vMgr = new ReadWriteVersionManager(
-                VersionHistoryUtil.getVersionStorage(builder),
-                builder
+            VersionHistoryUtil.getVersionStorage(builder),
+            builder
         );
         String relPath = relativize(VERSION_STORE_PATH, path);
         vMgr.removeVersion(relPath);

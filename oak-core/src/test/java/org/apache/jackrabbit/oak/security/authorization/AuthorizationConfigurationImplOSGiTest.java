@@ -67,7 +67,7 @@ public class AuthorizationConfigurationImplOSGiTest extends AbstractSecurityTest
     public void before() throws Exception {
         super.before();
 
-        authorizationConfiguration =  new AuthorizationConfigurationImpl(getSecurityProvider());
+        authorizationConfiguration = new AuthorizationConfigurationImpl(getSecurityProvider());
         authorizationConfiguration.setTreeProvider(getTreeProvider());
         authorizationConfiguration.setRootProvider(getRootProvider());
 
@@ -81,8 +81,10 @@ public class AuthorizationConfigurationImplOSGiTest extends AbstractSecurityTest
     @Test
     public void testGetParameters() {
         ConfigurationParameters params = authorizationConfiguration.getParameters();
-        assertEquals("administrators", params.getConfigValue(PARAM_ADMINISTRATIVE_PRINCIPALS, "undefined"));
-        assertEquals(PermissionConstants.DEFAULT_READ_PATHS, params.getConfigValue(PARAM_READ_PATHS, ImmutableSet.of()));
+        assertEquals("administrators",
+            params.getConfigValue(PARAM_ADMINISTRATIVE_PRINCIPALS, "undefined"));
+        assertEquals(PermissionConstants.DEFAULT_READ_PATHS,
+            params.getConfigValue(PARAM_READ_PATHS, ImmutableSet.of()));
     }
 
     @Test
@@ -97,19 +99,25 @@ public class AuthorizationConfigurationImplOSGiTest extends AbstractSecurityTest
 
     @Test
     public void testGetWorkspaceInitializer() {
-        assertTrue(authorizationConfiguration.getWorkspaceInitializer() instanceof AuthorizationInitializer);
+        assertTrue(
+            authorizationConfiguration.getWorkspaceInitializer() instanceof AuthorizationInitializer);
     }
 
     @Test
     public void testGetCommitHooks() {
         List<Class> expected = ImmutableList.of(VersionablePathHook.class, PermissionHook.class);
-        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(authorizationConfiguration.getCommitHooks(adminSession.getWorkspaceName()), commitHook -> commitHook.getClass())));
+        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(
+            authorizationConfiguration.getCommitHooks(adminSession.getWorkspaceName()),
+            commitHook -> commitHook.getClass())));
     }
 
     @Test
     public void testGetValidators() {
-        List<Class> expected = ImmutableList.of(PermissionStoreValidatorProvider.class, PermissionValidatorProvider.class, AccessControlValidatorProvider.class);
-        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(authorizationConfiguration.getValidators(adminSession.getWorkspaceName(), ImmutableSet.of(), new MoveTracker()), commitHook -> commitHook.getClass())));
+        List<Class> expected = ImmutableList.of(PermissionStoreValidatorProvider.class,
+            PermissionValidatorProvider.class, AccessControlValidatorProvider.class);
+        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(
+            authorizationConfiguration.getValidators(adminSession.getWorkspaceName(),
+                ImmutableSet.of(), new MoveTracker()), commitHook -> commitHook.getClass())));
     }
 
     @Test
@@ -121,17 +129,20 @@ public class AuthorizationConfigurationImplOSGiTest extends AbstractSecurityTest
 
     @Test
     public void testDefaultMountInfoProvider() {
-        AuthorizationConfigurationImpl ac = new AuthorizationConfigurationImpl(getSecurityProvider());
+        AuthorizationConfigurationImpl ac = new AuthorizationConfigurationImpl(
+            getSecurityProvider());
         ac.setRootProvider(getRootProvider());
         ac.setTreeProvider(getTreeProvider());
 
-        PermissionProvider pp = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of(EveryonePrincipal.getInstance()));
+        PermissionProvider pp = ac.getPermissionProvider(root, adminSession.getWorkspaceName(),
+            ImmutableSet.of(EveryonePrincipal.getInstance()));
         assertTrue(pp instanceof PermissionProviderImpl);
     }
 
     @Test
     public void testBindMountInfoProvider() {
-        PermissionProvider pp = authorizationConfiguration.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of(EveryonePrincipal.getInstance()));
+        PermissionProvider pp = authorizationConfiguration.getPermissionProvider(root,
+            adminSession.getWorkspaceName(), ImmutableSet.of(EveryonePrincipal.getInstance()));
         assertTrue(pp instanceof MountPermissionProvider);
     }
 

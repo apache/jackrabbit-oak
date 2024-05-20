@@ -25,30 +25,29 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * An EventAggregator can be provided via a FilterProvider
- * and is then used to 'aggregate' an event at creation time
- * (ie after filtering).
+ * An EventAggregator can be provided via a FilterProvider and is then used to 'aggregate' an event
+ * at creation time (ie after filtering).
  * <p>
- * Aggregation in this context means to have the event identifier
- * not be the path (as usual) but one of its parents.
- * This allows to have client code use an aggregating filter
- * and ignore the event paths but only inspect the event
- * identifier which is then the aggregation parent node.
+ * Aggregation in this context means to have the event identifier not be the path (as usual) but one
+ * of its parents. This allows to have client code use an aggregating filter and ignore the event
+ * paths but only inspect the event identifier which is then the aggregation parent node.
  */
 public interface EventAggregator {
 
     /**
      * Aggregates a property change
-     * @return 0 or negative for no aggregation, positive indicating
-     * how many levels to aggregate upwards the tree.
+     *
+     * @return 0 or negative for no aggregation, positive indicating how many levels to aggregate
+     * upwards the tree.
      */
     int aggregate(NodeState root, List<ChildNodeEntry> parents, PropertyState propertyState);
-    
+
     /**
      * Aggregates a node change
-     * @return 0 or negative for no aggregation, positive indicating
-     * how many levels to aggregate upwards the tree.
+     *
+     * @return 0 or negative for no aggregation, positive indicating how many levels to aggregate
+     * upwards the tree.
      */
     int aggregate(NodeState root, List<ChildNodeEntry> parents, ChildNodeEntry childNodeState);
-    
+
 }

@@ -55,6 +55,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
+
     private static final Logger log = LoggerFactory.getLogger(MetricStatisticsProvider.class);
 
     private static final String JMX_TYPE_METRICS = "Metrics";
@@ -72,10 +73,10 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         registry = new MetricRegistry();
         repoStats = new RepositoryStatisticsImpl(executor);
         reporter = JmxReporter.forRegistry(registry)
-                .inDomain(WhiteboardUtils.JMX_OAK_DOMAIN)
-                .registerWith(server)
-                .createsObjectNamesWith(new OakNameFactory())
-                .build();
+                              .inDomain(WhiteboardUtils.JMX_OAK_DOMAIN)
+                              .registerWith(server)
+                              .createsObjectNamesWith(new OakNameFactory())
+                              .build();
         reporter.start();
 
         registerAverages();
@@ -125,21 +126,24 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         return repoStats;
     }
 
-    private <T extends Stats> T getStats(String name, StatsBuilder<T> builder, StatsOptions options) {
+    private <T extends Stats> T getStats(String name, StatsBuilder<T> builder,
+        StatsOptions options) {
         Stats stats = statsRegistry.get(name);
         //Use double locking pattern. The map should get populated with required set
         //during startup phase so for later calls should not hit the synchronized block
         if (stats == null) {
-            synchronized (this){
+            synchronized (this) {
                 stats = statsRegistry.get(name);
                 //If still null then go ahead and create it within lock
-                if (stats == null){
+                if (stats == null) {
                     if (options.isOnlyMetricEnabled()) {
                         stats = builder.newMetric(this, name);
                     } else if (options.isOnlyTimeSeriesEnabled()) {
-                        stats = new SimpleStats(getTimerSeriesStats(name, builder), builder.getType());
+                        stats = new SimpleStats(getTimerSeriesStats(name, builder),
+                            builder.getType());
                     } else {
-                        stats = builder.newComposite(getTimerSeriesStats(name, builder), this, name);
+                        stats = builder.newComposite(getTimerSeriesStats(name, builder), this,
+                            name);
                     }
                     statsRegistry.put(name, stats);
                 }
@@ -154,7 +158,7 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         throw new IllegalStateException();
     }
 
-    private AtomicLong getTimerSeriesStats(String name, StatsBuilder builder){
+    private AtomicLong getTimerSeriesStats(String name, StatsBuilder builder) {
         AtomicLong counter;
         Type enumType = Type.getType(name);
         if (enumType != null) {
@@ -168,20 +172,22 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
 
     private void registerAverages() {
         registry.register(typeToName(Type.OBSERVATION_EVENT_AVERAGE),
-                new AvgGauge(compStats(Type.OBSERVATION_EVENT_COUNTER, StatsBuilder.METERS).getMeter(),
-                        compStats(Type.OBSERVATION_EVENT_DURATION, StatsBuilder.TIMERS).getTimer()));
+            new AvgGauge(compStats(Type.OBSERVATION_EVENT_COUNTER, StatsBuilder.METERS).getMeter(),
+                compStats(Type.OBSERVATION_EVENT_DURATION, StatsBuilder.TIMERS).getTimer()));
     }
 
-    private CompositeStats compStats(Type type, StatsBuilder builder){
+    private CompositeStats compStats(Type type, StatsBuilder builder) {
         Stats stats = getStats(typeToName(type), builder, StatsOptions.DEFAULT);
         return (CompositeStats) stats;
     }
 
     @SuppressWarnings("unused")
     private interface StatsBuilder<T extends Stats> {
+
         StatsBuilder<CounterStats> COUNTERS = new StatsBuilder<CounterStats>() {
             @Override
-            public CompositeStats newComposite(AtomicLong delegate, MetricStatisticsProvider provider, String name) {
+            public CompositeStats newComposite(AtomicLong delegate,
+                MetricStatisticsProvider provider, String name) {
                 return new CompositeStats(delegate, provider.registry.counter(name));
             }
 
@@ -203,7 +209,8 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
 
         StatsBuilder<MeterStats> METERS = new StatsBuilder<MeterStats>() {
             @Override
-            public CompositeStats newComposite(AtomicLong delegate, MetricStatisticsProvider provider, String name) {
+            public CompositeStats newComposite(AtomicLong delegate,
+                MetricStatisticsProvider provider, String name) {
                 return new CompositeStats(delegate, getMeter(provider, name));
             }
 
@@ -232,7 +239,8 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         StatsBuilder<TimerStats> TIMERS = new StatsBuilder<TimerStats>() {
 
             @Override
-            public CompositeStats newComposite(AtomicLong delegate, MetricStatisticsProvider provider, String name) {
+            public CompositeStats newComposite(AtomicLong delegate,
+                MetricStatisticsProvider provider, String name) {
                 return new CompositeStats(delegate, provider.registry.timer(name));
             }
 
@@ -255,7 +263,8 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         StatsBuilder<HistogramStats> HISTOGRAMS = new StatsBuilder<HistogramStats>() {
 
             @Override
-            public CompositeStats newComposite(AtomicLong delegate, MetricStatisticsProvider provider, String name) {
+            public CompositeStats newComposite(AtomicLong delegate,
+                MetricStatisticsProvider provider, String name) {
                 return new CompositeStats(delegate, provider.registry.histogram(name));
             }
 
@@ -275,9 +284,10 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
             }
         };
 
-        CompositeStats newComposite(AtomicLong delegate, MetricStatisticsProvider provider, String name);
+        CompositeStats newComposite(AtomicLong delegate, MetricStatisticsProvider provider,
+            String name);
 
-        Stats newMetric(MetricStatisticsProvider provider,String name);
+        Stats newMetric(MetricStatisticsProvider provider, String name);
 
         boolean isInstance(Stats stats);
 
@@ -285,6 +295,7 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
     }
 
     private static class AvgGauge extends RatioGauge {
+
         private final Meter meter;
         private final Timer timer;
 
@@ -297,11 +308,12 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         protected Ratio getRatio() {
             //TODO Should we use getMeanRate
             return Ratio.of(meter.getFifteenMinuteRate(),
-                    timer.getFifteenMinuteRate());
+                timer.getFifteenMinuteRate());
         }
     }
 
     private static class OakNameFactory implements ObjectNameFactory {
+
         @Override
         public ObjectName createName(String type, String domain, String name) {
             Hashtable<String, String> table = new Hashtable<String, String>();
@@ -317,6 +329,7 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
     }
 
     private static class OakMetricClock extends com.codahale.metrics.Clock {
+
         private final Clock clock;
 
         public OakMetricClock(Clock clock) {

@@ -71,8 +71,8 @@ public class TraversingIndexTest {
         assertEquals(Arrays.asList(
                 "/", "/children", "/children/c1", "/children/c2",
                 "/children/c3", "/children/c4", "/parents",
-                "/parents/p0", "/parents/p1",  "/parents/p2"),
-                paths);
+                "/parents/p0", "/parents/p1", "/parents/p2"),
+            paths);
         assertFalse(c.hasNext());
         // endure it stays false
         assertFalse(c.hasNext());
@@ -88,8 +88,10 @@ public class TraversingIndexTest {
     public void testFacets() {
         TraversingIndex traversingIndex = new TraversingIndex();
         Filter mockFilter = mock(Filter.class);
-        when(mockFilter.getPropertyRestriction(REP_FACET)).thenReturn(mock(Filter.PropertyRestriction.class));
-        Assert.assertEquals(traversingIndex.getCost(mockFilter, null), Double.POSITIVE_INFINITY, 0.001);
+        when(mockFilter.getPropertyRestriction(REP_FACET)).thenReturn(
+            mock(Filter.PropertyRestriction.class));
+        Assert.assertEquals(traversingIndex.getCost(mockFilter, null), Double.POSITIVE_INFINITY,
+            0.001);
     }
 
 }

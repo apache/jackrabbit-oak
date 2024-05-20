@@ -75,11 +75,11 @@ public class CursorsTest {
         }
         return buff.toString();
     }
-    
+
     static class SimpleCursor implements Cursor {
-        
+
         final Iterator<IndexRow> rows;
-        
+
         SimpleCursor(String idPrefix, String... paths) {
             ArrayList<IndexRow> list = new ArrayList<IndexRow>();
             for (String p : paths) {
@@ -107,14 +107,14 @@ public class CursorsTest {
         public long getSize(SizePrecision precision, long max) {
             return -1;
         }
-        
+
     }
-    
+
     static class SimpleIndexRow implements IndexRow {
-        
+
         final String path;
         final String id;
-        
+
         SimpleIndexRow(String path, String id) {
             this.path = path;
             this.id = id;
@@ -134,11 +134,11 @@ public class CursorsTest {
         public PropertyValue getValue(String columnName) {
             return null;
         }
-        
+
         @Override
         public String toString() {
             return id;
         }
-        
+
     }
 }

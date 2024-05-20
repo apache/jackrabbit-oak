@@ -25,10 +25,10 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * This {@code EventFilter} implementation excludes events for child nodes
- * of added nodes.
+ * This {@code EventFilter} implementation excludes events for child nodes of added nodes.
  */
 public class AddSubtreeFilter implements EventFilter {
+
     private static final AddSubtreeFilter INCLUDE_ADD = new AddSubtreeFilter(true);
     private static final AddSubtreeFilter EXCLUDE_ADD = new AddSubtreeFilter(false);
 

@@ -135,7 +135,8 @@ public class GroupImplTest extends AbstractAutoSaveTest {
 
     @Test
     public void testRemoveMembersById() throws Exception {
-        assertEquals(ImmutableSet.of(getTestUser().getID()), group.removeMembers("u", getTestUser().getID()));
+        assertEquals(ImmutableSet.of(getTestUser().getID()),
+            group.removeMembers("u", getTestUser().getID()));
         verify(dlg, times(1)).removeMembers("u", getTestUser().getID());
         verify(autosaveMgr, times(1)).autosave();
     }

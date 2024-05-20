@@ -61,24 +61,24 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
         this.meter = meter;
     }
 
-    public Map<String, CorruptIndexInfo> getCorruptIndexData(String asyncName){
-        if (corruptIntervalMillis <= 0){
+    public Map<String, CorruptIndexInfo> getCorruptIndexData(String asyncName) {
+        if (corruptIntervalMillis <= 0) {
             return Collections.emptyMap();
         }
 
         Map<String, CorruptIndexInfo> result = Maps.newHashMap();
-        for (CorruptIndexInfo info : indexes.values()){
-            if (asyncName.equals(info.asyncName) && info.isFailingSinceLongTime()){
+        for (CorruptIndexInfo info : indexes.values()) {
+            if (asyncName.equals(info.asyncName) && info.isFailingSinceLongTime()) {
                 result.put(info.path, info);
             }
         }
         return result;
     }
 
-    public Map<String, CorruptIndexInfo> getFailingIndexData(String asyncName){
+    public Map<String, CorruptIndexInfo> getFailingIndexData(String asyncName) {
         Map<String, CorruptIndexInfo> result = Maps.newHashMap();
-        for (CorruptIndexInfo info : indexes.values()){
-            if (asyncName.equals(info.asyncName)){
+        for (CorruptIndexInfo info : indexes.values()) {
+            if (asyncName.equals(info.asyncName)) {
                 result.put(info.path, info);
             }
         }
@@ -87,10 +87,11 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
 
     public void markWorkingIndexes(Set<String> updatedIndexPaths) {
         indexerCycleCount++;
-        for (String indexPath : updatedIndexPaths){
+        for (String indexPath : updatedIndexPaths) {
             CorruptIndexInfo info = indexes.remove(indexPath);
-            if (info != null){
-                log.info("Index at [{}] which was so far failing {} is now working again.", info.path, info.getStats());
+            if (info != null) {
+                log.info("Index at [{}] which was so far failing {} is now working again.",
+                    info.path, info.getStats());
             }
         }
         if (meter != null) {
@@ -114,8 +115,8 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
         CorruptIndexInfo info = getOrCreateInfo(async, indexPath);
         if (info.skippedIndexing(checkNotNull(corruptSince))) {
             log.warn("Ignoring index [{}] which has been marked as corrupt [{}]. This index " +
-                            "MUST be reindexed to work properly", indexPath,
-                    info.getStats());
+                    "MUST be reindexed to work properly", indexPath,
+                info.getStats());
             return true;
         }
         return false;
@@ -151,13 +152,13 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
         return errorWarnIntervalMillis;
     }
 
-    private long getTime(){
+    private long getTime() {
         return clock.getTime();
     }
 
     private synchronized CorruptIndexInfo getOrCreateInfo(String asyncName, String indexPath) {
         CorruptIndexInfo info = indexes.get(indexPath);
-        if (info == null){
+        if (info == null) {
             info = new CorruptIndexInfo(asyncName, indexPath);
             indexes.put(indexPath, info);
         }
@@ -165,6 +166,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
     }
 
     public class CorruptIndexInfo {
+
         private final String asyncName;
         private final String path;
         private final long lastIndexerCycleCount = indexerCycleCount;
@@ -180,12 +182,12 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
             this.corruptSince = getTime();
         }
 
-        void addFailure(Exception e){
+        void addFailure(Exception e) {
             exception = Throwables.getStackTraceAsString(e);
             failureCount++;
         }
 
-        boolean skippedIndexing(Calendar corruptSince){
+        boolean skippedIndexing(Calendar corruptSince) {
             skippedCount++;
             this.corruptSince = corruptSince.getTimeInMillis();
             if (watch.elapsed(TimeUnit.MILLISECONDS) > errorWarnIntervalMillis) {
@@ -201,7 +203,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
 
         public String getStats() {
             return String.format("since %tc ,%d indexing cycles, failed %d times, skipped %d time",
-                    corruptSince, getCycleCount(), failureCount, skippedCount);
+                corruptSince, getCycleCount(), failureCount, skippedCount);
         }
 
         public Calendar getCorruptSinceAsCal() {
@@ -214,7 +216,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
             return exception;
         }
 
-        public boolean isMarkedAsCorrupt(){
+        public boolean isMarkedAsCorrupt() {
             return skippedCount > 0;
         }
 
@@ -237,7 +239,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
         TabularDataSupport tds;
         try {
             TabularType tt = new TabularType(TrackingCorruptIndexHandler.class.getName(),
-                    "Failing Index Stats", FailingIndexStats.TYPE, new String[]{"path"});
+                "Failing Index Stats", FailingIndexStats.TYPE, new String[]{"path"});
             tds = new TabularDataSupport(tt);
             Map<String, CorruptIndexInfo> infos = getFailingIndexData(asyncName);
             for (Map.Entry<String, CorruptIndexInfo> e : infos.entrySet()) {
@@ -251,29 +253,30 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
     }
 
     private static class FailingIndexStats {
+
         static final String[] FIELD_NAMES = new String[]{
-                "path",
-                "stats",
-                "markedCorrupt",
-                "failingSince",
-                "exception"
+            "path",
+            "stats",
+            "markedCorrupt",
+            "failingSince",
+            "exception"
         };
 
         static final String[] FIELD_DESCRIPTIONS = new String[]{
-                "Path",
-                "Failure stats",
-                "Marked as corrupt",
-                "Failure start time",
-                "Exception"
+            "Path",
+            "Failure stats",
+            "Marked as corrupt",
+            "Failure start time",
+            "Exception"
         };
 
         @SuppressWarnings("rawtypes")
         static final OpenType[] FIELD_TYPES = new OpenType[]{
-                SimpleType.STRING,
-                SimpleType.STRING,
-                SimpleType.BOOLEAN,
-                SimpleType.STRING,
-                SimpleType.STRING,
+            SimpleType.STRING,
+            SimpleType.STRING,
+            SimpleType.BOOLEAN,
+            SimpleType.STRING,
+            SimpleType.STRING,
         };
 
         static final CompositeType TYPE = createCompositeType();
@@ -281,11 +284,11 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
         static CompositeType createCompositeType() {
             try {
                 return new CompositeType(
-                        FailingIndexStats.class.getName(),
-                        "Composite data type for Failing Index statistics",
-                        FailingIndexStats.FIELD_NAMES,
-                        FailingIndexStats.FIELD_DESCRIPTIONS,
-                        FailingIndexStats.FIELD_TYPES);
+                    FailingIndexStats.class.getName(),
+                    "Composite data type for Failing Index statistics",
+                    FailingIndexStats.FIELD_NAMES,
+                    FailingIndexStats.FIELD_DESCRIPTIONS,
+                    FailingIndexStats.FIELD_TYPES);
             } catch (OpenDataException e) {
                 throw new IllegalStateException(e);
             }
@@ -293,17 +296,17 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
 
         private final CorruptIndexInfo info;
 
-        public FailingIndexStats(CorruptIndexInfo info){
+        public FailingIndexStats(CorruptIndexInfo info) {
             this.info = info;
         }
 
         CompositeDataSupport toCompositeData() {
             Object[] values = new Object[]{
-                    info.path,
-                    info.getStats(),
-                    info.isMarkedAsCorrupt(),
-                    String.format("%tc", info.getCorruptSinceAsCal().getTimeInMillis()),
-                    info.getLastException(),
+                info.path,
+                info.getStats(),
+                info.isMarkedAsCorrupt(),
+                String.format("%tc", info.getCorruptSinceAsCal().getTimeInMillis()),
+                info.getLastException(),
             };
             try {
                 return new CompositeDataSupport(TYPE, FIELD_NAMES, values);
@@ -314,6 +317,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
     }
 
     private static class ClockTicker extends Ticker {
+
         private final Clock clock;
 
         public ClockTicker(Clock clock) {

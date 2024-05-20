@@ -66,20 +66,22 @@ import static org.mockito.Mockito.mock;
  * Tests for {@link RestrictionProviderImpl}
  */
 @RunWith(Parameterized.class)
-public class RestrictionProviderImplTest extends AbstractSecurityTest implements AccessControlConstants {
+public class RestrictionProviderImplTest extends AbstractSecurityTest implements
+    AccessControlConstants {
 
     private static final String TEST_RESTR_NAME = "test";
-    
+
     private final boolean asComposite;
     private RestrictionProvider provider;
 
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
         return Arrays.asList(
-                new Object[]{false, "RestrictionProviderImpl as singular provider"},
-                new Object[]{true, "RestrictionProviderImpl as part of a composite restriction provider"});
+            new Object[]{false, "RestrictionProviderImpl as singular provider"},
+            new Object[]{true,
+                "RestrictionProviderImpl as part of a composite restriction provider"});
     }
-    
+
     public RestrictionProviderImplTest(boolean asComposite, String name) {
         this.asComposite = asComposite;
     }
@@ -90,7 +92,9 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
 
         RestrictionProviderImpl rp = new RestrictionProviderImpl();
         if (asComposite) {
-            provider = CompositeRestrictionProvider.newInstance(rp, new TestProvider(Collections.singletonMap(TEST_RESTR_NAME, new RestrictionDefinitionImpl("test", Type.STRING, false))));
+            provider = CompositeRestrictionProvider.newInstance(rp, new TestProvider(
+                Collections.singletonMap(TEST_RESTR_NAME,
+                    new RestrictionDefinitionImpl("test", Type.STRING, false))));
         } else {
             provider = rp;
         }
@@ -105,7 +109,8 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
         int expectedSize = (asComposite) ? 8 : 7;
         assertEquals(expectedSize, defs.size());
 
-        Set<String> stringsPropNames = ImmutableSet.of(REP_PREFIXES, REP_CURRENT, REP_GLOBS, REP_SUBTREES);
+        Set<String> stringsPropNames = ImmutableSet.of(REP_PREFIXES, REP_CURRENT, REP_GLOBS,
+            REP_SUBTREES);
         for (RestrictionDefinition def : defs) {
             if (REP_GLOB.equals(def.getName())) {
                 assertEquals(Type.STRING, def.getRequiredType());
@@ -132,11 +137,14 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
     @Test
     public void testGetRestrictionPattern() throws Exception {
         Map<PropertyState, RestrictionPattern> map = newHashMap();
-        map.put(PropertyStates.createProperty(REP_GLOB, "/*/jcr:content"), GlobPattern.create("/testPath", "/*/jcr:content"));
+        map.put(PropertyStates.createProperty(REP_GLOB, "/*/jcr:content"),
+            GlobPattern.create("/testPath", "/*/jcr:content"));
         List<String> ntNames = ImmutableList.of(JcrConstants.NT_FOLDER, JcrConstants.NT_LINKEDFILE);
-        map.put(PropertyStates.createProperty(REP_NT_NAMES, ntNames, Type.NAMES), new NodeTypePattern(ntNames));
+        map.put(PropertyStates.createProperty(REP_NT_NAMES, ntNames, Type.NAMES),
+            new NodeTypePattern(ntNames));
 
-        Tree tree = TreeUtil.getOrAddChild(root.getTree("/"), "testPath", JcrConstants.NT_UNSTRUCTURED);
+        Tree tree = TreeUtil.getOrAddChild(root.getTree("/"), "testPath",
+            JcrConstants.NT_UNSTRUCTURED);
         Tree restrictions = TreeUtil.addChild(tree, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
 
         // test restrictions individually
@@ -161,21 +169,29 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
     public void testGetPatternForAllSupported() throws Exception {
         Map<PropertyState, RestrictionPattern> map = newHashMap();
         String globRestriction = "/*/jcr:content";
-        map.put(PropertyStates.createProperty(REP_GLOB, globRestriction), GlobPattern.create("/testPath", globRestriction));
+        map.put(PropertyStates.createProperty(REP_GLOB, globRestriction),
+            GlobPattern.create("/testPath", globRestriction));
         List<String> ntNames = ImmutableList.of(JcrConstants.NT_FOLDER, JcrConstants.NT_LINKEDFILE);
-        map.put(PropertyStates.createProperty(REP_NT_NAMES, ntNames, Type.NAMES), new NodeTypePattern(ntNames));
+        map.put(PropertyStates.createProperty(REP_NT_NAMES, ntNames, Type.NAMES),
+            new NodeTypePattern(ntNames));
         List<String> prefixes = ImmutableList.of("rep", "jcr");
-        map.put(PropertyStates.createProperty(REP_PREFIXES, prefixes, Type.STRINGS), new PrefixPattern(prefixes));
+        map.put(PropertyStates.createProperty(REP_PREFIXES, prefixes, Type.STRINGS),
+            new PrefixPattern(prefixes));
         List<String> itemNames = ImmutableList.of("abc", "jcr:primaryType");
-        map.put(PropertyStates.createProperty(REP_ITEM_NAMES, prefixes, Type.NAMES), new ItemNamePattern(itemNames));
+        map.put(PropertyStates.createProperty(REP_ITEM_NAMES, prefixes, Type.NAMES),
+            new ItemNamePattern(itemNames));
         List<String> propNames = ImmutableList.of("jcr:mixinTypes", "jcr:primaryType");
-        map.put(PropertyStates.createProperty(REP_CURRENT, propNames, Type.STRINGS), new CurrentPattern("/testPath", propNames));
+        map.put(PropertyStates.createProperty(REP_CURRENT, propNames, Type.STRINGS),
+            new CurrentPattern("/testPath", propNames));
         List<String> globs = Collections.singletonList(globRestriction);
-        map.put(PropertyStates.createProperty(REP_GLOBS, globs, Type.STRINGS), new GlobsPattern("/testPath", globs));
+        map.put(PropertyStates.createProperty(REP_GLOBS, globs, Type.STRINGS),
+            new GlobsPattern("/testPath", globs));
         List<String> subtrees = ImmutableList.of("/sub/tree", "/a/b/c/");
-        map.put(PropertyStates.createProperty(REP_SUBTREES, subtrees, Type.STRINGS), new SubtreePattern("/testPath", subtrees));
+        map.put(PropertyStates.createProperty(REP_SUBTREES, subtrees, Type.STRINGS),
+            new SubtreePattern("/testPath", subtrees));
 
-        Tree tree = TreeUtil.getOrAddChild(root.getTree("/"), "testPath", JcrConstants.NT_UNSTRUCTURED);
+        Tree tree = TreeUtil.getOrAddChild(root.getTree("/"), "testPath",
+            JcrConstants.NT_UNSTRUCTURED);
         Tree restrictions = TreeUtil.addChild(tree, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
         for (Map.Entry<PropertyState, RestrictionPattern> entry : map.entrySet()) {
             restrictions.setProperty(entry.getKey());
@@ -190,34 +206,43 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
         String globRestriction = "/*/jcr:content";
 
         Map<PropertyState, RestrictionPattern> map = newHashMap();
-        map.put(PropertyStates.createProperty(REP_GLOB, globRestriction), GlobPattern.create("/testPath", globRestriction));
+        map.put(PropertyStates.createProperty(REP_GLOB, globRestriction),
+            GlobPattern.create("/testPath", globRestriction));
 
         List<String> ntNames = ImmutableList.of(JcrConstants.NT_FOLDER, JcrConstants.NT_LINKEDFILE);
-        map.put(PropertyStates.createProperty(REP_NT_NAMES, ntNames, Type.NAMES), new NodeTypePattern(ntNames));
+        map.put(PropertyStates.createProperty(REP_NT_NAMES, ntNames, Type.NAMES),
+            new NodeTypePattern(ntNames));
 
         List<String> prefixes = ImmutableList.of("rep", "jcr");
-        map.put(PropertyStates.createProperty(REP_PREFIXES, prefixes, Type.STRINGS), new PrefixPattern(prefixes));
+        map.put(PropertyStates.createProperty(REP_PREFIXES, prefixes, Type.STRINGS),
+            new PrefixPattern(prefixes));
 
         List<String> itemNames = ImmutableList.of("abc", "jcr:primaryType");
-        map.put(PropertyStates.createProperty(REP_ITEM_NAMES, itemNames, Type.NAMES), new ItemNamePattern(itemNames));
+        map.put(PropertyStates.createProperty(REP_ITEM_NAMES, itemNames, Type.NAMES),
+            new ItemNamePattern(itemNames));
 
         List<String> propNames = ImmutableList.of("*");
-        map.put(PropertyStates.createProperty(REP_CURRENT, propNames, Type.STRINGS), new CurrentPattern("/testPath", propNames));
+        map.put(PropertyStates.createProperty(REP_CURRENT, propNames, Type.STRINGS),
+            new CurrentPattern("/testPath", propNames));
 
         List<String> globs = Collections.singletonList(globRestriction);
-        map.put(PropertyStates.createProperty(REP_GLOBS, globs, Type.STRINGS), new GlobsPattern("/testPath", globs));
+        map.put(PropertyStates.createProperty(REP_GLOBS, globs, Type.STRINGS),
+            new GlobsPattern("/testPath", globs));
 
         List<String> subtrees = ImmutableList.of("/sub/tree", "/a/b/c/");
-        map.put(PropertyStates.createProperty(REP_SUBTREES, subtrees, Type.STRINGS), new SubtreePattern("/testPath", subtrees));
+        map.put(PropertyStates.createProperty(REP_SUBTREES, subtrees, Type.STRINGS),
+            new SubtreePattern("/testPath", subtrees));
 
-        Tree tree = TreeUtil.getOrAddChild(root.getTree("/"), "testPath", JcrConstants.NT_UNSTRUCTURED);
+        Tree tree = TreeUtil.getOrAddChild(root.getTree("/"), "testPath",
+            JcrConstants.NT_UNSTRUCTURED);
         Tree restrictions = TreeUtil.addChild(tree, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
 
         // test restrictions individually
         for (Map.Entry<PropertyState, RestrictionPattern> entry : map.entrySet()) {
             restrictions.setProperty(entry.getKey());
 
-            RestrictionPattern pattern = provider.getPattern("/testPath", provider.readRestrictions("/testPath", tree));
+            RestrictionPattern pattern = provider.getPattern("/testPath",
+                provider.readRestrictions("/testPath", tree));
             assertEquals(entry.getValue(), pattern);
             restrictions.removeProperty(entry.getKey().getName());
         }
@@ -226,13 +251,15 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
         for (Map.Entry<PropertyState, RestrictionPattern> entry : map.entrySet()) {
             restrictions.setProperty(entry.getKey());
         }
-        RestrictionPattern pattern = provider.getPattern("/testPath", provider.readRestrictions("/testPath", tree));
+        RestrictionPattern pattern = provider.getPattern("/testPath",
+            provider.readRestrictions("/testPath", tree));
         assertTrue(pattern instanceof CompositePattern);
     }
 
     @Test
     public void testGetPatternFromInvalidRestrictionSet() {
-        PropertyState ps = PropertyStates.createProperty("invalid", Collections.singleton("value"), Type.STRINGS);
+        PropertyState ps = PropertyStates.createProperty("invalid", Collections.singleton("value"),
+            Type.STRINGS);
         Set<Restriction> restrictions = Collections.singleton(new RestrictionImpl(ps, false));
         RestrictionPattern pattern = provider.getPattern("/testPath", restrictions);
         assertSame(RestrictionPattern.EMPTY, pattern);
@@ -245,7 +272,8 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
 
     @Test
     public void testGetPatternFromRestrictionsNullPath() {
-        assertSame(RestrictionPattern.EMPTY, provider.getPattern(null, ImmutableSet.of(mock(Restriction.class))));
+        assertSame(RestrictionPattern.EMPTY,
+            provider.getPattern(null, ImmutableSet.of(mock(Restriction.class))));
     }
 
     @Test
@@ -255,19 +283,20 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
 
     @Test(expected = AccessControlException.class)
     public void testValidateGlobRestriction() throws Exception {
-        Tree t = TreeUtil.getOrAddChild(root.getTree("/"), "testTree", JcrConstants.NT_UNSTRUCTURED);
+        Tree t = TreeUtil.getOrAddChild(root.getTree("/"), "testTree",
+            JcrConstants.NT_UNSTRUCTURED);
         String path = t.getPath();
 
         AccessControlManager acMgr = getAccessControlManager(root);
 
         List<String> globs = ImmutableList.of(
-                "/1*/2*/3*/4*/5*/6*/7*/8*/9*/10*/11*/12*/13*/14*/15*/16*/17*/18*/19*/20*/21*",
-                "*********************");
+            "/1*/2*/3*/4*/5*/6*/7*/8*/9*/10*/11*/12*/13*/14*/15*/16*/17*/18*/19*/20*/21*",
+            "*********************");
         for (String glob : globs) {
             JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
             acl.addEntry(getTestUser().getPrincipal(),
-                    AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ),
-                    true, Collections.singletonMap(REP_GLOB, getValueFactory().createValue(glob)));
+                AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ),
+                true, Collections.singletonMap(REP_GLOB, getValueFactory().createValue(glob)));
             acMgr.setPolicy(path, acl);
 
             try {
@@ -280,7 +309,8 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
 
     @Test(expected = AccessControlException.class)
     public void testValidateMvGlobRestriction() throws Exception {
-        Tree t = TreeUtil.getOrAddChild(root.getTree("/"), "testTree", JcrConstants.NT_UNSTRUCTURED);
+        Tree t = TreeUtil.getOrAddChild(root.getTree("/"), "testTree",
+            JcrConstants.NT_UNSTRUCTURED);
         String path = t.getPath();
 
         AccessControlManager acMgr = getAccessControlManager(root);
@@ -288,10 +318,11 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
         ValueFactory vf = getValueFactory(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
         acl.addEntry(getTestUser().getPrincipal(),
-                AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ),
-                true, Collections.emptyMap(), Collections.singletonMap(REP_GLOBS, new Value[] {
-                        vf.createValue("/1*/2*/3*/4*/5*/6*/7*/8*/9*/10*/11*/12*/13*/14*/15*/16*/17*/18*/19*/20*/21*"),
-                        vf.createValue("*********************")}));
+            AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ),
+            true, Collections.emptyMap(), Collections.singletonMap(REP_GLOBS, new Value[]{
+                vf.createValue(
+                    "/1*/2*/3*/4*/5*/6*/7*/8*/9*/10*/11*/12*/13*/14*/15*/16*/17*/18*/19*/20*/21*"),
+                vf.createValue("*********************")}));
         acMgr.setPolicy(path, acl);
 
         try {

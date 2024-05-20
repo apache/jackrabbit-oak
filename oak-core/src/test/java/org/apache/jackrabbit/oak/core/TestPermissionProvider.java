@@ -27,8 +27,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Dummy permission provider implementation that grants read access to all trees
- * that have a name that isn't equal to {@link #NAME_NON_ACCESSIBLE}.
+ * Dummy permission provider implementation that grants read access to all trees that have a name
+ * that isn't equal to {@link #NAME_NON_ACCESSIBLE}.
  */
 class TestPermissionProvider implements PermissionProvider {
 
@@ -48,7 +48,8 @@ class TestPermissionProvider implements PermissionProvider {
             return new TreePermission() {
                 @NotNull
                 @Override
-                public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
+                public TreePermission getChildPermission(@NotNull String childName,
+                    @NotNull NodeState childState) {
                     return getTreePermission(childName);
                 }
 
@@ -109,12 +110,14 @@ class TestPermissionProvider implements PermissionProvider {
 
     @NotNull
     @Override
-    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree,
+        @NotNull TreePermission parentPermission) {
         return getTreePermission(tree.getName());
     }
 
     @Override
-    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
+    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property,
+        long permissions) {
         throw new UnsupportedOperationException();
     }
 

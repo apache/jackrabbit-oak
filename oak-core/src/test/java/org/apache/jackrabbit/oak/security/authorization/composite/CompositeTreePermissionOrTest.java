@@ -43,11 +43,14 @@ public class CompositeTreePermissionOrTest extends CompositeTreePermissionTest {
 
     @Test
     public void testIsGrantedUncoveredPermissions() {
-        TreePermission mockTp = when(mock(TreePermission.class).isGranted(anyLong())).thenReturn(true).getMock();
+        TreePermission mockTp = when(mock(TreePermission.class).isGranted(anyLong())).thenReturn(
+            true).getMock();
 
         AggregatedPermissionProvider mockPP = mock(AggregatedPermissionProvider.class);
-        when(mockPP.getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class))).thenReturn(mockTp);
-        when(mockPP.supportedPermissions(mockTp, null, Permissions.WRITE)).thenReturn(Permissions.SET_PROPERTY);
+        when(mockPP.getTreePermission(any(Tree.class), any(TreeType.class),
+            any(TreePermission.class))).thenReturn(mockTp);
+        when(mockPP.supportedPermissions(mockTp, null, Permissions.WRITE)).thenReturn(
+            Permissions.SET_PROPERTY);
 
         TreePermission rootTp = createRootTreePermission(mockPP, mockPP);
 

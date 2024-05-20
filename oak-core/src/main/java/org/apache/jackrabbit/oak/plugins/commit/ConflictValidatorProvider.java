@@ -31,7 +31,7 @@ public class ConflictValidatorProvider extends ValidatorProvider {
 
     @Override
     public Validator getRootValidator(
-            NodeState before, NodeState after, CommitInfo info) {
+        NodeState before, NodeState after, CommitInfo info) {
         return new ConflictValidator();
     }
 

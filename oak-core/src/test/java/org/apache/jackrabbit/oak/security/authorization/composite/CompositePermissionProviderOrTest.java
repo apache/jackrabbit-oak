@@ -64,32 +64,35 @@ import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for OAK-9798
- * 
- * @see CompositeTreePermissionOrTest#testIsGrantedUncoveredPermissions() for a similar test covering the behavior of {@code CompositeTreePermissionOr}.
+ *
+ * @see CompositeTreePermissionOrTest#testIsGrantedUncoveredPermissions() for a similar test
+ * covering the behavior of {@code CompositeTreePermissionOr}.
  */
 @RunWith(Parameterized.class)
 public class CompositePermissionProviderOrTest extends AbstractSecurityTest {
-    
+
     private final boolean extraVerification;
-    
+
     private CompositePermissionProvider pp;
     private Root readOnlyRoot;
 
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
         return Lists.newArrayList(
-                new Object[] { true, "Extra verification of supported permissions in 'isGranted'" },
-                new Object[] { false, "No verification of supported permissions in 'isGranted'" });
-    }    
+            new Object[]{true, "Extra verification of supported permissions in 'isGranted'"},
+            new Object[]{false, "No verification of supported permissions in 'isGranted'"});
+    }
+
     public CompositePermissionProviderOrTest(boolean extraVerification, @NotNull String name) {
         this.extraVerification = extraVerification;
     }
-    
+
     @Before()
     public void before() throws Exception {
         super.before();
         AbstractCompositeProviderTest.setupTestContent(root);
-        this.pp = createPermissionProviderOR(Collections.singleton(EveryonePrincipal.getInstance()));
+        this.pp = createPermissionProviderOR(
+            Collections.singleton(EveryonePrincipal.getInstance()));
 
         readOnlyRoot = getRootProvider().createReadOnlyRoot(root);
     }
@@ -99,23 +102,26 @@ public class CompositePermissionProviderOrTest extends AbstractSecurityTest {
         AuthorizationConfiguration config = getConfig(AuthorizationConfiguration.class);
 
         ImmutableList<AggregatedPermissionProvider> l = ImmutableList.of(
-                (AggregatedPermissionProvider) config.getPermissionProvider(root, workspaceName, principals),
-                new ReadNodeGrantedInSupportedTree());
-        
-        return new CompositePermissionProviderOr(root, l, config.getContext(), getRootProvider(), getTreeProvider());
+            (AggregatedPermissionProvider) config.getPermissionProvider(root, workspaceName,
+                principals),
+            new ReadNodeGrantedInSupportedTree());
+
+        return new CompositePermissionProviderOr(root, l, config.getContext(), getRootProvider(),
+            getTreeProvider());
     }
 
     private Tree getTree(@NotNull String path) {
         return readOnlyRoot.getTree(path);
     }
-    
+
     private TreeLocation getTreeLocation(@NotNull String path) {
         return TreeLocation.create(readOnlyRoot, path);
     }
-    
+
     @Test
     public void testIsGrantedTreeUnsupportedPath() {
-        for (long permissions : new long[]{READ_NODE, READ, SET_PROPERTY, ADD_NODE, MODIFY_ACCESS_CONTROL, ALL}) {
+        for (long permissions : new long[]{READ_NODE, READ, SET_PROPERTY, ADD_NODE,
+            MODIFY_ACCESS_CONTROL, ALL}) {
             assertFalse(pp.isGranted(getTree(TEST_PATH), null, permissions));
             assertFalse(pp.isGranted(getTree(ROOT_PATH), null, permissions));
             assertFalse(pp.isGranted(getTree(TEST_CHILD_PATH), null, permissions));
@@ -128,7 +134,8 @@ public class CompositePermissionProviderOrTest extends AbstractSecurityTest {
         assertTrue(pp.isGranted(getTree(TEST_A_PATH), null, READ_NODE));
         assertTrue(pp.isGranted(getTree(TEST_A_B_C_PATH), null, READ_NODE));
 
-        for (long permissions : new long[]{READ, SET_PROPERTY, ADD_NODE, MODIFY_ACCESS_CONTROL, ALL}) {
+        for (long permissions : new long[]{READ, SET_PROPERTY, ADD_NODE, MODIFY_ACCESS_CONTROL,
+            ALL}) {
             assertFalse(pp.isGranted(getTree(TEST_A_PATH), null, permissions));
             assertFalse(pp.isGranted(getTree(TEST_A_B_C_PATH), null, permissions));
         }
@@ -136,7 +143,8 @@ public class CompositePermissionProviderOrTest extends AbstractSecurityTest {
 
     @Test
     public void testIsGrantedTreeLocationUnsupportedPath() {
-        for (long permissions : new long[]{READ_NODE, READ, SET_PROPERTY, ADD_NODE, MODIFY_ACCESS_CONTROL, ALL}) {
+        for (long permissions : new long[]{READ_NODE, READ, SET_PROPERTY, ADD_NODE,
+            MODIFY_ACCESS_CONTROL, ALL}) {
             assertFalse(pp.isGranted(getTreeLocation(TEST_PATH), permissions));
             assertFalse(pp.isGranted(getTreeLocation(ROOT_PATH), permissions));
             assertFalse(pp.isGranted(getTreeLocation(TEST_CHILD_PATH), permissions));
@@ -149,32 +157,33 @@ public class CompositePermissionProviderOrTest extends AbstractSecurityTest {
         assertTrue(pp.isGranted(getTreeLocation(TEST_A_PATH), READ_NODE));
         assertTrue(pp.isGranted(getTreeLocation(TEST_A_B_C_PATH), READ_NODE));
 
-        for (long permissions : new long[]{READ, SET_PROPERTY, ADD_NODE, MODIFY_ACCESS_CONTROL, ALL}) {
+        for (long permissions : new long[]{READ, SET_PROPERTY, ADD_NODE, MODIFY_ACCESS_CONTROL,
+            ALL}) {
             assertFalse(pp.isGranted(getTreeLocation(TEST_A_PATH), permissions));
             assertFalse(pp.isGranted(getTreeLocation(TEST_A_B_C_PATH), permissions));
         }
     }
-    
+
     @Test
     public void testRepositoryPermissions() {
         RepositoryPermission rp = pp.getRepositoryPermission();
-        
+
         assertTrue(rp.isGranted(WORKSPACE_MANAGEMENT));
-        
+
         assertFalse(rp.isGranted(ALL));
-        assertFalse(rp.isGranted(WORKSPACE_MANAGEMENT|NODE_TYPE_DEFINITION_MANAGEMENT));
+        assertFalse(rp.isGranted(WORKSPACE_MANAGEMENT | NODE_TYPE_DEFINITION_MANAGEMENT));
     }
-    
+
     private final class ReadNodeGrantedInSupportedTree implements AggregatedPermissionProvider {
-        
+
         private boolean isSupportedPath(@NotNull String path) {
             return Text.isDescendantOrEqual(TEST_A_PATH, path);
         }
-        
+
         private boolean includesSupportedPermission(long permissions) {
             return Permissions.includes(permissions, READ_NODE);
         }
-        
+
         private boolean isGranted(@NotNull String path, long permissions) {
             if (extraVerification) {
                 return isSupportedPath(path) && permissions == READ_NODE;
@@ -182,16 +191,19 @@ public class CompositePermissionProviderOrTest extends AbstractSecurityTest {
                 return isSupportedPath(path);
             }
         }
-        
+
         @Override
-        public @NotNull PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
+        public @NotNull PrivilegeBits supportedPrivileges(@Nullable Tree tree,
+            @Nullable PrivilegeBits privilegeBits) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
+        public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property,
+            long permissions) {
             if (tree == null) {
-                return (Permissions.includes(permissions, WORKSPACE_MANAGEMENT)) ?  WORKSPACE_MANAGEMENT : NO_PERMISSION;
+                return (Permissions.includes(permissions, WORKSPACE_MANAGEMENT))
+                    ? WORKSPACE_MANAGEMENT : NO_PERMISSION;
             }
             if (isSupportedPath(tree.getPath()) && includesSupportedPermission(permissions)) {
                 return READ_NODE;
@@ -208,7 +220,8 @@ public class CompositePermissionProviderOrTest extends AbstractSecurityTest {
         }
 
         @Override
-        public long supportedPermissions(@NotNull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
+        public long supportedPermissions(@NotNull TreePermission treePermission,
+            @Nullable PropertyState property, long permissions) {
             throw new UnsupportedOperationException();
         }
 
@@ -218,7 +231,8 @@ public class CompositePermissionProviderOrTest extends AbstractSecurityTest {
         }
 
         @Override
-        public @NotNull TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission) {
+        public @NotNull TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type,
+            @NotNull TreePermission parentPermission) {
             throw new UnsupportedOperationException();
         }
 
@@ -249,18 +263,22 @@ public class CompositePermissionProviderOrTest extends AbstractSecurityTest {
         }
 
         @Override
-        public @NotNull TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
+        public @NotNull TreePermission getTreePermission(@NotNull Tree tree,
+            @NotNull TreePermission parentPermission) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
+        public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property,
+            long permissions) {
             return isGranted(tree.getPath(), permissions);
         }
 
         @Override
         public boolean isGranted(@NotNull String oakPath, @NotNull String jcrActions) {
-            return isGranted(oakPath, Permissions.getPermissions(jcrActions, TreeLocation.create(readOnlyRoot, oakPath), false));
+            return isGranted(oakPath,
+                Permissions.getPermissions(jcrActions, TreeLocation.create(readOnlyRoot, oakPath),
+                    false));
         }
     }
 }

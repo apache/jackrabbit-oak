@@ -55,8 +55,10 @@ import static org.mockito.Mockito.withSettings;
 
 public class CompositeAuthorizationConfigurationTest extends AbstractSecurityTest {
 
-    private CompositeAuthorizationConfiguration getCompositeConfiguration(AuthorizationConfiguration... entries) {
-        CompositeAuthorizationConfiguration compositeConfiguration = new CompositeAuthorizationConfiguration(getSecurityProvider());
+    private CompositeAuthorizationConfiguration getCompositeConfiguration(
+        AuthorizationConfiguration... entries) {
+        CompositeAuthorizationConfiguration compositeConfiguration = new CompositeAuthorizationConfiguration(
+            getSecurityProvider());
         compositeConfiguration.setRootProvider(getRootProvider());
         compositeConfiguration.setTreeProvider(getTreeProvider());
 
@@ -67,7 +69,8 @@ public class CompositeAuthorizationConfigurationTest extends AbstractSecurityTes
     }
 
     private AuthorizationConfigurationImpl createAuthorizationConfigurationImpl() {
-        AuthorizationConfigurationImpl ac = new AuthorizationConfigurationImpl(getSecurityProvider());
+        AuthorizationConfigurationImpl ac = new AuthorizationConfigurationImpl(
+            getSecurityProvider());
         ac.setRootProvider(getRootProvider());
         ac.setTreeProvider(getTreeProvider());
         return ac;
@@ -80,7 +83,8 @@ public class CompositeAuthorizationConfigurationTest extends AbstractSecurityTes
 
     @Test(expected = IllegalStateException.class)
     public void testEmptyGetPermissionProvider() {
-        getCompositeConfiguration().getPermissionProvider(root, adminSession.getWorkspaceName(), Collections.<Principal>emptySet());
+        getCompositeConfiguration().getPermissionProvider(root, adminSession.getWorkspaceName(),
+            Collections.<Principal>emptySet());
     }
 
     @Test
@@ -90,23 +94,28 @@ public class CompositeAuthorizationConfigurationTest extends AbstractSecurityTes
 
     @Test
     public void testSingleGetAccessControlManager() {
-        CompositeAuthorizationConfiguration cc = getCompositeConfiguration(createAuthorizationConfigurationImpl());
+        CompositeAuthorizationConfiguration cc = getCompositeConfiguration(
+            createAuthorizationConfigurationImpl());
 
-        AccessControlManager accessControlManager = cc.getAccessControlManager(root, NamePathMapper.DEFAULT);
+        AccessControlManager accessControlManager = cc.getAccessControlManager(root,
+            NamePathMapper.DEFAULT);
         assertFalse(accessControlManager instanceof CompositeAccessControlManager);
     }
 
     @Test
     public void testSingleGetPermissionProvider() {
-        CompositeAuthorizationConfiguration cc = getCompositeConfiguration(createAuthorizationConfigurationImpl());
+        CompositeAuthorizationConfiguration cc = getCompositeConfiguration(
+            createAuthorizationConfigurationImpl());
 
-        PermissionProvider pp = cc.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), Collections.<Principal>emptySet());
+        PermissionProvider pp = cc.getPermissionProvider(root,
+            root.getContentSession().getWorkspaceName(), Collections.<Principal>emptySet());
         assertFalse(pp instanceof CompositePermissionProvider);
     }
 
     @Test
     public void testSingleRestrictionProvider() {
-        CompositeAuthorizationConfiguration cc = getCompositeConfiguration(createAuthorizationConfigurationImpl());
+        CompositeAuthorizationConfiguration cc = getCompositeConfiguration(
+            createAuthorizationConfigurationImpl());
 
         RestrictionProvider rp = cc.getRestrictionProvider();
         assertFalse(rp instanceof CompositeRestrictionProvider);
@@ -115,40 +124,44 @@ public class CompositeAuthorizationConfigurationTest extends AbstractSecurityTes
     @Test
     public void testMultipleGetAccessControlManager() throws RepositoryException {
         CompositeAuthorizationConfiguration cc = getCompositeConfiguration(
-                createAuthorizationConfigurationImpl(),
-                createAuthorizationConfigurationImpl());
+            createAuthorizationConfigurationImpl(),
+            createAuthorizationConfigurationImpl());
 
-        AccessControlManager accessControlManager = cc.getAccessControlManager(root, NamePathMapper.DEFAULT);
+        AccessControlManager accessControlManager = cc.getAccessControlManager(root,
+            NamePathMapper.DEFAULT);
         assertTrue(accessControlManager instanceof CompositeAccessControlManager);
     }
 
     @Test
     public void testMultipleGetPermissionProvider() {
         CompositeAuthorizationConfiguration cc = getCompositeConfiguration(
-                new OpenAuthorizationConfiguration(),
-                createAuthorizationConfigurationImpl());
+            new OpenAuthorizationConfiguration(),
+            createAuthorizationConfigurationImpl());
 
-        PermissionProvider pp = cc.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), Collections.<Principal>emptySet());
+        PermissionProvider pp = cc.getPermissionProvider(root,
+            root.getContentSession().getWorkspaceName(), Collections.<Principal>emptySet());
         assertFalse(pp instanceof CompositePermissionProvider);
     }
 
     @Test
     public void testMultipleGetPermissionProvider2() {
         CompositeAuthorizationConfiguration cc = getCompositeConfiguration(
-                createAuthorizationConfigurationImpl(),
-                createAuthorizationConfigurationImpl());
+            createAuthorizationConfigurationImpl(),
+            createAuthorizationConfigurationImpl());
 
-        PermissionProvider pp = cc.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), Collections.<Principal>emptySet());
+        PermissionProvider pp = cc.getPermissionProvider(root,
+            root.getContentSession().getWorkspaceName(), Collections.<Principal>emptySet());
         assertTrue(pp instanceof CompositePermissionProvider);
     }
 
     @Test
     public void testMultipleGetPermissionProvider3() {
         CompositeAuthorizationConfiguration cc = getCompositeConfiguration(
-                new OpenAuthorizationConfiguration(),
-                new OpenAuthorizationConfiguration());
+            new OpenAuthorizationConfiguration(),
+            new OpenAuthorizationConfiguration());
 
-        PermissionProvider pp = cc.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), Collections.<Principal>emptySet());
+        PermissionProvider pp = cc.getPermissionProvider(root,
+            root.getContentSession().getWorkspaceName(), Collections.<Principal>emptySet());
         assertFalse(pp instanceof CompositePermissionProvider);
         assertSame(EmptyPermissionProvider.getInstance(), pp);
     }
@@ -186,14 +199,14 @@ public class CompositeAuthorizationConfigurationTest extends AbstractSecurityTes
     @Test
     public void testMultipleWithEmptyRestrictionProvider() {
         CompositeAuthorizationConfiguration cc = getCompositeConfiguration(
-                createAuthorizationConfigurationImpl(),
-                new OpenAuthorizationConfiguration() {
-                    @NotNull
-                    @Override
-                    public RestrictionProvider getRestrictionProvider() {
-                        return RestrictionProvider.EMPTY;
-                    }
-                });
+            createAuthorizationConfigurationImpl(),
+            new OpenAuthorizationConfiguration() {
+                @NotNull
+                @Override
+                public RestrictionProvider getRestrictionProvider() {
+                    return RestrictionProvider.EMPTY;
+                }
+            });
 
         RestrictionProvider rp = cc.getRestrictionProvider();
         assertFalse(rp instanceof CompositeRestrictionProvider);
@@ -218,16 +231,19 @@ public class CompositeAuthorizationConfigurationTest extends AbstractSecurityTes
 
     @Test
     public void testDefaultEvaluationFilter() {
-        PermissionProvider pp = mock(PermissionProvider.class, withSettings().extraInterfaces(AggregatedPermissionProvider.class));
+        PermissionProvider pp = mock(PermissionProvider.class,
+            withSettings().extraInterfaces(AggregatedPermissionProvider.class));
         AuthorizationConfiguration ac1 = mock(AuthorizationConfiguration.class);
         AuthorizationConfiguration ac2 = mock(AuthorizationConfiguration.class);
-        for (AuthorizationConfiguration ac : new AuthorizationConfiguration[] {ac1, ac2}) {
-            when(ac.getPermissionProvider(any(Root.class), anyString(), any(Set.class))).thenReturn(pp);
+        for (AuthorizationConfiguration ac : new AuthorizationConfiguration[]{ac1, ac2}) {
+            when(ac.getPermissionProvider(any(Root.class), anyString(), any(Set.class))).thenReturn(
+                pp);
             when(ac.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
             when(ac.getContext()).thenReturn(Context.DEFAULT);
         }
         CompositeAuthorizationConfiguration cc = getCompositeConfiguration(ac1, ac2);
-        PermissionProvider permissionProvider = cc.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of(EveryonePrincipal.getInstance()));
+        PermissionProvider permissionProvider = cc.getPermissionProvider(root,
+            adminSession.getWorkspaceName(), ImmutableSet.of(EveryonePrincipal.getInstance()));
         permissionProvider.refresh();
 
         verify(pp, times(2)).refresh();
@@ -237,23 +253,27 @@ public class CompositeAuthorizationConfigurationTest extends AbstractSecurityTes
     public void testAbortingEvaluationFilter() {
         Set<Principal> principalSet = ImmutableSet.of(EveryonePrincipal.getInstance());
         AggregatedPermissionProvider pp = mock(AggregatedPermissionProvider.class);
-        AggregationFilter filter = when(mock(AggregationFilter.class).stop(pp, principalSet)).thenReturn(true).getMock();
+        AggregationFilter filter = when(
+            mock(AggregationFilter.class).stop(pp, principalSet)).thenReturn(true).getMock();
 
         AuthorizationConfiguration ac1 = mock(AuthorizationConfiguration.class);
         AuthorizationConfiguration ac2 = mock(AuthorizationConfiguration.class);
-        for (AuthorizationConfiguration ac : new AuthorizationConfiguration[] {ac1, ac2}) {
-            when(ac.getPermissionProvider(any(Root.class), anyString(), any(Set.class))).thenReturn(pp);
+        for (AuthorizationConfiguration ac : new AuthorizationConfiguration[]{ac1, ac2}) {
+            when(ac.getPermissionProvider(any(Root.class), anyString(), any(Set.class))).thenReturn(
+                pp);
             when(ac.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
             when(ac.getContext()).thenReturn(Context.DEFAULT);
         }
         CompositeAuthorizationConfiguration cc = getCompositeConfiguration(ac1, ac2);
         cc.withAggregationFilter(filter);
 
-        PermissionProvider permissionProvider = cc.getPermissionProvider(root, adminSession.getWorkspaceName(), principalSet);
+        PermissionProvider permissionProvider = cc.getPermissionProvider(root,
+            adminSession.getWorkspaceName(), principalSet);
         permissionProvider.refresh();
 
         Set<Principal> nonMatchingSet = adminSession.getAuthInfo().getPrincipals();
-        permissionProvider = cc.getPermissionProvider(root, adminSession.getWorkspaceName(), nonMatchingSet);
+        permissionProvider = cc.getPermissionProvider(root, adminSession.getWorkspaceName(),
+            nonMatchingSet);
         permissionProvider.refresh();
 
         verify(pp, times(3)).refresh();

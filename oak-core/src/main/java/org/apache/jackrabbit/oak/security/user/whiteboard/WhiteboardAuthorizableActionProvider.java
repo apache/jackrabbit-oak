@@ -26,12 +26,11 @@ import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Dynamic {@link AuthorizableActionProvider} based on the available
- * whiteboard services.
+ * Dynamic {@link AuthorizableActionProvider} based on the available whiteboard services.
  */
 public class WhiteboardAuthorizableActionProvider
-        extends AbstractServiceTracker<AuthorizableActionProvider>
-        implements AuthorizableActionProvider {
+    extends AbstractServiceTracker<AuthorizableActionProvider>
+    implements AuthorizableActionProvider {
 
     public WhiteboardAuthorizableActionProvider() {
         super(AuthorizableActionProvider.class);
@@ -39,7 +38,8 @@ public class WhiteboardAuthorizableActionProvider
 
     @NotNull
     @Override
-    public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
+    public List<? extends AuthorizableAction> getAuthorizableActions(
+        @NotNull SecurityProvider securityProvider) {
         AuthorizableActionProvider actionProvider = new CompositeActionProvider(getServices());
         return actionProvider.getAuthorizableActions(securityProvider);
     }

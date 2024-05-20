@@ -57,8 +57,10 @@ import static org.mockito.Mockito.withSettings;
 
 public class UserManagerImplActionsTest extends AbstractUserTest {
 
-    private final AuthorizableActionProvider actionProvider = mock(AuthorizableActionProvider.class);
-    private final AuthorizableAction action = mock(AuthorizableAction.class, withSettings().extraInterfaces(GroupAction.class, UserAction.class));
+    private final AuthorizableActionProvider actionProvider = mock(
+        AuthorizableActionProvider.class);
+    private final AuthorizableAction action = mock(AuthorizableAction.class,
+        withSettings().extraInterfaces(GroupAction.class, UserAction.class));
 
     private UserManagerImpl userMgr;
 
@@ -87,11 +89,12 @@ public class UserManagerImplActionsTest extends AbstractUserTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         List actions = Collections.singletonList(action);
-        when(actionProvider.getAuthorizableActions(any(SecurityProvider.class))).thenReturn(actions);
+        when(actionProvider.getAuthorizableActions(any(SecurityProvider.class))).thenReturn(
+            actions);
         return ConfigurationParameters.of(UserConfiguration.NAME,
-                ConfigurationParameters.of(
-                        PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider,
-                        ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT));
+            ConfigurationParameters.of(
+                PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider,
+                ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT));
     }
 
     @Test
@@ -130,7 +133,8 @@ public class UserManagerImplActionsTest extends AbstractUserTest {
         Group gr1 = userMgr.createGroup("gId");
         Group gr2 = userMgr.createGroup(new PrincipalImpl("grName"));
         Group gr3 = userMgr.createGroup(new PrincipalImpl("grName2"), "relPath");
-        verify(action, times(3)).onCreate(any(Group.class), any(Root.class), any(NamePathMapper.class));
+        verify(action, times(3)).onCreate(any(Group.class), any(Root.class),
+            any(NamePathMapper.class));
         verifyNoMoreInteractions(action);
     }
 
@@ -141,7 +145,8 @@ public class UserManagerImplActionsTest extends AbstractUserTest {
         u1.changePassword("changedAgain", "new");
 
         verify(action).onCreate(u1, null, root, getNamePathMapper());
-        verify(action, times(2)).onPasswordChange(any(User.class), any(String.class), any(Root.class), any(NamePathMapper.class));
+        verify(action, times(2)).onPasswordChange(any(User.class), any(String.class),
+            any(Root.class), any(NamePathMapper.class));
         verifyNoMoreInteractions(action);
     }
 
@@ -168,11 +173,15 @@ public class UserManagerImplActionsTest extends AbstractUserTest {
         gr1.removeMembers("memberId1");
 
         verify(((GroupAction) action)).onMemberAdded(gr1, testUser, root, getNamePathMapper());
-        verify(((GroupAction) action)).onMembersAdded(gr1, ImmutableSet.of("memberId1", "memberId2"), Collections.singleton(gr1.getID()), root, getNamePathMapper());
-        verify(((GroupAction) action), never()).onMembersAddedContentId(any(Group.class), any(Iterable.class), any(Iterable.class), any(Root.class), any(NamePathMapper.class));
+        verify(((GroupAction) action)).onMembersAdded(gr1,
+            ImmutableSet.of("memberId1", "memberId2"), Collections.singleton(gr1.getID()), root,
+            getNamePathMapper());
+        verify(((GroupAction) action), never()).onMembersAddedContentId(any(Group.class),
+            any(Iterable.class), any(Iterable.class), any(Root.class), any(NamePathMapper.class));
 
         verify(((GroupAction) action)).onMemberRemoved(gr1, testUser, root, getNamePathMapper());
-        verify(((GroupAction) action)).onMembersRemoved(gr1, Collections.singleton("memberId1"), Collections.emptySet(), root, getNamePathMapper());
+        verify(((GroupAction) action)).onMembersRemoved(gr1, Collections.singleton("memberId1"),
+            Collections.emptySet(), root, getNamePathMapper());
     }
 
     @Test
@@ -181,6 +190,7 @@ public class UserManagerImplActionsTest extends AbstractUserTest {
         Set<String> membersIds = ImmutableSet.of(UUIDUtils.generateUUID());
 
         userMgr.onGroupUpdate(testGroup, false, true, membersIds, Collections.emptySet());
-        verify(((GroupAction) action), times(1)).onMembersAddedContentId(testGroup, membersIds, Collections.emptySet(), root, getNamePathMapper());
+        verify(((GroupAction) action), times(1)).onMembersAddedContentId(testGroup, membersIds,
+            Collections.emptySet(), root, getNamePathMapper());
     }
 }

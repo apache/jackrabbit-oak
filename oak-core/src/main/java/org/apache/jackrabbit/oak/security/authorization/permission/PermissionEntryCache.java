@@ -24,9 +24,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@code PermissionEntryCache} caches the permission entries of principals.
- * The cache is held locally for each session and contains a version of the principal permission
- * entries of the session that read them last.
+ * {@code PermissionEntryCache} caches the permission entries of principals. The cache is held
+ * locally for each session and contains a version of the principal permission entries of the
+ * session that read them last.
  */
 class PermissionEntryCache {
 
@@ -36,7 +36,7 @@ class PermissionEntryCache {
 
     @NotNull
     PrincipalPermissionEntries getFullyLoadedEntries(@NotNull PermissionStore store,
-                                                     @NotNull String principalName) {
+        @NotNull String principalName) {
         PrincipalPermissionEntries ppe = entries.get(principalName);
         if (ppe == null || !ppe.isFullyLoaded()) {
             ppe = store.load(principalName);
@@ -52,9 +52,9 @@ class PermissionEntryCache {
     }
 
     void load(@NotNull PermissionStore store,
-              @NotNull Collection<PermissionEntry> ret,
-              @NotNull String principalName,
-              @NotNull String path) {
+        @NotNull Collection<PermissionEntry> ret,
+        @NotNull String principalName,
+        @NotNull String path) {
         if (entries.containsKey(principalName)) {
             PrincipalPermissionEntries ppe = entries.get(principalName);
             Collection<PermissionEntry> pes = ppe.getEntriesByPath(path);

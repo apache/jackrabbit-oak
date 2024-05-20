@@ -32,9 +32,9 @@ import org.osgi.service.component.annotations.Reference;
 /**
  * A provider for property indexes.
  * <br>
- * Even if there are multiple index definitions, there is only actually one
- * PropertyIndex instance, which is used for all indexes.
- * 
+ * Even if there are multiple index definitions, there is only actually one PropertyIndex instance,
+ * which is used for all indexes.
+ *
  * @see PropertyIndex
  */
 @Component(service = QueryIndexProvider.class)
@@ -43,7 +43,8 @@ public class PropertyIndexProvider implements QueryIndexProvider {
     @Reference
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public List<QueryIndex> getQueryIndexes(NodeState state) {
         return ImmutableList.<QueryIndex>of(new PropertyIndex(mountInfoProvider));
     }

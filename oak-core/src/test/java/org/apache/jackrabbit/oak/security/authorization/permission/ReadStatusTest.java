@@ -39,7 +39,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
-public class ReadStatusTest extends AbstractSecurityTest  {
+public class ReadStatusTest extends AbstractSecurityTest {
 
     private PrivilegeBitsProvider bitsProvider;
 
@@ -62,7 +62,8 @@ public class ReadStatusTest extends AbstractSecurityTest  {
     }
 
     @NotNull
-    private PermissionEntry createPermissionEntry(boolean isAllow, @NotNull RestrictionPattern pattern, @NotNull String... privNames) {
+    private PermissionEntry createPermissionEntry(boolean isAllow,
+        @NotNull RestrictionPattern pattern, @NotNull String... privNames) {
         return new PermissionEntry("/path", isAllow, 0, bitsProvider.getBits(privNames), pattern);
     }
 
@@ -112,7 +113,8 @@ public class ReadStatusTest extends AbstractSecurityTest  {
 
     @Test
     public void testNonEmptyPatternAllow() {
-        PermissionEntry entry = createPermissionEntry(true, mock(RestrictionPattern.class), JCR_ALL);
+        PermissionEntry entry = createPermissionEntry(true, mock(RestrictionPattern.class),
+            JCR_ALL);
         ReadStatus rs = ReadStatus.create(entry, Permissions.ALL, false);
 
         assertAllowed(rs, false);
@@ -120,7 +122,8 @@ public class ReadStatusTest extends AbstractSecurityTest  {
 
     @Test
     public void testNonEmptyPatternDeny() {
-        PermissionEntry entry = createPermissionEntry(false, mock(RestrictionPattern.class), JCR_ALL);
+        PermissionEntry entry = createPermissionEntry(false, mock(RestrictionPattern.class),
+            JCR_ALL);
         ReadStatus rs = ReadStatus.create(entry, Permissions.ALL, false);
 
         assertDenied(rs);
@@ -180,7 +183,7 @@ public class ReadStatusTest extends AbstractSecurityTest  {
     // additional tests for isolated read-status flags
 
     @Test
-    public void testProperties() throws Exception  {
+    public void testProperties() throws Exception {
         ReadStatus rs = create(2);
         assertFalse(rs.allowsThis());
         assertFalse(rs.allowsAll());

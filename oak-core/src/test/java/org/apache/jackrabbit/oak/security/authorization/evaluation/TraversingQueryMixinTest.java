@@ -27,8 +27,10 @@ public class TraversingQueryMixinTest extends AbstractQueryTest {
     public void before() throws Exception {
         super.before();
 
-        TreeUtil.addMixin(node, "mix:title", root.getTree(NodeTypeConstants.NODE_TYPES_PATH), "userId");
-        TreeUtil.addMixin(subnode, "mix:title", root.getTree(NodeTypeConstants.NODE_TYPES_PATH), "userId");
+        TreeUtil.addMixin(node, "mix:title", root.getTree(NodeTypeConstants.NODE_TYPES_PATH),
+            "userId");
+        TreeUtil.addMixin(subnode, "mix:title", root.getTree(NodeTypeConstants.NODE_TYPES_PATH),
+            "userId");
         root.commit();
     }
 

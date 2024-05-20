@@ -48,18 +48,19 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefi
 import static org.junit.Assert.*;
 
 public class PropertyIndexStatsTest {
+
     @Rule
     public final OsgiContext context = new OsgiContext();
 
     private static final EditorHook HOOK = new EditorHook(
-            new IndexUpdateProvider(new PropertyIndexEditorProvider()));
+        new IndexUpdateProvider(new PropertyIndexEditorProvider()));
 
     private NodeStore store = new MemoryNodeStore();
 
     private PropertyIndexStats mbean = new PropertyIndexStats();
 
     @Test
-    public void jmxReg() throws Exception{
+    public void jmxReg() throws Exception {
         activateMBean();
 
         assertNotNull(context.getService(PropertyIndexStatsMBean.class));
@@ -70,12 +71,12 @@ public class PropertyIndexStatsTest {
 
 
     @Test
-    public void statsForSpecificIndex() throws Exception{
+    public void statsForSpecificIndex() throws Exception {
         prepareStore();
 
         NodeBuilder builder = store.getRoot().builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+            true, false, ImmutableSet.of("foo"), null);
 
         setProperty(builder, "/a/b/c", "foo", "x");
         setProperty(builder, "/a/e/c/d", "foo", "y");
@@ -95,12 +96,12 @@ public class PropertyIndexStatsTest {
     }
 
     @Test
-    public void statsForSpecificIndexWithPathLimit() throws Exception{
+    public void statsForSpecificIndexWithPathLimit() throws Exception {
         prepareStore();
 
         NodeBuilder builder = store.getRoot().builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+            true, false, ImmutableSet.of("foo"), null);
 
         for (int i = 0; i < 10; i++) {
             setProperty(builder, "/a/b/c/d" + i, "foo", "x");
@@ -114,13 +115,13 @@ public class PropertyIndexStatsTest {
         assertArray(cd, "paths", asList("/a/b/c"));
     }
 
-    private static void assertArray(CompositeData cd, String prop, List<String> values){
-        String[] a = (String[])cd.get(prop);
+    private static void assertArray(CompositeData cd, String prop, List<String> values) {
+        String[] a = (String[]) cd.get(prop);
         assertEquals(new HashSet<String>(values), new HashSet<String>(Lists.newArrayList(a)));
     }
 
-    private static void setProperty(NodeBuilder builder, String path, String name, String value){
-        for (String p : PathUtils.elements(path)){
+    private static void setProperty(NodeBuilder builder, String path, String name, String value) {
+        for (String p : PathUtils.elements(path)) {
             builder = builder.child(p);
         }
         builder.setProperty(name, value);

@@ -40,68 +40,42 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@code MembershipProvider} implementation storing group membership information
- * with the {@code Tree} associated with a given {@link org.apache.jackrabbit.api.security.user.Group}.
- *
+ * {@code MembershipProvider} implementation storing group membership information with the
+ * {@code Tree} associated with a given {@link org.apache.jackrabbit.api.security.user.Group}.
+ * <p>
  * As of Oak the {@code MembershipProvider} automatically chooses an appropriate storage structure
  * depending on the number of group members. If the number of members is low they are stored as
- * {@link javax.jcr.PropertyType#WEAKREFERENCE} in the {@link #REP_MEMBERS} multi value property. This is similar to
- * Jackrabbit 2.x.
- *
- * If the number of members is high the {@code MembershipProvider} will create an intermediate node list to reduce the
- * size of the multi value properties below a {@link #REP_MEMBERS_LIST} node. The provider will maintain a number of
- * sub nodes of type {@link #NT_REP_MEMBER_REFERENCES} that again store the member references in a {@link #REP_MEMBERS}
- * property.
- *
- * Note that the writing of the members is done in {@link MembershipWriter} so that the logic can be re-used by the
- * migration code.
- *
- * The current implementation uses a fixed threshold value of {@link MembershipWriter#DEFAULT_MEMBERSHIP_THRESHOLD} before creating
+ * {@link javax.jcr.PropertyType#WEAKREFERENCE} in the {@link #REP_MEMBERS} multi value property.
+ * This is similar to Jackrabbit 2.x.
+ * <p>
+ * If the number of members is high the {@code MembershipProvider} will create an intermediate node
+ * list to reduce the size of the multi value properties below a {@link #REP_MEMBERS_LIST} node. The
+ * provider will maintain a number of sub nodes of type {@link #NT_REP_MEMBER_REFERENCES} that again
+ * store the member references in a {@link #REP_MEMBERS} property.
+ * <p>
+ * Note that the writing of the members is done in {@link MembershipWriter} so that the logic can be
+ * re-used by the migration code.
+ * <p>
+ * The current implementation uses a fixed threshold value of
+ * {@link MembershipWriter#DEFAULT_MEMBERSHIP_THRESHOLD} before creating
  * {@link #NT_REP_MEMBER_REFERENCES} sub nodes.
- *
+ * <p>
  * Example Group with few members (irrelevant properties excluded):
  * <xmp>
-     {
-         "jcr:primaryType": "rep:Group",
-         "rep:principalName": "contributor",
-         "rep:members": [
-             "429bbd5b-46a6-3c3d-808b-5fd4219d5c4d",
-             "ca58c408-fe06-357e-953c-2d23ffe1e096",
-             "3ebb1c04-76dd-317e-a9ee-5164182bc390",
-             "d3c827d3-4db2-30cc-9c41-0ed8117dbaff",
-             "f5777a0b-a933-3b4d-9405-613d8bc39cc7",
-             "fdd1547a-b19a-3154-90da-1eae8c2c3504",
-             "65c3084e-abfc-3719-8223-72c6cb9a3d6f"
-         ]
-     }
+ * { "jcr:primaryType": "rep:Group", "rep:principalName": "contributor", "rep:members": [
+ * "429bbd5b-46a6-3c3d-808b-5fd4219d5c4d", "ca58c408-fe06-357e-953c-2d23ffe1e096",
+ * "3ebb1c04-76dd-317e-a9ee-5164182bc390", "d3c827d3-4db2-30cc-9c41-0ed8117dbaff",
+ * "f5777a0b-a933-3b4d-9405-613d8bc39cc7", "fdd1547a-b19a-3154-90da-1eae8c2c3504",
+ * "65c3084e-abfc-3719-8223-72c6cb9a3d6f" ] }
  * </xmp>
- *
+ * <p>
  * Example Group with many members (irrelevant properties excluded):
  * <xmp>
-     {
-         "jcr:primaryType": "rep:Group",
-         "rep:principalName": "employees",
-         "rep:membersList": {
-             "jcr:primaryType": "rep:MemberReferencesList",
-             "0": {
-                 "jcr:primaryType": "rep:MemberReferences",
-                 "rep:members": [
-                     "429bbd5b-46a6-3c3d-808b-5fd4219d5c4d",
-                     "ca58c408-fe06-357e-953c-2d23ffe1e096",
-                     ...
-                 ]
-             },
-             ...
-             "341": {
-                 "jcr:primaryType": "rep:MemberReferences",
-                 "rep:members": [
-                     "fdd1547a-b19a-3154-90da-1eae8c2c3504",
-                     "65c3084e-abfc-3719-8223-72c6cb9a3d6f",
-                     ...
-                 ]
-             }
-         }
-     }
+ * { "jcr:primaryType": "rep:Group", "rep:principalName": "employees", "rep:membersList": {
+ * "jcr:primaryType": "rep:MemberReferencesList", "0": { "jcr:primaryType": "rep:MemberReferences",
+ * "rep:members": [ "429bbd5b-46a6-3c3d-808b-5fd4219d5c4d", "ca58c408-fe06-357e-953c-2d23ffe1e096",
+ * ... ] }, ... "341": { "jcr:primaryType": "rep:MemberReferences", "rep:members": [
+ * "fdd1547a-b19a-3154-90da-1eae8c2c3504", "65c3084e-abfc-3719-8223-72c6cb9a3d6f", ... ] } } }
  * </xmp>
  */
 class MembershipProvider extends AuthorizableBaseProvider {
@@ -112,7 +86,8 @@ class MembershipProvider extends AuthorizableBaseProvider {
 
     /**
      * Creates a new membership provider
-     * @param root the current root
+     *
+     * @param root   the current root
      * @param config the security configuration
      */
     MembershipProvider(@NotNull Root root, @NotNull ConfigurationParameters config) {
@@ -120,7 +95,9 @@ class MembershipProvider extends AuthorizableBaseProvider {
     }
 
     /**
-     * Sets the size of the membership property threshold. This is currently only useful for testing.
+     * Sets the size of the membership property threshold. This is currently only useful for
+     * testing.
+     *
      * @param membershipSizeThreshold the size of the membership property threshold
      */
     void setMembershipSizeThreshold(int membershipSizeThreshold) {
@@ -144,34 +121,37 @@ class MembershipProvider extends AuthorizableBaseProvider {
      *
      * @param authorizableTree the authorizable tree
      * @param includeInherited {@code true} to include inherited memberships
-     * @param processedPaths helper set that contains the processed paths
+     * @param processedPaths   helper set that contains the processed paths
      * @return an iterator over all membership paths.
      */
     @NotNull
-    private Iterator<Tree> getMembership(@NotNull Tree authorizableTree, final boolean includeInherited,
-                                           @NotNull final Set<String> processedPaths) {
+    private Iterator<Tree> getMembership(@NotNull Tree authorizableTree,
+        final boolean includeInherited,
+        @NotNull final Set<String> processedPaths) {
         final Iterable<Tree> refTrees = identifierManager.getReferences(
-                authorizableTree, REP_MEMBERS, NT_REP_MEMBER_REFERENCES, true
+            authorizableTree, REP_MEMBERS, NT_REP_MEMBER_REFERENCES, true
         );
         return new MembershipIterator(refTrees.iterator(), includeInherited, processedPaths);
     }
 
     /**
-     * Tests if the membership of the specified {@code authorizableTree}
-     * contains the given target group as defined by {@code groupTree}.
+     * Tests if the membership of the specified {@code authorizableTree} contains the given target
+     * group as defined by {@code groupTree}.
      *
      * @param authorizableTree The tree of the authorizable for which to resolve the membership.
-     * @param groupPath The path of the group which needs to be tested.
-     * @return {@code true} if the group is contained in the membership of the specified authorizable.
+     * @param groupPath        The path of the group which needs to be tested.
+     * @return {@code true} if the group is contained in the membership of the specified
+     * authorizable.
      */
     private boolean hasMembership(@NotNull Tree authorizableTree, @NotNull String groupPath) {
-        return Iterators.contains(Iterators.transform(getMembership(authorizableTree, true), Tree::getPath), groupPath);
+        return Iterators.contains(
+            Iterators.transform(getMembership(authorizableTree, true), Tree::getPath), groupPath);
     }
 
     /**
      * Returns an iterator over all member paths of the given group.
      *
-     * @param groupTree the group tree
+     * @param groupTree        the group tree
      * @param includeInherited {@code true} to include inherited members
      * @return an iterator over all member trees
      */
@@ -188,16 +168,16 @@ class MembershipProvider extends AuthorizableBaseProvider {
     /**
      * Returns an iterator over all member paths of the given group.
      *
-     * @param groupTree the group tree
+     * @param groupTree        the group tree
      * @param includeInherited {@code true} to include inherited members
-     * @param processedRefs helper set that contains the references that are already processed.
+     * @param processedRefs    helper set that contains the references that are already processed.
      * @return an iterator over all member paths
      */
     @NotNull
     private Iterator<Tree> getMembers(@NotNull final Tree groupTree,
-                                        @NotNull final String groupContentId,
-                                        final boolean includeInherited,
-                                        @NotNull final Set<String> processedRefs) {
+        @NotNull final String groupContentId,
+        final boolean includeInherited,
+        @NotNull final Set<String> processedRefs) {
         MemberReferenceIterator mrit = new MemberReferenceIterator(groupTree) {
             @Override
             protected boolean hasProcessedReference(@NotNull String value) {
@@ -231,11 +211,11 @@ class MembershipProvider extends AuthorizableBaseProvider {
     }
 
     /**
-     * Returns {@code true} if the given {@code groupTree} contains a member with the given {@code authorizableTree}
+     * Returns {@code true} if the given {@code groupTree} contains a member with the given
+     * {@code authorizableTree}
      *
-     * @param groupTree  The new member to be tested for cyclic membership.
+     * @param groupTree        The new member to be tested for cyclic membership.
      * @param authorizableTree The authorizable to check
-     *
      * @return true if the group has given member.
      */
     boolean isMember(@NotNull Tree groupTree, @NotNull Tree authorizableTree) {
@@ -243,7 +223,9 @@ class MembershipProvider extends AuthorizableBaseProvider {
             return false;
         }
         if (pendingChanges(groupTree)) {
-            return Iterators.contains(Iterators.transform(getMembers(groupTree, true), Tree::getPath), authorizableTree.getPath());
+            return Iterators.contains(
+                Iterators.transform(getMembers(groupTree, true), Tree::getPath),
+                authorizableTree.getPath());
         } else {
             return hasMembership(authorizableTree, groupTree.getPath());
         }
@@ -263,23 +245,22 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * Utility to determine if a given group has any members.
      *
      * @param groupTree The tree of the target group.
-     * @return {@code true} if the group has any members i.e. if it has a rep:members
-     * property or a rep:membersList child node.
+     * @return {@code true} if the group has any members i.e. if it has a rep:members property or a
+     * rep:membersList child node.
      */
     private static boolean hasMembers(@NotNull Tree groupTree) {
-        return groupTree.getPropertyStatus(REP_MEMBERS) != null || groupTree.hasChild(REP_MEMBERS_LIST);
+        return groupTree.getPropertyStatus(REP_MEMBERS) != null || groupTree.hasChild(
+            REP_MEMBERS_LIST);
     }
 
     /**
-     * Determine if the group has (potentially) been modified in which case the
-     * query can't be used:
-     * - rep:members property has been modified
-     * - any potential modification in the member-ref-list subtree, which is not
-     * easy to detect => relying on pending changes on the root object
+     * Determine if the group has (potentially) been modified in which case the query can't be used:
+     * - rep:members property has been modified - any potential modification in the member-ref-list
+     * subtree, which is not easy to detect => relying on pending changes on the root object
      *
      * @param groupTree The tree of the target group.
-     * @return {@code true} if the specified group tree has an unmodified rep:members
-     * property or if the root has pending changes.
+     * @return {@code true} if the specified group tree has an unmodified rep:members property or if
+     * the root has pending changes.
      */
     private boolean pendingChanges(@NotNull Tree groupTree) {
         Tree.Status memberPropStatus = groupTree.getPropertyStatus(REP_MEMBERS);
@@ -289,7 +270,8 @@ class MembershipProvider extends AuthorizableBaseProvider {
 
     /**
      * Adds a new member to the given {@code groupTree}.
-     * @param groupTree the group to add the member to
+     *
+     * @param groupTree     the group to add the member to
      * @param newMemberTree the tree of the new member
      * @return {@code true} if the member was added
      */
@@ -311,7 +293,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
     /**
      * Removes the member from the given group.
      *
-     * @param groupTree group to remove the member from
+     * @param groupTree  group to remove the member from
      * @param memberTree member to remove
      * @return {@code true} if the member was removed.
      */
@@ -319,7 +301,8 @@ class MembershipProvider extends AuthorizableBaseProvider {
         if (writer.removeMember(groupTree, getContentID(memberTree))) {
             return true;
         } else {
-            log.debug("Authorizable {} was not member of {}", memberTree.getName(), groupTree.getName());
+            log.debug("Authorizable {} was not member of {}", memberTree.getName(),
+                groupTree.getName());
             return false;
         }
     }
@@ -345,7 +328,8 @@ class MembershipProvider extends AuthorizableBaseProvider {
     }
 
     /**
-     * Iterator that provides member references based on the rep:members properties of a underlying tree iterator.
+     * Iterator that provides member references based on the rep:members properties of a underlying
+     * tree iterator.
      */
     private abstract static class MemberReferenceIterator extends AbstractLazyIterator<String> {
 
@@ -354,8 +338,8 @@ class MembershipProvider extends AuthorizableBaseProvider {
 
         private MemberReferenceIterator(@NotNull Tree groupTree) {
             this.trees = Iterators.concat(
-                    Iterators.singletonIterator(groupTree),
-                    groupTree.getChild(REP_MEMBERS_LIST).getChildren().iterator()
+                Iterators.singletonIterator(groupTree),
+                groupTree.getChild(REP_MEMBERS_LIST).getChildren().iterator()
             );
         }
 
@@ -427,8 +411,8 @@ class MembershipProvider extends AuthorizableBaseProvider {
         }
 
         /**
-         * Remember a group that needs to be search for references ('parent')
-         * once all 'references' have been processed.
+         * Remember a group that needs to be search for references ('parent') once all 'references'
+         * have been processed.
          *
          * @param groupTree A tree associated with a group
          * @see #getNextIterator(Tree)
@@ -441,19 +425,17 @@ class MembershipProvider extends AuthorizableBaseProvider {
         }
 
         /**
-         * Abstract method to obtain the next authorizable path from the given
-         * reference value.
+         * Abstract method to obtain the next authorizable path from the given reference value.
          *
          * @param nextReference The next reference as obtained from the iterator.
-         * @return The path of the authorizable identified by {@code nextReference}
-         * or {@code null} if it cannot be resolved.
+         * @return The path of the authorizable identified by {@code nextReference} or {@code null}
+         * if it cannot be resolved.
          */
         @Nullable
         protected abstract Tree internalGetNext(@NotNull T nextReference);
 
         /**
-         * Abstract method to retrieve the next member iterator for the given
-         * {@code groupTree}.
+         * Abstract method to retrieve the next member iterator for the given {@code groupTree}.
          *
          * @param groupTree Tree referring to a group.
          * @return The next member reference 'parent' iterator to be processed.
@@ -467,7 +449,8 @@ class MembershipProvider extends AuthorizableBaseProvider {
         private final boolean includeInherited;
         private final Set<String> processedPaths;
 
-        private MembershipIterator(@NotNull Iterator<Tree> references, boolean includeInherited, @NotNull Set<String> processedPaths) {
+        private MembershipIterator(@NotNull Iterator<Tree> references, boolean includeInherited,
+            @NotNull Set<String> processedPaths) {
             super(references);
             this.includeInherited = includeInherited;
             this.processedPaths = processedPaths;

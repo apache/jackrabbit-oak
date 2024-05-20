@@ -53,7 +53,8 @@ public class TokenLoginModuleCredentialsSupportTest extends AbstractSecurityTest
         userId = getTestUser().getID();
         credentialsSupport = new TestCredentialsSupport(userId);
 
-        CompositeTokenConfiguration composite = ((CompositeTokenConfiguration) getSecurityProvider().getConfiguration(TokenConfiguration.class));
+        CompositeTokenConfiguration composite = ((CompositeTokenConfiguration) getSecurityProvider().getConfiguration(
+            TokenConfiguration.class));
         tc = (TokenConfigurationImpl) composite.getDefaultConfig();
         tc.bindCredentialsSupport(credentialsSupport);
     }
@@ -74,21 +75,21 @@ public class TokenLoginModuleCredentialsSupportTest extends AbstractSecurityTest
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
                 AppConfigurationEntry tokenEntry = new AppConfigurationEntry(
-                        TokenLoginModule.class.getName(),
-                        AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                        Collections.emptyMap());
+                    TokenLoginModule.class.getName(),
+                    AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                    Collections.emptyMap());
 
                 AppConfigurationEntry testEntry = new AppConfigurationEntry(
-                        TestLoginModule.class.getName(),
-                        AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                        ImmutableMap.of("credsSupport", credentialsSupport));
+                    TestLoginModule.class.getName(),
+                    AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                    ImmutableMap.of("credsSupport", credentialsSupport));
 
                 AppConfigurationEntry defaultEntry = new AppConfigurationEntry(
-                        LoginModuleImpl.class.getName(),
-                        AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                        Collections.emptyMap());
+                    LoginModuleImpl.class.getName(),
+                    AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                    Collections.emptyMap());
 
-                return new AppConfigurationEntry[] {tokenEntry, testEntry, defaultEntry};
+                return new AppConfigurationEntry[]{tokenEntry, testEntry, defaultEntry};
             }
         };
     }

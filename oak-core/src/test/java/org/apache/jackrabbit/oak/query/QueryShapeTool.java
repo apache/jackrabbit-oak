@@ -24,8 +24,8 @@ import java.io.LineNumberReader;
 import java.util.TreeSet;
 
 /**
- * A tool that converts a list of queries to parameterized queries. This for
- * example allows to extract unique queries.
+ * A tool that converts a list of queries to parameterized queries. This for example allows to
+ * extract unique queries.
  */
 public class QueryShapeTool {
 
@@ -46,7 +46,7 @@ public class QueryShapeTool {
         }
         System.out.println("File " + file);
         LineNumberReader r = new LineNumberReader(new BufferedReader(
-                new FileReader(file)));
+            new FileReader(file)));
         try {
             process(r);
         } finally {
@@ -56,7 +56,7 @@ public class QueryShapeTool {
     }
 
     public static void process(LineNumberReader reader) throws IOException {
-        TreeSet<String> sortedUnique = new  TreeSet<String>();
+        TreeSet<String> sortedUnique = new TreeSet<String>();
         while (true) {
             String line = reader.readLine();
             if (line == null) {
@@ -68,7 +68,7 @@ public class QueryShapeTool {
             System.out.println(s);
         }
     }
-    
+
     public static String shape(String query) {
         String result = query;
         // replace double quoted string literals with "$s"

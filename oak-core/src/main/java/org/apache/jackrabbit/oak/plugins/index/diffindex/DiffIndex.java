@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * QueryIndex that relies n a diff-ing mechanism to get query results
- * 
  */
 public abstract class DiffIndex implements QueryIndex {
 

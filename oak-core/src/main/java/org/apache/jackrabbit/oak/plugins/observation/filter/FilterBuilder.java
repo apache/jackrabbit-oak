@@ -54,8 +54,9 @@ import org.jetbrains.annotations.Nullable;
  * Builder for {@link FilterProvider} instances.
  */
 public final class FilterBuilder {
+
     private static final int ALL_EVENTS = NODE_ADDED | NODE_REMOVED | NODE_MOVED | PROPERTY_ADDED |
-            PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST;
+        PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST;
 
     private boolean includeSessionLocal;
     private boolean includeClusterExternal;
@@ -64,7 +65,7 @@ public final class FilterBuilder {
     private final Set<String> pathsForMBean = newHashSet();
     private Condition condition = includeAll();
     private ChangeSetFilter changeSetFilter = new ChangeSetFilter() {
-        
+
         @Override
         public boolean excludes(ChangeSet changeSet) {
             return false;
@@ -74,10 +75,11 @@ public final class FilterBuilder {
     private EventAggregator aggregator;
 
     public interface Condition {
+
         @NotNull
         EventFilter createFilter(@NotNull NodeState before, @NotNull NodeState after);
     }
-    
+
     @NotNull
     public FilterBuilder setChangeSetFilter(@NotNull ChangeSetFilter changeSetFilter) {
         this.changeSetFilter = changeSetFilter;
@@ -85,15 +87,13 @@ public final class FilterBuilder {
     }
 
     /**
-     * Adds a path to the set of paths whose subtrees include all events of
-     * this filter. Does nothing if the paths is already covered by an
-     * path added earlier.
+     * Adds a path to the set of paths whose subtrees include all events of this filter. Does
+     * nothing if the paths is already covered by an path added earlier.
      * <p>
-     * This is used for optimisation in order to restrict traversal to
-     * these sub trees.
+     * This is used for optimisation in order to restrict traversal to these sub trees.
      *
-     * @param absPath  absolute path
-     * @return  this instance
+     * @param absPath absolute path
+     * @return this instance
      */
     @NotNull
     public FilterBuilder addSubTree(@NotNull String absPath) {
@@ -108,9 +108,10 @@ public final class FilterBuilder {
         subTrees.add(checkNotNull(absPath));
         return this;
     }
-    
+
     /**
      * Adds paths to the FilterConfigMBean's getPaths set
+     *
      * @param paths
      * @return
      */
@@ -121,14 +122,15 @@ public final class FilterBuilder {
 
     /**
      * A set of paths whose subtrees include all events of this filter.
-     * @return  list of paths
+     *
+     * @return list of paths
      * @see #addSubTree(String)
      */
     @NotNull
     private Iterable<String> getSubTrees() {
         return subTrees.isEmpty() ? ImmutableList.of("/") : subTrees;
     }
-    
+
     public FilterBuilder aggregator(EventAggregator aggregator) {
         this.aggregator = aggregator;
         return this;
@@ -136,9 +138,10 @@ public final class FilterBuilder {
 
     /**
      * Whether to include session local changes. Defaults to {@code false}.
-     * @param include if {@code true} session local changes are included,
-     *                otherwise session local changes are not included.
-     * @return  this instance
+     *
+     * @param include if {@code true} session local changes are included, otherwise session local
+     *                changes are not included.
+     * @return this instance
      */
     @NotNull
     public FilterBuilder includeSessionLocal(boolean include) {
@@ -148,9 +151,10 @@ public final class FilterBuilder {
 
     /**
      * Whether to include cluster external changes. Defaults to {@code false}.
-     * @param include if {@code true} cluster external changes are included,
-     *                otherwise cluster external changes are not included.
-     * @return  this instance
+     *
+     * @param include if {@code true} cluster external changes are included, otherwise cluster
+     *                external changes are not included.
+     * @return this instance
      */
     @NotNull
     public FilterBuilder includeClusterExternal(boolean include) {
@@ -160,9 +164,10 @@ public final class FilterBuilder {
 
     /**
      * Whether to include cluster local changes. Defaults to {@code true}.
-     * @param include if {@code true} cluster local changes are included,
-     *                otherwise cluster local changes are not included.
-     * @return  this instance
+     *
+     * @param include if {@code true} cluster local changes are included, otherwise cluster local
+     *                changes are not included.
+     * @return this instance
      */
     @NotNull
     public FilterBuilder includeClusterLocal(boolean include) {
@@ -171,11 +176,10 @@ public final class FilterBuilder {
     }
 
     /**
-     * Set the condition of this filter. Conditions are obtained from
-     * the various methods on this instance that return a {@code Condition}
-     * instance.
+     * Set the condition of this filter. Conditions are obtained from the various methods on this
+     * instance that return a {@code Condition} instance.
      *
-     * @param condition  the conditions to apply
+     * @param condition the conditions to apply
      * @return this instance
      */
     @NotNull
@@ -188,7 +192,8 @@ public final class FilterBuilder {
 
     /**
      * A condition the always holds
-     * @return  true condition
+     *
+     * @return true condition
      */
     @NotNull
     public Condition includeAll() {
@@ -197,7 +202,8 @@ public final class FilterBuilder {
 
     /**
      * A condition that never holds
-     * @return  false condition
+     *
+     * @return false condition
      */
     @NotNull
     public Condition excludeAll() {
@@ -205,12 +211,12 @@ public final class FilterBuilder {
     }
 
     /**
-     * A condition that hold for accessible items as determined by the passed permission
-     * provider.
+     * A condition that hold for accessible items as determined by the passed permission provider.
      *
-     * @param permissionProviderFactory  permission provider for checking whether an item is accessible.
-     * @return  access control condition
-     * @see  ACFilter
+     * @param permissionProviderFactory permission provider for checking whether an item is
+     *                                  accessible.
+     * @return access control condition
+     * @see ACFilter
      */
     @NotNull
     public Condition accessControl(@NotNull PermissionProviderFactory permissionProviderFactory) {
@@ -219,8 +225,9 @@ public final class FilterBuilder {
 
     /**
      * A condition that holds on the paths matching a certain pattern.
+     *
      * @param pathPattern
-     * @return  path condition
+     * @return path condition
      * @see GlobbingPathFilter
      */
     @NotNull
@@ -230,6 +237,7 @@ public final class FilterBuilder {
 
     /**
      * A condition that holds for matching event types.
+     *
      * @param eventTypes
      * @return event type condition
      * @see EventTypeFilter
@@ -247,9 +255,10 @@ public final class FilterBuilder {
 
     /**
      * A condition that holds for matching node types.
-     * @param selector  selector selecting the node to check the condition on
-     * @param ntNames node type names to match. This conditions never matches if {@code null} and
-     *                always matches if empty.
+     *
+     * @param selector selector selecting the node to check the condition on
+     * @param ntNames  node type names to match. This conditions never matches if {@code null} and
+     *                 always matches if empty.
      * @return node type condition
      */
     @NotNull
@@ -265,9 +274,10 @@ public final class FilterBuilder {
 
     /**
      * A condition that holds for matching uuids.
-     * @param selector  selector selecting the node to check the condition on
-     * @param uuids uuids to match. This conditions never matches if {@code null} and
-     *                always matches if empty.
+     *
+     * @param selector selector selecting the node to check the condition on
+     * @param uuids    uuids to match. This conditions never matches if {@code null} and always
+     *                 matches if empty.
      * @return node type condition
      */
     @NotNull
@@ -283,6 +293,7 @@ public final class FilterBuilder {
 
     /**
      * A condition that holds when the property predicate matches.
+     *
      * @param selector  selector selecting the node to check the condition on
      * @param name      the name of the property to check the predicate on
      * @param predicate the predicate to check on the named property
@@ -290,21 +301,23 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition property(@NotNull Selector selector, @NotNull String name,
-            @NotNull Predicate<PropertyState> predicate) {
+        @NotNull Predicate<PropertyState> predicate) {
 
         return new UniversalCondition(
-                checkNotNull(selector),
-                new PropertyPredicate(checkNotNull(name), checkNotNull(predicate)));
+            checkNotNull(selector),
+            new PropertyPredicate(checkNotNull(name), checkNotNull(predicate)));
     }
 
     /**
      * A condition that holds when the predicate matches.
+     *
      * @param selector  selector selecting the node to check the condition on
      * @param predicate the predicate to check on the selected node
      * @return universal condition
      */
     @NotNull
-    public Condition universal(@NotNull Selector selector, @NotNull Predicate<NodeState> predicate) {
+    public Condition universal(@NotNull Selector selector,
+        @NotNull Predicate<NodeState> predicate) {
         return new UniversalCondition(checkNotNull(selector), checkNotNull(predicate));
     }
 
@@ -336,8 +349,9 @@ public final class FilterBuilder {
 
     /**
      * A compound condition that holds when any of its constituents hold.
+     *
      * @param conditions conditions of which any must hold in order for this condition to hold
-     * @return  any condition
+     * @return any condition
      */
     @NotNull
     public Condition any(@NotNull Condition... conditions) {
@@ -346,8 +360,9 @@ public final class FilterBuilder {
 
     /**
      * A compound condition that holds when all of its constituents hold.
+     *
      * @param conditions conditions of which all must hold in order for this condition to hold
-     * @return  any condition
+     * @return any condition
      */
     @NotNull
     public Condition all(@NotNull Condition... conditions) {
@@ -356,8 +371,9 @@ public final class FilterBuilder {
 
     /**
      * A compound condition that holds when all of its constituents hold.
+     *
      * @param conditions conditions of which all must hold in order for this condition to hold
-     * @return  any condition
+     * @return any condition
      */
     @NotNull
     public Condition all(@NotNull List<Condition> conditions) {
@@ -366,8 +382,9 @@ public final class FilterBuilder {
 
     /**
      * A compound condition that holds when its constituent does not hold.
+     *
      * @param condition condition which must not hold in order for this condition to hold
-     * @return  not condition
+     * @return not condition
      */
     @NotNull
     public Condition not(@NotNull Condition condition) {
@@ -376,8 +393,9 @@ public final class FilterBuilder {
 
     /**
      * A compound condition that holds when any of its constituents hold.
+     *
      * @param conditions conditions of which any must hold in order for this condition to hold
-     * @return  any condition
+     * @return any condition
      */
     @NotNull
     public Condition any(@NotNull Iterable<Condition> conditions) {
@@ -386,8 +404,9 @@ public final class FilterBuilder {
 
     /**
      * A compound condition that holds when all of its constituents hold.
+     *
      * @param conditions conditions of which all must hold in order for this condition to hold
-     * @return  any condition
+     * @return any condition
      */
     @NotNull
     public Condition all(@NotNull Iterable<Condition> conditions) {
@@ -396,7 +415,8 @@ public final class FilterBuilder {
 
     /**
      * Create a {@code FilterProvider} reflecting the current state of this builder.
-     * @return  filter provider of the current state of this builder
+     *
+     * @return filter provider of the current state of this builder
      */
     @NotNull
     public FilterProvider build() {
@@ -411,9 +431,9 @@ public final class FilterBuilder {
 
             @Override
             public String toString() {
-                return super.toString() + " [changeSetFilter="+changeSetFilter+"]";
+                return super.toString() + " [changeSetFilter=" + changeSetFilter + "]";
             }
-            
+
             @Override
             public boolean includeCommit(@NotNull String sessionId, @Nullable CommitInfo info) {
                 return (includeSessionLocal || !isLocal(checkNotNull(sessionId), info))
@@ -445,12 +465,12 @@ public final class FilterBuilder {
             private boolean isExternal(CommitInfo info) {
                 return info.isExternal();
             }
-            
+
             @Override
             public EventAggregator getEventAggregator() {
                 return aggregator;
             }
-            
+
             @Override
             public boolean excludes(ChangeSet changeSet) {
                 return changeSetFilter.excludes(changeSet);
@@ -459,7 +479,7 @@ public final class FilterBuilder {
     }
 
     @NotNull
-    private FilterConfigMBean getConfigMBean(){
+    private FilterConfigMBean getConfigMBean() {
         return new FilterConfigMBean() {
             @Override
             public String[] getPaths() {
@@ -481,6 +501,7 @@ public final class FilterBuilder {
     //------------------------------------------------------------< Conditions >---
 
     private static class ConstantCondition implements Condition {
+
         public static final ConstantCondition INCLUDE_ALL = new ConstantCondition(true);
         public static final ConstantCondition EXCLUDE_ALL = new ConstantCondition(false);
 
@@ -497,6 +518,7 @@ public final class FilterBuilder {
     }
 
     private static class ACCondition implements Condition {
+
         private final PermissionProviderFactory permissionProviderFactory;
 
         public ACCondition(PermissionProviderFactory permissionProviderFactory) {
@@ -506,13 +528,14 @@ public final class FilterBuilder {
         @Override
         public EventFilter createFilter(NodeState before, NodeState after) {
             return new ACFilter(before, after,
-                    permissionProviderFactory.create(RootFactory.createReadOnlyRoot(after)));
+                permissionProviderFactory.create(RootFactory.createReadOnlyRoot(after)));
         }
     }
 
     private static class PathCondition implements Condition {
+
         private final String pathGlob;
-        private final Map<String,Pattern> patternMap = new HashMap<String,Pattern>();
+        private final Map<String, Pattern> patternMap = new HashMap<String, Pattern>();
 
         public PathCondition(String pathGlob) {
             this.pathGlob = pathGlob;
@@ -525,6 +548,7 @@ public final class FilterBuilder {
     }
 
     private static class EventTypeCondition implements Condition {
+
         private final int eventTypes;
 
         public EventTypeCondition(int eventTypes) {
@@ -538,6 +562,7 @@ public final class FilterBuilder {
     }
 
     private static class NodeTypeCondition implements Condition {
+
         private final Selector selector;
         private final String[] ntNames;
 
@@ -549,12 +574,13 @@ public final class FilterBuilder {
         @Override
         public EventFilter createFilter(NodeState before, NodeState after) {
             TypePredicate predicate = new TypePredicate(
-                    after.exists() ? after : before, ntNames);
+                after.exists() ? after : before, ntNames);
             return new UniversalFilter(before, after, selector, predicate);
         }
     }
 
     private static class UniversalCondition implements Condition {
+
         private final Selector selector;
         private final Predicate<NodeState> predicate;
 
@@ -571,6 +597,7 @@ public final class FilterBuilder {
     }
 
     protected static class AddSubtreeTreeCondition implements Condition {
+
         @NotNull
         @Override
         public EventFilter createFilter(@NotNull NodeState before, @NotNull NodeState after) {
@@ -579,6 +606,7 @@ public final class FilterBuilder {
     }
 
     protected static class DeleteSubtreeTreeCondition implements Condition {
+
         @NotNull
         @Override
         public EventFilter createFilter(@NotNull NodeState before, @NotNull NodeState after) {
@@ -587,6 +615,7 @@ public final class FilterBuilder {
     }
 
     protected static class MoveCondition implements Condition {
+
         @NotNull
         @Override
         public EventFilter createFilter(@NotNull NodeState before, @NotNull NodeState after) {
@@ -595,6 +624,7 @@ public final class FilterBuilder {
     }
 
     private static class AnyCondition implements Condition {
+
         private final Iterable<Condition> conditions;
 
         public AnyCondition(Iterable<Condition> conditions) {
@@ -622,6 +652,7 @@ public final class FilterBuilder {
     }
 
     private static class AllCondition implements Condition {
+
         private final Iterable<Condition> conditions;
 
         public AllCondition(Iterable<Condition> conditions) {
@@ -649,6 +680,7 @@ public final class FilterBuilder {
     }
 
     private static class NotCondition implements Condition {
+
         private final Condition condition;
 
         public NotCondition(Condition condition) {

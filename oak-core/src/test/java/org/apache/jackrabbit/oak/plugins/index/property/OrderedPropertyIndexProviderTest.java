@@ -36,14 +36,15 @@ import org.junit.Test;
 import ch.qos.logback.classic.Level;
 
 public class OrderedPropertyIndexProviderTest extends AbstractQueryTest {
+
     private final LogCustomizer custom = LogCustomizer
         .forLogger(OrderedPropertyIndexProvider.class.getName()).enable(Level.WARN).create();
-    
+
     @Override
     protected void createTestIndexNode() throws Exception {
         // no index definitions OOTB
     }
-    
+
     @Override
     protected ContentRepository createRepository() {
         return new Oak()
@@ -53,7 +54,7 @@ public class OrderedPropertyIndexProviderTest extends AbstractQueryTest {
             .with(new OrderedPropertyIndexProvider())
             .createContentRepository();
     }
-    
+
     @Test
     public void singleQueryRun() {
         custom.starting();
@@ -63,14 +64,15 @@ public class OrderedPropertyIndexProviderTest extends AbstractQueryTest {
         assertThat(logs, hasItem(OrderedIndex.DEPRECATION_MESSAGE));
         custom.finished();
     }
-    
+
     @Test
     public void multipleQueryRuns() {
         final int executions = 16;
         final int trackEvery = 5;
         final int numTraces = executions / trackEvery;
         OrderedPropertyIndexProvider.setThreshold(trackEvery);
-        List<String> expectedLogs = Collections.nCopies(numTraces, OrderedIndex.DEPRECATION_MESSAGE);
+        List<String> expectedLogs = Collections.nCopies(numTraces,
+            OrderedIndex.DEPRECATION_MESSAGE);
         custom.starting();
         for (int i = 0; i < executions; i++) {
             executeQuery("SELECT * FROM [oak:Unstructured]", SQL2);

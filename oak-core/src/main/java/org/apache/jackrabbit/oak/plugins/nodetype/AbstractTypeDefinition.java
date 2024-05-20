@@ -26,8 +26,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Abstract base class for the various kinds of type definition classes
- * in this package.
+ * Abstract base class for the various kinds of type definition classes in this package.
  */
 abstract class AbstractTypeDefinition {
 
@@ -74,6 +73,7 @@ abstract class AbstractTypeDefinition {
     protected String[] getStrings(@NotNull String oakName) {
         return getValues(oakName, Type.STRING);
     }
+
     /**
      * Returns the name value of the named property.
      *

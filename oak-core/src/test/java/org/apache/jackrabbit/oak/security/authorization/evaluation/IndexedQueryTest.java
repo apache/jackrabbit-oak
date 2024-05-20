@@ -40,9 +40,10 @@ public class IndexedQueryTest extends AbstractQueryTest {
 
     @Override
     void createIndexDefinition() throws RepositoryException {
-        Tree oakIndex = root.getTree("/"+IndexConstants.INDEX_DEFINITIONS_NAME);
+        Tree oakIndex = root.getTree("/" + IndexConstants.INDEX_DEFINITIONS_NAME);
         assertTrue(oakIndex.exists());
-        IndexUtils.createIndexDefinition(oakIndex, "test-index", false, new String[] {"title"}, "nt:unstructured");
+        IndexUtils.createIndexDefinition(oakIndex, "test-index", false, new String[]{"title"},
+            "nt:unstructured");
     }
 
     String getStatement() {

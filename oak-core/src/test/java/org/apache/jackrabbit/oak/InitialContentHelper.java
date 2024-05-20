@@ -31,7 +31,8 @@ public class InitialContentHelper {
 
     public static final NodeState INITIAL_CONTENT = createInitialContent(false);
 
-    public static final NodeState INITIAL_CONTENT_FROZEN_NODE_REFERENCEABLE = createInitialContent(true);
+    public static final NodeState INITIAL_CONTENT_FROZEN_NODE_REFERENCEABLE = createInitialContent(
+        true);
 
     private static final String REFERENCEABLE_FROZEN_NODE_PROPERTY = "oak.referenceableFrozenNode";
 
@@ -45,7 +46,8 @@ public class InitialContentHelper {
         try {
             NodeStore store = new MemoryNodeStore();
             EditorHook hook = new EditorHook(
-                    new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider()));
+                new CompositeEditorProvider(new NamespaceEditorProvider(),
+                    new TypeEditorProvider()));
             OakInitializer.initialize(store, new InitialContent(), hook);
             return store.getRoot();
         } finally {
@@ -57,6 +59,7 @@ public class InitialContentHelper {
         }
     }
 
-    private InitialContentHelper() {}
+    private InitialContentHelper() {
+    }
 
 }

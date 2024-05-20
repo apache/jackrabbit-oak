@@ -39,7 +39,8 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class PermissionUtil implements PermissionConstants {
 
-    private PermissionUtil() {}
+    private PermissionUtil() {
+    }
 
     @Nullable
     public static String getParentPathOrNull(@NotNull final String path) {
@@ -77,17 +78,21 @@ public final class PermissionUtil implements PermissionConstants {
     }
 
     @NotNull
-    public static Tree getPrincipalRoot(@NotNull Tree permissionsTree, @NotNull String principalName) {
+    public static Tree getPrincipalRoot(@NotNull Tree permissionsTree,
+        @NotNull String principalName) {
         return permissionsTree.getChild(Text.escapeIllegalJcrChars(principalName));
     }
 
-    public static boolean isAdminOrSystem(@NotNull Set<Principal> principals, @NotNull ConfigurationParameters config) {
+    public static boolean isAdminOrSystem(@NotNull Set<Principal> principals,
+        @NotNull ConfigurationParameters config) {
         if (principals.contains(SystemPrincipal.INSTANCE)) {
             return true;
         } else {
-            Set<String> adminNames = config.getConfigValue(PARAM_ADMINISTRATIVE_PRINCIPALS, Collections.EMPTY_SET);
+            Set<String> adminNames = config.getConfigValue(PARAM_ADMINISTRATIVE_PRINCIPALS,
+                Collections.EMPTY_SET);
             for (Principal principal : principals) {
-                if (principal instanceof AdminPrincipal || adminNames.contains(principal.getName())) {
+                if (principal instanceof AdminPrincipal || adminNames.contains(
+                    principal.getName())) {
                     return true;
                 }
             }

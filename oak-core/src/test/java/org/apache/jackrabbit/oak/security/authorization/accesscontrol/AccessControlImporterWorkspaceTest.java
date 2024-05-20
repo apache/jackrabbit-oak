@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-public class AccessControlImporterWorkspaceTest extends AccessControlImporterAbortTest{
+public class AccessControlImporterWorkspaceTest extends AccessControlImporterAbortTest {
 
     @Override
     boolean isWorkspaceImport() {

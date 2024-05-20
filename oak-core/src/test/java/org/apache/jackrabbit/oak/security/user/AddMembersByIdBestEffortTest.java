@@ -61,14 +61,14 @@ public class AddMembersByIdBestEffortTest extends AbstractAddMembersByIdTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         return ConfigurationParameters.of(UserConfiguration.NAME,
-                ConfigurationParameters.of(
-                        ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT)
+            ConfigurationParameters.of(
+                ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT)
         );
     }
 
     /**
-     * "Oddity" when adding per id + besteffort: everyone group will not be
-     * dealt with separately and will end up being listed in a rep:members property.
+     * "Oddity" when adding per id + besteffort: everyone group will not be dealt with separately
+     * and will end up being listed in a rep:members property.
      */
     @Test
     public void testEveryoneAsMember() throws Exception {
@@ -91,7 +91,8 @@ public class AddMembersByIdBestEffortTest extends AbstractAddMembersByIdTest {
             // oddity of the current impl that add members without testing for
             boolean found = false;
             MembershipProvider mp = userManager.getMembershipProvider();
-            for (Iterator<Tree> it = mp.getMembership(root.getTree(everyone.getPath()), true); it.hasNext(); ) {
+            for (Iterator<Tree> it = mp.getMembership(root.getTree(everyone.getPath()), true);
+                it.hasNext(); ) {
                 Tree t = it.next();
                 if (testGroup.getPath().equals(t.getPath())) {
                     found = true;
@@ -128,7 +129,10 @@ public class AddMembersByIdBestEffortTest extends AbstractAddMembersByIdTest {
 
     @Test
     public void testAddByContentID() throws Exception {
-        AuthorizableBaseProvider provider = new UserProvider(root, ConfigurationParameters.of(getUserConfiguration().getParameters(), ConfigurationParameters.of(UserConstants.PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, false)));
+        AuthorizableBaseProvider provider = new UserProvider(root,
+            ConfigurationParameters.of(getUserConfiguration().getParameters(),
+                ConfigurationParameters.of(
+                    UserConstants.PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, false)));
         Set<String> failed = testGroup.addMembers(provider.getContentID(getTestUser().getID()));
         assertTrue(failed.isEmpty());
 
@@ -145,8 +149,8 @@ public class AddMembersByIdBestEffortTest extends AbstractAddMembersByIdTest {
     }
 
     /**
-     * @since Oak 1.8 : for performance reasons cyclic membership is only check
-     * within GroupImpl and those import-behaviours that actually resolve the id to a user/group
+     * @since Oak 1.8 : for performance reasons cyclic membership is only check within GroupImpl and
+     * those import-behaviours that actually resolve the id to a user/group
      */
     @Override
     @Test
@@ -165,8 +169,8 @@ public class AddMembersByIdBestEffortTest extends AbstractAddMembersByIdTest {
     }
 
     /**
-     * @since Oak 1.8 : for performance reasons cyclic membership is only check
-     * within GroupImpl and those import-behaviours that actually resolve the id to a user/group
+     * @since Oak 1.8 : for performance reasons cyclic membership is only check within GroupImpl and
+     * those import-behaviours that actually resolve the id to a user/group
      */
     @Test
     public void testCyclicWithoutAccess() throws Exception {
@@ -179,8 +183,10 @@ public class AddMembersByIdBestEffortTest extends AbstractAddMembersByIdTest {
         // cyclic membership must be spotted upon membership resolution
         root.refresh();
         UserManager uMgr = getUserManager(root);
-        assertEquals(1, Iterators.size(uMgr.getAuthorizable(memberGroup.getID(), Group.class).getMembers()));
-        assertEquals(1, Iterators.size(uMgr.getAuthorizable(testGroup.getID(), Group.class).getMembers()));
+        assertEquals(1,
+            Iterators.size(uMgr.getAuthorizable(memberGroup.getID(), Group.class).getMembers()));
+        assertEquals(1,
+            Iterators.size(uMgr.getAuthorizable(testGroup.getID(), Group.class).getMembers()));
     }
 
     @Test

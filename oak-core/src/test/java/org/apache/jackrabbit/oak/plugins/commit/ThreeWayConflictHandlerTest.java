@@ -50,7 +50,8 @@ public class ThreeWayConflictHandlerTest {
 
             @NotNull
             @Override
-            public Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs) {
+            public Resolution addExistingProperty(@NotNull NodeBuilder parent,
+                @NotNull PropertyState ours, @NotNull PropertyState theirs) {
                 called.set(true);
                 assertEquals("ours", ours.getValue(STRING));
                 assertEquals("theirs", theirs.getValue(STRING));
@@ -81,7 +82,8 @@ public class ThreeWayConflictHandlerTest {
 
             @NotNull
             @Override
-            public Resolution changeDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState base) {
+            public Resolution changeDeletedProperty(@NotNull NodeBuilder parent,
+                @NotNull PropertyState ours, @NotNull PropertyState base) {
                 called.set(true);
                 assertEquals("ours", ours.getValue(STRING));
                 assertEquals("base", base.getValue(STRING));
@@ -111,8 +113,9 @@ public class ThreeWayConflictHandlerTest {
         ThreeWayConflictHandler handler = new ErrorThreeWayConflictHandler() {
             @NotNull
             @Override
-            public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs,
-                                                    @NotNull PropertyState base) {
+            public Resolution changeChangedProperty(@NotNull NodeBuilder parent,
+                @NotNull PropertyState ours, @NotNull PropertyState theirs,
+                @NotNull PropertyState base) {
                 called.set(true);
                 assertEquals("ours", ours.getValue(STRING));
                 assertEquals("theirs", theirs.getValue(STRING));
@@ -143,7 +146,8 @@ public class ThreeWayConflictHandlerTest {
         ThreeWayConflictHandler handler = new ErrorThreeWayConflictHandler() {
             @NotNull
             @Override
-            public Resolution deleteDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState base) {
+            public Resolution deleteDeletedProperty(@NotNull NodeBuilder parent,
+                @NotNull PropertyState base) {
                 called.set(true);
                 assertEquals("base", base.getValue(STRING));
                 return Resolution.IGNORED;
@@ -172,7 +176,8 @@ public class ThreeWayConflictHandlerTest {
         ThreeWayConflictHandler handler = new ErrorThreeWayConflictHandler() {
             @NotNull
             @Override
-            public Resolution deleteChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState theirs, @NotNull PropertyState base) {
+            public Resolution deleteChangedProperty(@NotNull NodeBuilder parent,
+                @NotNull PropertyState theirs, @NotNull PropertyState base) {
                 called.set(true);
                 assertEquals("theirs", theirs.getValue(STRING));
                 assertEquals("base", base.getValue(STRING));
@@ -202,7 +207,8 @@ public class ThreeWayConflictHandlerTest {
         ThreeWayConflictHandler handler = new ErrorThreeWayConflictHandler() {
             @NotNull
             @Override
-            public Resolution changeDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours, @NotNull NodeState base) {
+            public Resolution changeDeletedNode(@NotNull NodeBuilder parent, @NotNull String name,
+                @NotNull NodeState ours, @NotNull NodeState base) {
                 called.set(true);
                 assertTrue(ours.hasProperty("p"));
                 assertTrue(base.hasProperty("p"));
@@ -234,7 +240,8 @@ public class ThreeWayConflictHandlerTest {
         ThreeWayConflictHandler handler = new ErrorThreeWayConflictHandler() {
             @NotNull
             @Override
-            public Resolution deleteChangedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState theirs, @NotNull NodeState base) {
+            public Resolution deleteChangedNode(@NotNull NodeBuilder parent, @NotNull String name,
+                @NotNull NodeState theirs, @NotNull NodeState base) {
                 called.set(true);
                 assertTrue(theirs.hasProperty("p"));
                 assertTrue(base.hasProperty("p"));
@@ -266,7 +273,8 @@ public class ThreeWayConflictHandlerTest {
         ThreeWayConflictHandler handler = new ErrorThreeWayConflictHandler() {
             @NotNull
             @Override
-            public Resolution deleteDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState base) {
+            public Resolution deleteDeletedNode(@NotNull NodeBuilder parent, @NotNull String name,
+                @NotNull NodeState base) {
                 called.set(true);
                 assertTrue(base.hasProperty("p"));
                 assertEquals("base", base.getProperty("p").getValue(STRING));
@@ -316,7 +324,8 @@ public class ThreeWayConflictHandlerTest {
         }
 
         NodeBuilder mergedBuilder = withUpdatedProperty.builder();
-        withRemovedChild.compareAgainstBaseState(withProperty, new ConflictAnnotatingRebaseDiff(mergedBuilder));
+        withRemovedChild.compareAgainstBaseState(withProperty,
+            new ConflictAnnotatingRebaseDiff(mergedBuilder));
         NodeState merged = ConflictHook.of(DefaultThreeWayConflictHandler.OURS).processCommit(
             mergedBuilder.getBaseState(),
             mergedBuilder.getNodeState(),
@@ -343,64 +352,73 @@ public class ThreeWayConflictHandlerTest {
 
         @NotNull
         @Override
-        public Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs) {
+        public Resolution addExistingProperty(@NotNull NodeBuilder parent,
+            @NotNull PropertyState ours, @NotNull PropertyState theirs) {
             Assert.fail("method should not be called");
             return Resolution.IGNORED;
         }
 
         @NotNull
         @Override
-        public Resolution changeDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState base) {
+        public Resolution changeDeletedProperty(@NotNull NodeBuilder parent,
+            @NotNull PropertyState ours, @NotNull PropertyState base) {
             Assert.fail("method should not be called");
             return Resolution.IGNORED;
         }
 
         @NotNull
         @Override
-        public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs,
-                                                @NotNull PropertyState base) {
+        public Resolution changeChangedProperty(@NotNull NodeBuilder parent,
+            @NotNull PropertyState ours, @NotNull PropertyState theirs,
+            @NotNull PropertyState base) {
             Assert.fail("method should not be called");
             return Resolution.IGNORED;
         }
 
         @NotNull
         @Override
-        public Resolution deleteDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState base) {
+        public Resolution deleteDeletedProperty(@NotNull NodeBuilder parent,
+            @NotNull PropertyState base) {
             Assert.fail("method should not be called");
             return Resolution.IGNORED;
         }
 
         @NotNull
         @Override
-        public Resolution deleteChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState theirs, @NotNull PropertyState base) {
+        public Resolution deleteChangedProperty(@NotNull NodeBuilder parent,
+            @NotNull PropertyState theirs, @NotNull PropertyState base) {
             Assert.fail("method should not be called");
             return Resolution.IGNORED;
         }
 
         @NotNull
         @Override
-        public Resolution addExistingNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours, @NotNull NodeState theirs) {
+        public Resolution addExistingNode(@NotNull NodeBuilder parent, @NotNull String name,
+            @NotNull NodeState ours, @NotNull NodeState theirs) {
             Assert.fail("method should not be called");
             return Resolution.IGNORED;
         }
 
         @NotNull
         @Override
-        public Resolution changeDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours, @NotNull NodeState base) {
+        public Resolution changeDeletedNode(@NotNull NodeBuilder parent, @NotNull String name,
+            @NotNull NodeState ours, @NotNull NodeState base) {
             Assert.fail("method should not be called");
             return Resolution.IGNORED;
         }
 
         @NotNull
         @Override
-        public Resolution deleteChangedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState theirs, @NotNull NodeState base) {
+        public Resolution deleteChangedNode(@NotNull NodeBuilder parent, @NotNull String name,
+            @NotNull NodeState theirs, @NotNull NodeState base) {
             Assert.fail("method should not be called");
             return Resolution.IGNORED;
         }
 
         @NotNull
         @Override
-        public Resolution deleteDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState base) {
+        public Resolution deleteDeletedNode(@NotNull NodeBuilder parent, @NotNull String name,
+            @NotNull NodeState base) {
             Assert.fail("method should not be called");
             return Resolution.IGNORED;
         }

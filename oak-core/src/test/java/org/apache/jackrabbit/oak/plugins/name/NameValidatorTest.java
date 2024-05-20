@@ -102,7 +102,7 @@ public class NameValidatorTest {
     }
 
     @Test(expected = CommitFailedException.class)
-    public void testNameWithLineBreaks() throws Exception{
+    public void testNameWithLineBreaks() throws Exception {
         validator.childNodeAdded("name\tx", EMPTY_NODE);
     }
 

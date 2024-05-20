@@ -32,7 +32,7 @@ public class UUIDDiffIndexProviderWrapper implements QueryIndexProvider {
     private final QueryIndexProvider baseProvider;
 
     public UUIDDiffIndexProviderWrapper(QueryIndexProvider baseProvider,
-            NodeState before, NodeState after) {
+        NodeState before, NodeState after) {
         this.baseProvider = baseProvider;
         this.before = before;
         this.after = after;
@@ -41,7 +41,7 @@ public class UUIDDiffIndexProviderWrapper implements QueryIndexProvider {
     @Override
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
         List<QueryIndex> indexes = new ArrayList<QueryIndex>(
-                Collections.singletonList(new UUIDDiffIndex(before, after)));
+            Collections.singletonList(new UUIDDiffIndex(before, after)));
         indexes.addAll(this.baseProvider.getQueryIndexes(nodeState));
         return indexes;
     }

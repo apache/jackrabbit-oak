@@ -38,19 +38,19 @@ import org.junit.Test;
 import org.apache.jackrabbit.guava.common.base.Supplier;
 
 public class UniqueEntryStoreStrategyTest {
-    
+
     private static final Set<String> EMPTY = newHashSet();
     private String indexName;
     private NodeBuilder indexMeta;
     private UniqueEntryStoreStrategy store;
-    
+
     @Before
     public void fillIndex() throws Exception {
-        
+
         store = new UniqueEntryStoreStrategy();
-        
+
         indexName = "foo";
-        
+
         NodeState root = EMPTY_NODE;
         indexMeta = root.builder();
         Supplier<NodeBuilder> index = memoize(() -> indexMeta.child(INDEX_CONTENT_NODE_NAME));
@@ -60,32 +60,37 @@ public class UniqueEntryStoreStrategyTest {
 
     @Test
     public void queryEntries_All() {
-        
-        Iterable<IndexEntry> hits = store.queryEntries(FilterImpl.newTestInstance(), indexName, indexMeta.getNodeState(), null);
-        
-        assertThat(hits, containsInAnyOrder(new IndexEntry("/some/node1", "key1"), new IndexEntry("/some/node2", "key2")));
+
+        Iterable<IndexEntry> hits = store.queryEntries(FilterImpl.newTestInstance(), indexName,
+            indexMeta.getNodeState(), null);
+
+        assertThat(hits, containsInAnyOrder(new IndexEntry("/some/node1", "key1"),
+            new IndexEntry("/some/node2", "key2")));
     }
-    
+
     @Test
     public void queryEntries_some() {
 
-        Iterable<IndexEntry> hits = store.queryEntries(FilterImpl.newTestInstance(), indexName, indexMeta.getNodeState(), Arrays.asList("key1"));
-        
+        Iterable<IndexEntry> hits = store.queryEntries(FilterImpl.newTestInstance(), indexName,
+            indexMeta.getNodeState(), Arrays.asList("key1"));
+
         assertThat(hits, containsInAnyOrder(new IndexEntry("/some/node1", "key1")));
     }
-    
+
     @Test
     public void queryEntries_none() {
-        
-        Iterable<IndexEntry> hits = store.queryEntries(FilterImpl.newTestInstance(), indexName, indexMeta.getNodeState(), Arrays.asList("key3"));
-        
+
+        Iterable<IndexEntry> hits = store.queryEntries(FilterImpl.newTestInstance(), indexName,
+            indexMeta.getNodeState(), Arrays.asList("key3"));
+
         assertThat(hits, iterableWithSize(0));
     }
 
     @Test
-    public void callbackInvoked() throws Exception{
+    public void callbackInvoked() throws Exception {
         AtomicBoolean callbackInvoked = new AtomicBoolean();
-        store = new UniqueEntryStoreStrategy(INDEX_CONTENT_NODE_NAME, (nb) -> callbackInvoked.set(true));
+        store = new UniqueEntryStoreStrategy(INDEX_CONTENT_NODE_NAME,
+            (nb) -> callbackInvoked.set(true));
 
         indexName = "foo";
 

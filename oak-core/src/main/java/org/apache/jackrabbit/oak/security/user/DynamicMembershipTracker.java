@@ -32,7 +32,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class DynamicMembershipTracker extends AbstractServiceTracker<DynamicMembershipService>  implements DynamicMembershipService {
+public class DynamicMembershipTracker extends
+    AbstractServiceTracker<DynamicMembershipService> implements DynamicMembershipService {
 
     public DynamicMembershipTracker() {
         super(DynamicMembershipService.class);
@@ -40,8 +41,10 @@ public class DynamicMembershipTracker extends AbstractServiceTracker<DynamicMemb
 
     @Override
     @NotNull
-    public DynamicMembershipProvider getDynamicMembershipProvider(@NotNull Root root, @NotNull UserManager userManager, @NotNull NamePathMapper namePathMapper) {
-        DynamicMembershipProvider defaultProvider = new EveryoneMembershipProvider(userManager, namePathMapper);
+    public DynamicMembershipProvider getDynamicMembershipProvider(@NotNull Root root,
+        @NotNull UserManager userManager, @NotNull NamePathMapper namePathMapper) {
+        DynamicMembershipProvider defaultProvider = new EveryoneMembershipProvider(userManager,
+            namePathMapper);
         List<DynamicMembershipService> services = getServices();
         if (services.isEmpty()) {
             return defaultProvider;
@@ -49,21 +52,23 @@ public class DynamicMembershipTracker extends AbstractServiceTracker<DynamicMemb
             return createProvider(root, userManager, namePathMapper, defaultProvider, services);
         }
     }
-    
+
     /**
-     * Initialize DynamicMembershipProvider instances.
-     * NOTE: Since providers are are created on demand for a given {@code UserManager} instance and Session instances are 
-     * expected to be short-lived compared to the frequency of service registrations, no effort is made to keep the 
+     * Initialize DynamicMembershipProvider instances. NOTE: Since providers are are created on
+     * demand for a given {@code UserManager} instance and Session instances are expected to be
+     * short-lived compared to the frequency of service registrations, no effort is made to keep the
      * the list updated.
      */
-    private static DynamicMembershipProvider createProvider(@NotNull Root root, @NotNull UserManager userManager, 
-                                                            @NotNull NamePathMapper namePathMapper, 
-                                                            @NotNull DynamicMembershipProvider defaultProvider, 
-                                                            @NotNull List<DynamicMembershipService> services) {
-        List<DynamicMembershipProvider> providers = new ArrayList<>(1+services.size());
+    private static DynamicMembershipProvider createProvider(@NotNull Root root,
+        @NotNull UserManager userManager,
+        @NotNull NamePathMapper namePathMapper,
+        @NotNull DynamicMembershipProvider defaultProvider,
+        @NotNull List<DynamicMembershipService> services) {
+        List<DynamicMembershipProvider> providers = new ArrayList<>(1 + services.size());
         providers.add(defaultProvider);
         for (DynamicMembershipService service : services) {
-            DynamicMembershipProvider dmp = service.getDynamicMembershipProvider(root, userManager, namePathMapper);
+            DynamicMembershipProvider dmp = service.getDynamicMembershipProvider(root, userManager,
+                namePathMapper);
             if (DynamicMembershipProvider.EMPTY != dmp) {
                 providers.add(dmp);
             }
@@ -77,13 +82,13 @@ public class DynamicMembershipTracker extends AbstractServiceTracker<DynamicMemb
     }
 
     private static class CompositeProvider implements DynamicMembershipProvider {
-        
+
         private final List<DynamicMembershipProvider> providers;
-        
+
         private CompositeProvider(@NotNull List<DynamicMembershipProvider> providers) {
             this.providers = providers;
         }
-        
+
         @Override
         public boolean coversAllMembers(@NotNull Group group) {
             for (DynamicMembershipProvider provider : providers) {
@@ -95,7 +100,8 @@ public class DynamicMembershipTracker extends AbstractServiceTracker<DynamicMemb
         }
 
         @Override
-        public @NotNull Iterator<Authorizable> getMembers(@NotNull Group group, boolean includeInherited) throws RepositoryException {
+        public @NotNull Iterator<Authorizable> getMembers(@NotNull Group group,
+            boolean includeInherited) throws RepositoryException {
             int size = providers.size();
             Iterator<Authorizable>[] members = new Iterator[size];
             for (int i = 0; i < size; i++) {
@@ -105,7 +111,8 @@ public class DynamicMembershipTracker extends AbstractServiceTracker<DynamicMemb
         }
 
         @Override
-        public boolean isMember(@NotNull Group group, @NotNull Authorizable authorizable, boolean includeInherited) throws RepositoryException {
+        public boolean isMember(@NotNull Group group, @NotNull Authorizable authorizable,
+            boolean includeInherited) throws RepositoryException {
             for (DynamicMembershipProvider provider : providers) {
                 if (provider.isMember(group, authorizable, includeInherited)) {
                     return true;
@@ -115,7 +122,8 @@ public class DynamicMembershipTracker extends AbstractServiceTracker<DynamicMemb
         }
 
         @Override
-        public @NotNull Iterator<Group> getMembership(@NotNull Authorizable authorizable, boolean includeInherited) throws RepositoryException {
+        public @NotNull Iterator<Group> getMembership(@NotNull Authorizable authorizable,
+            boolean includeInherited) throws RepositoryException {
             int size = providers.size();
             Iterator<Group>[] groups = new Iterator[size];
             for (int i = 0; i < size; i++) {

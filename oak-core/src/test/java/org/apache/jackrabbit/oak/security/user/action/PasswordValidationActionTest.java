@@ -44,13 +44,14 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
 
     private final PasswordValidationAction pwAction = new PasswordValidationAction();
     private final AuthorizableAction testAction = mock(AuthorizableAction.class);
-    private final AuthorizableActionProvider actionProvider = securityProvider -> ImmutableList.of(pwAction, testAction);
+    private final AuthorizableActionProvider actionProvider = securityProvider -> ImmutableList.of(
+        pwAction, testAction);
 
     @Before
     public void before() throws Exception {
         super.before();
         pwAction.init(getSecurityProvider(), ConfigurationParameters.of(
-                PasswordValidationAction.CONSTRAINT, "^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z]).*"));
+            PasswordValidationAction.CONSTRAINT, "^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z]).*"));
 
     }
 
@@ -63,7 +64,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         ConfigurationParameters userParams = ConfigurationParameters.of(
-                UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider
+            UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider
         );
         return ConfigurationParameters.of(UserConfiguration.NAME, userParams);
     }
@@ -74,10 +75,12 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         verify(testAction, times(1)).onCreate(user, "testUser12345", root, getNamePathMapper());
 
         user.changePassword("pW12345678");
-        verify(testAction, times(1)).onPasswordChange(user, "pW12345678", root, getNamePathMapper());
+        verify(testAction, times(1)).onPasswordChange(user, "pW12345678", root,
+            getNamePathMapper());
 
         user.changePassword("pW1234567890", "pW12345678");
-        verify(testAction, times(1)).onPasswordChange(user, "pW12345678", root, getNamePathMapper());
+        verify(testAction, times(1)).onPasswordChange(user, "pW12345678", root,
+            getNamePathMapper());
     }
 
     @Test
@@ -85,7 +88,8 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         String hashed = PasswordUtil.buildPasswordHash("DWkej32H");
         User user = getUserManager(root).createUser("testuser", hashed);
 
-        String pwValue = root.getTree(user.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
+        String pwValue = root.getTree(user.getPath()).getProperty(UserConstants.REP_PASSWORD)
+                             .getValue(Type.STRING);
         assertFalse(PasswordUtil.isPlainTextPassword(pwValue));
         assertTrue(PasswordUtil.isSame(pwValue, hashed));
     }
@@ -95,7 +99,8 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         User user = getUserManager(root).createUser("testuser", "testPw123456");
         String hashed = PasswordUtil.buildPasswordHash("abc");
         try {
-            pwAction.init(getSecurityProvider(), ConfigurationParameters.of(PasswordValidationAction.CONSTRAINT, "abc"));
+            pwAction.init(getSecurityProvider(),
+                ConfigurationParameters.of(PasswordValidationAction.CONSTRAINT, "abc"));
             user.changePassword(hashed);
         } finally {
             verify(testAction, times(1)).onCreate(user, "testPw123456", root, getNamePathMapper());

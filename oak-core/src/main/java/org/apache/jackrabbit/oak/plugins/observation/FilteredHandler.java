@@ -24,9 +24,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Filtered event handler. This decorator class applies an {@link EventFilter}
- * on all detected changes, and forwards the filtered change events to a given
- * delegate handler.
+ * Filtered event handler. This decorator class applies an {@link EventFilter} on all detected
+ * changes, and forwards the filtered change events to a given delegate handler.
  */
 public class FilteredHandler extends DefaultEventHandler {
 
@@ -50,13 +49,14 @@ public class FilteredHandler extends DefaultEventHandler {
         handler.leave(before, after);
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public EventHandler getChildHandler(
-            String name, NodeState before, NodeState after) {
+        String name, NodeState before, NodeState after) {
         EventFilter f = filter.create(name, before, after);
         if (f != null) {
             EventHandler h = handler.getChildHandler(name, before, after);
-            if (h != null) { 
+            if (h != null) {
                 return new FilteredHandler(f, h);
             }
         }

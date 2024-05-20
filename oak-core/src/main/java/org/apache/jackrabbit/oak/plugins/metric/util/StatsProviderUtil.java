@@ -30,39 +30,55 @@ import java.util.Map;
 import java.util.function.BiFunction;
 
 /**
- * Util class to generate a name for Stats implementations that can be used for creating labels in prometheus.
+ * Util class to generate a name for Stats implementations that can be used for creating labels in
+ * prometheus.
  * <p>
- * Usage - {@code StatsProviderUtil(<StatisticsProvider Object>).getHistoStats().apply(metricName, labels)}
+ * Usage -
+ * {@code StatsProviderUtil(<StatisticsProvider Object>).getHistoStats().apply(metricName, labels)}
  * where metricName is a String to denote the metric name and labels is map of label values.
  * Resultant metric will be created with a name as follows -
- * {@code metricName;labelName1=labelValue1;labelName2=labelValue2}.
- * This can then be translated by a consuming alerting system like prometheus into metric name and labels separately.
+ * {@code metricName;labelName1=labelValue1;labelName2=labelValue2}. This can then be translated by
+ * a consuming alerting system like prometheus into metric name and labels separately.
  */
 public class StatsProviderUtil {
 
     private final StatisticsProvider statisticsProvider;
-    private final BiFunction<String, Map<String, String>, String> METRIC = (name, labels) -> labels.entrySet().stream().reduce(name,
-            (n, e) -> n + ";" + e.getKey() + "=" + e.getValue(),
-            (n1, n2) -> n1 + n2);
+    private final BiFunction<String, Map<String, String>, String> METRIC = (name, labels) -> labels.entrySet()
+                                                                                                   .stream()
+                                                                                                   .reduce(
+                                                                                                       name,
+                                                                                                       (n, e) ->
+                                                                                                           n
+                                                                                                               + ";"
+                                                                                                               + e.getKey()
+                                                                                                               + "="
+                                                                                                               + e.getValue(),
+                                                                                                       (n1, n2) ->
+                                                                                                           n1
+                                                                                                               + n2);
 
     public StatsProviderUtil(@NotNull StatisticsProvider statisticsProvider) {
         this.statisticsProvider = statisticsProvider;
     }
 
     public BiFunction<String, Map<String, String>, HistogramStats> getHistoStats() {
-        return (name, labels) -> statisticsProvider.getHistogram(METRIC.apply(name, labels), StatsOptions.METRICS_ONLY);
+        return (name, labels) -> statisticsProvider.getHistogram(METRIC.apply(name, labels),
+            StatsOptions.METRICS_ONLY);
     }
 
     public BiFunction<String, Map<String, String>, CounterStats> getCounterStats() {
-        return (name, labels) -> statisticsProvider.getCounterStats(METRIC.apply(name, labels), StatsOptions.METRICS_ONLY);
+        return (name, labels) -> statisticsProvider.getCounterStats(METRIC.apply(name, labels),
+            StatsOptions.METRICS_ONLY);
     }
 
     public BiFunction<String, Map<String, String>, TimerStats> getTimerStats() {
-        return (name, labels) -> statisticsProvider.getTimer(METRIC.apply(name, labels), StatsOptions.METRICS_ONLY);
+        return (name, labels) -> statisticsProvider.getTimer(METRIC.apply(name, labels),
+            StatsOptions.METRICS_ONLY);
     }
 
     public BiFunction<String, Map<String, String>, MeterStats> getMeterStats() {
-        return (name, labels) -> statisticsProvider.getMeter(METRIC.apply(name, labels), StatsOptions.METRICS_ONLY);
+        return (name, labels) -> statisticsProvider.getMeter(METRIC.apply(name, labels),
+            StatsOptions.METRICS_ONLY);
     }
 
 }

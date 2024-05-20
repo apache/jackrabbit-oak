@@ -29,29 +29,32 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Internal interface to process methods defined by
  * {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider}.
- * Depending on the set of {@link java.security.Principal}s a given implementation
- * be may able to simplify the evaluation. See e.g. {@link org.apache.jackrabbit.oak.security.authorization.permission.AllPermissions}
- * and {@link org.apache.jackrabbit.oak.security.authorization.permission.NoPermissions}
+ * Depending on the set of {@link java.security.Principal}s a given implementation be may able to
+ * simplify the evaluation. See e.g.
+ * {@link org.apache.jackrabbit.oak.security.authorization.permission.AllPermissions} and
+ * {@link org.apache.jackrabbit.oak.security.authorization.permission.NoPermissions}
  */
 interface CompiledPermissions {
 
     /**
-     * Refresh this instance to reflect the permissions as present with the
-     * specified {@code Root}.
+     * Refresh this instance to reflect the permissions as present with the specified {@code Root}.
      *
-     *
-     * @param root The root
+     * @param root          The root
      * @param workspaceName The workspace name.
-     * @see {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider#refresh()}
+     * @see {@link
+     * org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider#refresh()}
      */
     void refresh(@NotNull Root root, @NotNull String workspaceName);
 
     /**
-     * Returns the {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission}
-     * associated with the {@code Root} as specified in {@link #refresh(org.apache.jackrabbit.oak.api.Root, String)}
+     * Returns the
+     * {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission}
+     * associated with the {@code Root} as specified in
+     * {@link #refresh(org.apache.jackrabbit.oak.api.Root, String)}
      *
      * @return an instance of {@code RepositoryPermission}.
-     * @see {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider#getRepositoryPermission()}
+     * @see {@link
+     * org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider#getRepositoryPermission()}
      */
     @NotNull
     RepositoryPermission getRepositoryPermission();
@@ -59,11 +62,12 @@ interface CompiledPermissions {
     /**
      * Returns the tree permissions for the specified {@code tree}.
      *
-     *
-     * @param tree The tree for which to obtain the permissions.
+     * @param tree             The tree for which to obtain the permissions.
      * @param parentPermission The permissions as present with the parent.
      * @return The permissions for the specified tree.
-     * @see {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission#getChildPermission(String, org.apache.jackrabbit.oak.spi.state.NodeState)}
+     * @see {@link
+     * org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission#getChildPermission(String,
+     * org.apache.jackrabbit.oak.spi.state.NodeState)}
      */
     @NotNull
     TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission);
@@ -71,68 +75,74 @@ interface CompiledPermissions {
     /**
      * Returns the tree permissions for the specified {@code tree}.
      *
-     *
-     * @param tree The tree for which to obtain the permissions.
+     * @param tree             The tree for which to obtain the permissions.
      * @param parentPermission The permissions as present with the parent.
      * @return The permissions for the specified tree.
-     * @see {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission#getChildPermission(String, org.apache.jackrabbit.oak.spi.state.NodeState)}
+     * @see {@link
+     * org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission#getChildPermission(String,
+     * org.apache.jackrabbit.oak.spi.state.NodeState)}
      */
     @NotNull
-    TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission);
+    TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type,
+        @NotNull TreePermission parentPermission);
 
     /**
-     * Returns {@code true} if the given {@code permissions} are granted on the
-     * item identified by {@code parent} and optionally {@code property}.
+     * Returns {@code true} if the given {@code permissions} are granted on the item identified by
+     * {@code parent} and optionally {@code property}.
      *
-     *
-     * @param tree The tree (or parent tree) for which the permissions should be evaluated.
-     * @param property An optional property state.
+     * @param tree        The tree (or parent tree) for which the permissions should be evaluated.
+     * @param property    An optional property state.
      * @param permissions The permissions to be tested.
      * @return {@code true} if granted.
-     * @see {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider#isGranted(org.apache.jackrabbit.oak.api.Tree, org.apache.jackrabbit.oak.api.PropertyState, long)}
+     * @see {@link
+     * org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider#isGranted(org.apache.jackrabbit.oak.api.Tree,
+     * org.apache.jackrabbit.oak.api.PropertyState, long)}
      */
     boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions);
 
     /**
-     * Returns {@code true} if the given {@code permissions} are granted on the
-     * tree identified by the specified {@code path}.
+     * Returns {@code true} if the given {@code permissions} are granted on the tree identified by
+     * the specified {@code path}.
      *
-     * @param path Path of an item
-     * @param isProperty If the path points to an property
+     * @param path        Path of an item
+     * @param isProperty  If the path points to an property
      * @param permissions The permissions to be tested.
      * @return {@code true} if granted.
-     * @see {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider#isGranted(String, String)}
+     * @see {@link
+     * org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider#isGranted(String,
+     * String)}
      */
     boolean isGranted(@NotNull String path, boolean isProperty, long permissions);
-    
+
     /**
-     * Returns {@code true} if the given {@code permissions} are granted on the
-     * tree identified by the specified {@code path}.
+     * Returns {@code true} if the given {@code permissions} are granted on the tree identified by
+     * the specified {@code path}.
      *
-     * @param path Path of a tree
+     * @param path        Path of a tree
      * @param permissions The permissions to be tested.
      * @return {@code true} if granted.
-     * @see {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider#isGranted(String, String)}
+     * @see {@link
+     * org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider#isGranted(String,
+     * String)}
      */
     boolean isGranted(@NotNull String path, long permissions);
 
     /**
      * Retrieve the privileges granted at the specified {@code tree}.
      *
-     *
      * @param tree The tree for which to retrieve the granted privileges.
      * @return the set of privileges or an empty set if no privileges are granted.
-     * @see {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider#getPrivileges(org.apache.jackrabbit.oak.api.Tree)}
+     * @see {@link
+     * org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider#getPrivileges(org.apache.jackrabbit.oak.api.Tree)}
      */
     @NotNull
     Set<String> getPrivileges(@Nullable Tree tree);
 
     /**
-     * Returns {@code true} if all privileges identified by the given {@code privilegeNames}
-     * are granted at the given {@code tree}.
+     * Returns {@code true} if all privileges identified by the given {@code privilegeNames} are
+     * granted at the given {@code tree}.
      *
-     *
-     * @param tree The target tree.
+     * @param tree           The target tree.
      * @param privilegeNames The privilege names to be tested.
      * @return {@code true} if the tree has privileges
      */

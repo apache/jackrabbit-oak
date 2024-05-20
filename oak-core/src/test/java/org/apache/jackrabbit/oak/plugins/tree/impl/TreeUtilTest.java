@@ -42,7 +42,8 @@ public class TreeUtilTest extends AbstractSecurityTest {
 
     @Test
     public void testJcrCreatedBy() throws Exception {
-        Tree tree = TreeUtil.addChild(root.getTree("/"), "test", JcrConstants.NT_FOLDER, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), "userId");
+        Tree tree = TreeUtil.addChild(root.getTree("/"), "test", JcrConstants.NT_FOLDER,
+            root.getTree(NodeTypeConstants.NODE_TYPES_PATH), "userId");
         PropertyState ps = tree.getProperty(NodeTypeConstants.JCR_CREATEDBY);
         assertNotNull(ps);
         assertEquals("userId", ps.getValue(Type.STRING));
@@ -50,7 +51,8 @@ public class TreeUtilTest extends AbstractSecurityTest {
 
     @Test
     public void testJcrCreatedByNullUserId() throws Exception {
-        Tree tree = TreeUtil.addChild(root.getTree("/"), "test", JcrConstants.NT_FOLDER, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
+        Tree tree = TreeUtil.addChild(root.getTree("/"), "test", JcrConstants.NT_FOLDER,
+            root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
         PropertyState ps = tree.getProperty(NodeTypeConstants.JCR_CREATEDBY);
         assertNotNull(ps);
         assertEquals("", ps.getValue(Type.STRING));
@@ -59,7 +61,8 @@ public class TreeUtilTest extends AbstractSecurityTest {
     @Test
     public void testJcrLastModifiedBy() throws Exception {
         Tree ntRoot = root.getTree(NodeTypeConstants.NODE_TYPES_PATH);
-        Tree tree = TreeUtil.addChild(root.getTree("/"), "test", NodeTypeConstants.NT_OAK_UNSTRUCTURED, ntRoot, "userId");
+        Tree tree = TreeUtil.addChild(root.getTree("/"), "test",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED, ntRoot, "userId");
         TreeUtil.addMixin(tree, NodeTypeConstants.MIX_LASTMODIFIED, ntRoot, "userId");
         PropertyState ps = tree.getProperty(NodeTypeConstants.JCR_LASTMODIFIEDBY);
         assertNotNull(ps);
@@ -69,7 +72,8 @@ public class TreeUtilTest extends AbstractSecurityTest {
     @Test
     public void testJcrLastModifiedByNullUserId() throws Exception {
         Tree ntRoot = root.getTree(NodeTypeConstants.NODE_TYPES_PATH);
-        Tree tree = TreeUtil.addChild(root.getTree("/"), "test", NodeTypeConstants.NT_OAK_UNSTRUCTURED, ntRoot, null);
+        Tree tree = TreeUtil.addChild(root.getTree("/"), "test",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED, ntRoot, null);
         TreeUtil.addMixin(tree, NodeTypeConstants.MIX_LASTMODIFIED, ntRoot, null);
         PropertyState ps = tree.getProperty(NodeTypeConstants.JCR_LASTMODIFIEDBY);
         assertNotNull(ps);
@@ -95,18 +99,20 @@ public class TreeUtilTest extends AbstractSecurityTest {
         try (ContentSession cs = login(new GuestCredentials())) {
             Root r = cs.getLatestRoot();
             assertNull(TreeUtil.getPrimaryTypeName(r.getTree("/")));
-            assertEquals(expected, TreeUtil.getPrimaryTypeName(r.getTree("/"), new LazyValue<Tree>() {
-                @Override
-                protected Tree createValue() {
-                    return tree;
-                }
-            }));
+            assertEquals(expected,
+                TreeUtil.getPrimaryTypeName(r.getTree("/"), new LazyValue<Tree>() {
+                    @Override
+                    protected Tree createValue() {
+                        return tree;
+                    }
+                }));
         }
     }
 
     @Test
     public void testGetPrimaryTypeNameNotAccessibleNew() throws Exception {
-        Tree testTree = TreeUtil.addChild(root.getTree("/"), "test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree testTree = TreeUtil.addChild(root.getTree("/"), "test",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
 
         Tree t = Mockito.mock(Tree.class);
         when(t.hasProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(false);
@@ -123,12 +129,13 @@ public class TreeUtilTest extends AbstractSecurityTest {
     @Test
     public void testGetMixinTypeNamesMissingAccessible() {
         assertTrue(Iterables.isEmpty(TreeUtil.getMixinTypeNames(root.getTree("/"))));
-        assertTrue(Iterables.isEmpty(TreeUtil.getMixinTypeNames(root.getTree("/"), new LazyValue<Tree>() {
-            @Override
-            protected Tree createValue() {
-                return root.getTree("/");
-            }
-        })));
+        assertTrue(
+            Iterables.isEmpty(TreeUtil.getMixinTypeNames(root.getTree("/"), new LazyValue<Tree>() {
+                @Override
+                protected Tree createValue() {
+                    return root.getTree("/");
+                }
+            })));
     }
 
     @Test
@@ -139,36 +146,42 @@ public class TreeUtilTest extends AbstractSecurityTest {
         try (ContentSession cs = login(new GuestCredentials())) {
             Root guestRoot = cs.getLatestRoot();
             assertTrue(Iterables.isEmpty(TreeUtil.getMixinTypeNames(guestRoot.getTree("/"))));
-            assertTrue(Iterables.isEmpty(TreeUtil.getMixinTypeNames(guestRoot.getTree("/"), new LazyValue<Tree>() {
-                @Override
-                protected Tree createValue() {
-                    return tree;
-                }
-            })));
+            assertTrue(Iterables.isEmpty(
+                TreeUtil.getMixinTypeNames(guestRoot.getTree("/"), new LazyValue<Tree>() {
+                    @Override
+                    protected Tree createValue() {
+                        return tree;
+                    }
+                })));
         }
     }
 
     @Test
     public void testGetMixinTypeNamesPresentAccessible() throws Exception {
-        Tree testTree = TreeUtil.addChild(root.getTree("/"), "test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        TreeUtil.addMixin(testTree, "mix:title", root.getTree(NodeTypeConstants.NODE_TYPES_PATH), "uid");
+        Tree testTree = TreeUtil.addChild(root.getTree("/"), "test",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        TreeUtil.addMixin(testTree, "mix:title", root.getTree(NodeTypeConstants.NODE_TYPES_PATH),
+            "uid");
 
         String path = testTree.getPath();
         Iterable<String> expected = TreeUtil.getMixinTypeNames(root.getTree(path));
         assertTrue(Iterables.contains(expected, "mix:title"));
 
-        assertTrue(Iterables.elementsEqual(expected, TreeUtil.getMixinTypeNames(testTree, new LazyValue<Tree>() {
-            @Override
-            protected Tree createValue() {
-                return testTree;
-            }
-        })));
+        assertTrue(Iterables.elementsEqual(expected,
+            TreeUtil.getMixinTypeNames(testTree, new LazyValue<Tree>() {
+                @Override
+                protected Tree createValue() {
+                    return testTree;
+                }
+            })));
     }
 
     @Test
     public void testGetMixinTypeNamesPresentNotAccessible() throws Exception {
-        Tree testTree = TreeUtil.addChild(root.getTree("/"), "test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        TreeUtil.addMixin(testTree, "mix:title", root.getTree(NodeTypeConstants.NODE_TYPES_PATH), "uid");
+        Tree testTree = TreeUtil.addChild(root.getTree("/"), "test",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        TreeUtil.addMixin(testTree, "mix:title", root.getTree(NodeTypeConstants.NODE_TYPES_PATH),
+            "uid");
         root.commit();
 
         String path = testTree.getPath();
@@ -178,19 +191,22 @@ public class TreeUtilTest extends AbstractSecurityTest {
         try (ContentSession cs = login(new GuestCredentials())) {
             Root guestRoot = cs.getLatestRoot();
             assertTrue(Iterables.isEmpty(TreeUtil.getMixinTypeNames(guestRoot.getTree(path))));
-            assertTrue(Iterables.elementsEqual(expected, TreeUtil.getMixinTypeNames(guestRoot.getTree(path), new LazyValue<Tree>() {
-                @Override
-                protected Tree createValue() {
-                    return testTree;
-                }
-            })));
+            assertTrue(Iterables.elementsEqual(expected,
+                TreeUtil.getMixinTypeNames(guestRoot.getTree(path), new LazyValue<Tree>() {
+                    @Override
+                    protected Tree createValue() {
+                        return testTree;
+                    }
+                })));
         }
     }
 
     @Test
     public void testGetMixinTypeNamesPresentNotAccessibleNew() throws Exception {
-        Tree testTree = TreeUtil.addChild(root.getTree("/"), "test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        TreeUtil.addMixin(testTree, "mix:title", root.getTree(NodeTypeConstants.NODE_TYPES_PATH), "uid");
+        Tree testTree = TreeUtil.addChild(root.getTree("/"), "test",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        TreeUtil.addMixin(testTree, "mix:title", root.getTree(NodeTypeConstants.NODE_TYPES_PATH),
+            "uid");
         root.commit();
 
         Tree t = Mockito.mock(Tree.class);

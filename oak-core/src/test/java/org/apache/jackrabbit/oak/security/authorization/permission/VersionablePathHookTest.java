@@ -47,7 +47,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class VersionablePathHookTest extends AbstractSecurityTest  {
+public class VersionablePathHookTest extends AbstractSecurityTest {
 
     private ProviderCtx ctx = mock(ProviderCtx.class);
     private VersionablePathHook vpHook;
@@ -59,7 +59,8 @@ public class VersionablePathHookTest extends AbstractSecurityTest  {
     public void before() throws Exception {
         super.before();
 
-        t = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        t = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "test",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         vpHook = new VersionablePathHook(root.getContentSession().getWorkspaceName(), ctx);
 
         when(ctx.getRootProvider()).thenReturn(getRootProvider());
@@ -76,7 +77,8 @@ public class VersionablePathHookTest extends AbstractSecurityTest  {
 
             @Override
             public @NotNull Iterable<? extends PropertyState> getProperties() {
-                return ImmutableList.of(PropertyStates.createProperty(JCR_VERSIONHISTORY, "someValue"));
+                return ImmutableList.of(
+                    PropertyStates.createProperty(JCR_VERSIONHISTORY, "someValue"));
             }
 
             @Override
@@ -85,7 +87,8 @@ public class VersionablePathHookTest extends AbstractSecurityTest  {
             }
 
             @Override
-            public @NotNull NodeState getChildNode(@NotNull String name) throws IllegalArgumentException {
+            public @NotNull NodeState getChildNode(@NotNull String name)
+                throws IllegalArgumentException {
                 return this;
             }
 
@@ -114,6 +117,7 @@ public class VersionablePathHookTest extends AbstractSecurityTest  {
         VersionablePathHook h1 = new VersionablePathHook("anyWspName", ctx);
         VersionablePathHook h2 = new VersionablePathHook("anotherWspName", ctx);
         assertNotEquals(h1.toString(), h2.toString());
-        assertEquals(h1.toString(), new VersionablePathHook("anyWspName", mock(ProviderCtx.class)).toString());
+        assertEquals(h1.toString(),
+            new VersionablePathHook("anyWspName", mock(ProviderCtx.class)).toString());
     }
 }

@@ -31,11 +31,10 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONSTORAGE;
 
 /**
- * This editor removes empty version histories for nodes that are no longer versionable
- * (eg. because were deleted). The class won't remove histories for nodes which
- * UUIDs are present in the {@link OrphanedVersionCleaner#existingVersionables}.
- * The set should be used to skip processing moved/renamed nodes and it can be
- * filled by the related {@link VersionableCollector} editor.
+ * This editor removes empty version histories for nodes that are no longer versionable (eg. because
+ * were deleted). The class won't remove histories for nodes which UUIDs are present in the
+ * {@link OrphanedVersionCleaner#existingVersionables}. The set should be used to skip processing
+ * moved/renamed nodes and it can be filled by the related {@link VersionableCollector} editor.
  */
 class OrphanedVersionCleaner extends DefaultEditor {
 
@@ -64,7 +63,8 @@ class OrphanedVersionCleaner extends DefaultEditor {
     }
 
     @Override
-    public Editor childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+    public Editor childNodeChanged(String name, NodeState before, NodeState after)
+        throws CommitFailedException {
         return this;
     }
 
@@ -82,7 +82,8 @@ class OrphanedVersionCleaner extends DefaultEditor {
         }
 
         @Override
-        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info) throws CommitFailedException {
+        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder,
+            CommitInfo info) throws CommitFailedException {
             if (!builder.hasChildNode(JCR_SYSTEM)) {
                 return null;
             }

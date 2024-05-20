@@ -28,14 +28,16 @@ public interface AuthorizationMonitor extends Monitor<AuthorizationMonitor> {
     void accessViolation();
 
     /**
-     * Called to mark unexpected errors related to the permission store. It does does not cover access violations,
-     * but actual operational errors that probably need to be investigated. Any triggered event should have a
-     * corresponding error logged to make this investigation possible.
+     * Called to mark unexpected errors related to the permission store. It does does not cover
+     * access violations, but actual operational errors that probably need to be investigated. Any
+     * triggered event should have a corresponding error logged to make this investigation
+     * possible.
      */
     void permissionError();
 
     /**
-     * Called when the {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider} is
+     * Called when the
+     * {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider} is
      * being refreshed and permission caches are cleared.
      */
     void permissionRefresh();

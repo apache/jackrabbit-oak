@@ -40,7 +40,7 @@ public class NodeTypeIndexProvider implements QueryIndexProvider {
 
     @Reference
     private MountInfoProvider mountInfoProvider = Mounts
-            .defaultMountInfoProvider();
+        .defaultMountInfoProvider();
 
     @NotNull
     @Override

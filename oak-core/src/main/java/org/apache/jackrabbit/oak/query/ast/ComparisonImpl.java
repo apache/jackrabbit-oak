@@ -20,28 +20,27 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Collections;
 import java.util.Set;
-
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.query.ValueConverter;
-import org.apache.jackrabbit.oak.spi.query.fulltext.LikePattern;
-import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.query.ValueConverter;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.fulltext.LikePattern;
 
 /**
  * A comparison operation (including "like").
  */
 public class ComparisonImpl extends ConstraintImpl {
-    
+
     private final DynamicOperandImpl operand1;
     private final Operator operator;
     private final StaticOperandImpl operand2;
 
-    public ComparisonImpl(DynamicOperandImpl operand1, Operator operator, StaticOperandImpl operand2) {
+    public ComparisonImpl(DynamicOperandImpl operand1, Operator operator,
+        StaticOperandImpl operand2) {
         this.operand1 = operand1;
         this.operator = operator;
         this.operand2 = operand2;
@@ -58,7 +57,7 @@ public class ComparisonImpl extends ConstraintImpl {
     public StaticOperandImpl getOperand2() {
         return operand2;
     }
-    
+
     @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
         PropertyExistenceImpl p = operand1.getPropertyExistence();
@@ -67,12 +66,12 @@ public class ComparisonImpl extends ConstraintImpl {
         }
         return Collections.singleton(p);
     }
-    
+
     @Override
     public Set<SelectorImpl> getSelectors() {
         return operand1.getSelectors();
     }
-    
+
     @Override
     public boolean evaluate() {
         // JCR 2.0 spec, 6.7.16 Comparison:
@@ -84,7 +83,7 @@ public class ComparisonImpl extends ConstraintImpl {
         PropertyValue p2 = operand2.currentValue();
         if (p2 == null) {
             // if the property doesn't exist, the result is always false
-            // even for "null <> 'x'" (same as in SQL) 
+            // even for "null <> 'x'" (same as in SQL)
             return false;
         }
         // "the value of operand2 is converted to the
@@ -104,7 +103,7 @@ public class ComparisonImpl extends ConstraintImpl {
             Type<?> base = p1.getType().getBaseType();
             for (int i = 0; i < p1.count(); i++) {
                 PropertyState value = PropertyStates.createProperty(
-                        "value", p1.getValue(base, i), base);
+                    "value", p1.getValue(base, i), base);
                 if (operator.evaluate(PropertyValues.create(value), p2)) {
                     return true;
                 }
@@ -114,21 +113,22 @@ public class ComparisonImpl extends ConstraintImpl {
             return operator.evaluate(p1, p2);
         }
     }
-    
+
     private static int getCommonType(PropertyValue p1, PropertyValue p2) {
-        if (p1.getType().tag() == PropertyType.BINARY || p2.getType().tag() == PropertyType.BINARY) {
+        if (p1.getType().tag() == PropertyType.BINARY
+            || p2.getType().tag() == PropertyType.BINARY) {
             return PropertyType.BINARY;
         }
         return PropertyType.STRING;
     }
-    
+
     private PropertyValue convertToType(PropertyValue v, int targetType) {
         try {
             return ValueConverter.convert(v, targetType, query.getNamePathMapper());
         } catch (IllegalArgumentException e) {
             // not possible to convert
             return v;
-        }        
+        }
     }
 
     @Override
@@ -145,13 +145,13 @@ public class ComparisonImpl extends ConstraintImpl {
     public void restrict(FilterImpl f) {
         PropertyValue v = operand2.currentValue();
         if (!ValueConverter.canConvert(
-                operand2.getPropertyType(),
-                operand1.getPropertyType())) {
+            operand2.getPropertyType(),
+            operand1.getPropertyType())) {
             throw new IllegalArgumentException(
-                    "Unsupported conversion from property type " + 
-                            PropertyType.nameFromValue(operand2.getPropertyType()) + 
-                            " to property type " +
-                            PropertyType.nameFromValue(operand1.getPropertyType()));
+                "Unsupported conversion from property type " +
+                    PropertyType.nameFromValue(operand2.getPropertyType()) +
+                    " to property type " +
+                    PropertyType.nameFromValue(operand1.getPropertyType()));
         }
         if (v != null) {
             if (operator == Operator.LIKE) {

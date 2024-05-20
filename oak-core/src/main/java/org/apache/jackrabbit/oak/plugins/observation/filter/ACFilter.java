@@ -46,10 +46,10 @@ public final class ACFilter implements EventFilter {
     private TreePermission treePermission;
 
     private ACFilter(@NotNull NodeState before,
-                     @NotNull NodeState after,
-                     @NotNull String name,
-                     @NotNull PermissionProvider permissionProvider,
-                     @NotNull ACFilter parentFilter) {
+        @NotNull NodeState after,
+        @NotNull String name,
+        @NotNull PermissionProvider permissionProvider,
+        @NotNull ACFilter parentFilter) {
         this.before = checkNotNull(before);
         this.after = checkNotNull(after);
         this.name = checkNotNull(name);
@@ -58,16 +58,16 @@ public final class ACFilter implements EventFilter {
     }
 
     /**
-     * Create a new {@code Filter} instance that includes an event when the
-     * observing session has sufficient permissions to read the associated item.
+     * Create a new {@code Filter} instance that includes an event when the observing session has
+     * sufficient permissions to read the associated item.
      *
-     * @param before  before state
-     * @param after  after state
-     * @param permissionProvider  permission provider for access control evaluation
+     * @param before             before state
+     * @param after              after state
+     * @param permissionProvider permission provider for access control evaluation
      */
     public ACFilter(@NotNull NodeState before,
-                    @NotNull NodeState after,
-                    @NotNull PermissionProvider permissionProvider) {
+        @NotNull NodeState after,
+        @NotNull PermissionProvider permissionProvider) {
         this.before = checkNotNull(before);
         this.after = checkNotNull(after);
         this.name = null;
@@ -124,7 +124,8 @@ public final class ACFilter implements EventFilter {
         if (tp == null) {
             if (parentFilter == null) {
                 tp = permissionProvider.getTreePermission(
-                        TreeFactory.createReadOnlyTree((after.exists() ? after : before)), TreePermission.EMPTY);
+                    TreeFactory.createReadOnlyTree((after.exists() ? after : before)),
+                    TreePermission.EMPTY);
             } else {
                 tp = parentFilter.getTreePermission().getChildPermission(name, after);
             }

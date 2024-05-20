@@ -69,7 +69,8 @@ public class UtilTest extends AbstractSecurityTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testCheckValidPrincipalInvalidBehavior() throws Exception {
-        Util.checkValidPrincipal(() -> "name", getPrincipalManager(root), ImportBehavior.IGNORE-1);
+        Util.checkValidPrincipal(() -> "name", getPrincipalManager(root),
+            ImportBehavior.IGNORE - 1);
     }
 
     @Test(expected = AccessControlException.class)
@@ -79,7 +80,8 @@ public class UtilTest extends AbstractSecurityTest {
 
     @Test(expected = AccessControlException.class)
     public void testCheckValidPrincipalForEmpty() throws Exception {
-        Util.checkValidPrincipal(new PrincipalImpl(""), getPrincipalManager(root), ImportBehavior.BESTEFFORT);
+        Util.checkValidPrincipal(new PrincipalImpl(""), getPrincipalManager(root),
+            ImportBehavior.BESTEFFORT);
     }
 
     @Test
@@ -90,31 +92,42 @@ public class UtilTest extends AbstractSecurityTest {
 
     @Test
     public void testIsAceOtherTree() {
-        assertFalse(Util.isACE(root.getTree(PathUtils.ROOT_PATH), ReadOnlyNodeTypeManager.getInstance(root, getNamePathMapper())));
+        assertFalse(Util.isACE(root.getTree(PathUtils.ROOT_PATH),
+            ReadOnlyNodeTypeManager.getInstance(root, getNamePathMapper())));
     }
 
     @Test
     public void testIsAce() {
         Tree t = when(mock(Tree.class).exists()).thenReturn(true).getMock();
-        when(t.getProperty(JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JCR_PRIMARYTYPE, AccessControlConstants.NT_REP_DENY_ACE, Type.NAME));
+        when(t.getProperty(JCR_PRIMARYTYPE)).thenReturn(
+            PropertyStates.createProperty(JCR_PRIMARYTYPE, AccessControlConstants.NT_REP_DENY_ACE,
+                Type.NAME));
         assertTrue(Util.isACE(t, ReadOnlyNodeTypeManager.getInstance(root, getNamePathMapper())));
     }
 
     @Test
     public void testGetImportBehaviorDefault() {
-        AuthorizationConfiguration config = when(mock(AuthorizationConfiguration.class).getParameters()).thenReturn(ConfigurationParameters.EMPTY).getMock();
+        AuthorizationConfiguration config = when(
+            mock(AuthorizationConfiguration.class).getParameters()).thenReturn(
+            ConfigurationParameters.EMPTY).getMock();
         assertSame(ImportBehavior.ABORT, Util.getImportBehavior(config));
     }
 
     @Test
     public void testGetImportBehaviorInvalid() {
-        AuthorizationConfiguration config = when(mock(AuthorizationConfiguration.class).getParameters()).thenReturn(ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, "invalid")).getMock();
+        AuthorizationConfiguration config = when(
+            mock(AuthorizationConfiguration.class).getParameters()).thenReturn(
+                                                                       ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, "invalid"))
+                                                                   .getMock();
         assertSame(ImportBehavior.ABORT, Util.getImportBehavior(config));
     }
 
     @Test
     public void testGetImportBehavior() {
-        AuthorizationConfiguration config = when(mock(AuthorizationConfiguration.class).getParameters()).thenReturn(ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT)).getMock();
+        AuthorizationConfiguration config = when(
+            mock(AuthorizationConfiguration.class).getParameters()).thenReturn(
+            ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR,
+                ImportBehavior.NAME_BESTEFFORT)).getMock();
         assertSame(ImportBehavior.BESTEFFORT, Util.getImportBehavior(config));
     }
 
@@ -164,13 +177,15 @@ public class UtilTest extends AbstractSecurityTest {
         assertNotEquals(Util.generateAceName(allow, 20), Util.generateAceName(deny, 20));
         assertNotEquals(Util.generateAceName(allow, 0), Util.generateAceName(deny, 1));
         assertNotEquals(Util.generateAceName(allow, 1), Util.generateAceName(deny, 20));
-        
+
         verify(allow, times(5)).isAllow();
         verify(deny, times(5)).isAllow();
         verifyNoMoreInteractions(allow, deny);
     }
 
     private ACE mockACE(boolean isAllow) {
-        return mock(ACE.class, withSettings().useConstructor(EveryonePrincipal.getInstance(), bitsProvider.getBits(PrivilegeConstants.JCR_READ), isAllow, null, NamePathMapper.DEFAULT).defaultAnswer(CALLS_REAL_METHODS));
+        return mock(ACE.class, withSettings().useConstructor(EveryonePrincipal.getInstance(),
+            bitsProvider.getBits(PrivilegeConstants.JCR_READ), isAllow, null,
+            NamePathMapper.DEFAULT).defaultAnswer(CALLS_REAL_METHODS));
     }
 }

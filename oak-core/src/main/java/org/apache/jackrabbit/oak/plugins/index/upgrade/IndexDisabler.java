@@ -43,12 +43,13 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_DISABL
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 
 /**
- * Checks and mark old indexes as disabled. It looks for IndexConstants#SUPERSEDED_INDEX_PATHS
- * for the index paths which need to be marked as disabled. The index paths can refer to absolute
- * index path or nodeTypes like /oak:index/nodetype/@foo where 'foo' is one of the nodetype indexed
- * by /oak:index/nodetype
+ * Checks and mark old indexes as disabled. It looks for IndexConstants#SUPERSEDED_INDEX_PATHS for
+ * the index paths which need to be marked as disabled. The index paths can refer to absolute index
+ * path or nodeTypes like /oak:index/nodetype/@foo where 'foo' is one of the nodetype indexed by
+ * /oak:index/nodetype
  */
 public class IndexDisabler {
+
     private static final Logger log = LoggerFactory.getLogger(IndexDisabler.class);
     private final NodeBuilder rootBuilder;
 
@@ -77,16 +78,18 @@ public class IndexDisabler {
                 String nodeTypeName = PathUtils.getName(indexPath).substring(1);
                 String nodeTypeIndexPath = PathUtils.getParentPath(indexPath);
 
-                NodeState idxSate = NodeStateUtils.getNode(rootBuilder.getBaseState(), nodeTypeIndexPath);
+                NodeState idxSate = NodeStateUtils.getNode(rootBuilder.getBaseState(),
+                    nodeTypeIndexPath);
                 PropertyState declaredNodeTypes = idxSate.getProperty(DECLARING_NODE_TYPES);
-                if (idxSate.exists() && declaredNodeTypes != null){
+                if (idxSate.exists() && declaredNodeTypes != null) {
                     if (Iterables.contains(declaredNodeTypes.getValue(Type.NAMES), nodeTypeName)) {
                         return true;
                     }
                 }
             } else {
                 NodeState idxSate = NodeStateUtils.getNode(rootBuilder.getBaseState(), indexPath);
-                if (idxSate.exists() && !TYPE_DISABLED.equals(idxSate.getString(TYPE_PROPERTY_NAME))) {
+                if (idxSate.exists() && !TYPE_DISABLED.equals(
+                    idxSate.getString(TYPE_PROPERTY_NAME))) {
                     return true;
                 }
             }
@@ -108,7 +111,7 @@ public class IndexDisabler {
 
         //Skip disabling for the cycle where reindexing just got completed
         //i.e. baseState should not have DISABLE_INDEXES_ON_NEXT_CYCLE set to false
-        if (!idxBuilder.getBaseState().getBoolean(DISABLE_INDEXES_ON_NEXT_CYCLE)){
+        if (!idxBuilder.getBaseState().getBoolean(DISABLE_INDEXES_ON_NEXT_CYCLE)) {
             return emptyList();
         }
 
@@ -120,12 +123,15 @@ public class IndexDisabler {
                 String nodeTypeIndexPath = PathUtils.getParentPath(indexPath);
 
                 NodeBuilder nodeTypeIndexBuilder = child(rootBuilder, nodeTypeIndexPath);
-                PropertyState declaringNodeTypes = nodeTypeIndexBuilder.getProperty(DECLARING_NODE_TYPES);
-                if (nodeTypeIndexBuilder.exists() && declaringNodeTypes != null){
-                    Set<String> existingTypes = Sets.newHashSet(declaringNodeTypes.getValue(Type.NAMES));
+                PropertyState declaringNodeTypes = nodeTypeIndexBuilder.getProperty(
+                    DECLARING_NODE_TYPES);
+                if (nodeTypeIndexBuilder.exists() && declaringNodeTypes != null) {
+                    Set<String> existingTypes = Sets.newHashSet(
+                        declaringNodeTypes.getValue(Type.NAMES));
                     if (existingTypes.remove(nodeTypeName)) {
                         disabledIndexes.add(indexPath);
-                        nodeTypeIndexBuilder.setProperty(DECLARING_NODE_TYPES, existingTypes, Type.NAMES);
+                        nodeTypeIndexBuilder.setProperty(DECLARING_NODE_TYPES, existingTypes,
+                            Type.NAMES);
                     }
                 }
             } else {
@@ -139,7 +145,7 @@ public class IndexDisabler {
 
         if (!disabledIndexes.isEmpty()) {
             log.info("Index at [{}] supersedes indexes {}. Marking those as disabled",
-                    currentIndexPath, disabledIndexes);
+                currentIndexPath, disabledIndexes);
             idxBuilder.removeProperty(DISABLE_INDEXES_ON_NEXT_CYCLE);
         }
 

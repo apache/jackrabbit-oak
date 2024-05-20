@@ -37,6 +37,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class CompositeStatsTest {
+
     private MetricRegistry registry = new MetricRegistry();
 
 
@@ -128,7 +129,7 @@ public class CompositeStatsTest {
     }
 
     @Test
-    public void timerContext() throws Exception{
+    public void timerContext() throws Exception {
         AtomicLong counter = new AtomicLong();
         VirtualClock clock = new VirtualClock();
         Timer time = new Timer(new ExponentiallyDecayingReservoir(), clock);
@@ -144,7 +145,9 @@ public class CompositeStatsTest {
     }
 
     private static class VirtualClock extends com.codahale.metrics.Clock {
+
         long tick;
+
         @Override
         public long getTick() {
             return tick;

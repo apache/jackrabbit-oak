@@ -66,14 +66,16 @@ public class UserImplTest extends AbstractSecurityTest {
 
     @NotNull
     private User getAdminUser() throws Exception {
-        User admin = getUserManager(root).getAuthorizable(UserConstants.DEFAULT_ADMIN_ID, User.class);
+        User admin = getUserManager(root).getAuthorizable(UserConstants.DEFAULT_ADMIN_ID,
+            User.class);
         assertNotNull(admin);
         return admin;
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testCreateFromInvalidTree() throws Exception {
-        Tree t = when(mock(Tree.class).getProperty(JCR_PRIMARY_TYPE)).thenReturn(PropertyStates.createProperty(JCR_PRIMARY_TYPE, NT_REP_GROUP, Type.NAME)).getMock();
+        Tree t = when(mock(Tree.class).getProperty(JCR_PRIMARY_TYPE)).thenReturn(
+            PropertyStates.createProperty(JCR_PRIMARY_TYPE, NT_REP_GROUP, Type.NAME)).getMock();
         User u = new UserImpl("uid", t, (UserManagerImpl) getUserManager(root));
     }
 
@@ -116,11 +118,13 @@ public class UserImplTest extends AbstractSecurityTest {
 
     @Test
     public void testChangePassword() throws Exception {
-        String pwHash = root.getTree(user.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
+        String pwHash = root.getTree(user.getPath()).getProperty(UserConstants.REP_PASSWORD)
+                            .getValue(Type.STRING);
         assertTrue(PasswordUtil.isSame(pwHash, user.getID()));
 
         user.changePassword("different");
-        String pwHash2 = root.getTree(user.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
+        String pwHash2 = root.getTree(user.getPath()).getProperty(UserConstants.REP_PASSWORD)
+                             .getValue(Type.STRING);
         assertTrue(PasswordUtil.isSame(pwHash2, "different"));
     }
 
@@ -131,12 +135,14 @@ public class UserImplTest extends AbstractSecurityTest {
 
     @Test
     public void testChangePasswordWithOld() throws Exception {
-        String pwHash = root.getTree(user.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
+        String pwHash = root.getTree(user.getPath()).getProperty(UserConstants.REP_PASSWORD)
+                            .getValue(Type.STRING);
         assertTrue(PasswordUtil.isSame(pwHash, user.getID()));
 
         user.changePassword("different", user.getID());
 
-        String pwHash2 = root.getTree(user.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
+        String pwHash2 = root.getTree(user.getPath()).getProperty(UserConstants.REP_PASSWORD)
+                             .getValue(Type.STRING);
         assertTrue(PasswordUtil.isSame(pwHash2, "different"));
     }
 
@@ -182,7 +188,7 @@ public class UserImplTest extends AbstractSecurityTest {
 
     @Test
     public void testGetCredentialsUserWithoutPassword() throws Exception {
-        User u = getUserManager(root).createUser("u"+ UUIDUtils.generateUUID(), null);
+        User u = getUserManager(root).createUser("u" + UUIDUtils.generateUUID(), null);
 
         Credentials creds = u.getCredentials();
         assertTrue(creds instanceof UserIdCredentials);

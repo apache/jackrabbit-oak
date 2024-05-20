@@ -47,8 +47,7 @@ import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistory
 import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionHistoryNodeState;
 
 /**
- * This class allows to copy the version history, optionally filtering it with a
- * given date.
+ * This class allows to copy the version history, optionally filtering it with a given date.
  */
 public class VersionCopier {
 
@@ -59,28 +58,36 @@ public class VersionCopier {
     private final NodeBuilder targetVersionStorage;
 
     private final Supplier<Boolean> frozenNodeIsReferenceable;
-    
+
     private final Consumer<String> consumer;
 
-    public VersionCopier(NodeBuilder targetRoot, NodeState sourceVersionStorage, NodeBuilder targetVersionStorage) {
-        this(targetRoot, sourceVersionStorage, targetVersionStorage, path -> {});
+    public VersionCopier(NodeBuilder targetRoot, NodeState sourceVersionStorage,
+        NodeBuilder targetVersionStorage) {
+        this(targetRoot, sourceVersionStorage, targetVersionStorage, path -> {
+        });
     }
 
-    public VersionCopier(NodeBuilder targetRoot, NodeState sourceVersionStorage, NodeBuilder targetVersionStorage, Consumer<String> consumer) {
+    public VersionCopier(NodeBuilder targetRoot, NodeState sourceVersionStorage,
+        NodeBuilder targetVersionStorage, Consumer<String> consumer) {
         this.sourceVersionStorage = sourceVersionStorage;
         this.targetVersionStorage = targetVersionStorage;
         this.frozenNodeIsReferenceable = new IsFrozenNodeReferenceable(targetRoot.getNodeState());
         this.consumer = consumer;
     }
 
-    public static void copyVersionStorage(NodeBuilder targetRoot, NodeState sourceVersionStorage, NodeBuilder targetVersionStorage, VersionCopyConfiguration config) {
-        copyVersionStorage(targetRoot, sourceVersionStorage, targetVersionStorage, config, path -> {});
+    public static void copyVersionStorage(NodeBuilder targetRoot, NodeState sourceVersionStorage,
+        NodeBuilder targetVersionStorage, VersionCopyConfiguration config) {
+        copyVersionStorage(targetRoot, sourceVersionStorage, targetVersionStorage, config, path -> {
+        });
     }
-    
-    public static void copyVersionStorage(NodeBuilder targetRoot, NodeState sourceVersionStorage, NodeBuilder targetVersionStorage, VersionCopyConfiguration config,
-       @NotNull Consumer<String> consumer) {
-        final Iterator<NodeState> versionStorageIterator = new DescendantsIterator(sourceVersionStorage, 3);
-        final VersionCopier versionCopier = new VersionCopier(targetRoot, sourceVersionStorage, targetVersionStorage, consumer);
+
+    public static void copyVersionStorage(NodeBuilder targetRoot, NodeState sourceVersionStorage,
+        NodeBuilder targetVersionStorage, VersionCopyConfiguration config,
+        @NotNull Consumer<String> consumer) {
+        final Iterator<NodeState> versionStorageIterator = new DescendantsIterator(
+            sourceVersionStorage, 3);
+        final VersionCopier versionCopier = new VersionCopier(targetRoot, sourceVersionStorage,
+            targetVersionStorage, consumer);
 
         while (versionStorageIterator.hasNext()) {
             final NodeState versionHistoryBucket = versionStorageIterator.next();
@@ -95,64 +102,74 @@ public class VersionCopier {
     }
 
     /**
-     * Copy history filtering versions using passed date and returns {@code
-     * true} if the history has been copied.
-     * If preserveOnTarget is true then only copies non-conflicting versions.
-     * 
-     * @param versionableUuid
-     *            Name of the version history node
-     * @param minDate
-     *            Only versions older than this date will be copied
-     * @param preserveOnTarget
-     *             Preserve version not present on target
+     * Copy history filtering versions using passed date and returns {@code true} if the history has
+     * been copied. If preserveOnTarget is true then only copies non-conflicting versions.
+     *
+     * @param versionableUuid  Name of the version history node
+     * @param minDate          Only versions older than this date will be copied
+     * @param preserveOnTarget Preserve version not present on target
      * @return {@code true} if at least one version has been copied
      */
-    public boolean copyVersionHistory(String versionableUuid, Calendar minDate, boolean preserveOnTarget) {
+    public boolean copyVersionHistory(String versionableUuid, Calendar minDate,
+        boolean preserveOnTarget) {
         final String versionHistoryPath = getRelativeVersionHistoryPath(versionableUuid);
-        final NodeState sourceVersionHistory = getVersionHistoryNodeState(sourceVersionStorage, versionableUuid);
+        final NodeState sourceVersionHistory = getVersionHistoryNodeState(sourceVersionStorage,
+            versionableUuid);
         final Calendar lastModified = getVersionHistoryLastModified(sourceVersionHistory);
 
-        if (sourceVersionHistory.exists() && (lastModified.after(minDate) || minDate.getTimeInMillis() == 0) &&
-            hasNoConflicts(versionHistoryPath, versionableUuid, preserveOnTarget, sourceVersionHistory)) {
+        if (sourceVersionHistory.exists() && (lastModified.after(minDate)
+            || minDate.getTimeInMillis() == 0) &&
+            hasNoConflicts(versionHistoryPath, versionableUuid, preserveOnTarget,
+                sourceVersionHistory)) {
             NodeStateCopier.builder()
-                    .include(versionHistoryPath)
-                    .merge(VERSION_STORE_PATH)
-                    .withReferenceableFrozenNodes(frozenNodeIsReferenceable.get())
-                    .preserve(preserveOnTarget)
-                    .withNodeConsumer(consumer)
-                    .copy(sourceVersionStorage, targetVersionStorage);
+                           .include(versionHistoryPath)
+                           .merge(VERSION_STORE_PATH)
+                           .withReferenceableFrozenNodes(frozenNodeIsReferenceable.get())
+                           .preserve(preserveOnTarget)
+                           .withNodeConsumer(consumer)
+                           .copy(sourceVersionStorage, targetVersionStorage);
             return true;
         }
         return false;
     }
 
-    private boolean hasNoConflicts(String versionHistoryPath, String versionableUuid, boolean preserveOnTarget, NodeState sourceVersionHistory) {
+    private boolean hasNoConflicts(String versionHistoryPath, String versionableUuid,
+        boolean preserveOnTarget, NodeState sourceVersionHistory) {
         // if preserveOnTarget is true then check no conflicts which means version history has moved forward only
         if (preserveOnTarget) {
-            NodeBuilder targetVersionHistory = getVersionHistoryBuilder(targetVersionStorage, versionableUuid);
+            NodeBuilder targetVersionHistory = getVersionHistoryBuilder(targetVersionStorage,
+                versionableUuid);
             if (targetVersionHistory.exists()) {
                 VersionComparator versionComparator = new VersionComparator();
 
                 // version history id not equal
                 boolean conflictingVersionHistory =
-                     !Objects.equals(targetVersionHistory.getString(JCR_UUID), sourceVersionHistory.getString(JCR_UUID));
+                    !Objects.equals(targetVersionHistory.getString(JCR_UUID),
+                        sourceVersionHistory.getString(JCR_UUID));
                 if (conflictingVersionHistory) {
-                    logger.info("Skipping version history for {}: Conflicting version history found",
+                    logger.info(
+                        "Skipping version history for {}: Conflicting version history found",
                         versionHistoryPath);
                     return false;
                 }
 
                 // Get the version names except jcr:rootVersion
                 List<String> targetVersions =
-                    StreamSupport.stream(targetVersionHistory.getChildNodeNames().spliterator(), false).filter(s -> !s.equals(JCR_ROOTVERSION) && !s.equals(JCR_VERSIONLABELS))
-                        .sorted(versionComparator).collect(Collectors.toList());
+                    StreamSupport.stream(targetVersionHistory.getChildNodeNames().spliterator(),
+                                     false).filter(
+                                     s -> !s.equals(JCR_ROOTVERSION) && !s.equals(JCR_VERSIONLABELS))
+                                 .sorted(versionComparator).collect(Collectors.toList());
                 List<String> sourceVersions =
-                    StreamSupport.stream(sourceVersionHistory.getChildNodeNames().spliterator(), false).filter(s -> !s.equals(JCR_ROOTVERSION) && !s.equals(JCR_VERSIONLABELS))
-                        .sorted(versionComparator).collect(Collectors.toList());
+                    StreamSupport.stream(sourceVersionHistory.getChildNodeNames().spliterator(),
+                                     false).filter(
+                                     s -> !s.equals(JCR_ROOTVERSION) && !s.equals(JCR_VERSIONLABELS))
+                                 .sorted(versionComparator).collect(Collectors.toList());
                 // source version only has a rootVersion which means nothing to update
-                boolean noUpdate = sourceVersions.isEmpty() || targetVersions.containsAll(sourceVersions);
+                boolean noUpdate =
+                    sourceVersions.isEmpty() || targetVersions.containsAll(sourceVersions);
                 if (noUpdate) {
-                    logger.info("Skipping version history for {}: No update required", versionHistoryPath);
+                    logger.info("Skipping version history for {}: No update required",
+                        versionHistoryPath);
                     return false;
                 }
 
@@ -160,16 +177,20 @@ public class VersionCopier {
                 // all source versions already exist on target (diverged or no diff)
                 boolean diverged = !targetVersions.contains(sourceVersions.get(0));
                 if (diverged) {
-                    logger.info("Skipping version history for {}: Versions diverged", versionHistoryPath);
+                    logger.info("Skipping version history for {}: Versions diverged",
+                        versionHistoryPath);
                     return false;
                 }
 
                 // highest source version UUID does not match the corresponding version on target (diverged)
                 boolean conflictingHighestVersion =
-                    !Objects.equals(sourceVersionHistory.getChildNode(sourceVersions.get(0)).getString(JCR_UUID), 
-                        targetVersionHistory.getChildNode(sourceVersions.get(0)).getString(JCR_UUID));
+                    !Objects.equals(sourceVersionHistory.getChildNode(sourceVersions.get(0))
+                                                        .getString(JCR_UUID),
+                        targetVersionHistory.getChildNode(sourceVersions.get(0))
+                                            .getString(JCR_UUID));
                 if (conflictingHighestVersion) {
-                    logger.info("Skipping version history for {}: Old base version id changed", versionHistoryPath);
+                    logger.info("Skipping version history for {}: Old base version id changed",
+                        versionHistoryPath);
                     return false;
                 }
             }
@@ -181,6 +202,7 @@ public class VersionCopier {
      * Descending numeric versions comparator
      */
     static class VersionComparator implements Comparator<String> {
+
         @Override
         public int compare(String v1, String v2) {
             String[] v1Seg = v1.split("\\.");

@@ -20,4 +20,5 @@ package org.apache.jackrabbit.oak.plugins.version;
  * @deprecated Use {@link org.apache.jackrabbit.oak.spi.version.VersionConstants} instead
  */
 public interface VersionConstants extends org.apache.jackrabbit.oak.spi.version.VersionConstants {
+
 }

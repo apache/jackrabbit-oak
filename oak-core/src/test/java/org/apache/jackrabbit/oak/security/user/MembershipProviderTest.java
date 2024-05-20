@@ -126,7 +126,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
     @Test
     public void testIsDeclaredMemberTransient() throws Exception {
         Group g = createGroup();
-        List<String> memberPaths = createMembers(g, NUM_USERS/2);
+        List<String> memberPaths = createMembers(g, NUM_USERS / 2);
 
         // test declared members with transient modifications
         for (String path : memberPaths) {
@@ -137,7 +137,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
     @Test
     public void testIsDeclaredMember() throws Exception {
         Group g = createGroup();
-        List<String> memberPaths = createMembers(g, NUM_USERS/2);
+        List<String> memberPaths = createMembers(g, NUM_USERS / 2);
         root.commit();
 
         // test declared members after commit
@@ -171,8 +171,11 @@ public class MembershipProviderTest extends MembershipBaseTest {
         Tree grTree = getTree(createGroup());
         Tree memberTree = getTree(createUser());
 
-        Tree memberList = TreeUtil.addChild(grTree, REP_MEMBERS_LIST, NT_REP_MEMBER_REFERENCES_LIST);
-        TreeUtil.addChild(memberList, "member1", NT_REP_MEMBER_REFERENCES).setProperty(REP_MEMBERS, Collections.singleton(getContentID(memberTree)), Type.STRINGS);
+        Tree memberList = TreeUtil.addChild(grTree, REP_MEMBERS_LIST,
+            NT_REP_MEMBER_REFERENCES_LIST);
+        TreeUtil.addChild(memberList, "member1", NT_REP_MEMBER_REFERENCES)
+                .setProperty(REP_MEMBERS, Collections.singleton(getContentID(memberTree)),
+                    Type.STRINGS);
 
         assertTrue(mp.isDeclaredMember(grTree, memberTree));
     }
@@ -182,8 +185,11 @@ public class MembershipProviderTest extends MembershipBaseTest {
         Tree grTree = getTree(createGroup());
         Tree memberTree = getTree(createUser());
 
-        Tree memberList = TreeUtil.addChild(grTree, REP_MEMBERS_LIST, NT_REP_MEMBER_REFERENCES_LIST);
-        TreeUtil.addChild(memberList, "member1", NT_REP_MEMBER_REFERENCES).setProperty(REP_MEMBERS, Collections.singleton(getContentID("another")), Type.STRINGS);
+        Tree memberList = TreeUtil.addChild(grTree, REP_MEMBERS_LIST,
+            NT_REP_MEMBER_REFERENCES_LIST);
+        TreeUtil.addChild(memberList, "member1", NT_REP_MEMBER_REFERENCES)
+                .setProperty(REP_MEMBERS, Collections.singleton(getContentID("another")),
+                    Type.STRINGS);
 
         assertFalse(mp.isDeclaredMember(grTree, memberTree));
     }
@@ -212,7 +218,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         Group g2 = createGroup();
         g.addMember(g2);
 
-        List<String> memberPaths = createMembers(g2, NUM_USERS/2);
+        List<String> memberPaths = createMembers(g2, NUM_USERS / 2);
         root.commit();
 
         // test members after commit
@@ -254,7 +260,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
     @Test
     public void testTransientInMembersList() throws Exception {
         Group g = createGroup();
-        createMembers(g, NUM_USERS/2);
+        createMembers(g, NUM_USERS / 2);
         root.commit();
 
         // add another transient member that will end up in the members-ref-list
@@ -397,20 +403,22 @@ public class MembershipProviderTest extends MembershipBaseTest {
         Iterator<Tree> res = mp.getMembership(getTree(user), false);
         assertEquals(1, Iterators.size(res));
     }
-    
+
     @Test
     public void testMembershipReferencesOutsideGroup() throws Exception {
         UserProvider up = new UserProvider(root, getUserConfiguration().getParameters());
         User user = createUser();
-        Tree tree = TreeUtil.getOrAddChild(root.getTree(PathUtils.ROOT_PATH), "test", JcrConstants.NT_UNSTRUCTURED);
+        Tree tree = TreeUtil.getOrAddChild(root.getTree(PathUtils.ROOT_PATH), "test",
+            JcrConstants.NT_UNSTRUCTURED);
         tree = TreeUtil.getOrAddChild(tree, "test", UserConstants.NT_REP_MEMBER_REFERENCES);
-        tree.setProperty(UserConstants.REP_MEMBERS, Collections.singletonList(up.getContentID(user.getID())), Type.WEAKREFERENCES);
+        tree.setProperty(UserConstants.REP_MEMBERS,
+            Collections.singletonList(up.getContentID(user.getID())), Type.WEAKREFERENCES);
         root.commit();
-        
+
         Iterator<Tree> it = mp.getMembership(root.getTree(user.getPath()), false);
         assertFalse(it.hasNext());
     }
-    
+
     private static boolean contains(@NotNull Iterator<Tree> treeIterator, @NotNull Tree tree) {
         return Iterators.contains(Iterators.transform(treeIterator, Tree::getPath), tree.getPath());
     }

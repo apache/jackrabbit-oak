@@ -19,24 +19,22 @@
 package org.apache.jackrabbit.oak.query;
 
 import java.util.Locale;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Formatter for JCR queries in order to make them easier to read. Formatting is
- * done on a best-effort basis.
- *
- * Warning: Care was taken to not add newlines inside string literals and so on,
- * but there is still no guarantee that the formatted query is semantically
- * equal to the original one. It is NOT recommended to run queries that are
- * returned by these methods.
+ * Formatter for JCR queries in order to make them easier to read. Formatting is done on a
+ * best-effort basis.
+ * <p>
+ * Warning: Care was taken to not add newlines inside string literals and so on, but there is still
+ * no guarantee that the formatted query is semantically equal to the original one. It is NOT
+ * recommended to run queries that are returned by these methods.
  */
 public class QueryFormatter {
 
     /**
      * Detect whether the query is an XPath query.
      *
-     * @param query the query
+     * @param query    the query
      * @param language the language, if known, or null
      * @return true if xpath
      */
@@ -65,8 +63,8 @@ public class QueryFormatter {
     }
 
     /**
-     * Format the query into a more human-readable way, by adding newlines before
-     * keywords such as "where", "and", and "or".
+     * Format the query into a more human-readable way, by adding newlines before keywords such as
+     * "where", "and", and "or".
      *
      * @param query    the query (may not be null)
      * @param language the query language, or null if unknown
@@ -89,7 +87,7 @@ public class QueryFormatter {
                 while (++i < buff.length() && buff.charAt(i) != c) {
                     // skip
                 }
-            } else if (c =='[') {
+            } else if (c == '[') {
                 if (i + 1 < buff.length() && buff.charAt(i + 1) > ' ') {
                     buff.insert(i + 1, "\n  ");
                     i += 3;
@@ -103,9 +101,9 @@ public class QueryFormatter {
             } else if (c == ' ') {
                 String sub = buff.substring(i, Math.min(i + 10, buff.length()));
                 if (sub.startsWith(" and ")
-                        || sub.startsWith(" or ")
-                        || sub.startsWith(" order by ")
-                        || sub.startsWith(" option(")) {
+                    || sub.startsWith(" or ")
+                    || sub.startsWith(" order by ")
+                    || sub.startsWith(" option(")) {
                     buff.setCharAt(i, '\n');
                     buff.insert(i + 1, "  ");
                     // just skip over the whitespace - but that's OK
@@ -133,12 +131,12 @@ public class QueryFormatter {
             } else if (c == ' ') {
                 String sub = buff.substring(i, Math.min(i + 10, buff.length()));
                 if (startsWithIgnoreCase(sub, " and ")
-                        || startsWithIgnoreCase(sub, " or ")
-                        || startsWithIgnoreCase(sub, " union ")
-                        || startsWithIgnoreCase(sub, " from ")
-                        || startsWithIgnoreCase(sub, " where ")
-                        || startsWithIgnoreCase(sub, " order by ")
-                        || startsWithIgnoreCase(sub, " option(")) {
+                    || startsWithIgnoreCase(sub, " or ")
+                    || startsWithIgnoreCase(sub, " union ")
+                    || startsWithIgnoreCase(sub, " from ")
+                    || startsWithIgnoreCase(sub, " where ")
+                    || startsWithIgnoreCase(sub, " order by ")
+                    || startsWithIgnoreCase(sub, " option(")) {
                     buff.setCharAt(i, '\n');
                     buff.insert(i + 1, "  ");
                     // just skip over the whitespace - but that's OK

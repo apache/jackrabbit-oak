@@ -88,7 +88,7 @@ public class TokenInfoTest extends AbstractTokenTest {
         TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertTrue(info.matches(new TokenCredentials(info.getToken())));
 
-        Map<String,String> attributes = new HashMap<String, String>();
+        Map<String, String> attributes = new HashMap<String, String>();
         attributes.put("something", "value");
         info = tokenProvider.createToken(userId, attributes);
         assertTrue(info.matches(new TokenCredentials(info.getToken())));
@@ -134,23 +134,23 @@ public class TokenInfoTest extends AbstractTokenTest {
 
         TokenInfo info = tokenProvider.createToken(userId, attributes);
 
-        Map<String,String> pubAttr = info.getPublicAttributes();
-        assertEquals("public attributes",publicAttributes.size(), pubAttr.size());
+        Map<String, String> pubAttr = info.getPublicAttributes();
+        assertEquals("public attributes", publicAttributes.size(), pubAttr.size());
         publicAttributes.forEach((key, value) -> {
             assertTrue("public attribute " + key + " not contained", pubAttr.containsKey(key));
             assertEquals("public attribute " + key, value, pubAttr.get(key));
         });
 
-        Map<String,String> privAttr = info.getPrivateAttributes();
-        assertEquals("private attributes",privateAttributes.size(), privAttr.size());
+        Map<String, String> privAttr = info.getPrivateAttributes();
+        assertEquals("private attributes", privateAttributes.size(), privAttr.size());
         privateAttributes.forEach((key, value) -> {
             assertTrue("private attribute " + key + " not contained", privAttr.containsKey(key));
             assertEquals("private attribute" + key, value, privAttr.get(key));
         });
 
         for (String key : reserved.keySet()) {
-            assertFalse("reserved attribute "+key,privAttr.containsKey(key));
-            assertFalse("reserved attribute "+key,pubAttr.containsKey(key));
+            assertFalse("reserved attribute " + key, privAttr.containsKey(key));
+            assertFalse("reserved attribute " + key, pubAttr.containsKey(key));
         }
     }
 
@@ -199,7 +199,8 @@ public class TokenInfoTest extends AbstractTokenTest {
 
         Tree realTree = root.getTree(path);
         when(tokenTree.getParent()).thenReturn(realTree.getParent());
-        when(tokenTree.getProperty(JCR_PRIMARYTYPE)).thenReturn(realTree.getProperty(JCR_PRIMARYTYPE));
+        when(tokenTree.getProperty(JCR_PRIMARYTYPE)).thenReturn(
+            realTree.getProperty(JCR_PRIMARYTYPE));
 
         Root r = mock(Root.class);
         when(r.getTree(path)).thenReturn(tokenTree);

@@ -43,8 +43,10 @@ public class UserImporterMembershipMonitoringTest extends UserImporterMembership
     public void after() throws Exception {
         try {
             if (groupTree.hasProperty(REP_MEMBERS)) {
-                verify(userMonitor, atLeastOnce()).doneUpdateMembers(anyLong(), anyLong(), anyLong(), anyBoolean());
-                verify(userMonitor, atMost(2)).doneUpdateMembers(anyLong(), anyLong(), anyLong(), anyBoolean());
+                verify(userMonitor, atLeastOnce()).doneUpdateMembers(anyLong(), anyLong(),
+                    anyLong(), anyBoolean());
+                verify(userMonitor, atMost(2)).doneUpdateMembers(anyLong(), anyLong(), anyLong(),
+                    anyBoolean());
             }
         } finally {
             super.after();
@@ -55,13 +57,15 @@ public class UserImporterMembershipMonitoringTest extends UserImporterMembership
     protected SecurityProvider initSecurityProvider() {
         SecurityProvider sp = super.initSecurityProvider();
         StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
-        UserConfigurationImpl uc = (UserConfigurationImpl) sp.getConfiguration(UserConfiguration.class);
+        UserConfigurationImpl uc = (UserConfigurationImpl) sp.getConfiguration(
+            UserConfiguration.class);
         for (Monitor monitor : uc.getMonitors(statisticsProvider)) {
             if (monitor instanceof UserMonitor) {
                 userMonitor = spy((UserMonitor) monitor);
 
                 // register the monitor with the whiteboard to have it accessible in the UserImporterr
-                whiteboard.register(monitor.getMonitorClass(), userMonitor, monitor.getMonitorProperties());
+                whiteboard.register(monitor.getMonitorClass(), userMonitor,
+                    monitor.getMonitorProperties());
 
                 // replace the monitor in the UserConfiguration with the spy
                 replaceUserMonitor(uc, userMonitor);
@@ -70,7 +74,8 @@ public class UserImporterMembershipMonitoringTest extends UserImporterMembership
         return sp;
     }
 
-    private static void replaceUserMonitor(@NotNull UserConfigurationImpl uc, @NotNull UserMonitor monitor) {
+    private static void replaceUserMonitor(@NotNull UserConfigurationImpl uc,
+        @NotNull UserMonitor monitor) {
         try {
             Field f = UserConfigurationImpl.class.getDeclaredField("monitor");
             f.setAccessible(true);

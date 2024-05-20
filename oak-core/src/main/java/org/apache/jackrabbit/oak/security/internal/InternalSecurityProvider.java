@@ -92,12 +92,12 @@ class InternalSecurityProvider implements SecurityProvider, WhiteboardAware {
     @Override
     public Iterable<? extends SecurityConfiguration> getConfigurations() {
         return newHashSet(
-                authenticationConfiguration,
-                authorizationConfiguration,
-                userConfiguration,
-                privilegeConfiguration,
-                principalConfiguration,
-                tokenConfiguration
+            authenticationConfiguration,
+            authorizationConfiguration,
+            userConfiguration,
+            privilegeConfiguration,
+            principalConfiguration,
+            tokenConfiguration
         );
     }
 
@@ -129,7 +129,8 @@ class InternalSecurityProvider implements SecurityProvider, WhiteboardAware {
             return (T) tokenConfiguration;
         }
 
-        throw new IllegalArgumentException("Unsupported security configuration class " + configurationClass);
+        throw new IllegalArgumentException(
+            "Unsupported security configuration class " + configurationClass);
     }
 
     @Override
@@ -142,11 +143,13 @@ class InternalSecurityProvider implements SecurityProvider, WhiteboardAware {
         return whiteboard;
     }
 
-    public void setAuthenticationConfiguration(AuthenticationConfiguration authenticationConfiguration) {
+    public void setAuthenticationConfiguration(
+        AuthenticationConfiguration authenticationConfiguration) {
         this.authenticationConfiguration = authenticationConfiguration;
     }
 
-    public void setAuthorizationConfiguration(AuthorizationConfiguration authorizationConfiguration) {
+    public void setAuthorizationConfiguration(
+        AuthorizationConfiguration authorizationConfiguration) {
         this.authorizationConfiguration = authorizationConfiguration;
     }
 

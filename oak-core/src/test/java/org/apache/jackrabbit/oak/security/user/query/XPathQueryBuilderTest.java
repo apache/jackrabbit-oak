@@ -43,7 +43,8 @@ public class XPathQueryBuilderTest extends AbstractSecurityTest {
     private final Value v = Mockito.mock(Value.class);
     private final String relPath = "re/l/path";
 
-    private void assertPropertyCondition(@NotNull Condition condition, @NotNull RelationOp expectedOp) {
+    private void assertPropertyCondition(@NotNull Condition condition,
+        @NotNull RelationOp expectedOp) {
         assertTrue(condition instanceof Condition.PropertyValue);
         Condition.PropertyValue cp = (Condition.PropertyValue) condition;
 

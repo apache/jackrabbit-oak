@@ -27,15 +27,14 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
 import org.apache.jackrabbit.oak.query.ast.AstElementFactory;
 import org.apache.jackrabbit.oak.query.ast.BindVariableValueImpl;
@@ -56,17 +55,16 @@ import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.StaticOperandImpl;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The SQL2 parser can convert a JCR-SQL2 query to a query. The 'old' SQL query
- * language (here named SQL-1) is also supported.
+ * The SQL2 parser can convert a JCR-SQL2 query to a query. The 'old' SQL query language (here named
+ * SQL-1) is also supported.
  */
 public class SQL2Parser {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(SQL2Parser.class);
 
     // Character types, used during the tokenizer phase
@@ -110,22 +108,23 @@ public class SQL2Parser {
     private boolean supportSQL1;
 
     private NamePathMapper namePathMapper;
-    
+
     private final QueryEngineSettings settings;
-    
+
     private boolean literalUsageLogged;
 
     private final QueryExecutionStats stats;
 
     /**
      * Create a new parser. A parser can be re-used, but it is not thread safe.
-     * 
+     *
      * @param namePathMapper the name-path mapper to use
-     * @param nodeTypes the nodetypes
-     * @param settings the query engine settings
+     * @param nodeTypes      the nodetypes
+     * @param settings       the query engine settings
      */
-    public SQL2Parser(NamePathMapper namePathMapper, NodeTypeInfoProvider nodeTypes, QueryEngineSettings settings,
-            QueryExecutionStats stats) {
+    public SQL2Parser(NamePathMapper namePathMapper, NodeTypeInfoProvider nodeTypes,
+        QueryEngineSettings settings,
+        QueryExecutionStats stats) {
         this.namePathMapper = namePathMapper;
         this.nodeTypes = checkNotNull(nodeTypes);
         this.settings = checkNotNull(settings);
@@ -135,7 +134,7 @@ public class SQL2Parser {
     /**
      * Parse the statement and return the query.
      *
-     * @param query the query string
+     * @param query      the query string
      * @param initialise if performing the query init ({@code true}) or not ({@code false})
      * @return the query
      * @throws ParseException if parsing fails
@@ -234,10 +233,10 @@ public class SQL2Parser {
 
         return q;
     }
-    
+
     /**
      * as {@link #parse(String, boolean)} by providing {@code true} to the initialisation flag.
-     * 
+     *
      * @param query
      * @return the parsed query
      * @throws ParseException
@@ -245,7 +244,7 @@ public class SQL2Parser {
     public Query parse(final String query) throws ParseException {
         return parse(query, true);
     }
-    
+
     private QueryImpl parseSelect() throws ParseException {
         read("SELECT");
         boolean distinct = readIf("DISTINCT");
@@ -262,13 +261,13 @@ public class SQL2Parser {
             constraint = parseConstraint();
         }
         QueryImpl q = new QueryImpl(
-                statement, source, constraint, columnArray, namePathMapper, settings, stats);
+            statement, source, constraint, columnArray, namePathMapper, settings, stats);
         q.setDistinct(distinct);
         return q;
     }
 
     private static void addColumnIfNecessary(ArrayList<ColumnOrWildcard> list,
-            String columnName, String propertyName) {
+        String columnName, String propertyName) {
         for (ColumnOrWildcard c : list) {
             String col = c.columnName;
             if (columnName.equals(col)) {
@@ -297,7 +296,8 @@ public class SQL2Parser {
             try {
                 nodeTypeName = namePathMapper.getOakName(nodeTypeName);
             } catch (RepositoryException e) {
-                ParseException e2 = getSyntaxError("could not convert node type name " + nodeTypeName);
+                ParseException e2 = getSyntaxError(
+                    "could not convert node type name " + nodeTypeName);
                 e2.initCause(e);
                 throw e2;
             }
@@ -323,7 +323,7 @@ public class SQL2Parser {
             throw getSyntaxError("0-9");
         }
     }
-    
+
     private String readLabel() throws ParseException {
         String label = readName();
         if (!label.matches("[a-zA-Z0-9_]*") || label.isEmpty() || label.length() > 128) {
@@ -523,7 +523,7 @@ public class SQL2Parser {
                 read("NULL");
                 if (!(left instanceof PropertyValueImpl)) {
                     throw new ParseException(
-                            "Only property values can be tested for NOT IS NULL; got: "
+                        "Only property values can be tested for NOT IS NULL; got: "
                             + left.getClass().getName(), parseIndex);
                 }
                 PropertyValueImpl pv = (PropertyValueImpl) left;
@@ -542,8 +542,9 @@ public class SQL2Parser {
     private PropertyExistenceImpl getPropertyExistence(PropertyValueImpl p) throws ParseException {
         return factory.propertyExistence(p.getSelectorName(), p.getPropertyName());
     }
-    
-    private PropertyInexistenceImpl getPropertyInexistence(PropertyValueImpl p) throws ParseException {
+
+    private PropertyInexistenceImpl getPropertyInexistence(PropertyValueImpl p)
+        throws ParseException {
         return factory.propertyInexistence(p.getSelectorName(), p.getPropertyName());
     }
 
@@ -559,33 +560,33 @@ public class SQL2Parser {
                 // but we anyway support it
                 read(",");
                 c = factory.fullTextSearch(
-                        getOnlySelectorName(), null, parseStaticOperand());
+                    getOnlySelectorName(), null, parseStaticOperand());
             } else if (readIf(".")) {
                 if (!supportSQL1) {
                     throw getSyntaxError("selector name, property name, or *");
                 }
                 read(",");
                 c = factory.fullTextSearch(
-                        getOnlySelectorName(), null, parseStaticOperand());
+                    getOnlySelectorName(), null, parseStaticOperand());
             } else {
                 String name = readName();
                 if (readIf(".")) {
                     if (readIf("*")) {
                         read(",");
                         c = factory.fullTextSearch(
-                                name, null, parseStaticOperand());
+                            name, null, parseStaticOperand());
                     } else {
                         String selector = name;
                         name = readName();
                         read(",");
                         c = factory.fullTextSearch(
-                                selector, name, parseStaticOperand());
+                            selector, name, parseStaticOperand());
                     }
                 } else {
                     read(",");
                     c = factory.fullTextSearch(
-                            getOnlySelectorName(), name,
-                            parseStaticOperand());
+                        getOnlySelectorName(), name,
+                        parseStaticOperand());
                 }
             }
         } else if ("ISSAMENODE".equalsIgnoreCase(functionName)) {
@@ -613,26 +614,26 @@ public class SQL2Parser {
             if (readIf(".") || readIf("*")) {
                 read(",");
                 c = factory.similar(
-                        getOnlySelectorName(), null, parseStaticOperand());
+                    getOnlySelectorName(), null, parseStaticOperand());
             } else {
                 String name = readName();
                 if (readIf(".")) {
                     if (readIf("*")) {
                         read(",");
                         c = factory.fullTextSearch(
-                                name, null, parseStaticOperand());
+                            name, null, parseStaticOperand());
                     } else {
                         String selector = name;
                         name = readName();
                         read(",");
                         c = factory.fullTextSearch(
-                                selector, name, parseStaticOperand());
+                            selector, name, parseStaticOperand());
                     }
                 } else {
                     read(",");
                     c = factory.fullTextSearch(
-                            getOnlySelectorName(), name,
-                            parseStaticOperand());
+                        getOnlySelectorName(), name,
+                        parseStaticOperand());
                 }
             }
         } else if ("NATIVE".equalsIgnoreCase(functionName)) {
@@ -655,7 +656,7 @@ public class SQL2Parser {
             } else {
                 selectorName = getOnlySelectorName();
             }
-            c = factory.spellcheck(selectorName, parseStaticOperand());            
+            c = factory.spellcheck(selectorName, parseStaticOperand());
         } else if ("SUGGEST".equalsIgnoreCase(functionName)) {
             String selectorName;
             if (currentTokenType == IDENTIFIER) {
@@ -736,9 +737,11 @@ public class SQL2Parser {
         } else if ("PROPERTY".equalsIgnoreCase(functionName)) {
             PropertyValueImpl pv = parsePropertyValue(readName());
             read(",");
-            op = factory.propertyValue(pv.getSelectorName(), pv.getPropertyName(), readString().getValue(Type.STRING));
+            op = factory.propertyValue(pv.getSelectorName(), pv.getPropertyName(),
+                readString().getValue(Type.STRING));
         } else {
-            throw getSyntaxError("LENGTH, FIRST, NAME, LOCALNAME, PATH, SCORE, COALESCE, LOWER, UPPER, or PROPERTY");
+            throw getSyntaxError(
+                "LENGTH, FIRST, NAME, LOCALNAME, PATH, SCORE, COALESCE, LOWER, UPPER, or PROPERTY");
         }
         read(")");
         return op;
@@ -760,17 +763,18 @@ public class SQL2Parser {
             }
             int valueType = currentValue.getType().tag();
             switch (valueType) {
-            case PropertyType.LONG:
-                currentValue = PropertyValues.newLong(currentValue.getValue(Type.LONG));
-                break;
-            case PropertyType.DOUBLE:
-                currentValue = PropertyValues.newDouble(currentValue.getValue(Type.DOUBLE));
-                break;
-            case PropertyType.DECIMAL:
-                currentValue = PropertyValues.newDecimal(currentValue.getValue(Type.DECIMAL).negate());
-                break;
-            default:
-                throw getSyntaxError("Illegal operation: + " + currentValue);
+                case PropertyType.LONG:
+                    currentValue = PropertyValues.newLong(currentValue.getValue(Type.LONG));
+                    break;
+                case PropertyType.DOUBLE:
+                    currentValue = PropertyValues.newDouble(currentValue.getValue(Type.DOUBLE));
+                    break;
+                case PropertyType.DECIMAL:
+                    currentValue = PropertyValues.newDecimal(
+                        currentValue.getValue(Type.DECIMAL).negate());
+                    break;
+                default:
+                    throw getSyntaxError("Illegal operation: + " + currentValue);
             }
         } else if (currentTokenType == MINUS) {
             read();
@@ -779,20 +783,21 @@ public class SQL2Parser {
             }
             int valueType = currentValue.getType().tag();
             switch (valueType) {
-            case PropertyType.LONG:
-                currentValue = PropertyValues.newLong(-currentValue.getValue(Type.LONG));
-                break;
-            case PropertyType.DOUBLE:
-                currentValue = PropertyValues.newDouble(-currentValue.getValue(Type.DOUBLE));
-                break;
-            case PropertyType.BOOLEAN:
-                currentValue = PropertyValues.newBoolean(!currentValue.getValue(Type.BOOLEAN));
-                break;
-            case PropertyType.DECIMAL:
-                currentValue = PropertyValues.newDecimal(currentValue.getValue(Type.DECIMAL).negate());
-                break;
-            default:
-                throw getSyntaxError("Illegal operation: -" + currentValue);
+                case PropertyType.LONG:
+                    currentValue = PropertyValues.newLong(-currentValue.getValue(Type.LONG));
+                    break;
+                case PropertyType.DOUBLE:
+                    currentValue = PropertyValues.newDouble(-currentValue.getValue(Type.DOUBLE));
+                    break;
+                case PropertyType.BOOLEAN:
+                    currentValue = PropertyValues.newBoolean(!currentValue.getValue(Type.BOOLEAN));
+                    break;
+                case PropertyType.DECIMAL:
+                    currentValue = PropertyValues.newDecimal(
+                        currentValue.getValue(Type.DECIMAL).negate());
+                    break;
+                default:
+                    throw getSyntaxError("Illegal operation: -" + currentValue);
             }
         }
         if (currentTokenType == VALUE) {
@@ -860,7 +865,7 @@ public class SQL2Parser {
     }
 
     private PropertyValue parseCastAs(PropertyValue value)
-            throws ParseException {
+        throws ParseException {
         if (currentTokenQuoted) {
             throw getSyntaxError("data type (STRING|BINARY|...)");
         }
@@ -967,7 +972,7 @@ public class SQL2Parser {
                             column.propertyName = readName();
                             if (!readOptionalAlias(column)) {
                                 column.columnName =
-                                        column.selectorName
+                                    column.selectorName
                                         + "." + column.propertyName;
                             }
                         }
@@ -980,7 +985,7 @@ public class SQL2Parser {
         }
         return list;
     }
-    
+
     private boolean readOptionalAlias(ColumnOrWildcard column) throws ParseException {
         if (readIf("AS")) {
             column.columnName = readName();
@@ -1006,7 +1011,7 @@ public class SQL2Parser {
                 }
 
                 columns.add(factory.column(
-                        selectorName, c.propertyName, columnName));
+                    selectorName, c.propertyName, columnName));
             }
         }
         ColumnImpl[] array = new ColumnImpl[columns.size()];
@@ -1015,8 +1020,8 @@ public class SQL2Parser {
     }
 
     private void addWildcardColumns(
-            Collection<ColumnImpl> columns, String selectorName)
-            throws ParseException {
+        Collection<ColumnImpl> columns, String selectorName)
+        throws ParseException {
         if (selectorName == null) {
             for (SelectorImpl selector : selectors.values()) {
                 addWildcardColumns(columns, selector);
@@ -1032,7 +1037,7 @@ public class SQL2Parser {
     }
 
     private void addWildcardColumns(
-            Collection<ColumnImpl> columns, SelectorImpl selector) {
+        Collection<ColumnImpl> columns, SelectorImpl selector) {
         String selectorName = selector.getSelectorName();
         for (String propertyName : selector.getWildcardColumns()) {
             if (namePathMapper != null) {
@@ -1050,7 +1055,7 @@ public class SQL2Parser {
         if (columns.isEmpty()) {
             // OAK-1354, inject the selector name
             columns.add(factory
-                    .column(selectorName, selectorName, selectorName));
+                .column(selectorName, selectorName, selectorName));
         }
     }
 
@@ -1109,88 +1114,88 @@ public class SQL2Parser {
             char c = command[i];
             int type = 0;
             switch (c) {
-            case '-':
-            case '(':
-            case ')':
-            case '{':
-            case '}':
-            case '*':
-            case ',':
-            case ';':
-            case '+':
-            case '%':
-            case '?':
-            case '$':
-                type = CHAR_SPECIAL_1;
-                break;
-            case '!':
-            case '<':
-            case '>':
-            case '|':
-            case '=':
-            case ':':
-                type = CHAR_SPECIAL_2;
-                break;
-            case '.':
-                type = CHAR_DECIMAL;
-                break;
-            case '/':
-                if (command[i + 1] != '*') {
+                case '-':
+                case '(':
+                case ')':
+                case '{':
+                case '}':
+                case '*':
+                case ',':
+                case ';':
+                case '+':
+                case '%':
+                case '?':
+                case '$':
                     type = CHAR_SPECIAL_1;
                     break;
-                }
-                types[i] = type = CHAR_IGNORE;                
-                startLoop = i;
-                i += 2;
-                checkRunOver(i, len, startLoop);
-                while (command[i] != '*' || command[i + 1] != '/') {
-                    i++;
-                    checkRunOver(i, len, startLoop);
-                }
-                i++;          
-                break;
-            case '[':
-                types[i] = type = CHAR_BRACKETED;
-                startLoop = i;
-                while (true) {
-                    while (command[++i] != ']') {
-                        checkRunOver(i, len, startLoop);
-                    }
-                    if (i >= len - 1 || command[i + 1] != ']') {
+                case '!':
+                case '<':
+                case '>':
+                case '|':
+                case '=':
+                case ':':
+                    type = CHAR_SPECIAL_2;
+                    break;
+                case '.':
+                    type = CHAR_DECIMAL;
+                    break;
+                case '/':
+                    if (command[i + 1] != '*') {
+                        type = CHAR_SPECIAL_1;
                         break;
                     }
-                    i++;
-                }
-                break;
-            case '\'':
-                types[i] = type = CHAR_STRING;
-                startLoop = i;
-                while (command[++i] != '\'') {
+                    types[i] = type = CHAR_IGNORE;
+                    startLoop = i;
+                    i += 2;
                     checkRunOver(i, len, startLoop);
-                }
-                break;
-            case '\"':
-                types[i] = type = CHAR_QUOTED;
-                startLoop = i;
-                while (command[++i] != '\"') {
-                    checkRunOver(i, len, startLoop);
-                }
-                break;
-            case '_':
-                type = CHAR_NAME;
-                break;
-            default:
-                if (c >= 'a' && c <= 'z') {
-                    type = CHAR_NAME;
-                } else if (c >= 'A' && c <= 'Z') {
-                    type = CHAR_NAME;
-                } else if (c >= '0' && c <= '9') {
-                    type = CHAR_VALUE;
-                } else {
-                    if (Character.isJavaIdentifierPart(c)) {
-                        type = CHAR_NAME;
+                    while (command[i] != '*' || command[i + 1] != '/') {
+                        i++;
+                        checkRunOver(i, len, startLoop);
                     }
-                }
+                    i++;
+                    break;
+                case '[':
+                    types[i] = type = CHAR_BRACKETED;
+                    startLoop = i;
+                    while (true) {
+                        while (command[++i] != ']') {
+                            checkRunOver(i, len, startLoop);
+                        }
+                        if (i >= len - 1 || command[i + 1] != ']') {
+                            break;
+                        }
+                        i++;
+                    }
+                    break;
+                case '\'':
+                    types[i] = type = CHAR_STRING;
+                    startLoop = i;
+                    while (command[++i] != '\'') {
+                        checkRunOver(i, len, startLoop);
+                    }
+                    break;
+                case '\"':
+                    types[i] = type = CHAR_QUOTED;
+                    startLoop = i;
+                    while (command[++i] != '\"') {
+                        checkRunOver(i, len, startLoop);
+                    }
+                    break;
+                case '_':
+                    type = CHAR_NAME;
+                    break;
+                default:
+                    if (c >= 'a' && c <= 'z') {
+                        type = CHAR_NAME;
+                    } else if (c >= 'A' && c <= 'Z') {
+                        type = CHAR_NAME;
+                    } else if (c >= '0' && c <= '9') {
+                        type = CHAR_VALUE;
+                    } else {
+                        if (Character.isJavaIdentifierPart(c)) {
+                            type = CHAR_NAME;
+                        }
+                    }
             }
             types[i] = (byte) type;
         }
@@ -1226,125 +1231,125 @@ public class SQL2Parser {
         char c = chars[i++];
         currentToken = "";
         switch (type) {
-        case CHAR_NAME:
-            while (true) {
-                type = types[i];
-                if (type != CHAR_NAME && type != CHAR_VALUE) {
-                    c = chars[i];
-                    if (supportSQL1 && c == ':') {
-                        i++;
-                        continue;
-                    }
-                    break;
-                }
-                i++;
-            }
-            currentToken = statement.substring(start, i);
-            if (currentToken.isEmpty()) {
-                throw getSyntaxError();
-            }
-            currentTokenType = IDENTIFIER;
-            parseIndex = i;
-            return;
-        case CHAR_SPECIAL_2:
-            if (types[i] == CHAR_SPECIAL_2) {
-                i++;
-            }
-            currentToken = statement.substring(start, i);
-            currentTokenType = KEYWORD;
-            parseIndex = i;
-            return;
-        case CHAR_SPECIAL_1:
-            currentToken = statement.substring(start, i);
-            switch (c) {
-            case '$':
-                currentTokenType = PARAMETER;
-                break;
-            case '+':
-                currentTokenType = PLUS;
-                break;
-            case '-':
-                currentTokenType = MINUS;
-                break;
-            case '(':
-                currentTokenType = OPEN;
-                break;
-            case ')':
-                currentTokenType = CLOSE;
-                break;
-            default:
-                currentTokenType = KEYWORD;
-            }
-            parseIndex = i;
-            return;
-        case CHAR_VALUE:
-            long number = c - '0';
-            while (true) {
-                c = chars[i];
-                if (c < '0' || c > '9') {
-                    if (c == '.') {
-                        readDecimal(start, i);
+            case CHAR_NAME:
+                while (true) {
+                    type = types[i];
+                    if (type != CHAR_NAME && type != CHAR_VALUE) {
+                        c = chars[i];
+                        if (supportSQL1 && c == ':') {
+                            i++;
+                            continue;
+                        }
                         break;
                     }
-                    if (c == 'E' || c == 'e') {
-                        readDecimal(start, i);
-                        break;
-                    }
-                    checkLiterals(false);
-                    currentValue = PropertyValues.newLong(number);
-                    currentTokenType = VALUE;
-                    currentToken = "0";
-                    parseIndex = i;
-                    break;
+                    i++;
                 }
-                number = number * 10 + (c - '0');
-                if (number > Integer.MAX_VALUE) {
-                    readDecimal(start, i);
-                    break;
+                currentToken = statement.substring(start, i);
+                if (currentToken.isEmpty()) {
+                    throw getSyntaxError();
                 }
-                i++;
-            }
-            return;
-        case CHAR_DECIMAL:
-            if (types[i] != CHAR_VALUE) {
-                currentTokenType = KEYWORD;
-                currentToken = ".";
+                currentTokenType = IDENTIFIER;
                 parseIndex = i;
                 return;
-            }
-            readDecimal(i - 1, i);
-            return;
-        case CHAR_BRACKETED:
-            currentTokenQuoted = true;
-            readString(i, ']');
-            currentTokenType = IDENTIFIER;
-            currentToken = currentValue.getValue(Type.STRING);
-            return;
-        case CHAR_STRING:
-            currentTokenQuoted = true;
-            readString(i, '\'');
-            return;
-        case CHAR_QUOTED:
-            currentTokenQuoted = true;
-            readString(i, '\"');
-            if (supportSQL1) {
-                // for SQL-2, this is a literal, as defined in
-                // the JCR 2.0 spec, 6.7.34 Literal - UncastLiteral
-                // but for compatibility with Jackrabbit 2.x, for
-                // SQL-1, this is an identifier, as in ANSI SQL
-                // (not in the JCR 1.0 spec)
-                // (confusing isn't it?)
+            case CHAR_SPECIAL_2:
+                if (types[i] == CHAR_SPECIAL_2) {
+                    i++;
+                }
+                currentToken = statement.substring(start, i);
+                currentTokenType = KEYWORD;
+                parseIndex = i;
+                return;
+            case CHAR_SPECIAL_1:
+                currentToken = statement.substring(start, i);
+                switch (c) {
+                    case '$':
+                        currentTokenType = PARAMETER;
+                        break;
+                    case '+':
+                        currentTokenType = PLUS;
+                        break;
+                    case '-':
+                        currentTokenType = MINUS;
+                        break;
+                    case '(':
+                        currentTokenType = OPEN;
+                        break;
+                    case ')':
+                        currentTokenType = CLOSE;
+                        break;
+                    default:
+                        currentTokenType = KEYWORD;
+                }
+                parseIndex = i;
+                return;
+            case CHAR_VALUE:
+                long number = c - '0';
+                while (true) {
+                    c = chars[i];
+                    if (c < '0' || c > '9') {
+                        if (c == '.') {
+                            readDecimal(start, i);
+                            break;
+                        }
+                        if (c == 'E' || c == 'e') {
+                            readDecimal(start, i);
+                            break;
+                        }
+                        checkLiterals(false);
+                        currentValue = PropertyValues.newLong(number);
+                        currentTokenType = VALUE;
+                        currentToken = "0";
+                        parseIndex = i;
+                        break;
+                    }
+                    number = number * 10 + (c - '0');
+                    if (number > Integer.MAX_VALUE) {
+                        readDecimal(start, i);
+                        break;
+                    }
+                    i++;
+                }
+                return;
+            case CHAR_DECIMAL:
+                if (types[i] != CHAR_VALUE) {
+                    currentTokenType = KEYWORD;
+                    currentToken = ".";
+                    parseIndex = i;
+                    return;
+                }
+                readDecimal(i - 1, i);
+                return;
+            case CHAR_BRACKETED:
+                currentTokenQuoted = true;
+                readString(i, ']');
                 currentTokenType = IDENTIFIER;
                 currentToken = currentValue.getValue(Type.STRING);
-            }
-            return;
-        case CHAR_END:
-            currentToken = "";
-            currentTokenType = END;
-            parseIndex = i;
-            return;
-        default:
-            throw getSyntaxError();
+                return;
+            case CHAR_STRING:
+                currentTokenQuoted = true;
+                readString(i, '\'');
+                return;
+            case CHAR_QUOTED:
+                currentTokenQuoted = true;
+                readString(i, '\"');
+                if (supportSQL1) {
+                    // for SQL-2, this is a literal, as defined in
+                    // the JCR 2.0 spec, 6.7.34 Literal - UncastLiteral
+                    // but for compatibility with Jackrabbit 2.x, for
+                    // SQL-1, this is an identifier, as in ANSI SQL
+                    // (not in the JCR 1.0 spec)
+                    // (confusing isn't it?)
+                    currentTokenType = IDENTIFIER;
+                    currentToken = currentValue.getValue(Type.STRING);
+                }
+                return;
+            case CHAR_END:
+                currentToken = "";
+                currentTokenType = END;
+                parseIndex = i;
+                return;
+            default:
+                throw getSyntaxError();
         }
     }
 
@@ -1352,7 +1357,7 @@ public class SQL2Parser {
         char[] chars = statementChars;
         String result = null;
         while (true) {
-            for (int begin = i;; i++) {
+            for (int begin = i; ; i++) {
                 if (chars[i] == end) {
                     if (result == null) {
                         result = statement.substring(begin, i);
@@ -1414,7 +1419,8 @@ public class SQL2Parser {
         try {
             bd = new BigDecimal(sub);
         } catch (NumberFormatException e) {
-            throw new ParseException("Data conversion error converting " + sub + " to BigDecimal: " + e, parseIndex);
+            throw new ParseException(
+                "Data conversion error converting " + sub + " to BigDecimal: " + e, parseIndex);
         }
         checkLiterals(false);
 
@@ -1447,24 +1453,26 @@ public class SQL2Parser {
     }
 
     /**
-     * Represents a column or a wildcard in a SQL expression.
-     * This class is temporarily used during parsing.
+     * Represents a column or a wildcard in a SQL expression. This class is temporarily used during
+     * parsing.
      */
     static class ColumnOrWildcard {
+
         String selectorName;
         String propertyName;
         String columnName;
     }
 
     /**
-     * Get the selector name if only one selector exists in the query.
-     * If more than one selector exists, an exception is thrown.
+     * Get the selector name if only one selector exists in the query. If more than one selector
+     * exists, an exception is thrown.
      *
      * @return the selector name
      */
     private String getOnlySelectorName() throws ParseException {
         if (selectors.size() > 1) {
-            throw getSyntaxError("Need to specify the selector name because the query contains more than one selector.");
+            throw getSyntaxError(
+                "Need to specify the selector name because the query contains more than one selector.");
         }
         return selectors.values().iterator().next().getSelectorName();
     }
@@ -1495,7 +1503,7 @@ public class SQL2Parser {
 
     /**
      * Whether the given statement is an internal query.
-     *  
+     *
      * @param statement the statement
      * @return true for an internal query
      */

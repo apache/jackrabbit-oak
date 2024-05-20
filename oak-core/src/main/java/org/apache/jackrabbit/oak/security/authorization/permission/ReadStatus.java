@@ -36,8 +36,10 @@ final class ReadStatus {
     private static final ReadStatus DENY_THIS_PROPERTIES = new ReadStatus(THIS_PROPERTIES, false);
     static final ReadStatus DENY_ALL = new ReadStatus(ALL, false);
 
-    private static final PrivilegeBits READ_BITS = PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ);
-    private static final PrivilegeBits READ_PROPERTIES_BITS = PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_READ_PROPERTIES);
+    private static final PrivilegeBits READ_BITS = PrivilegeBits.BUILT_IN.get(
+        PrivilegeConstants.JCR_READ);
+    private static final PrivilegeBits READ_PROPERTIES_BITS = PrivilegeBits.BUILT_IN.get(
+        PrivilegeConstants.REP_READ_PROPERTIES);
 
     private final int status;
     private final boolean isAllow;
@@ -55,7 +57,8 @@ final class ReadStatus {
         - the target does not define access control content
         - the matching entry doesn't contain any restrictions
         */
-        if (skipped || permission == Permissions.READ_ACCESS_CONTROL || pe.restriction != RestrictionPattern.EMPTY) {
+        if (skipped || permission == Permissions.READ_ACCESS_CONTROL
+            || pe.restriction != RestrictionPattern.EMPTY) {
             return (pe.isAllow) ? ALLOW_THIS : DENY_THIS;
         } else {
             if (pe.privilegeBits.includes(READ_BITS)) {

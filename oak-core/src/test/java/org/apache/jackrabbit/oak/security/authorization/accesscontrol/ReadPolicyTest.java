@@ -62,23 +62,25 @@ public class ReadPolicyTest extends AbstractSecurityTest {
     @Parameterized.Parameters(name = "Configured Readable Paths = {1}")
     public static Collection<Object[]> parameters() {
         return Lists.newArrayList(
-                new Object[] {null , "null => default set"},
-                new Object[] {Collections.emptySet(), "empty set"},
-                new Object[] {Collections.emptySet(), "/"+JcrConstants.JCR_SYSTEM}
+            new Object[]{null, "null => default set"},
+            new Object[]{Collections.emptySet(), "empty set"},
+            new Object[]{Collections.emptySet(), "/" + JcrConstants.JCR_SYSTEM}
         );
     }
 
     public ReadPolicyTest(@Nullable Set<String> configuredPaths, @NotNull String name) {
         this.configuredPaths = configuredPaths;
     }
-    
+
     @Override
     @Before
     public void before() throws Exception {
         super.before();
 
-        ConfigurationParameters options = getConfig(AuthorizationConfiguration.class).getParameters();
-        readPaths = options.getConfigValue(PermissionConstants.PARAM_READ_PATHS, PermissionConstants.DEFAULT_READ_PATHS);
+        ConfigurationParameters options = getConfig(
+            AuthorizationConfiguration.class).getParameters();
+        readPaths = options.getConfigValue(PermissionConstants.PARAM_READ_PATHS,
+            PermissionConstants.DEFAULT_READ_PATHS);
 
         for (String p : readPaths) {
             Tree t = root.getTree(p);
@@ -92,7 +94,8 @@ public class ReadPolicyTest extends AbstractSecurityTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         if (configuredPaths != null) {
-            ConfigurationParameters params = ConfigurationParameters.of(PermissionConstants.PARAM_READ_PATHS, configuredPaths);
+            ConfigurationParameters params = ConfigurationParameters.of(
+                PermissionConstants.PARAM_READ_PATHS, configuredPaths);
             return ConfigurationParameters.of(AuthorizationConfiguration.NAME, params);
         } else {
             return super.getSecurityConfigParameters();
@@ -129,7 +132,8 @@ public class ReadPolicyTest extends AbstractSecurityTest {
     @Test
     public void testGetEffectivePolicies() throws Exception {
         for (String path : readPaths) {
-            AccessControlPolicy[] policies = getAccessControlManager(root).getEffectivePolicies(path);
+            AccessControlPolicy[] policies = getAccessControlManager(root).getEffectivePolicies(
+                path);
             boolean found = false;
             for (AccessControlPolicy policy : policies) {
                 if (policy instanceof ReadPolicy) {
@@ -144,7 +148,8 @@ public class ReadPolicyTest extends AbstractSecurityTest {
     @Test
     public void testGetEffectivePoliciesInSubTrees() throws Exception {
         for (String path : subTreePaths) {
-            AccessControlPolicy[] policies = getAccessControlManager(root).getEffectivePolicies(path);
+            AccessControlPolicy[] policies = getAccessControlManager(root).getEffectivePolicies(
+                path);
             boolean found = false;
             for (AccessControlPolicy policy : policies) {
                 if (policy instanceof ReadPolicy) {
@@ -155,10 +160,11 @@ public class ReadPolicyTest extends AbstractSecurityTest {
             assertTrue(found);
         }
     }
-    
+
     @Test
     public void testGetEffectivePoliciesPrincipalSet() throws Exception {
-        AccessControlPolicy[] policies = getAccessControlManager(root).getEffectivePolicies(Collections.singleton(EveryonePrincipal.getInstance()));
+        AccessControlPolicy[] policies = getAccessControlManager(root).getEffectivePolicies(
+            Collections.singleton(EveryonePrincipal.getInstance()));
         long expSize = (readPaths.isEmpty()) ? 0 : 1;
         assertPolicies(policies, expSize, true);
     }
@@ -166,7 +172,8 @@ public class ReadPolicyTest extends AbstractSecurityTest {
     @Test
     public void testGetName() throws Exception {
         if (!readPaths.isEmpty()) {
-            AccessControlPolicy[] policies = getAccessControlManager(root).getPolicies(readPaths.iterator().next());
+            AccessControlPolicy[] policies = getAccessControlManager(root).getPolicies(
+                readPaths.iterator().next());
             assertEquals(1, policies.length);
             assertTrue(policies[0] instanceof NamedAccessControlPolicy);
             assertNotNull(((NamedAccessControlPolicy) policies[0]).getName());

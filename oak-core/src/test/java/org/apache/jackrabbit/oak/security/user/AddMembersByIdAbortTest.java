@@ -35,8 +35,8 @@ public class AddMembersByIdAbortTest extends AbstractAddMembersByIdTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         return ConfigurationParameters.of(UserConfiguration.NAME,
-                ConfigurationParameters.of(
-                        ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT)
+            ConfigurationParameters.of(
+                ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT)
         );
     }
 
@@ -64,7 +64,7 @@ public class AddMembersByIdAbortTest extends AbstractAddMembersByIdTest {
             // success
             assertTrue(e.isConstraintViolation());
             assertEquals(31, e.getCode());
-        }  catch (ConstraintViolationException e) {
+        } catch (ConstraintViolationException e) {
             // success
         }
     }

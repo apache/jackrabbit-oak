@@ -39,17 +39,16 @@ import java.util.Set;
 import static org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType.OR;
 
 /**
- * Permission provider implementation that aggregates a list of different
- * provider implementations. Note, that the aggregated provider implementations
- * *must* implement the
- * {@link AggregatedPermissionProvider}
- * interface.
+ * Permission provider implementation that aggregates a list of different provider implementations.
+ * Note, that the aggregated provider implementations *must* implement the
+ * {@link AggregatedPermissionProvider} interface.
  */
 final class CompositePermissionProviderOr extends CompositePermissionProvider {
 
-    CompositePermissionProviderOr(@NotNull Root root, @NotNull List<AggregatedPermissionProvider> pps,
-                                  @NotNull Context acContext, @NotNull RootProvider rootProvider,
-                                  @NotNull TreeProvider treeProvider) {
+    CompositePermissionProviderOr(@NotNull Root root,
+        @NotNull List<AggregatedPermissionProvider> pps,
+        @NotNull Context acContext, @NotNull RootProvider rootProvider,
+        @NotNull TreeProvider treeProvider) {
         super(root, pps, acContext, rootProvider, treeProvider);
     }
 
@@ -66,10 +65,12 @@ final class CompositePermissionProviderOr extends CompositePermissionProvider {
     }
 
     @Override
-    boolean hasPrivileges(@Nullable Tree immutableTree, @NotNull PrivilegeBitsProvider bitsProvider, @NotNull PrivilegeBits privilegeBits, @NotNull PrivilegeBits coveredPrivileges) {
+    boolean hasPrivileges(@Nullable Tree immutableTree, @NotNull PrivilegeBitsProvider bitsProvider,
+        @NotNull PrivilegeBits privilegeBits, @NotNull PrivilegeBits coveredPrivileges) {
         boolean hasPrivileges = false;
         for (AggregatedPermissionProvider aggregatedPermissionProvider : getPermissionProviders()) {
-            PrivilegeBits supported = aggregatedPermissionProvider.supportedPrivileges(immutableTree, privilegeBits);
+            PrivilegeBits supported = aggregatedPermissionProvider.supportedPrivileges(
+                immutableTree, privilegeBits);
             if (Util.doEvaluate(supported)) {
                 Set<String> supportedNames = bitsProvider.getPrivilegeNames(supported);
                 // evaluate one by one so we can aggregate fragments of
@@ -96,9 +97,11 @@ final class CompositePermissionProviderOr extends CompositePermissionProvider {
         PrivilegeBits result = PrivilegeBits.getInstance();
         PrivilegeBitsProvider bitsProvider = getBitsProvider();
         for (AggregatedPermissionProvider aggregatedPermissionProvider : getPermissionProviders()) {
-            PrivilegeBits supported = aggregatedPermissionProvider.supportedPrivileges(immutableTree, null).modifiable();
+            PrivilegeBits supported = aggregatedPermissionProvider.supportedPrivileges(
+                immutableTree, null).modifiable();
             if (Util.doEvaluate(supported)) {
-                PrivilegeBits granted = bitsProvider.getBits(aggregatedPermissionProvider.getPrivileges(immutableTree));
+                PrivilegeBits granted = bitsProvider.getBits(
+                    aggregatedPermissionProvider.getPrivileges(immutableTree));
                 // add the granted privileges to the result
                 if (!granted.isEmpty()) {
                     result.add(granted);
@@ -109,13 +112,15 @@ final class CompositePermissionProviderOr extends CompositePermissionProvider {
     }
 
     @Override
-    public boolean isGranted(@NotNull Tree parent, @Nullable PropertyState property, long permissions) {
+    public boolean isGranted(@NotNull Tree parent, @Nullable PropertyState property,
+        long permissions) {
         Tree immParent = PermissionUtil.getReadOnlyTree(parent, getImmutableRoot());
 
         boolean isGranted = false;
         long coveredPermissions = Permissions.NO_PERMISSION;
         for (AggregatedPermissionProvider aggregatedPermissionProvider : getPermissionProviders()) {
-            long supportedPermissions = aggregatedPermissionProvider.supportedPermissions(immParent, property, permissions);
+            long supportedPermissions = aggregatedPermissionProvider.supportedPermissions(immParent,
+                property, permissions);
             if (Util.doEvaluate(supportedPermissions)) {
                 for (long p : Permissions.aggregates(supportedPermissions)) {
                     if (aggregatedPermissionProvider.isGranted(immParent, property, p)) {
@@ -142,7 +147,8 @@ final class CompositePermissionProviderOr extends CompositePermissionProvider {
             long coveredPermissions = Permissions.NO_PERMISSION;
 
             for (AggregatedPermissionProvider aggregatedPermissionProvider : getPermissionProviders()) {
-                long supportedPermissions = aggregatedPermissionProvider.supportedPermissions(location, permissions);
+                long supportedPermissions = aggregatedPermissionProvider.supportedPermissions(
+                    location, permissions);
                 if (Util.doEvaluate(supportedPermissions)) {
                     for (long p : Permissions.aggregates(supportedPermissions)) {
                         if (aggregatedPermissionProvider.isGranted(location, p)) {
@@ -157,6 +163,7 @@ final class CompositePermissionProviderOr extends CompositePermissionProvider {
     }
 
     //-----------------------------------------------< RepositoryPermission >---
+
     /**
      * {@code RepositoryPermission} implementation that wraps multiple implementations.
      */
@@ -168,7 +175,8 @@ final class CompositePermissionProviderOr extends CompositePermissionProvider {
             long coveredPermissions = Permissions.NO_PERMISSION;
 
             for (AggregatedPermissionProvider aggregatedPermissionProvider : getPermissionProviders()) {
-                long supportedPermissions = aggregatedPermissionProvider.supportedPermissions((Tree) null, null, repositoryPermissions);
+                long supportedPermissions = aggregatedPermissionProvider.supportedPermissions(
+                    (Tree) null, null, repositoryPermissions);
                 if (Util.doEvaluate(supportedPermissions)) {
                     RepositoryPermission rp = aggregatedPermissionProvider.getRepositoryPermission();
                     for (long p : Permissions.aggregates(supportedPermissions)) {

@@ -31,13 +31,13 @@ public class OrImplTest {
     public void simplifyForUnion() {
         ConstraintImpl op1, op2, op3, op4, or;
         Set<ConstraintImpl> expected;
-        
+
         op1 = mock(ComparisonImpl.class);
         op2 = mock(ComparisonImpl.class);
         or = new OrImpl(op1, op2);
         expected = of(op1, op2);
         assertThat(or.convertToUnion(), Matchers.is(expected));
-        
+
         op1 = mock(ComparisonImpl.class);
         op2 = mock(ComparisonImpl.class);
         op3 = mock(ComparisonImpl.class);

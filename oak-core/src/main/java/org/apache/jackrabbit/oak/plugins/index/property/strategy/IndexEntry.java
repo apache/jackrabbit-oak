@@ -18,29 +18,27 @@ package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
 /**
  * An entry in the index
- *
  */
 public final class IndexEntry {
-    
+
     private final String path;
     private final String propertyValue;
-    
+
     IndexEntry(String path, String propertyValue) {
         this.path = path;
         this.propertyValue = propertyValue;
-        
+
     }
-    
+
     public String getPath() {
         return path;
     }
-    
+
     public String getPropertyValue() {
         return propertyValue;
     }
 
-    
-    
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -52,29 +50,36 @@ public final class IndexEntry {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         IndexEntry other = (IndexEntry) obj;
         if (path == null) {
-            if (other.path != null)
+            if (other.path != null) {
                 return false;
-        } else if (!path.equals(other.path))
+            }
+        } else if (!path.equals(other.path)) {
             return false;
+        }
         if (propertyValue == null) {
-            if (other.propertyValue != null)
+            if (other.propertyValue != null) {
                 return false;
-        } else if (!propertyValue.equals(other.propertyValue))
+            }
+        } else if (!propertyValue.equals(other.propertyValue)) {
             return false;
+        }
         return true;
     }
 
     @Override
     public String toString() {
-        
+
         return getClass().getSimpleName() + "# path: " + path + ", propertyValue: " + propertyValue;
     }
 }

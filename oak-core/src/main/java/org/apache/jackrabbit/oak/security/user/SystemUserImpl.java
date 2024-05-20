@@ -30,7 +30,8 @@ import org.jetbrains.annotations.Nullable;
  */
 class SystemUserImpl extends UserImpl {
 
-    SystemUserImpl(@NotNull String id, @NotNull Tree tree, @NotNull UserManagerImpl userManager) throws RepositoryException {
+    SystemUserImpl(@NotNull String id, @NotNull Tree tree, @NotNull UserManagerImpl userManager)
+        throws RepositoryException {
         super(id, tree, userManager);
     }
 
@@ -38,7 +39,8 @@ class SystemUserImpl extends UserImpl {
     void checkValidTree(@NotNull Tree tree) throws RepositoryException {
         super.checkValidTree(tree);
         if (!UserUtil.isSystemUser(tree)) {
-            throw new IllegalArgumentException("Invalid user node: node type rep:SystemUser expected.");
+            throw new IllegalArgumentException(
+                "Invalid user node: node type rep:SystemUser expected.");
         }
     }
 
@@ -46,9 +48,11 @@ class SystemUserImpl extends UserImpl {
     @Override
     public Principal getPrincipal() throws RepositoryException {
         if (isAdmin()) {
-            return new AdminPrincipalImpl(getPrincipalName(), getTree(), getUserManager().getNamePathMapper());
+            return new AdminPrincipalImpl(getPrincipalName(), getTree(),
+                getUserManager().getNamePathMapper());
         } else {
-            return new SystemUserPrincipalImpl(getPrincipalName(), getTree(), getUserManager().getNamePathMapper());
+            return new SystemUserPrincipalImpl(getPrincipalName(), getTree(),
+                getUserManager().getNamePathMapper());
         }
     }
 
@@ -64,7 +68,8 @@ class SystemUserImpl extends UserImpl {
     }
 
     @Override
-    public void changePassword(@Nullable String password, @NotNull String oldPassword) throws RepositoryException {
+    public void changePassword(@Nullable String password, @NotNull String oldPassword)
+        throws RepositoryException {
         throw new UnsupportedRepositoryOperationException("system user");
     }
 }

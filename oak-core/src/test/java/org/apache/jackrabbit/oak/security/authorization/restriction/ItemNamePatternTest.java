@@ -42,7 +42,8 @@ public class ItemNamePatternTest extends AbstractSecurityTest {
     private final Set<String> names = ImmutableSet.of("a", "b", "c");
     private final ItemNamePattern pattern = new ItemNamePattern(names);
 
-    private static Tree addTree(@NotNull Tree parent, @NotNull String relPath) throws AccessDeniedException {
+    private static Tree addTree(@NotNull Tree parent, @NotNull String relPath)
+        throws AccessDeniedException {
         Tree t = parent;
         for (String elem : PathUtils.elements(relPath)) {
             t = TreeUtil.addChild(t, elem, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
@@ -59,7 +60,8 @@ public class ItemNamePatternTest extends AbstractSecurityTest {
             Tree testTree = addTree(rootTree, relPath);
 
             assertTrue(pattern.matches(testTree, null));
-            assertTrue(pattern.matches(testTree, PropertyStates.createProperty("a", Boolean.FALSE)));
+            assertTrue(
+                pattern.matches(testTree, PropertyStates.createProperty("a", Boolean.FALSE)));
             assertFalse(pattern.matches(testTree, PropertyStates.createProperty("f", "anyval")));
 
             testTree.remove();
@@ -70,7 +72,8 @@ public class ItemNamePatternTest extends AbstractSecurityTest {
             Tree testTree = addTree(rootTree, relPath);
 
             assertFalse(pattern.matches(testTree, null));
-            assertTrue(pattern.matches(testTree, PropertyStates.createProperty("a", Boolean.FALSE)));
+            assertTrue(
+                pattern.matches(testTree, PropertyStates.createProperty("a", Boolean.FALSE)));
             assertFalse(pattern.matches(testTree, PropertyStates.createProperty("f", "anyval")));
 
             testTree.remove();
@@ -79,7 +82,8 @@ public class ItemNamePatternTest extends AbstractSecurityTest {
 
     @Test
     public void testMatchesPath() {
-        List<String> matching = ImmutableList.of("/a", "/b", "/c", "/d/e/a", "/a/b/c/d/b", "/test/c");
+        List<String> matching = ImmutableList.of("/a", "/b", "/c", "/d/e/a", "/a/b/c/d/b",
+            "/test/c");
         for (String p : matching) {
             assertTrue(pattern.matches(p));
         }

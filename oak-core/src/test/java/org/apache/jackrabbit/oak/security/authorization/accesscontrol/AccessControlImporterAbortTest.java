@@ -22,7 +22,7 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.junit.Test;
 
-public class AccessControlImporterAbortTest extends AccessControlImporterBaseTest{
+public class AccessControlImporterAbortTest extends AccessControlImporterBaseTest {
 
     @Override
     String getImportBehavior() {

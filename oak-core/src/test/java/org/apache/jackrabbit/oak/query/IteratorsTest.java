@@ -36,16 +36,16 @@ import org.apache.jackrabbit.guava.common.collect.Lists;
  * Tests the filtering iterators.
  */
 public class IteratorsTest {
-    
+
     private QueryEngineSettings settings = new QueryEngineSettings();
-    
+
     private static final Comparator<Integer> INT_COMP = new Comparator<Integer>() {
 
         @Override
         public int compare(Integer o1, Integer o2) {
             return o1.compareTo(o2);
         }
-        
+
     };
 
     @Test
@@ -53,9 +53,10 @@ public class IteratorsTest {
         assertEquals("", toString(FilterIterators.newDistinct(it(), settings)));
         assertEquals("1", toString(FilterIterators.newDistinct(it(1), settings)));
         assertEquals("1, 2", toString(FilterIterators.newDistinct(it(1, 2), settings)));
-        assertEquals("1, 2, 3", toString(FilterIterators.newDistinct(it(1, 2, 1, 3, 3, 1), settings)));
+        assertEquals("1, 2, 3",
+            toString(FilterIterators.newDistinct(it(1, 2, 1, 3, 3, 1), settings)));
     }
-    
+
     @Test
     public void limit() {
         assertEquals("", toString(FilterIterators.newLimit(it(), 0)));
@@ -72,7 +73,7 @@ public class IteratorsTest {
         assertEquals("1, 2, 3", toString(FilterIterators.newLimit(it(1, 2, 3), 3)));
         assertEquals("1, 2, 3", toString(FilterIterators.newLimit(it(1, 2, 3), 4)));
     }
-    
+
     @Test
     public void offset() {
         assertEquals("", toString(FilterIterators.newOffset(it(), 0)));
@@ -85,10 +86,11 @@ public class IteratorsTest {
         assertEquals("", toString(FilterIterators.newOffset(it(1, 2), 3)));
         assertEquals("2, 3", toString(FilterIterators.newOffset(it(1, 2, 3), 1)));
     }
-    
+
     @Test
     public void sort() {
-        assertEquals("", toString(FilterIterators.newSort(it(new Integer[]{}), INT_COMP, 0, settings)));
+        assertEquals("",
+            toString(FilterIterators.newSort(it(new Integer[]{}), INT_COMP, 0, settings)));
         assertEquals("", toString(FilterIterators.newSort(it(1), INT_COMP, 0, settings)));
         assertEquals("1", toString(FilterIterators.newSort(it(1), INT_COMP, 1, settings)));
         assertEquals("1", toString(FilterIterators.newSort(it(1), INT_COMP, 2, settings)));
@@ -96,7 +98,8 @@ public class IteratorsTest {
         assertEquals("1", toString(FilterIterators.newSort(it(2, 1), INT_COMP, 1, settings)));
         assertEquals("1, 2", toString(FilterIterators.newSort(it(1, 2, 3), INT_COMP, 2, settings)));
         assertEquals("1, 2", toString(FilterIterators.newSort(it(3, 2, 1), INT_COMP, 2, settings)));
-        assertEquals("1, 1, 2", toString(FilterIterators.newSort(it(3, 3, 2, 1, 1), INT_COMP, 3, settings)));
+        assertEquals("1, 1, 2",
+            toString(FilterIterators.newSort(it(3, 3, 2, 1, 1), INT_COMP, 3, settings)));
     }
 
     @Test
@@ -111,9 +114,9 @@ public class IteratorsTest {
         sortCompareCalls(10000, 1000000);
         sortCompareCalls(10000, Integer.MAX_VALUE);
     }
-    
+
     private void sortCompareCalls(int count, int keep) {
-        
+
         int len = 1000;
         Random r = new Random(1);
         Integer[] list = new Integer[len];
@@ -128,7 +131,7 @@ public class IteratorsTest {
                 compareCalls.incrementAndGet();
                 return o1.compareTo(o2);
             }
-            
+
         };
         Iterator<Integer> it = FilterIterators.newSort(it(list), comp, keep, settings);
         int old = Integer.MIN_VALUE;
@@ -148,56 +151,56 @@ public class IteratorsTest {
     public void combined() {
 
         // no filtering
-        assertEquals("3, 3, 2, 1", 
-                toString(FilterIterators.newCombinedFilter(
+        assertEquals("3, 3, 2, 1",
+            toString(FilterIterators.newCombinedFilter(
                 it(3, 3, 2, 1), false, Long.MAX_VALUE, 0, null, settings)));
-        
+
         // distinct
-        assertEquals("3, 2, 1", 
-                toString(FilterIterators.newCombinedFilter(
+        assertEquals("3, 2, 1",
+            toString(FilterIterators.newCombinedFilter(
                 it(3, 3, 2, 1), true, Long.MAX_VALUE, 0, null, settings)));
 
         // order by
-        assertEquals("1, 2, 3, 3", 
-                toString(FilterIterators.newCombinedFilter(
+        assertEquals("1, 2, 3, 3",
+            toString(FilterIterators.newCombinedFilter(
                 it(3, 3, 2, 1), false, Long.MAX_VALUE, 0, INT_COMP, settings)));
 
         // distinct & order by
-        assertEquals("1, 2, 3", 
-                toString(FilterIterators.newCombinedFilter(
+        assertEquals("1, 2, 3",
+            toString(FilterIterators.newCombinedFilter(
                 it(3, 3, 2, 1), true, Long.MAX_VALUE, 0, INT_COMP, settings)));
-        
+
         // limit
-        assertEquals("3, 3", 
-                toString(FilterIterators.newCombinedFilter(
+        assertEquals("3, 3",
+            toString(FilterIterators.newCombinedFilter(
                 it(3, 3, 2, 1), false, 2, 0, null, settings)));
 
         // offset
-        assertEquals("3, 2, 1", 
-                toString(FilterIterators.newCombinedFilter(
+        assertEquals("3, 2, 1",
+            toString(FilterIterators.newCombinedFilter(
                 it(3, 3, 2, 1), false, Long.MAX_VALUE, 1, null, settings)));
 
         // limit & offset
-        assertEquals("3, 2", 
-                toString(FilterIterators.newCombinedFilter(
+        assertEquals("3, 2",
+            toString(FilterIterators.newCombinedFilter(
                 it(3, 3, 2, 1), false, 2, 1, null, settings)));
 
         // distinct & limit & offset
-        assertEquals("2, 1", 
-                toString(FilterIterators.newCombinedFilter(
+        assertEquals("2, 1",
+            toString(FilterIterators.newCombinedFilter(
                 it(3, 3, 2, 1), true, 2, 1, null, settings)));
 
         // distinct & limit & offset & order by
-        assertEquals("2, 3", 
-                toString(FilterIterators.newCombinedFilter(
+        assertEquals("2, 3",
+            toString(FilterIterators.newCombinedFilter(
                 it(3, 3, 2, 1), true, 2, 1, INT_COMP, settings)));
 
-}
+    }
 
     private static <K> Iterator<K> it(K... x) {
         return Collections.unmodifiableCollection(Lists.newArrayList(x)).iterator();
     }
-    
+
     private static <K> String toString(Iterator<K> it) {
         StringBuilder buff = new StringBuilder();
         while (it.hasNext()) {
@@ -222,5 +225,5 @@ public class IteratorsTest {
         }
         return buff.toString();
     }
-    
+
 }

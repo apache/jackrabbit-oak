@@ -42,8 +42,8 @@ public class PrefetchCursor extends AbstractCursor {
 
     private static final Logger LOG = LoggerFactory.getLogger(PrefetchCursor.class);
 
-    // match ${...} -- unfortunately it needs a lot of escaping. 
-    // } inside {...} need to be escaped: ${...\}...} 
+    // match ${...} -- unfortunately it needs a lot of escaping.
+    // } inside {...} need to be escaped: ${...\}...}
     private static final Pattern FUNCTION = Pattern.compile("\\$\\{((\\}|[^}])*)\\}");
 
     private final Cursor cursor;
@@ -53,7 +53,8 @@ public class PrefetchCursor extends AbstractCursor {
     private Iterator<IndexRow> prefetched;
     private final List<String> prefetchRelative;
 
-    PrefetchCursor(Cursor cursor, PrefetchNodeStore store, int prefetchCount, NodeState rootState, List<String> prefetchRelative) {
+    PrefetchCursor(Cursor cursor, PrefetchNodeStore store, int prefetchCount, NodeState rootState,
+        List<String> prefetchRelative) {
         this.cursor = cursor;
         this.store = store;
         this.prefetchCount = prefetchCount;
@@ -112,15 +113,15 @@ public class PrefetchCursor extends AbstractCursor {
             // ignore
         }
     }
-    
+
     /**
      * Try to compute an absolute path using a relative path specification.
-     * 
-     * @param relativePath a relative path that may include patterns, e.g. jcr:content/metadata,
-     *              or jcr:content/renditions/${regex(".+/(.*)\\..*")}
-     * @param path the input path, e.g. /content/images/abc
+     *
+     * @param relativePath a relative path that may include patterns, e.g. jcr:content/metadata, or
+     *                     jcr:content/renditions/${regex(".+/(.*)\\..*")}
+     * @param path         the input path, e.g. /content/images/abc
      * @return null if not a match, or the output path, e.g.
-     *         /content/images/abc.png/jcr:content/renditions/abc
+     * /content/images/abc.png/jcr:content/renditions/abc
      * @throws IllegalArgumentException if an error occurs
      */
     public static String resolve(String relativePath, String path) throws IllegalArgumentException {
@@ -133,21 +134,19 @@ public class PrefetchCursor extends AbstractCursor {
         }
         return PathUtils.concat(path, resolved);
     }
-    
+
     /**
-     * Compute the new relative path from a input path and a relative path (which
-     * may include patterns).
+     * Compute the new relative path from a input path and a relative path (which may include
+     * patterns).
      *
-     * @param relativePath the value that may include patterns, e.g.
-     *                     jcr:content/metadata, or
+     * @param relativePath the value that may include patterns, e.g. jcr:content/metadata, or
      *                     jcr:content/renditions/${regex(".+/(.*)\\..*")}
-     * @param path the input path, e.g. /content/images/abc
-     * @return null if not a match, or the output (relative) path, e.g.
-     *         jcr:content/renditions/abc
+     * @param path         the input path, e.g. /content/images/abc
+     * @return null if not a match, or the output (relative) path, e.g. jcr:content/renditions/abc
      * @throws IllegalArgumentException if an error occurs
      */
-    public static String applyAndResolvePatterns(String relativePath, String path) 
-            throws IllegalArgumentException {
+    public static String applyAndResolvePatterns(String relativePath, String path)
+        throws IllegalArgumentException {
         Matcher m = FUNCTION.matcher(relativePath);
         // appendReplacement with StringBuilder is not supported in Java 8
         StringBuffer buff = new StringBuffer();
@@ -177,21 +176,21 @@ public class PrefetchCursor extends AbstractCursor {
         } catch (IllegalStateException | IndexOutOfBoundsException e) {
             LOG.warn("Can not replace {} match in {}", relativePath, path, e);
             throw new IllegalArgumentException("Can not replace");
-        }            
+        }
         m.appendTail(buff);
         return buff.toString();
     }
 
     /**
      * Find a pattern in a given path.
-     * 
-     * @param path the absolute path, e.g. "/content/images/hello.jpg"
+     *
+     * @param path         the absolute path, e.g. "/content/images/hello.jpg"
      * @param regexPattern the pattern, e.g. ".+/(.*).jpg"
      * @return null if not found, or the matched group, e.g. "hello"
      * @throws IllegalArgumentException if an error occurs
      */
-    public static String findMatch(String path, String regexPattern) 
-            throws IllegalArgumentException {
+    public static String findMatch(String path, String regexPattern)
+        throws IllegalArgumentException {
         try {
             Pattern p = Pattern.compile(regexPattern);
             Matcher m = p.matcher(path);

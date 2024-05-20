@@ -35,33 +35,36 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Test implementation of the {@code AggregatedPermissionProvider} with following
- * characteristics. It has a limited scope and supports
- *
- * - {@link Permissions#NAMESPACE_MANAGEMENT} and {@link Permissions#NODE_TYPE_DEFINITION_MANAGEMENT} on repository level
- * - {@link Permissions#WRITE} at the tree defined by {@link AbstractCompositeProviderTest#TEST_A_PATH}
- * - {@link Permissions#NO_PERMISSION} everywhere else.
- *
+ * Test implementation of the {@code AggregatedPermissionProvider} with following characteristics.
+ * It has a limited scope and supports
+ * <p>
+ * - {@link Permissions#NAMESPACE_MANAGEMENT} and
+ * {@link Permissions#NODE_TYPE_DEFINITION_MANAGEMENT} on repository level -
+ * {@link Permissions#WRITE} at the tree defined by
+ * {@link AbstractCompositeProviderTest#TEST_A_PATH} - {@link Permissions#NO_PERMISSION} everywhere
+ * else.
+ * <p>
  * The permission setup defined by this provider is as follows:
- *
- * At the repository level
- * - {@link Permissions#NAMESPACE_MANAGEMENT} is denied
- * - {@link Permissions#NODE_TYPE_DEFINITION_MANAGEMENT} is allowed
- *
- * At {@link AbstractCompositeProviderTest#TEST_A_PATH}
- * - {@link Permissions#ADD_NODE} and {@link Permissions#ADD_PROPERTY} is denied
- * - all other aggregates of {@link Permissions#WRITE} are allowed.
- * - any other permissions are ignored
- *
- * Consequently any path outside of the scope of this provider is not affected
- * by the permission setup.
+ * <p>
+ * At the repository level - {@link Permissions#NAMESPACE_MANAGEMENT} is denied -
+ * {@link Permissions#NODE_TYPE_DEFINITION_MANAGEMENT} is allowed
+ * <p>
+ * At {@link AbstractCompositeProviderTest#TEST_A_PATH} - {@link Permissions#ADD_NODE} and
+ * {@link Permissions#ADD_PROPERTY} is denied - all other aggregates of {@link Permissions#WRITE}
+ * are allowed. - any other permissions are ignored
+ * <p>
+ * Consequently any path outside of the scope of this provider is not affected by the permission
+ * setup.
  */
 class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeConstants {
 
-    private static final Set<String> GRANTED_PRIVS = ImmutableSet.of(JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES);
-    private static final Set<String> DENIED_PRIVS = ImmutableSet.of(JCR_ADD_CHILD_NODES, REP_ADD_PROPERTIES);
+    private static final Set<String> GRANTED_PRIVS = ImmutableSet.of(JCR_REMOVE_CHILD_NODES,
+        JCR_REMOVE_NODE, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES);
+    private static final Set<String> DENIED_PRIVS = ImmutableSet.of(JCR_ADD_CHILD_NODES,
+        REP_ADD_PROPERTIES);
 
-    private static final long GRANTED_PERMS = Permissions.REMOVE_NODE | Permissions.REMOVE_PROPERTY | Permissions.MODIFY_PROPERTY;
+    private static final long GRANTED_PERMS =
+        Permissions.REMOVE_NODE | Permissions.REMOVE_PROPERTY | Permissions.MODIFY_PROPERTY;
     private static final long DENIED_PERMS = Permissions.ADD_NODE | Permissions.ADD_PROPERTY;
 
     LimitedScopeProvider(@NotNull Root root) {
@@ -75,7 +78,8 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
         if (tree == null) {
             return ImmutableSet.of(JCR_NODE_TYPE_DEFINITION_MANAGEMENT);
         } else if (isSupported(tree)) {
-            return ImmutableSet.of(JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES);
+            return ImmutableSet.of(JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE, REP_ALTER_PROPERTIES,
+                REP_REMOVE_PROPERTIES);
         } else {
             return ImmutableSet.of();
         }
@@ -114,12 +118,14 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
 
     @NotNull
     @Override
-    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree,
+        @NotNull TreePermission parentPermission) {
         return createTreePermission(tree.getPath());
     }
 
     @Override
-    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
+    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property,
+        long permissions) {
         if (isSupported(tree)) {
             if (Permissions.includes(permissions, DENIED_PERMS)) {
                 return false;
@@ -149,12 +155,13 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
     //---------------------------------------< AggregatedPermissionProvider >---
     @NotNull
     @Override
-    public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
+    public PrivilegeBits supportedPrivileges(@Nullable Tree tree,
+        @Nullable PrivilegeBits privilegeBits) {
         PrivilegeBits supported;
         if (tree == null) {
             supported = PrivilegeBits.getInstance(
-                    PrivilegeBits.BUILT_IN.get(JCR_NAMESPACE_MANAGEMENT),
-                    PrivilegeBits.BUILT_IN.get(JCR_NODE_TYPE_DEFINITION_MANAGEMENT));
+                PrivilegeBits.BUILT_IN.get(JCR_NAMESPACE_MANAGEMENT),
+                PrivilegeBits.BUILT_IN.get(JCR_NODE_TYPE_DEFINITION_MANAGEMENT));
         } else if (isSupported(tree)) {
             supported = PrivilegeBits.BUILT_IN.get(JCR_WRITE);
         } else {
@@ -169,9 +176,11 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
     }
 
     @Override
-    public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
+    public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property,
+        long permissions) {
         if (tree == null) {
-            return permissions & (Permissions.NAMESPACE_MANAGEMENT|Permissions.NODE_TYPE_DEFINITION_MANAGEMENT);
+            return permissions & (Permissions.NAMESPACE_MANAGEMENT
+                | Permissions.NODE_TYPE_DEFINITION_MANAGEMENT);
         } else if (isSupported(tree)) {
             return permissions & Permissions.WRITE;
         } else {
@@ -189,8 +198,10 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
     }
 
     @Override
-    public long supportedPermissions(@NotNull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
-        if (treePermission instanceof TestTreePermission && isSupported(((TestTreePermission) treePermission).path)) {
+    public long supportedPermissions(@NotNull TreePermission treePermission,
+        @Nullable PropertyState property, long permissions) {
+        if (treePermission instanceof TestTreePermission && isSupported(
+            ((TestTreePermission) treePermission).path)) {
             return permissions & Permissions.WRITE;
         } else {
             return Permissions.NO_PERMISSION;
@@ -239,7 +250,8 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
 
         @NotNull
         @Override
-        public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
+        public TreePermission getChildPermission(@NotNull String childName,
+            @NotNull NodeState childState) {
             return createTreePermission(PathUtils.concat(path, childName));
         }
 
@@ -284,7 +296,8 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
 
         @NotNull
         @Override
-        public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
+        public TreePermission getChildPermission(@NotNull String childName,
+            @NotNull NodeState childState) {
             return createTreePermission(PathUtils.concat(path, childName));
         }
 

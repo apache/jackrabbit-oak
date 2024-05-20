@@ -73,7 +73,8 @@ public class NamePathMapperImpl implements NamePathMapper {
         return nameMapper.getJcrName(oakName);
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Map<String, String> getSessionLocalMappings() {
         return nameMapper.getSessionLocalMappings();
     }
@@ -144,8 +145,7 @@ public class NamePathMapperImpl implements NamePathMapper {
             if (element.isEmpty()) {
                 // root
                 oakPath.append('/');
-            }
-            else {
+            } else {
                 oakPath.append(element);
                 oakPath.append('/');
             }
@@ -202,8 +202,7 @@ public class NamePathMapperImpl implements NamePathMapper {
             if (element.isEmpty()) {
                 // root
                 jcrPath.append('/');
-            }
-            else {
+            } else {
                 jcrPath.append(element);
                 jcrPath.append('/');
             }
@@ -214,15 +213,13 @@ public class NamePathMapperImpl implements NamePathMapper {
     }
 
     /**
-     * Checks if the given path needs to be fully parsed to apply namespace
-     * mappings or to validate its syntax. If the given path is "simple", i.e.
-     * it doesn't contain any complex constructs, and there are no local
-     * namespace remappings, it's possible to skip the full path parsing
-     * and simply use the JCR path string as-is as an Oak path.
+     * Checks if the given path needs to be fully parsed to apply namespace mappings or to validate
+     * its syntax. If the given path is "simple", i.e. it doesn't contain any complex constructs,
+     * and there are no local namespace remappings, it's possible to skip the full path parsing and
+     * simply use the JCR path string as-is as an Oak path.
      *
      * @param path JCR path
-     * @return {@code true} if the path needs to be fully parsed,
-     *         {@code false} if not
+     * @return {@code true} if the path needs to be fully parsed, {@code false} if not
      */
     private boolean needsFullMapping(String path) {
         int length = path.length();
@@ -262,17 +259,17 @@ public class NamePathMapperImpl implements NamePathMapper {
                     break;
                 case ':':
                     if (i == slash + 1              // "x/:y"
-                            || i == colon + i       // "x::y"
-                            || colon > slash        // "x:y:z"
-                            || i + 1 == length) {   // "x:"
+                        || i == colon + i       // "x::y"
+                        || colon > slash        // "x:y:z"
+                        || i + 1 == length) {   // "x:"
                         return true;
                     }
                     colon = i;
                     break;
                 case '/':
                     if (i == slash + 1              // "x//y"
-                            || i == colon + i       // "x:/y"
-                            || i + 1 == length) {   // "x/"
+                        || i == colon + i       // "x:/y"
+                        || i + 1 == length) {   // "x/"
                         return true;
                     }
                     slash = i;
@@ -286,6 +283,7 @@ public class NamePathMapperImpl implements NamePathMapper {
     //------------------------------------------------------------< PathListener >---
 
     private abstract static class PathListener implements Listener {
+
         final List<String> elements = new ArrayList<String>();
 
         @Override

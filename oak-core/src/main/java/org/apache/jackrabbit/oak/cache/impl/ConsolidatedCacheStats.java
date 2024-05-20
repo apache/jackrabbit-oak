@@ -19,10 +19,13 @@
 
 package org.apache.jackrabbit.oak.cache.impl;
 
+import static org.apache.jackrabbit.oak.cache.CacheStats.timeInWords;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.concurrent.TimeUnit;
-
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
@@ -31,7 +34,6 @@ import javax.management.openmbean.SimpleType;
 import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
-
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.ConsolidatedCacheStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.PersistentCacheStatsMBean;
@@ -43,10 +45,6 @@ import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
-
-import static org.apache.jackrabbit.oak.cache.CacheStats.timeInWords;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 @Component(service = {})
 public class ConsolidatedCacheStats implements ConsolidatedCacheStatsMBean {
@@ -61,12 +59,12 @@ public class ConsolidatedCacheStats implements ConsolidatedCacheStatsMBean {
         TabularDataSupport tds;
         try {
             TabularType tt = new TabularType(CacheStatsData.class.getName(),
-                    "Consolidated Cache Stats", CacheStatsData.TYPE, new String[]{"name"});
+                "Consolidated Cache Stats", CacheStatsData.TYPE, new String[]{"name"});
             tds = new TabularDataSupport(tt);
-            for(CacheStatsMBean stats : cacheStats.getServices()){
+            for (CacheStatsMBean stats : cacheStats.getServices()) {
                 tds.put(new CacheStatsData(stats).toCompositeData());
             }
-            for(CacheStatsMBean stats : persistentCacheStats.getServices()){
+            for (CacheStatsMBean stats : persistentCacheStats.getServices()) {
                 tds.put(new CacheStatsData(stats).toCompositeData());
             }
         } catch (OpenDataException e) {
@@ -76,70 +74,71 @@ public class ConsolidatedCacheStats implements ConsolidatedCacheStatsMBean {
     }
 
     @Activate
-    private void activate(BundleContext context){
+    private void activate(BundleContext context) {
         Whiteboard wb = new OsgiWhiteboard(context);
         cacheStats = wb.track(CacheStatsMBean.class);
         persistentCacheStats = wb.track(PersistentCacheStatsMBean.class);
         mbeanReg = registerMBean(wb,
-                ConsolidatedCacheStatsMBean.class,
-                this,
-                ConsolidatedCacheStatsMBean.TYPE,
-                "Consolidated Cache statistics");
+            ConsolidatedCacheStatsMBean.class,
+            this,
+            ConsolidatedCacheStatsMBean.TYPE,
+            "Consolidated Cache statistics");
     }
 
     @Deactivate
-    private void deactivate(){
-        if(mbeanReg != null){
+    private void deactivate() {
+        if (mbeanReg != null) {
             mbeanReg.unregister();
         }
 
-        if(cacheStats != null){
+        if (cacheStats != null) {
             cacheStats.stop();
         }
 
-        if(persistentCacheStats != null) {
+        if (persistentCacheStats != null) {
             persistentCacheStats.stop();
         }
     }
 
     private static class CacheStatsData {
+
         static final String[] FIELD_NAMES = new String[]{
-                "name",
-                "requestCount",
-                "hitCount",
-                "hitRate",
-                "missCount",
-                "missRate",
-                "loadCount",
-                "loadSuccessCount",
-                "loadExceptionCount",
-                "totalLoadTime",
-                "averageLoadPenalty",
-                "evictionCount",
-                "elementCount",
-                "totalWeight",
-                "maxWeight",
+            "name",
+            "requestCount",
+            "hitCount",
+            "hitRate",
+            "missCount",
+            "missRate",
+            "loadCount",
+            "loadSuccessCount",
+            "loadExceptionCount",
+            "totalLoadTime",
+            "averageLoadPenalty",
+            "evictionCount",
+            "elementCount",
+            "totalWeight",
+            "maxWeight",
         };
 
         static final String[] FIELD_DESCRIPTIONS = FIELD_NAMES;
 
         @SuppressWarnings("rawtypes")
         static final OpenType[] FIELD_TYPES = new OpenType[]{
-                SimpleType.STRING,
-                SimpleType.LONG,
-                SimpleType.LONG,
-                SimpleType.BIGDECIMAL,
-                SimpleType.LONG,
-                SimpleType.BIGDECIMAL,
-                SimpleType.LONG,
-                SimpleType.LONG,
-                SimpleType.LONG,
-                SimpleType.STRING,
-                SimpleType.STRING,
-                SimpleType.LONG,
-                SimpleType.LONG,
-                SimpleType.STRING,
-                SimpleType.STRING,
+            SimpleType.STRING,
+            SimpleType.LONG,
+            SimpleType.LONG,
+            SimpleType.BIGDECIMAL,
+            SimpleType.LONG,
+            SimpleType.BIGDECIMAL,
+            SimpleType.LONG,
+            SimpleType.LONG,
+            SimpleType.LONG,
+            SimpleType.STRING,
+            SimpleType.STRING,
+            SimpleType.LONG,
+            SimpleType.LONG,
+            SimpleType.STRING,
+            SimpleType.STRING,
         };
 
         static final CompositeType TYPE = createCompositeType();
@@ -147,11 +146,11 @@ public class ConsolidatedCacheStats implements ConsolidatedCacheStatsMBean {
         static CompositeType createCompositeType() {
             try {
                 return new CompositeType(
-                        CacheStatsData.class.getName(),
-                        "Composite data type for Cache statistics",
-                        CacheStatsData.FIELD_NAMES,
-                        CacheStatsData.FIELD_DESCRIPTIONS,
-                        CacheStatsData.FIELD_TYPES);
+                    CacheStatsData.class.getName(),
+                    "Composite data type for Cache statistics",
+                    CacheStatsData.FIELD_NAMES,
+                    CacheStatsData.FIELD_DESCRIPTIONS,
+                    CacheStatsData.FIELD_TYPES);
             } catch (OpenDataException e) {
                 throw new IllegalStateException(e);
             }
@@ -159,27 +158,27 @@ public class ConsolidatedCacheStats implements ConsolidatedCacheStatsMBean {
 
         private final CacheStatsMBean stats;
 
-        public CacheStatsData(CacheStatsMBean stats){
+        public CacheStatsData(CacheStatsMBean stats) {
             this.stats = stats;
         }
 
         CompositeDataSupport toCompositeData() {
             Object[] values = new Object[]{
-                    stats.getName(),
-                    stats.getRequestCount(),
-                    stats.getHitCount(),
-                    new BigDecimal(stats.getHitRate(),new MathContext(2)),
-                    stats.getMissCount(),
-                    new BigDecimal(stats.getMissRate(), new MathContext(2)),
-                    stats.getLoadCount(),
-                    stats.getLoadSuccessCount(),
-                    stats.getLoadExceptionCount(),
-                    timeInWords(stats.getTotalLoadTime()),
-                    TimeUnit.NANOSECONDS.toMillis((long) stats.getAverageLoadPenalty()) + "ms",
-                    stats.getEvictionCount(),
-                    stats.getElementCount(),
-                    humanReadableByteCount(stats.estimateCurrentWeight()),
-                    humanReadableByteCount(stats.getMaxTotalWeight()),
+                stats.getName(),
+                stats.getRequestCount(),
+                stats.getHitCount(),
+                new BigDecimal(stats.getHitRate(), new MathContext(2)),
+                stats.getMissCount(),
+                new BigDecimal(stats.getMissRate(), new MathContext(2)),
+                stats.getLoadCount(),
+                stats.getLoadSuccessCount(),
+                stats.getLoadExceptionCount(),
+                timeInWords(stats.getTotalLoadTime()),
+                TimeUnit.NANOSECONDS.toMillis((long) stats.getAverageLoadPenalty()) + "ms",
+                stats.getEvictionCount(),
+                stats.getElementCount(),
+                humanReadableByteCount(stats.estimateCurrentWeight()),
+                humanReadableByteCount(stats.getMaxTotalWeight()),
             };
             try {
                 return new CompositeDataSupport(TYPE, FIELD_NAMES, values);

@@ -20,9 +20,9 @@
 package org.apache.jackrabbit.oak.plugins.observation;
 
 /**
- * The presence of this marker interface on a {@link javax.jcr.observation.EventListener}
- * indicates that cluster external observation events must not be reported to that
- * event listener.
+ * The presence of this marker interface on a {@link javax.jcr.observation.EventListener} indicates
+ * that cluster external observation events must not be reported to that event listener.
  */
 public interface ExcludeExternal {
+
 }

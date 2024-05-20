@@ -28,11 +28,12 @@ import static org.junit.Assert.*;
 
 public class IndexingProgressReporterTest {
 
-    private IndexingProgressReporter reporter = new IndexingProgressReporter(IndexUpdateCallback.NOOP,
-            NodeTraversalCallback.NOOP);
+    private IndexingProgressReporter reporter = new IndexingProgressReporter(
+        IndexUpdateCallback.NOOP,
+        NodeTraversalCallback.NOOP);
 
     @Test
-    public void basicTest() throws Exception{
+    public void basicTest() throws Exception {
         reporter.registerIndex("foo", false, -1);
         assertFalse(reporter.isReindexingPerformed());
 

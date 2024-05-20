@@ -32,13 +32,13 @@ public class UserMonitorImpl implements UserMonitor {
 
     private static final String REMOVE_MEMBERS_FAILED = "security.user.remove_members.failed";
     private static final String REMOVE_MEMBERS_SUCCEEDED = "security.user.remove_members.succeeded";
-    private static final String  REMOVE_MEMBERS_TIMER = "security.user.remove_members.timer";
+    private static final String REMOVE_MEMBERS_TIMER = "security.user.remove_members.timer";
 
-    private static final String  GET_MEMBERS_TIMER = "security.user.get_members.timer";
-    private static final String  GET_DECLARED_MEMBERS_TIMER = "security.user.get_declared_members.timer";
+    private static final String GET_MEMBERS_TIMER = "security.user.get_members.timer";
+    private static final String GET_DECLARED_MEMBERS_TIMER = "security.user.get_declared_members.timer";
 
-    private static final String  MEMBEROF_TIMER = "security.user.memberof.timer";
-    private static final String  DECLARED_MEMBEROF_TIMER = "security.user.declared_memberof.timer";
+    private static final String MEMBEROF_TIMER = "security.user.memberof.timer";
+    private static final String DECLARED_MEMBEROF_TIMER = "security.user.declared_memberof.timer";
 
     private final MeterStats addMembersFailed;
     private final MeterStats addMembersSucceeded;
@@ -56,18 +56,24 @@ public class UserMonitorImpl implements UserMonitor {
 
     public UserMonitorImpl(@NotNull StatisticsProvider statisticsProvider) {
         addMembersFailed = statisticsProvider.getMeter(ADD_MEMBERS_FAILED, StatsOptions.DEFAULT);
-        addMembersSucceeded = statisticsProvider.getMeter(ADD_MEMBERS_SUCCEEDED, StatsOptions.DEFAULT);
+        addMembersSucceeded = statisticsProvider.getMeter(ADD_MEMBERS_SUCCEEDED,
+            StatsOptions.DEFAULT);
         addMembersTimer = statisticsProvider.getTimer(ADD_MEMBERS_TIMER, StatsOptions.METRICS_ONLY);
 
-        removeMembersFailed = statisticsProvider.getMeter(REMOVE_MEMBERS_FAILED, StatsOptions.DEFAULT);
-        removeMembersSucceeded = statisticsProvider.getMeter(REMOVE_MEMBERS_SUCCEEDED, StatsOptions.DEFAULT);
-        removeMembersTimer = statisticsProvider.getTimer(REMOVE_MEMBERS_TIMER, StatsOptions.METRICS_ONLY);
+        removeMembersFailed = statisticsProvider.getMeter(REMOVE_MEMBERS_FAILED,
+            StatsOptions.DEFAULT);
+        removeMembersSucceeded = statisticsProvider.getMeter(REMOVE_MEMBERS_SUCCEEDED,
+            StatsOptions.DEFAULT);
+        removeMembersTimer = statisticsProvider.getTimer(REMOVE_MEMBERS_TIMER,
+            StatsOptions.METRICS_ONLY);
 
         getMembersTimer = statisticsProvider.getTimer(GET_MEMBERS_TIMER, StatsOptions.METRICS_ONLY);
-        getDeclaredMembersTimer = statisticsProvider.getTimer(GET_DECLARED_MEMBERS_TIMER, StatsOptions.METRICS_ONLY);
+        getDeclaredMembersTimer = statisticsProvider.getTimer(GET_DECLARED_MEMBERS_TIMER,
+            StatsOptions.METRICS_ONLY);
 
         memberOfTimer = statisticsProvider.getTimer(MEMBEROF_TIMER, StatsOptions.METRICS_ONLY);
-        declaredMemberOfTimer = statisticsProvider.getTimer(DECLARED_MEMBEROF_TIMER, StatsOptions.METRICS_ONLY);
+        declaredMemberOfTimer = statisticsProvider.getTimer(DECLARED_MEMBEROF_TIMER,
+            StatsOptions.METRICS_ONLY);
     }
 
     @Override
@@ -89,7 +95,8 @@ public class UserMonitorImpl implements UserMonitor {
     }
 
     @Override
-    public void doneUpdateMembers(long timeTakenNanos, long totalProcessed, long failed, boolean isRemove) {
+    public void doneUpdateMembers(long timeTakenNanos, long totalProcessed, long failed,
+        boolean isRemove) {
         long successCnt = totalProcessed - failed;
         if (isRemove) {
             removeMembersFailed.mark(failed);

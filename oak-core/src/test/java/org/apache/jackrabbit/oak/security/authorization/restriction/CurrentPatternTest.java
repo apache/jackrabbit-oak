@@ -45,15 +45,15 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class CurrentPatternTest {
-    
+
     private static final String TEST_PATH = "/test/path";
     private static final String PROP_NAME = "prop";
-    
+
     @NotNull
     private static RestrictionPattern createPattern(@NotNull String... propertyNames) {
         return new CurrentPattern(TEST_PATH, Arrays.asList(propertyNames));
     }
-    
+
     @NotNull
     private static Tree mockTree(@NotNull String path) {
         return when(mock(Tree.class).getPath()).thenReturn(path).getMock();
@@ -63,7 +63,7 @@ public class CurrentPatternTest {
     private static PropertyState mockProperty(@NotNull String name) {
         return when(mock(PropertyState.class).getName()).thenReturn(name).getMock();
     }
-    
+
     @Test
     public void testMatches() {
         assertFalse(createPattern().matches());
@@ -84,25 +84,25 @@ public class CurrentPatternTest {
         rp = createPattern(PROP_NAME);
         assertFalse(rp.matches(t, null));
         assertFalse(rp.matches(t, p));
-        
+
         rp = createPattern(RESIDUAL_NAME);
         assertFalse(rp.matches(t, null));
         assertFalse(rp.matches(t, p));
-        
+
         verify(t, times(6)).getPath();
         verify(p, times(3)).getName();
-        verifyNoMoreInteractions(t,p);
+        verifyNoMoreInteractions(t, p);
     }
 
     @Test
     public void testMatchesTreePropertyNoPropertyNames() {
         Tree t = mockTree(TEST_PATH);
         PropertyState p = mockProperty(PROP_NAME);
-        
+
         RestrictionPattern rp = createPattern();
         assertTrue(rp.matches(t, null));
         assertFalse(rp.matches(t, p));
-        
+
         verify(t, times(2)).getPath();
         verify(p).getName();
         verifyNoMoreInteractions(t, p);
@@ -148,7 +148,8 @@ public class CurrentPatternTest {
 
     @Test
     public void testMatchesPath() {
-        List<String[]> propNames = ImmutableList.of(new String[0], new String[]{RESIDUAL_NAME}, new String[] {PROP_NAME});
+        List<String[]> propNames = ImmutableList.of(new String[0], new String[]{RESIDUAL_NAME},
+            new String[]{PROP_NAME});
         for (String[] pn : propNames) {
             RestrictionPattern rp = createPattern(pn);
             assertTrue(rp.matches(TEST_PATH));
@@ -160,19 +161,20 @@ public class CurrentPatternTest {
 
     @Test
     public void testMatchesPathPointsToKnownProperty() {
-        String[] knownPropertyNames = new String[] {
-                JcrConstants.JCR_PRIMARYTYPE, 
-                AccessControlConstants.REP_PRINCIPAL_NAME,
-                AtomicCounterEditor.PROP_COUNTER};
+        String[] knownPropertyNames = new String[]{
+            JcrConstants.JCR_PRIMARYTYPE,
+            AccessControlConstants.REP_PRINCIPAL_NAME,
+            AtomicCounterEditor.PROP_COUNTER};
 
         // pattern without any property-names will not match any of the paths.
         RestrictionPattern rp = createPattern();
         for (String pn : knownPropertyNames) {
             assertFalse(rp.matches(PathUtils.concat(TEST_PATH, pn)));
         }
-        
+
         // pattern with * or all propnames will match
-        List<String[]> propNames = ImmutableList.of(new String[]{RESIDUAL_NAME}, knownPropertyNames);
+        List<String[]> propNames = ImmutableList.of(new String[]{RESIDUAL_NAME},
+            knownPropertyNames);
         for (String[] names : propNames) {
             rp = createPattern(names);
             for (String pn : knownPropertyNames) {
@@ -193,10 +195,10 @@ public class CurrentPatternTest {
 
     @Test
     public void testMatchesPathPointsToKnownNode() {
-        String[] knownNodeNames = new String[] {
-                JcrConstants.JCR_CONTENT,
-                AccessControlConstants.REP_POLICY,
-                IndexConstants.INDEX_DEFINITIONS_NAME};
+        String[] knownNodeNames = new String[]{
+            JcrConstants.JCR_CONTENT,
+            AccessControlConstants.REP_POLICY,
+            IndexConstants.INDEX_DEFINITIONS_NAME};
 
         // pattern without any property-names will not match any of the paths.
         RestrictionPattern rp = createPattern();
@@ -261,7 +263,8 @@ public class CurrentPatternTest {
     @Test
     public void testToString() {
         assertEquals(createPattern(PROP_NAME).toString(), createPattern(PROP_NAME).toString());
-        assertNotEquals(createPattern(RESIDUAL_NAME).toString(), createPattern(PROP_NAME).toString());
+        assertNotEquals(createPattern(RESIDUAL_NAME).toString(),
+            createPattern(PROP_NAME).toString());
         assertNotEquals(createPattern(RESIDUAL_NAME).toString(), createPattern().toString());
     }
 
@@ -285,7 +288,8 @@ public class CurrentPatternTest {
     public void testNotEquals() {
         RestrictionPattern rp = createPattern(RESIDUAL_NAME);
         // different tree path
-        assertNotEquals(rp, new CurrentPattern("/another/path", Collections.singleton(RESIDUAL_NAME)));
+        assertNotEquals(rp,
+            new CurrentPattern("/another/path", Collections.singleton(RESIDUAL_NAME)));
         // different set of prop names
         assertNotEquals(rp, createPattern());
         assertNotEquals(rp, createPattern(PROP_NAME));

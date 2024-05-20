@@ -46,12 +46,12 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class InheritedMembersIteratorTest extends AbstractSecurityTest {
-    
+
     private Group base;
     private Group nonDynamicGroup;
     private Group dynamicGroup;
     private User dynamicUser;
-    
+
     private final Set<String> ids = new HashSet<>();
 
     @Before
@@ -61,7 +61,7 @@ public class InheritedMembersIteratorTest extends AbstractSecurityTest {
         UserManager um = getUserManager(root);
         base = um.createGroup("base");
         nonDynamicGroup = um.createGroup("testGroup");
-        
+
         // add 2 members to the base group
         base.addMember(nonDynamicGroup);
         base.addMember(getTestUser());
@@ -97,12 +97,15 @@ public class InheritedMembersIteratorTest extends AbstractSecurityTest {
     @Test
     public void testNoDynamicMembers() throws Exception {
         DynamicMembershipProvider dmp = mock(DynamicMembershipProvider.class);
-        when(dmp.getMembers(any(Group.class), anyBoolean())).thenReturn(Collections.emptyIterator());
+        when(dmp.getMembers(any(Group.class), anyBoolean())).thenReturn(
+            Collections.emptyIterator());
 
         // no dynamic members in result
-        Set<String> expectedMemberIds = ImmutableSet.of(getTestUser().getID(), "testGroup", "dynamicTestGroup");
-        assertEquals(expectedMemberIds, getMembersIds(new InheritedMembersIterator(base.getMembers(), dmp)));
-        
+        Set<String> expectedMemberIds = ImmutableSet.of(getTestUser().getID(), "testGroup",
+            "dynamicTestGroup");
+        assertEquals(expectedMemberIds,
+            getMembersIds(new InheritedMembersIterator(base.getMembers(), dmp)));
+
         verify(dmp, times(2)).getMembers(any(Group.class), eq(false));
         verifyNoMoreInteractions(dmp);
     }
@@ -110,12 +113,15 @@ public class InheritedMembersIteratorTest extends AbstractSecurityTest {
     @Test
     public void testDynamicMembers() throws Exception {
         DynamicMembershipProvider dmp = mock(DynamicMembershipProvider.class);
-        when(dmp.getMembers(dynamicGroup, false)).thenReturn(Iterators.forArray(dynamicUser, getTestUser()));
+        when(dmp.getMembers(dynamicGroup, false)).thenReturn(
+            Iterators.forArray(dynamicUser, getTestUser()));
         when(dmp.getMembers(nonDynamicGroup, false)).thenReturn(Collections.emptyIterator());
 
         // dynamic members get resolved this time
-        Set<String> expectedMemberIds = ImmutableSet.of(getTestUser().getID(), "testGroup", "dynamicTestGroup", "dynamicTestUser");
-        assertEquals(expectedMemberIds, getMembersIds(new InheritedMembersIterator(base.getMembers(), dmp)));
+        Set<String> expectedMemberIds = ImmutableSet.of(getTestUser().getID(), "testGroup",
+            "dynamicTestGroup", "dynamicTestUser");
+        assertEquals(expectedMemberIds,
+            getMembersIds(new InheritedMembersIterator(base.getMembers(), dmp)));
 
         verify(dmp, times(2)).getMembers(any(Group.class), eq(false));
         verifyNoMoreInteractions(dmp);
@@ -126,13 +132,15 @@ public class InheritedMembersIteratorTest extends AbstractSecurityTest {
         DynamicMembershipProvider dmp = mock(DynamicMembershipProvider.class);
         when(dmp.getMembers(any(Group.class), anyBoolean())).thenThrow(new RepositoryException());
 
-        Set<String> expectedMemberIds = ImmutableSet.of(getTestUser().getID(), "testGroup", "dynamicTestGroup");
-        assertEquals(expectedMemberIds, getMembersIds(new InheritedMembersIterator(base.getMembers(), dmp)));
+        Set<String> expectedMemberIds = ImmutableSet.of(getTestUser().getID(), "testGroup",
+            "dynamicTestGroup");
+        assertEquals(expectedMemberIds,
+            getMembersIds(new InheritedMembersIterator(base.getMembers(), dmp)));
 
         verify(dmp, times(2)).getMembers(any(Group.class), eq(false));
         verifyNoMoreInteractions(dmp);
     }
-    
+
     private static @NotNull Set<String> getMembersIds(@NotNull InheritedMembersIterator it) {
         return ImmutableSet.copyOf(Iterators.transform(it, authorizable -> {
             try {

@@ -54,7 +54,8 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
     public void before() throws Exception {
         super.before();
 
-        impersonator = getUserManager(root).createUser("impersonator" + UUID.randomUUID().toString(), null);
+        impersonator = getUserManager(root).createUser(
+            "impersonator" + UUID.randomUUID().toString(), null);
         impersonation.grantImpersonation(impersonator.getPrincipal());
         root.commit();
     }
@@ -93,7 +94,8 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
 
         PropertyState property = tree.getProperty(UserConstants.REP_IMPERSONATORS);
         assertNotNull(property);
-        assertEquals(ImmutableList.of(impersonator.getPrincipal().getName()), property.getValue(Type.STRINGS));
+        assertEquals(ImmutableList.of(impersonator.getPrincipal().getName()),
+            property.getValue(Type.STRINGS));
     }
 
     @Test
@@ -104,7 +106,8 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
     @Test
     public void testAllowsIncludingGroup() throws Exception {
         Group gr = getUserManager(root).createGroup("gId");
-        assertTrue(impersonation.allows(createSubject(impersonator.getPrincipal(), gr.getPrincipal())));
+        assertTrue(
+            impersonation.allows(createSubject(impersonator.getPrincipal(), gr.getPrincipal())));
     }
 
     @Test
@@ -112,7 +115,8 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
         Group gr = getUserManager(root).createGroup("gId");
         try {
             root.commit();
-            assertFalse(impersonation.allows(createSubject(new PrincipalImpl(gr.getPrincipal().getName()))));
+            assertFalse(impersonation.allows(
+                createSubject(new PrincipalImpl(gr.getPrincipal().getName()))));
         } finally {
             gr.remove();
             root.commit();
@@ -121,7 +125,8 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
 
     @Test
     public void testAllowsIncludingNonExistingGroup() throws Exception {
-        assertTrue(impersonation.allows(createSubject(impersonator.getPrincipal(), groupPrincipal)));
+        assertTrue(
+            impersonation.allows(createSubject(impersonator.getPrincipal(), groupPrincipal)));
     }
 
     @Test
@@ -142,17 +147,20 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
         UserManagerImpl uMgr = spy((UserManagerImpl) getUserManager(root));
         when(uMgr.getAuthorizable(nonExisting)).thenThrow(new RepositoryException());
 
-        ImpersonationImpl imp = new ImpersonationImpl(new UserImpl(user.getID(), user.getTree(), uMgr));
+        ImpersonationImpl imp = new ImpersonationImpl(
+            new UserImpl(user.getID(), user.getTree(), uMgr));
         assertFalse(imp.allows(createSubject(nonExisting)));
     }
 
     @Test
     public void testGrantImpersonationUserLookupFails() throws Exception {
-        Principal nonExisting = new TreeBasedPrincipal("nonExisting", user.getTree(), getNamePathMapper());
+        Principal nonExisting = new TreeBasedPrincipal("nonExisting", user.getTree(),
+            getNamePathMapper());
         UserManagerImpl uMgr = spy((UserManagerImpl) getUserManager(root));
         when(uMgr.getAuthorizable(nonExisting)).thenThrow(new RepositoryException());
 
-        ImpersonationImpl imp = new ImpersonationImpl(new UserImpl(user.getID(), user.getTree(), uMgr));
+        ImpersonationImpl imp = new ImpersonationImpl(
+            new UserImpl(user.getID(), user.getTree(), uMgr));
         assertFalse(imp.grantImpersonation(nonExisting));
     }
 
@@ -171,7 +179,8 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
         PropertyState property = tree.getProperty(UserConstants.REP_IMPERSONATORS);
         assertNotNull(property);
 
-        Set<String> expected = ImmutableSet.of(impersonator.getPrincipal().getName(), principal2.getName());
+        Set<String> expected = ImmutableSet.of(impersonator.getPrincipal().getName(),
+            principal2.getName());
         assertEquals(expected, ImmutableSet.copyOf(property.getValue(Type.STRINGS)));
 
         impersonation.revokeImpersonation(impersonator.getPrincipal());
@@ -190,24 +199,27 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
     public void testImpersonationAllowByImpersonationGroupMember() throws Exception {
         String impersonatorGroupName = "impersonators-group";
         String impersonatorMember = "member-of-impersonator-group";
-        impersonation = new ImpersonationImpl(ImpersonationTestUtil.getUserWithMockedConfigs(impersonatorGroupName, user));
-        Subject impersonatorSubject = createSubject(impersonator.getPrincipal(), new PrincipalImpl(impersonatorGroupName));
-        Subject impersonatorGroupMemberSubject = createSubject(impersonator.getPrincipal(), new PrincipalImpl(impersonatorMember), new GroupPrincipal() {
-            @Override
-            public boolean isMember(@NotNull Principal member) {
-                return member.getName().equals(impersonatorMember);
-            }
+        impersonation = new ImpersonationImpl(
+            ImpersonationTestUtil.getUserWithMockedConfigs(impersonatorGroupName, user));
+        Subject impersonatorSubject = createSubject(impersonator.getPrincipal(),
+            new PrincipalImpl(impersonatorGroupName));
+        Subject impersonatorGroupMemberSubject = createSubject(impersonator.getPrincipal(),
+            new PrincipalImpl(impersonatorMember), new GroupPrincipal() {
+                @Override
+                public boolean isMember(@NotNull Principal member) {
+                    return member.getName().equals(impersonatorMember);
+                }
 
-            @Override
-            public @NotNull Enumeration<? extends Principal> members() {
-                return null;
-            }
+                @Override
+                public @NotNull Enumeration<? extends Principal> members() {
+                    return null;
+                }
 
-            @Override
-            public String getName() {
-                return impersonatorGroupName;
-            }
-        });
+                @Override
+                public String getName() {
+                    return impersonatorGroupName;
+                }
+            });
         Subject nonImpersonatorSubject = createSubject(new PrincipalImpl("simple-user"));
 
         assertTrue(impersonation.allows(impersonatorSubject));

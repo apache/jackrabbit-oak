@@ -45,8 +45,8 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
- * {@code BuiltInNodeTypes} is a utility class that registers the built-in
- * node types required for a JCR repository running on Oak.
+ * {@code BuiltInNodeTypes} is a utility class that registers the built-in node types required for a
+ * JCR repository running on Oak.
  */
 public final class NodeTypeRegistry {
 
@@ -61,7 +61,7 @@ public final class NodeTypeRegistry {
     private final ValueFactory vf;
 
     private NodeTypeRegistry(final Root root) {
-        this.ntMgr =  new ReadWriteNodeTypeManager() {
+        this.ntMgr = new ReadWriteNodeTypeManager() {
             @NotNull
             @Override
             protected Tree getTypes() {
@@ -83,15 +83,15 @@ public final class NodeTypeRegistry {
         };
 
         this.vf = new ValueFactoryImpl(
-                root, new NamePathMapperImpl(new GlobalNameMapper(root)));
+            root, new NamePathMapperImpl(new GlobalNameMapper(root)));
     }
 
     /**
-     * Register the node type definitions contained in the specified {@code input}
-     * using the given {@link Root}.
+     * Register the node type definitions contained in the specified {@code input} using the given
+     * {@link Root}.
      *
-     * @param root The {@code Root} to register the node types.
-     * @param input The input stream containing the node type defintions to be registered.
+     * @param root     The {@code Root} to register the node types.
+     * @param input    The input stream containing the node type defintions to be registered.
      * @param systemId An informative id of the given input.
      */
     public static void register(Root root, InputStream input, String systemId) {
@@ -105,10 +105,14 @@ public final class NodeTypeRegistry {
             // This system property allows to add it back when initializing a repository.
             // PS: To keep supporting tests in fiddling this setting, the SystemPropertySupplier
             // is evaluated here rather than in static code, where this is typically done.
-            final boolean referenceableFrozenNode = SystemPropertySupplier.create("oak.referenceableFrozenNode", DEFAULT_REFERENCEABLE_FROZEN_NODE)
-                    .loggingTo(LOG).formatSetMessage(
-                            (name, value) -> String.format("oak.referenceableFrozenNode set to: %s (using system property %s)", name, value))
-                    .get();
+            final boolean referenceableFrozenNode = SystemPropertySupplier.create(
+                                                                              "oak.referenceableFrozenNode", DEFAULT_REFERENCEABLE_FROZEN_NODE)
+                                                                          .loggingTo(LOG)
+                                                                          .formatSetMessage(
+                                                                              (name, value) -> String.format(
+                                                                                  "oak.referenceableFrozenNode set to: %s (using system property %s)",
+                                                                                  name, value))
+                                                                          .get();
             if (referenceableFrozenNode) {
                 BufferedReader bufferedReader = new BufferedReader(reader);
                 StringBuilder result = new StringBuilder();

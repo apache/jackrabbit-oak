@@ -26,9 +26,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A mutable {@code Tree} implementation based on an underlying
- * {@code NodeBuilder}, which tracks all changes recorded through
- * this tree's mutator methods.
+ * A mutable {@code Tree} implementation based on an underlying {@code NodeBuilder}, which tracks
+ * all changes recorded through this tree's mutator methods.
  */
 public final class NodeBuilderTree extends AbstractMutableTree {
 
@@ -49,7 +48,7 @@ public final class NodeBuilderTree extends AbstractMutableTree {
     }
 
     protected NodeBuilderTree(@Nullable NodeBuilderTree parent, @NotNull NodeBuilder nodeBuilder,
-           @NotNull String name) {
+        @NotNull String name) {
         this.parent = parent;
         this.name = name;
         this.nodeBuilder = nodeBuilder;

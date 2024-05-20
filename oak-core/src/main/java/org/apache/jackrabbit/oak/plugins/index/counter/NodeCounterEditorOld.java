@@ -50,7 +50,8 @@ public class NodeCounterEditorOld implements Editor {
     private long countOffset;
     private SipHash hash;
 
-    public NodeCounterEditorOld(NodeCounterRoot root, NodeCounterEditorOld parent, String name, SipHash hash) {
+    public NodeCounterEditorOld(NodeCounterRoot root, NodeCounterEditorOld parent, String name,
+        SipHash hash) {
         this.parent = parent;
         this.root = root;
         this.name = name;
@@ -73,13 +74,13 @@ public class NodeCounterEditorOld implements Editor {
 
     @Override
     public void enter(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         // nothing to do
     }
 
     @Override
     public void leave(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (NodeCounter.COUNT_HASH) {
             leaveNew(before, after);
             return;
@@ -88,9 +89,9 @@ public class NodeCounterEditorOld implements Editor {
     }
 
     private void leaveOld(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         long offset = ApproximateCounter.calculateOffset(
-                countOffset, root.resolution);
+            countOffset, root.resolution);
         if (offset == 0) {
             return;
         }
@@ -99,7 +100,7 @@ public class NodeCounterEditorOld implements Editor {
         PropertyState p = builder.getProperty(COUNT_PROPERTY_NAME);
         long count = p == null ? 0 : p.getValue(Type.LONG);
         offset = ApproximateCounter.adjustOffset(count,
-                offset, root.resolution);
+            offset, root.resolution);
         if (offset == 0) {
             return;
         }
@@ -117,7 +118,7 @@ public class NodeCounterEditorOld implements Editor {
     }
 
     public void leaveNew(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (countOffset == 0) {
             return;
         }
@@ -151,27 +152,27 @@ public class NodeCounterEditorOld implements Editor {
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         // nothing to do
     }
 
     @Override
     public void propertyDeleted(PropertyState before)
-            throws CommitFailedException {
+        throws CommitFailedException {
         // nothing to do
     }
 
     @Override
     @Nullable
     public Editor childNodeChanged(String name, NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         return getChildIndexEditor(name, null);
     }
 
     @Override
     @Nullable
     public Editor childNodeAdded(String name, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (NodeCounter.COUNT_HASH) {
             SipHash h = new SipHash(getHash(), name.hashCode());
             // with bitMask=1024: with a probability of 1:1024,
@@ -188,12 +189,12 @@ public class NodeCounterEditorOld implements Editor {
     @Override
     @Nullable
     public Editor childNodeDeleted(String name, NodeState before)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (NodeCounter.COUNT_HASH) {
             SipHash h = new SipHash(getHash(), name.hashCode());
             // with bitMask=1024: with a probability of 1:1024,
             if ((h.hashCode() & root.bitMask) == 0) {
-                // subtract 1024                
+                // subtract 1024
                 count(-(root.bitMask + 1));
             }
             return getChildIndexEditor(name, h);
@@ -214,6 +215,7 @@ public class NodeCounterEditorOld implements Editor {
     }
 
     public static class NodeCounterRoot {
+
         final int resolution;
         final long seed;
         final int bitMask;
@@ -221,7 +223,8 @@ public class NodeCounterEditorOld implements Editor {
         final NodeState root;
         final IndexUpdateCallback callback;
 
-        NodeCounterRoot(int resolution, long seed, NodeBuilder definition, NodeState root, IndexUpdateCallback callback) {
+        NodeCounterRoot(int resolution, long seed, NodeBuilder definition, NodeState root,
+            IndexUpdateCallback callback) {
             this.resolution = resolution;
             this.seed = seed;
             // if resolution is 1000, then the bitMask is 1023 (bits 0..9 set)

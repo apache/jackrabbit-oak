@@ -49,77 +49,93 @@ public class AuthorizableIteratorTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        userTreeIterator = Iterators.singletonIterator(root.getTree(getNamePathMapper().getOakPath(getTestUser().getPath())));
+        userTreeIterator = Iterators.singletonIterator(
+            root.getTree(getNamePathMapper().getOakPath(getTestUser().getPath())));
     }
 
     @Test
     public void testGetSize() {
-        AuthorizableIterator it = AuthorizableIterator.create(userTreeIterator, (UserManagerImpl) getUserManager(root), AuthorizableType.USER);
+        AuthorizableIterator it = AuthorizableIterator.create(userTreeIterator,
+            (UserManagerImpl) getUserManager(root), AuthorizableType.USER);
         assertEquals(-1, it.getSize());
     }
 
     @Test
     public void testGetSize2() {
-        AuthorizableIterator it = AuthorizableIterator.create(RangeIteratorAdapter.EMPTY, (UserManagerImpl) getUserManager(root), AuthorizableType.USER);
+        AuthorizableIterator it = AuthorizableIterator.create(RangeIteratorAdapter.EMPTY,
+            (UserManagerImpl) getUserManager(root), AuthorizableType.USER);
         assertEquals(RangeIteratorAdapter.EMPTY.getSize(), it.getSize());
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void testRemove() {
-        AuthorizableIterator it = AuthorizableIterator.create(userTreeIterator, (UserManagerImpl) getUserManager(root), AuthorizableType.USER);
+        AuthorizableIterator it = AuthorizableIterator.create(userTreeIterator,
+            (UserManagerImpl) getUserManager(root), AuthorizableType.USER);
         it.next();
         it.remove();
     }
 
     @Test
     public void testTypeMatch() {
-        AuthorizableIterator it = AuthorizableIterator.create(userTreeIterator, (UserManagerImpl) getUserManager(root), AuthorizableType.USER);
+        AuthorizableIterator it = AuthorizableIterator.create(userTreeIterator,
+            (UserManagerImpl) getUserManager(root), AuthorizableType.USER);
         assertTrue(it.hasNext());
         assertTrue(it.next() instanceof User);
     }
 
     @Test
     public void testTypeMatch2() {
-        AuthorizableIterator it = AuthorizableIterator.create(userTreeIterator, (UserManagerImpl) getUserManager(root), AuthorizableType.AUTHORIZABLE);
+        AuthorizableIterator it = AuthorizableIterator.create(userTreeIterator,
+            (UserManagerImpl) getUserManager(root), AuthorizableType.AUTHORIZABLE);
         assertTrue(it.hasNext());
         assertTrue(it.next() instanceof User);
     }
 
     @Test
     public void testTypeMismatch() {
-        AuthorizableIterator it = AuthorizableIterator.create(userTreeIterator, (UserManagerImpl) getUserManager(root), AuthorizableType.GROUP);
+        AuthorizableIterator it = AuthorizableIterator.create(userTreeIterator,
+            (UserManagerImpl) getUserManager(root), AuthorizableType.GROUP);
         assertFalse(it.hasNext());
     }
 
     @Test
     public void testInvalidPath() {
-        AuthorizableIterator it = AuthorizableIterator.create(Iterators.singletonIterator(root.getTree(PathUtils.ROOT_PATH)), (UserManagerImpl) getUserManager(root), AuthorizableType.AUTHORIZABLE);
+        AuthorizableIterator it = AuthorizableIterator.create(
+            Iterators.singletonIterator(root.getTree(PathUtils.ROOT_PATH)),
+            (UserManagerImpl) getUserManager(root), AuthorizableType.AUTHORIZABLE);
         assertFalse(it.hasNext());
     }
-    
+
     @Test
     public void testFilterDuplicates() throws Exception {
         List<Authorizable> l = ImmutableList.of(getTestUser());
-        assertEquals(1, Iterators.size(AuthorizableIterator.create(true, l.iterator(), l.iterator())));
-        assertEquals(2, Iterators.size(AuthorizableIterator.create(false, l.iterator(), l.iterator())));
-        
+        assertEquals(1,
+            Iterators.size(AuthorizableIterator.create(true, l.iterator(), l.iterator())));
+        assertEquals(2,
+            Iterators.size(AuthorizableIterator.create(false, l.iterator(), l.iterator())));
+
         // duplications are determined base on authorizableID
-        Authorizable a = when(mock(Authorizable.class).getID()).thenReturn(getTestUser().getID()).getMock();
-        assertEquals(1, Iterators.size(AuthorizableIterator.create(true, l.iterator(), Iterators.singletonIterator(a))));
+        Authorizable a = when(mock(Authorizable.class).getID()).thenReturn(getTestUser().getID())
+                                                               .getMock();
+        assertEquals(1, Iterators.size(
+            AuthorizableIterator.create(true, l.iterator(), Iterators.singletonIterator(a))));
     }
 
     @Test
     public void testFilterDuplicatesHandlesNull() throws Exception {
         List<User> l = Lists.newArrayList(getTestUser(), null, getTestUser());
-        assertEquals(1, Iterators.size(AuthorizableIterator.create(true, l.iterator(), l.iterator())));
+        assertEquals(1,
+            Iterators.size(AuthorizableIterator.create(true, l.iterator(), l.iterator())));
     }
 
     @Test
     public void testFilterDuplicatesGetIdFails() throws Exception {
-        Authorizable a = when(mock(Authorizable.class).getID()).thenThrow(new RepositoryException()).getMock();
+        Authorizable a = when(mock(Authorizable.class).getID()).thenThrow(new RepositoryException())
+                                                               .getMock();
 
         List<Authorizable> l = ImmutableList.of(getTestUser(), a);
-        assertEquals(1, Iterators.size(AuthorizableIterator.create(true, l.iterator(), Collections.emptyIterator())));
+        assertEquals(1, Iterators.size(
+            AuthorizableIterator.create(true, l.iterator(), Collections.emptyIterator())));
     }
 
     @Test
@@ -138,7 +154,9 @@ public class AuthorizableIteratorTest extends AbstractSecurityTest {
 
     @Test
     public void testGetSize4() {
-        assertEquals(0, AuthorizableIterator.create(Collections.emptyIterator(), (UserManagerImpl) getUserManager(root), AuthorizableType.AUTHORIZABLE).getSize());
-        assertEquals(0, AuthorizableIterator.create(true, Collections.emptyIterator(), Collections.emptyIterator()).getSize());
+        assertEquals(0, AuthorizableIterator.create(Collections.emptyIterator(),
+            (UserManagerImpl) getUserManager(root), AuthorizableType.AUTHORIZABLE).getSize());
+        assertEquals(0, AuthorizableIterator.create(true, Collections.emptyIterator(),
+            Collections.emptyIterator()).getSize());
     }
 }

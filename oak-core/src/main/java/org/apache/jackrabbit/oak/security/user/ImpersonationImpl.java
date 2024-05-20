@@ -133,7 +133,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         }
 
         // OAK-10173 : short-cut if the subject contains any of the configured principal names that can impersonate all users
-        if (isImpersonator(principalNames)){
+        if (isImpersonator(principalNames)) {
             return true;
         }
 
@@ -168,7 +168,8 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         return princNames;
     }
 
-    private static void updateImpersonatorNames(@NotNull Tree userTree, @NotNull Set<String> principalNames) {
+    private static void updateImpersonatorNames(@NotNull Tree userTree,
+        @NotNull Set<String> principalNames) {
         if (principalNames.isEmpty()) {
             userTree.removeProperty(REP_IMPERSONATORS);
         } else {
@@ -187,7 +188,8 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     }
 
     private boolean isImpersonator(@NotNull Set<String> principalNames) {
-        Set<String> impersonatorPrincipals = Set.of(user.getUserManager().getConfig().getConfigValue(
+        Set<String> impersonatorPrincipals = Set.of(
+            user.getUserManager().getConfig().getConfigValue(
                 PARAM_IMPERSONATOR_PRINCIPAL_NAMES,
                 new String[]{}));
 
@@ -195,7 +197,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
             return false;
         }
         return principalNames.stream()
-                .anyMatch(impersonatorPrincipals::contains);
+                             .anyMatch(impersonatorPrincipals::contains);
     }
 
     private boolean isValidPrincipal(@NotNull Principal principal) {

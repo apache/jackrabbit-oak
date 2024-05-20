@@ -31,13 +31,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ResultRowImplTest {
+
     @Test
     public void mappedGetValue() {
         Query query = mock(Query.class);
         when(query.getColumnIndex("origCol")).thenReturn(0);
         when(query.getColumnIndex("col1")).thenReturn(1);
 
-        PropertyValue[] origVals = new PropertyValue[]{newString("origVal"), newString("overriddenVal")};
+        PropertyValue[] origVals = new PropertyValue[]{newString("origVal"),
+            newString("overriddenVal")};
         ResultRowImpl orig = new ResultRowImpl(query, null, origVals, null, null);
 
         Map<String, String> map = Maps.newHashMap();

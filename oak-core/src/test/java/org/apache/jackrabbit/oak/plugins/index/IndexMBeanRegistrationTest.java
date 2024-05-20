@@ -33,7 +33,7 @@ public class IndexMBeanRegistrationTest {
     @Test
     public void jobName() throws Exception {
         final AtomicReference<Map<?, ?>> props = new AtomicReference<Map<?, ?>>();
-        Whiteboard wb = new DefaultWhiteboard(){
+        Whiteboard wb = new DefaultWhiteboard() {
             @Override
             public <T> Registration register(Class<T> type, T service, Map<?, ?> properties) {
                 if (service instanceof AsyncIndexUpdate) {
@@ -45,22 +45,22 @@ public class IndexMBeanRegistrationTest {
         long schedulingDelayInSecs = 7; // some number which is hard to default else-where
 
         AsyncIndexUpdate update = new AsyncIndexUpdate("async",
-                new MemoryNodeStore(), new CompositeIndexEditorProvider());
+            new MemoryNodeStore(), new CompositeIndexEditorProvider());
         IndexMBeanRegistration reg = new IndexMBeanRegistration(wb);
         reg.registerAsyncIndexer(update, schedulingDelayInSecs);
         try {
             Map<?, ?> map = props.get();
             assertNotNull(map);
             assertEquals(AsyncIndexUpdate.class.getName() + "-async",
-                    map.get("scheduler.name"));
+                map.get("scheduler.name"));
             assertEquals(schedulingDelayInSecs,
-                    map.get("scheduler.period"));
+                map.get("scheduler.period"));
             assertEquals(false,
-                    map.get("scheduler.concurrent"));
+                map.get("scheduler.concurrent"));
             assertEquals("LEADER",
-                    map.get("scheduler.runOn"));
+                map.get("scheduler.runOn"));
             assertEquals("oak",
-                    map.get("scheduler.threadPool"));
+                map.get("scheduler.threadPool"));
         } finally {
             reg.unregister();
         }

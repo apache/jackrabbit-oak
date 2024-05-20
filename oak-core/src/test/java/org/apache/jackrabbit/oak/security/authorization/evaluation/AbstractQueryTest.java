@@ -49,7 +49,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public abstract class AbstractQueryTest extends AbstractOakCoreTest {
-    
+
     Tree node;
     Tree subnode;
 
@@ -68,13 +68,20 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/");
         if (acl != null) {
-            Map<String, Value[]> restrictions = ImmutableMap.of(AccessControlConstants.REP_ITEM_NAMES, new Value[] {getValueFactory(root).createValue(propertyName, PropertyType.NAME)});
-            acl.addEntry(testPrincipal, AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.REP_READ_PROPERTIES), true, null, restrictions);
+            Map<String, Value[]> restrictions = ImmutableMap.of(
+                AccessControlConstants.REP_ITEM_NAMES,
+                new Value[]{getValueFactory(root).createValue(propertyName, PropertyType.NAME)});
+            acl.addEntry(testPrincipal, AccessControlUtils.privilegesFromNames(acMgr,
+                PrivilegeConstants.REP_READ_PROPERTIES), true, null, restrictions);
             acMgr.setPolicy(acl.getPath(), acl);
         }
     }
 
-    void createIndexDefinition() throws RepositoryException {};
+    void createIndexDefinition() throws RepositoryException {
+    }
+
+    ;
+
     abstract String getStatement();
 
     @Test
@@ -83,10 +90,14 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         // - access to /node is granted
         // - access to /node/subnode is denied
         AccessControlManager acm = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acm, node.getPath());
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acm,
+            node.getPath());
         if (acl != null) {
-            Map<String, Value> restrictions = ImmutableMap.of(AccessControlConstants.REP_GLOB, getValueFactory(root).createValue(""));
-            acl.addEntry(testPrincipal, AccessControlUtils.privilegesFromNames(acm, PrivilegeConstants.JCR_ALL), true, restrictions);
+            Map<String, Value> restrictions = ImmutableMap.of(AccessControlConstants.REP_GLOB,
+                getValueFactory(root).createValue(""));
+            acl.addEntry(testPrincipal,
+                AccessControlUtils.privilegesFromNames(acm, PrivilegeConstants.JCR_ALL), true,
+                restrictions);
             acm.setPolicy(acl.getPath(), acl);
             root.commit();
         }
@@ -94,10 +105,12 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         assertAccess(node.getPath(), subnode.getPath(), false);
 
         // test that query result corresponds to the direct access (node readable, subnode not readable)
-        Result result = getTestRoot().getQueryEngine().executeQuery(getStatement(), Query.JCR_SQL2, Collections.emptyMap(), Collections.emptyMap());
+        Result result = getTestRoot().getQueryEngine().executeQuery(getStatement(), Query.JCR_SQL2,
+            Collections.emptyMap(), Collections.emptyMap());
 
         Iterable<String> expected = ImmutableSet.of(node.getPath());
-        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(result.getRows(), row -> row.getPath())));
+        assertTrue(Iterables.elementsEqual(expected,
+            Iterables.transform(result.getRows(), row -> row.getPath())));
     }
 
     @Test
@@ -106,13 +119,18 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         // - access to /node is granted
         // - access to /node/subnode is denied
         AccessControlManager acm = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acm, node.getPath());
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acm,
+            node.getPath());
         if (acl != null) {
-            Map<String, Value> restrictions = ImmutableMap.of(AccessControlConstants.REP_GLOB, getValueFactory(root).createValue(""));
-            acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ALL), true, restrictions);
+            Map<String, Value> restrictions = ImmutableMap.of(AccessControlConstants.REP_GLOB,
+                getValueFactory(root).createValue(""));
+            acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ALL), true,
+                restrictions);
 
-            restrictions = ImmutableMap.of(AccessControlConstants.REP_GLOB, getValueFactory(root).createValue("/"+NodeTypeConstants.JCR_PRIMARYTYPE));
-            acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.REP_READ_PROPERTIES), true, restrictions);
+            restrictions = ImmutableMap.of(AccessControlConstants.REP_GLOB,
+                getValueFactory(root).createValue("/" + NodeTypeConstants.JCR_PRIMARYTYPE));
+            acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.REP_READ_PROPERTIES),
+                true, restrictions);
 
             acm.setPolicy(acl.getPath(), acl);
             root.commit();
@@ -121,10 +139,12 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         assertAccess(node.getPath(), subnode.getPath(), true);
 
         // test that query result corresponds to the direct access (node readable, subnode not readable)
-        Result result = getTestRoot().getQueryEngine().executeQuery(getStatement(), Query.JCR_SQL2, Collections.emptyMap(), Collections.emptyMap());
+        Result result = getTestRoot().getQueryEngine().executeQuery(getStatement(), Query.JCR_SQL2,
+            Collections.emptyMap(), Collections.emptyMap());
 
         Iterable<String> expected = ImmutableSet.of(node.getPath());
-        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(result.getRows(), row -> row.getPath())));
+        assertTrue(Iterables.elementsEqual(expected,
+            Iterables.transform(result.getRows(), row -> row.getPath())));
     }
 
     @Test
@@ -138,27 +158,36 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         assertAccess(node.getPath(), subnode.getPath(), true);
 
         // test that query result corresponds to the direct access (node readable, subnode not readable)
-        Result result = getTestRoot().getQueryEngine().executeQuery(getStatement(), Query.JCR_SQL2, Collections.emptyMap(), Collections.emptyMap());
+        Result result = getTestRoot().getQueryEngine().executeQuery(getStatement(), Query.JCR_SQL2,
+            Collections.emptyMap(), Collections.emptyMap());
 
         Iterable<String> expected = ImmutableSet.of(node.getPath());
-        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(result.getRows(), row -> row.getPath())));
+        assertTrue(Iterables.elementsEqual(expected,
+            Iterables.transform(result.getRows(), row -> row.getPath())));
     }
 
-    private void assertAccess(@NotNull String nodePath, @NotNull String subnodePath, boolean canReadPrimaryType) throws Exception {
+    private void assertAccess(@NotNull String nodePath, @NotNull String subnodePath,
+        boolean canReadPrimaryType) throws Exception {
         // verify access control setup
         assertTrue(getTestRoot().getTree(nodePath).exists());
         assertFalse(getTestRoot().getTree(subnodePath).exists());
 
         // verify PermissionProvider.isGranted(String, String) as it is used inside
         // the query code base (FilterImpl.isAccessible)
-        PermissionProvider pp = getConfig(AuthorizationConfiguration.class).getPermissionProvider(getTestRoot(), getTestSession().getWorkspaceName(), getTestSession().getAuthInfo().getPrincipals());
+        PermissionProvider pp = getConfig(AuthorizationConfiguration.class).getPermissionProvider(
+            getTestRoot(), getTestSession().getWorkspaceName(),
+            getTestSession().getAuthInfo().getPrincipals());
         assertTrue(pp.isGranted(nodePath, Session.ACTION_READ));
 
-        assertEquals(canReadPrimaryType, pp.isGranted(nodePath + '/' + JcrConstants.JCR_PRIMARYTYPE, Session.ACTION_READ));
-        assertEquals(canReadPrimaryType, pp.isGranted(nodePath + '/' + JcrConstants.JCR_PRIMARYTYPE, Permissions.getString(Permissions.READ_PROPERTY)));
+        assertEquals(canReadPrimaryType,
+            pp.isGranted(nodePath + '/' + JcrConstants.JCR_PRIMARYTYPE, Session.ACTION_READ));
+        assertEquals(canReadPrimaryType, pp.isGranted(nodePath + '/' + JcrConstants.JCR_PRIMARYTYPE,
+            Permissions.getString(Permissions.READ_PROPERTY)));
 
         assertFalse(pp.isGranted(subnodePath, Session.ACTION_READ));
-        assertFalse(pp.isGranted(subnodePath + '/' + JcrConstants.JCR_PRIMARYTYPE, Session.ACTION_READ));
-        assertFalse(pp.isGranted(subnodePath + '/' + JcrConstants.JCR_PRIMARYTYPE, Permissions.getString(Permissions.READ_PROPERTY)));
+        assertFalse(
+            pp.isGranted(subnodePath + '/' + JcrConstants.JCR_PRIMARYTYPE, Session.ACTION_READ));
+        assertFalse(pp.isGranted(subnodePath + '/' + JcrConstants.JCR_PRIMARYTYPE,
+            Permissions.getString(Permissions.READ_PROPERTY)));
     }
 }

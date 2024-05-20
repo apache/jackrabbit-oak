@@ -28,7 +28,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class AccessControlImporterBesteffortTest extends AccessControlImporterBaseTest{
+public class AccessControlImporterBesteffortTest extends AccessControlImporterBaseTest {
 
     @Override
     String getImportBehavior() {
@@ -47,13 +47,15 @@ public class AccessControlImporterBesteffortTest extends AccessControlImporterBa
         init();
         importer.start(aclTree);
 
-        PropInfo privs = new PropInfo(REP_PRIVILEGES, PropertyType.NAME, createTextValues(PrivilegeConstants.JCR_READ));
+        PropInfo privs = new PropInfo(REP_PRIVILEGES, PropertyType.NAME,
+            createTextValues(PrivilegeConstants.JCR_READ));
         importer.startChildInfo(aceGrantInfo, ImmutableList.of(unknownPrincipalInfo, privs));
         importer.endChildInfo();
 
         importer.end(aclTree);
 
         Tree aceTree = aclTree.getChildren().iterator().next();
-        assertEquals(unknownPrincipalInfo.getValue(PropertyType.STRING).getString(), TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
+        assertEquals(unknownPrincipalInfo.getValue(PropertyType.STRING).getString(),
+            TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
     }
 }

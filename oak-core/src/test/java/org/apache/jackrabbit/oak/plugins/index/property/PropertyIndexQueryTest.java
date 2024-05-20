@@ -46,8 +46,7 @@ import org.junit.Test;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 /**
- * Tests the query engine using the default index implementation: the
- * {@link PropertyIndexProvider}
+ * Tests the query engine using the default index implementation: the {@link PropertyIndexProvider}
  */
 public class PropertyIndexQueryTest extends AbstractQueryTest {
 
@@ -59,7 +58,7 @@ public class PropertyIndexQueryTest extends AbstractQueryTest {
     /**
      * return an instance of {@link Oak} repository ready to be built with
      * {@link Oak#createContentRepository()}.
-     * 
+     *
      * @return
      */
     @NotNull
@@ -69,7 +68,7 @@ public class PropertyIndexQueryTest extends AbstractQueryTest {
             .with(new PropertyIndexProvider())
             .with(new PropertyIndexEditorProvider());
     }
-    
+
     @Test
     public void nativeQuery() throws Exception {
         test("sql2_native.txt");
@@ -84,21 +83,21 @@ public class PropertyIndexQueryTest extends AbstractQueryTest {
     @Test
     public void testInvalidNamespace() throws Exception {
         new Oak().with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .with(new PropertyIndexEditorProvider())
-                .with(new RepositoryInitializer(){
+                 .with(new OpenSecurityProvider())
+                 .with(new PropertyIndexEditorProvider())
+                 .with(new RepositoryInitializer() {
 
-                    @Override
-                    public void initialize(@NotNull NodeBuilder builder) {
-                        createIndexDefinition(
-                                builder.child(INDEX_DEFINITIONS_NAME),
-                                "foo",
-                                true,
-                                false,
-                                ImmutableSet.of("illegal:namespaceProperty"), null);
-                    }
-                })
-                .createContentRepository();
+                     @Override
+                     public void initialize(@NotNull NodeBuilder builder) {
+                         createIndexDefinition(
+                             builder.child(INDEX_DEFINITIONS_NAME),
+                             "foo",
+                             true,
+                             false,
+                             ImmutableSet.of("illegal:namespaceProperty"), null);
+                     }
+                 })
+                 .createContentRepository();
         fail("creating an index definition with an illegal namespace should fail.");
     }
 
@@ -114,13 +113,13 @@ public class PropertyIndexQueryTest extends AbstractQueryTest {
         sv.put("id", PropertyValues.newString("1"));
         Iterator<? extends ResultRow> result;
         result = executeQuery("select * from [nt:base] where id = $id",
-                SQL2, sv).getRows().iterator();
+            SQL2, sv).getRows().iterator();
         assertTrue(result.hasNext());
         assertEquals("/test/hello", result.next().getPath());
 
         sv.put("id", PropertyValues.newString("2"));
         result = executeQuery("select * from [nt:base] where id = $id",
-                SQL2, sv).getRows().iterator();
+            SQL2, sv).getRows().iterator();
         assertTrue(result.hasNext());
         assertEquals("/test/world", result.next().getPath());
     }

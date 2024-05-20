@@ -23,6 +23,7 @@ import com.codahale.metrics.Meter;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 
 final class MeterImpl implements MeterStats {
+
     private final Meter meter;
 
     MeterImpl(Meter meter) {

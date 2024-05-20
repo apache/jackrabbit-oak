@@ -18,15 +18,14 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
+
 import java.util.Collections;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
 
 /**
  * A native function condition.
@@ -44,13 +43,13 @@ public class NativeFunctionImpl extends ConstraintImpl {
     private final String language;
     private final StaticOperandImpl nativeSearchExpression;
     private SelectorImpl selector;
-    
+
     NativeFunctionImpl(String selectorName, String language, StaticOperandImpl expression) {
         this.selectorName = selectorName;
         this.language = language;
         this.nativeSearchExpression = expression;
     }
-    
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -63,7 +62,7 @@ public class NativeFunctionImpl extends ConstraintImpl {
         builder.append(')');
         return builder.toString();
     }
-    
+
     @Override
     public boolean evaluate() {
         // disable evaluation if a fulltext index is used,
@@ -110,7 +109,7 @@ public class NativeFunctionImpl extends ConstraintImpl {
     public void bindSelector(SourceImpl source) {
         selector = source.getExistingSelector(selectorName);
     }
-    
+
     public StaticOperandImpl getNativeSearchExpression() {
         return nativeSearchExpression;
     }

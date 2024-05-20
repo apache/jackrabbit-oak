@@ -25,13 +25,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.ValueConverter;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 
 /**
  * A "in" comparison operation.
@@ -58,13 +56,13 @@ public class InImpl extends ConstraintImpl {
     public ConstraintImpl simplify() {
         if (operand2.size() == 1) {
             return new ComparisonImpl(
-                    operand1, Operator.EQUAL, operand2.iterator().next());
+                operand1, Operator.EQUAL, operand2.iterator().next());
         }
 
         Set<StaticOperandImpl> set = newHashSet(operand2);
         if (set.size() == 1) {
             return new ComparisonImpl(
-                    operand1, Operator.EQUAL, set.iterator().next());
+                operand1, Operator.EQUAL, set.iterator().next());
         } else if (set.size() != operand2.size()) {
             return new InImpl(operand1, newArrayList(set));
         } else {
@@ -80,7 +78,7 @@ public class InImpl extends ConstraintImpl {
         }
         return Collections.singleton(p);
     }
-    
+
     @Override
     public Set<SelectorImpl> getSelectors() {
         return operand1.getSelectors();
@@ -135,13 +133,13 @@ public class InImpl extends ConstraintImpl {
         ArrayList<PropertyValue> list = new ArrayList<PropertyValue>();
         for (StaticOperandImpl s : operand2) {
             if (!ValueConverter.canConvert(
-                    s.getPropertyType(),
-                    operand1.getPropertyType())) {
+                s.getPropertyType(),
+                operand1.getPropertyType())) {
                 throw new IllegalArgumentException(
-                        "Unsupported conversion from property type " + 
-                                PropertyType.nameFromValue(s.getPropertyType()) + 
-                                " to property type " +
-                                PropertyType.nameFromValue(operand1.getPropertyType()));
+                    "Unsupported conversion from property type " +
+                        PropertyType.nameFromValue(s.getPropertyType()) +
+                        " to property type " +
+                        PropertyType.nameFromValue(operand1.getPropertyType()));
             }
             list.add(s.currentValue());
         }
@@ -169,7 +167,7 @@ public class InImpl extends ConstraintImpl {
             return true;
         } else if (that instanceof InImpl) {
             return operand1.equals(((InImpl) that).operand1)
-                    && newHashSet(operand2).equals(newHashSet(((InImpl) that).operand2));
+                && newHashSet(operand2).equals(newHashSet(((InImpl) that).operand2));
         } else {
             return false;
         }

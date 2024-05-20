@@ -28,7 +28,8 @@ public interface IndexConstants {
     String TYPE_PROPERTY_NAME = "type";
 
     /**
-     * Property to hold the value for original index implementation in case the index type is set to disabled.
+     * Property to hold the value for original index implementation in case the index type is set to
+     * disabled.
      */
     String ORIGINAL_TYPE_PROPERTY_NAME = ":originalType";
 
@@ -56,7 +57,7 @@ public interface IndexConstants {
     String ENTRY_COUNT_PROPERTY_NAME = "entryCount";
 
     String KEY_COUNT_PROPERTY_NAME = "keyCount";
-    
+
     /**
      * The regular expression pattern of the values to be indexes.
      */
@@ -66,10 +67,9 @@ public interface IndexConstants {
      * A list of prefixes to be excluded from the index.
      */
     String VALUE_EXCLUDED_PREFIXES = "valueExcludedPrefixes";
-    
+
     /**
-     * A list of prefixes to be included from the index.
-     * Include has higher priority than exclude.
+     * A list of prefixes to be included from the index. Include has higher priority than exclude.
      */
     String VALUE_INCLUDED_PREFIXES = "valueIncludedPrefixes";
 
@@ -79,41 +79,39 @@ public interface IndexConstants {
     String UNIQUE_PROPERTY_NAME = "unique";
 
     /**
-     * Defines the names of the properties that are covered by a specific
-     * property index definition.
+     * Defines the names of the properties that are covered by a specific property index
+     * definition.
      */
     String PROPERTY_NAMES = "propertyNames";
 
     /**
-     * Defines the property name of the "declaringNodeTypes" property with
-     * allows to restrict a given index definition to specific node types.
+     * Defines the property name of the "declaringNodeTypes" property with allows to restrict a
+     * given index definition to specific node types.
      */
     String DECLARING_NODE_TYPES = "declaringNodeTypes";
 
     String INDEX_CONTENT_NODE_NAME = ":index";
 
     /**
-     * MVP to define the paths for which the index can be used to perform
-     * queries. Defaults to ['/'].
+     * MVP to define the paths for which the index can be used to perform queries. Defaults to
+     * ['/'].
      */
     String QUERY_PATHS = "queryPaths";
 
     /**
-     * Property name for indicating that given index is corrupt and should be excluded
-     * from further indexing. Its value is the date when this index was marked as
-     * corrupt
+     * Property name for indicating that given index is corrupt and should be excluded from further
+     * indexing. Its value is the date when this index was marked as corrupt
      */
     String CORRUPT_PROPERTY_NAME = "corrupt";
 
     /**
-     * CommitInfo attribute name which refers to the time at which
-     * async index checkpoint is created i.e. time upto which repository
-     * state is being indexed in given indexing cycle.
-     *
+     * CommitInfo attribute name which refers to the time at which async index checkpoint is created
+     * i.e. time upto which repository state is being indexed in given indexing cycle.
+     * <p>
      * The time is in string for as per Type.DATE
      */
     String CHECKPOINT_CREATION_TIME = "indexingCheckpointTime";
-    
+
     /**
      * The index tag hint (when using "option(index tagged x, y)", this is IN("x", "y"))
      */
@@ -135,8 +133,8 @@ public interface IndexConstants {
     String INDEX_NAME_OPTION = ":indexName";
 
     /**
-     * Boolean property on any index node indicating that such a node should not be
-     * removed during reindex
+     * Boolean property on any index node indicating that such a node should not be removed during
+     * reindex
      */
     String REINDEX_RETAIN = "retainNodeInReindex";
 
@@ -154,14 +152,14 @@ public interface IndexConstants {
      * Boolean flag indicating that old indexes need to be disabled
      */
     String DISABLE_INDEXES_ON_NEXT_CYCLE = ":disableIndexesOnNextCycle";
-    
+
     /**
-     * Whether to use the index. If the given node or property exists, then the
-     * index is used for queries; otherwise, it is not used (returns infinite
-     * cost). The value is: nodes, the path. For properties, the path of the node, then '@' property.
+     * Whether to use the index. If the given node or property exists, then the index is used for
+     * queries; otherwise, it is not used (returns infinite cost). The value is: nodes, the path.
+     * For properties, the path of the node, then '@' property.
      */
     String USE_IF_EXISTS = "useIfExists";
-    
+
     /**
      * Whether the index is deprecated. If it is, and the index is used, a warning is logged.
      */

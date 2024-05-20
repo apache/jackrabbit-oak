@@ -139,15 +139,15 @@ public class ReportingNodeStateTest {
 
         reporter.reset();
         NodeStateTestUtils.expectDifference()
-                .childNodeAdded(
-                        "/a/ab",
-                        "/b"
-                )
-                .childNodeChanged(
-                        "/a"
-                )
-                .strict()
-                .verify(before, after);
+                          .childNodeAdded(
+                              "/a/ab",
+                              "/b"
+                          )
+                          .childNodeChanged(
+                              "/a"
+                          )
+                          .strict()
+                          .verify(before, after);
 
         assertThat(reporter, hasReportedNodes("/a", "/a/ab", "/b"));
     }

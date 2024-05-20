@@ -74,7 +74,7 @@ public class UserProviderTest {
     private ConfigurationParameters defaultConfig;
     private String defaultUserPath;
     private String defaultGroupPath;
-    
+
     private Map<String, Object> customOptions;
     private final String customUserPath = "/home/users";
     private final String customGroupPath = "/home/groups";
@@ -82,14 +82,16 @@ public class UserProviderTest {
     @Before
     public void setUp() throws Exception {
         root = new Oak(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT))
-                .with(new OpenSecurityProvider())
-                .with(new InitialContent())
-                .with(new PropertyIndexEditorProvider())
-                .createRoot();
+            .with(new OpenSecurityProvider())
+            .with(new InitialContent())
+            .with(new PropertyIndexEditorProvider())
+            .createRoot();
 
         defaultConfig = ConfigurationParameters.EMPTY;
-        defaultUserPath = defaultConfig.getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
-        defaultGroupPath = defaultConfig.getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
+        defaultUserPath = defaultConfig.getConfigValue(UserConstants.PARAM_USER_PATH,
+            UserConstants.DEFAULT_USER_PATH);
+        defaultGroupPath = defaultConfig.getConfigValue(UserConstants.PARAM_GROUP_PATH,
+            UserConstants.DEFAULT_GROUP_PATH);
 
         customOptions = new HashMap<>();
         customOptions.put(UserConstants.PARAM_GROUP_PATH, customGroupPath);
@@ -127,20 +129,21 @@ public class UserProviderTest {
 
         assertNotNull(userTree);
         assertTrue(Text.isDescendant(defaultUserPath, userTree.getPath()));
-        int level = defaultConfig.getConfigValue(UserConstants.PARAM_DEFAULT_DEPTH, UserConstants.DEFAULT_DEPTH) + 1;
+        int level = defaultConfig.getConfigValue(UserConstants.PARAM_DEFAULT_DEPTH,
+            UserConstants.DEFAULT_DEPTH) + 1;
         assertEquals(defaultUserPath, Text.getRelativeParent(userTree.getPath(), level));
-        
+
         // make sure all users are created in a structure with default depth
         userTree = up.createUser("b", null);
         assertEquals(defaultUserPath + "/b/bb/b", userTree.getPath());
 
         Map<String, String> m = new HashMap<>();
-        m.put("bb",     "/b/bb/bb");
-        m.put("bbb",    "/b/bb/bbb");
-        m.put("bbbb",   "/b/bb/bbbb");
-        m.put("bh",     "/b/bh/bh");
-        m.put("bHbh",   "/b/bH/bHbh");
-        m.put("b_Hb",   "/b/b_/b_Hb");
+        m.put("bb", "/b/bb/bb");
+        m.put("bbb", "/b/bb/bbb");
+        m.put("bbbb", "/b/bb/bbbb");
+        m.put("bh", "/b/bh/bh");
+        m.put("bHbh", "/b/bH/bHbh");
+        m.put("b_Hb", "/b/b_/b_Hb");
         m.put("basim", "/b/ba/basim");
 
         for (Map.Entry<String, String> entry : m.entrySet()) {
@@ -182,7 +185,8 @@ public class UserProviderTest {
         assertNotNull(groupTree);
         assertTrue(Text.isDescendant(defaultGroupPath, groupTree.getPath()));
 
-        int level = defaultConfig.getConfigValue(UserConstants.PARAM_DEFAULT_DEPTH, UserConstants.DEFAULT_DEPTH) + 1;
+        int level = defaultConfig.getConfigValue(UserConstants.PARAM_DEFAULT_DEPTH,
+            UserConstants.DEFAULT_DEPTH) + 1;
         assertEquals(defaultGroupPath, Text.getRelativeParent(groupTree.getPath(), level));
     }
 
@@ -206,13 +210,13 @@ public class UserProviderTest {
         assertEquals(customUserPath + "/b/bb/bbb/b", userTree.getPath());
 
         Map<String, String> m = new HashMap<>();
-        m.put("bb",     "/b/bb/bbb/bb");
-        m.put("bbb",    "/b/bb/bbb/bbb");
-        m.put("bbbb",   "/b/bb/bbb/bbbb");
-        m.put("bL",     "/b/bL/bLL/bL");
-        m.put("bLbh",   "/b/bL/bLb/bLbh");
-        m.put("b_Lb",   "/b/b_/b_L/b_Lb");
-        m.put("basiL",  "/b/ba/bas/basiL");
+        m.put("bb", "/b/bb/bbb/bb");
+        m.put("bbb", "/b/bb/bbb/bbb");
+        m.put("bbbb", "/b/bb/bbb/bbbb");
+        m.put("bL", "/b/bL/bLL/bL");
+        m.put("bLbh", "/b/bL/bLb/bLbh");
+        m.put("b_Lb", "/b/b_/b_L/b_Lb");
+        m.put("basiL", "/b/ba/bas/basiL");
 
         for (Map.Entry<String, String> entry : m.entrySet()) {
             userTree = userProvider.createUser(entry.getKey(), null);
@@ -265,7 +269,8 @@ public class UserProviderTest {
         when(t.addChild("uid")).thenReturn(ut);
         when(t.getChild(anyString())).thenReturn(t);
         when(t.getPath()).thenReturn(UserConstants.DEFAULT_USER_PATH);
-        when(t.getProperty(JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_REP_AUTHORIZABLE_FOLDER, Type.NAME));
+        when(t.getProperty(JCR_PRIMARYTYPE)).thenReturn(
+            PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_REP_AUTHORIZABLE_FOLDER, Type.NAME));
 
         Root r = when(mock(Root.class).getTree(anyString())).thenReturn(t).getMock();
         when(r.getContentSession()).thenReturn(root.getContentSession());
@@ -314,10 +319,15 @@ public class UserProviderTest {
         UserProvider userProvider = createUserProvider();
 
         Map<String, String> m = new HashMap<>();
-        m.put("z[x]", "/z/" + Text.escapeIllegalJcrChars("z[") + '/' + Text.escapeIllegalJcrChars("z[x]"));
-        m.put("z*x", "/z/" + Text.escapeIllegalJcrChars("z*") + '/' + Text.escapeIllegalJcrChars("z*x"));
-        m.put("z/x", "/z/" + Text.escapeIllegalJcrChars("z/") + '/' + Text.escapeIllegalJcrChars("z/x"));
-        m.put("%\r|", '/' +Text.escapeIllegalJcrChars("%")+ '/' + Text.escapeIllegalJcrChars("%\r") + '/' + Text.escapeIllegalJcrChars("%\r|"));
+        m.put("z[x]",
+            "/z/" + Text.escapeIllegalJcrChars("z[") + '/' + Text.escapeIllegalJcrChars("z[x]"));
+        m.put("z*x",
+            "/z/" + Text.escapeIllegalJcrChars("z*") + '/' + Text.escapeIllegalJcrChars("z*x"));
+        m.put("z/x",
+            "/z/" + Text.escapeIllegalJcrChars("z/") + '/' + Text.escapeIllegalJcrChars("z/x"));
+        m.put("%\r|",
+            '/' + Text.escapeIllegalJcrChars("%") + '/' + Text.escapeIllegalJcrChars("%\r") + '/'
+                + Text.escapeIllegalJcrChars("%\r|"));
 
         for (Map.Entry<String, String> entry : m.entrySet()) {
             String uid = entry.getKey();
@@ -373,7 +383,8 @@ public class UserProviderTest {
         up.createUser("uid", null);
         TreeBasedPrincipal tbp = new TreeBasedPrincipal("uid", "/path", NamePathMapper.DEFAULT) {
             @Override
-            @NotNull String getOakPath() {
+            @NotNull
+            String getOakPath() {
                 return "/path";
             }
         };
@@ -387,7 +398,8 @@ public class UserProviderTest {
         up.createUser("uid", null);
         TreeBasedPrincipal tbp = new TreeBasedPrincipal("uid", "/path", NamePathMapper.DEFAULT) {
             @Override
-            @NotNull String getOakPath() throws RepositoryException {
+            @NotNull
+            String getOakPath() throws RepositoryException {
                 throw new RepositoryException();
             }
         };
@@ -398,7 +410,8 @@ public class UserProviderTest {
     @Test
     public void testGetAuthorizableByPrincipalQueryFails() throws Exception {
         QueryEngine qe = mock(QueryEngine.class);
-        when(qe.executeQuery(anyString(), anyString(), anyLong(), anyLong(), any(Map.class), any(Map.class))).thenThrow(new ParseException("err",0));
+        when(qe.executeQuery(anyString(), anyString(), anyLong(), anyLong(), any(Map.class),
+            any(Map.class))).thenThrow(new ParseException("err", 0));
         Root r = when(mock(Root.class).getQueryEngine()).thenReturn(qe).getMock();
         UserProvider up = new UserProvider(r, ConfigurationParameters.EMPTY);
         assertNull(up.getAuthorizableByPrincipal(new PrincipalImpl("name")));
@@ -437,7 +450,9 @@ public class UserProviderTest {
 
     @Test
     public void testCollisions() throws Exception {
-        ConfigurationParameters config = ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, (AuthorizableNodeName) authorizableId -> "aaa");
+        ConfigurationParameters config = ConfigurationParameters.of(
+            UserConstants.PARAM_AUTHORIZABLE_NODE_NAME,
+            (AuthorizableNodeName) authorizableId -> "aaa");
         UserProvider up = new UserProvider(root, config);
 
         try {
@@ -463,7 +478,8 @@ public class UserProviderTest {
     @Test
     public void testAutoCreatedItemsUponSystemUserCreation() throws Exception {
         UserProvider up = createUserProvider();
-        assertAutoCreatedItems(up.createSystemUser("s", null), UserConstants.NT_REP_SYSTEM_USER, root);
+        assertAutoCreatedItems(up.createSystemUser("s", null), UserConstants.NT_REP_SYSTEM_USER,
+            root);
     }
 
     @Test
@@ -472,8 +488,10 @@ public class UserProviderTest {
         assertAutoCreatedItems(up.createGroup("g", null), UserConstants.NT_REP_GROUP, root);
     }
 
-    private static void assertAutoCreatedItems(@NotNull Tree authorizableTree, @NotNull String ntName, @NotNull Root root) throws Exception {
-        NodeType repUser = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT).getNodeType(ntName);
+    private static void assertAutoCreatedItems(@NotNull Tree authorizableTree,
+        @NotNull String ntName, @NotNull Root root) throws Exception {
+        NodeType repUser = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT)
+                                                  .getNodeType(ntName);
         for (NodeDefinition cnd : repUser.getChildNodeDefinitions()) {
             if (cnd.isAutoCreated()) {
                 assertTrue(authorizableTree.hasChild(cnd.getName()));

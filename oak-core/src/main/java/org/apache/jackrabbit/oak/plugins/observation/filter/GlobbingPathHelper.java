@@ -27,10 +27,9 @@ import org.apache.jackrabbit.guava.common.collect.Lists;
 public class GlobbingPathHelper {
 
     /**
-     * Converts the provided path containing glob characters <code>*</code> 
-     * and <code>**</code> into a regular expression. The definition matches 
-     * that of the GlobbingPathFilter with the addition that this conversion
-     * also supports sub-paths which do not start with a <code>/</code>.
+     * Converts the provided path containing glob characters <code>*</code> and <code>**</code> into
+     * a regular expression. The definition matches that of the GlobbingPathFilter with the addition
+     * that this conversion also supports sub-paths which do not start with a <code>/</code>.
      * <p>
      * The rules are:
      * <ul>
@@ -42,6 +41,7 @@ public class GlobbingPathHelper {
      * <li><code>?</code> is not a special character</li>
      * <li>anything not a star is wrapped into <code>\Q...\E</code> pairs</li>
      * </ul>
+     *
      * @param pathWithGlobs path that can contain * and **
      * @return a regular expression
      * @see GlobbingPathFilter
@@ -68,7 +68,7 @@ public class GlobbingPathHelper {
             elements.remove(size - 1);
         }
         boolean addSlash = false;
-        for(int i=0; i<elements.size(); i++) {
+        for (int i = 0; i < elements.size(); i++) {
             String pathElem = elements.get(i);
             if (addSlash) {
                 sb.append("/");

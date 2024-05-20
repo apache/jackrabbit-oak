@@ -17,7 +17,6 @@ import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementA
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.query.plan.ExecutionPlan;
 import org.apache.jackrabbit.oak.query.plan.JoinExecutionPlan;
@@ -25,10 +24,11 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * A join. This object contains the left hand side source, the right hand side
- * source, the join type, and the join condition.
+ * A join. This object contains the left hand side source, the right hand side source, the join
+ * type, and the join condition.
  */
 public class JoinImpl extends SourceImpl {
+
     private final JoinConditionImpl joinCondition;
     private JoinType joinType;
     private SourceImpl left;
@@ -39,43 +39,43 @@ public class JoinImpl extends SourceImpl {
     private boolean foundJoinedRow;
     private boolean end;
     private NodeState rootState;
-    
+
     private JoinExecutionPlan plan;
 
     public JoinImpl(SourceImpl left, SourceImpl right, JoinType joinType,
-            JoinConditionImpl joinCondition) {
+        JoinConditionImpl joinCondition) {
         this.left = left;
         this.right = right;
         this.joinType = joinType;
         this.joinCondition = joinCondition;
     }
-    
+
     @Override
     public ArrayList<SourceImpl> getInnerJoinSelectors() {
         ArrayList<SourceImpl> list = new ArrayList<SourceImpl>();
         switch (joinType) {
-        case INNER:
-            list.addAll(left.getInnerJoinSelectors());
-            list.addAll(right.getInnerJoinSelectors());
-            break;
-        case LEFT_OUTER:
-            list.addAll(left.getInnerJoinSelectors());
-            break;
-        case RIGHT_OUTER:
-            list.addAll(right.getInnerJoinSelectors());
+            case INNER:
+                list.addAll(left.getInnerJoinSelectors());
+                list.addAll(right.getInnerJoinSelectors());
+                break;
+            case LEFT_OUTER:
+                list.addAll(left.getInnerJoinSelectors());
+                break;
+            case RIGHT_OUTER:
+                list.addAll(right.getInnerJoinSelectors());
         }
         return list;
     }
-    
+
     @Override
     public List<JoinConditionImpl> getInnerJoinConditions() {
         ArrayList<JoinConditionImpl> set = new ArrayList<JoinConditionImpl>();
         switch (joinType) {
-        case INNER:
-            set.add(joinCondition);
-            set.addAll(left.getInnerJoinConditions());
-            set.addAll(right.getInnerJoinConditions());
-            break;
+            case INNER:
+                set.add(joinCondition);
+                set.addAll(left.getInnerJoinConditions());
+                set.addAll(right.getInnerJoinConditions());
+                break;
         }
         return set;
     }
@@ -125,44 +125,44 @@ public class JoinImpl extends SourceImpl {
     @Override
     public String toString() {
         return left + " " + joinType +
-                " " + right + " on " + joinCondition;
+            " " + right + " on " + joinCondition;
     }
-    
+
     @Override
     public void unprepare() {
         left.unprepare();
         right.unprepare();
         plan = null;
     }
-    
+
     private void applyJoinConditions() {
         switch (joinType) {
-        case INNER:
-            left.addJoinCondition(joinCondition, false);
-            right.addJoinCondition(joinCondition, true);
-            break;
-        case LEFT_OUTER:
-            left.setOuterJoin(true, false);
-            right.setOuterJoin(false, true);
-            left.addJoinCondition(joinCondition, false);
-            right.addJoinCondition(joinCondition, true);
-            break;
-        case RIGHT_OUTER:
-            // swap left and right
-            // TODO right outer join: verify whether converting
-            // to left outer join is always correct (given the current restrictions)
-            joinType = JoinType.LEFT_OUTER;
-            SourceImpl temp = left;
-            left = right;
-            right = temp;
-            left.setOuterJoin(true, false);
-            right.setOuterJoin(false, true);
-            left.addJoinCondition(joinCondition, false);
-            right.addJoinCondition(joinCondition, true);
-            break;
+            case INNER:
+                left.addJoinCondition(joinCondition, false);
+                right.addJoinCondition(joinCondition, true);
+                break;
+            case LEFT_OUTER:
+                left.setOuterJoin(true, false);
+                right.setOuterJoin(false, true);
+                left.addJoinCondition(joinCondition, false);
+                right.addJoinCondition(joinCondition, true);
+                break;
+            case RIGHT_OUTER:
+                // swap left and right
+                // TODO right outer join: verify whether converting
+                // to left outer join is always correct (given the current restrictions)
+                joinType = JoinType.LEFT_OUTER;
+                SourceImpl temp = left;
+                left = right;
+                right = temp;
+                left.setOuterJoin(true, false);
+                right.setOuterJoin(false, true);
+                left.addJoinCondition(joinCondition, false);
+                right.addJoinCondition(joinCondition, true);
+                break;
         }
     }
-    
+
     @Override
     public void prepare(ExecutionPlan p) {
         if (!(p instanceof JoinExecutionPlan)) {
@@ -186,7 +186,7 @@ public class JoinImpl extends SourceImpl {
         applyJoinConditions();
         // the estimated cost is the cost of the left selector,
         // plus twice the cost of the right selector (we expect
-        // two rows for the right selector for each node 
+        // two rows for the right selector for each node
         // on the left selector)
         ExecutionPlan leftPlan = left.prepare();
         ExecutionPlan rightPlan = right.prepare();
@@ -221,14 +221,14 @@ public class JoinImpl extends SourceImpl {
     public void setQueryConstraint(ConstraintImpl queryConstraint) {
         left.setQueryConstraint(queryConstraint);
         right.setQueryConstraint(queryConstraint);
-    }    
+    }
 
     @Override
     public void setOuterJoin(boolean outerJoinLeftHandSide, boolean outerJoinRightHandSide) {
         left.setOuterJoin(outerJoinLeftHandSide, outerJoinRightHandSide);
         right.setOuterJoin(outerJoinLeftHandSide, outerJoinRightHandSide);
     }
-    
+
     @Override
     public void addJoinCondition(JoinConditionImpl joinCondition, boolean forThisSelector) {
         left.addJoinCondition(joinCondition, forThisSelector);
@@ -274,7 +274,7 @@ public class JoinImpl extends SourceImpl {
             }
         }
     }
-    
+
     @Override
     public boolean isOuterJoinRightHandSide() {
         return left.isOuterJoinRightHandSide() || right.isOuterJoinRightHandSide();
@@ -293,6 +293,6 @@ public class JoinImpl extends SourceImpl {
             (SourceImpl) copyElementAndCheckReference(right),
             joinType,
             (JoinConditionImpl) copyElementAndCheckReference(joinCondition)
-            );
+        );
     }
 }

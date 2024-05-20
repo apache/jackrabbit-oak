@@ -90,7 +90,8 @@ public final class SecurityProviderBuilder {
     public SecurityProviderBuilder with(@NotNull ConfigurationParameters configuration) {
         this.configuration = configuration;
 
-        authenticationParams = configuration.getConfigValue(AuthenticationConfiguration.NAME, EMPTY);
+        authenticationParams = configuration.getConfigValue(AuthenticationConfiguration.NAME,
+            EMPTY);
         privilegeParams = configuration.getConfigValue(PrivilegeConfiguration.NAME, EMPTY);
 
         if (configuration.contains(UserConfiguration.NAME)) {
@@ -99,34 +100,42 @@ public final class SecurityProviderBuilder {
             AuthorizableActionProvider authorizableActionProvider = new DefaultAuthorizableActionProvider();
             AuthorizableNodeName authorizableNodeName = AuthorizableNodeName.DEFAULT;
             UserAuthenticationFactory userAuthenticationFactory = UserConfigurationImpl
-                    .getDefaultAuthenticationFactory();
+                .getDefaultAuthenticationFactory();
 
             userParams = ConfigurationParameters.of(
-                    ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER,
-                            authorizableActionProvider),
-                    ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, authorizableNodeName),
-                    ConfigurationParameters.of(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY,
-                            userAuthenticationFactory));
+                ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER,
+                    authorizableActionProvider),
+                ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME,
+                    authorizableNodeName),
+                ConfigurationParameters.of(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY,
+                    userAuthenticationFactory));
         }
         if (configuration.contains(AuthorizationConfiguration.NAME)) {
-            authorizationParams = configuration.getConfigValue(AuthorizationConfiguration.NAME, EMPTY);
+            authorizationParams = configuration.getConfigValue(AuthorizationConfiguration.NAME,
+                EMPTY);
         } else {
             RestrictionProvider restrictionProvider = new RestrictionProviderImpl();
-            authorizationParams = ConfigurationParameters.of(AccessControlConstants.PARAM_RESTRICTION_PROVIDER,
-                    restrictionProvider);
+            authorizationParams = ConfigurationParameters.of(
+                AccessControlConstants.PARAM_RESTRICTION_PROVIDER,
+                restrictionProvider);
         }
         principalParams = configuration.getConfigValue(PrincipalConfiguration.NAME, EMPTY);
         tokenParams = configuration.getConfigValue(TokenConfiguration.NAME, EMPTY);
         return this;
     }
 
-    public SecurityProviderBuilder with(@NotNull AuthenticationConfiguration authenticationConfiguration,
-            @NotNull ConfigurationParameters authenticationParams,
-            @NotNull PrivilegeConfiguration privilegeConfiguration, @NotNull ConfigurationParameters privilegeParams,
-            @NotNull UserConfiguration userConfiguration, @NotNull ConfigurationParameters userParams,
-            @NotNull AuthorizationConfiguration authorizationConfiguration, @NotNull ConfigurationParameters authorizationParams,
-            @NotNull PrincipalConfiguration principalConfiguration, @NotNull ConfigurationParameters principalParams,
-            @NotNull TokenConfiguration tokenConfiguration, @NotNull ConfigurationParameters tokenParams) {
+    public SecurityProviderBuilder with(
+        @NotNull AuthenticationConfiguration authenticationConfiguration,
+        @NotNull ConfigurationParameters authenticationParams,
+        @NotNull PrivilegeConfiguration privilegeConfiguration,
+        @NotNull ConfigurationParameters privilegeParams,
+        @NotNull UserConfiguration userConfiguration, @NotNull ConfigurationParameters userParams,
+        @NotNull AuthorizationConfiguration authorizationConfiguration,
+        @NotNull ConfigurationParameters authorizationParams,
+        @NotNull PrincipalConfiguration principalConfiguration,
+        @NotNull ConfigurationParameters principalParams,
+        @NotNull TokenConfiguration tokenConfiguration,
+        @NotNull ConfigurationParameters tokenParams) {
 
         this.authenticationConfiguration = authenticationConfiguration;
         this.authenticationParams = authenticationParams;
@@ -163,14 +172,16 @@ public final class SecurityProviderBuilder {
         if (authenticationConfiguration == null) {
             authenticationConfiguration = new AuthenticationConfigurationImpl();
         }
-        securityProvider.setAuthenticationConfiguration(initializeConfiguration(authenticationConfiguration,
+        securityProvider.setAuthenticationConfiguration(
+            initializeConfiguration(authenticationConfiguration,
                 securityProvider, authenticationParams, rootProvider, treeProvider));
 
         // privilege
         if (privilegeConfiguration == null) {
             privilegeConfiguration = new PrivilegeConfigurationImpl();
         }
-        securityProvider.setPrivilegeConfiguration(initializeConfiguration(privilegeConfiguration, securityProvider,
+        securityProvider.setPrivilegeConfiguration(
+            initializeConfiguration(privilegeConfiguration, securityProvider,
                 privilegeParams, rootProvider, treeProvider));
 
         // user
@@ -178,49 +189,62 @@ public final class SecurityProviderBuilder {
             userConfiguration = new UserConfigurationImpl();
         }
         securityProvider.setUserConfiguration(
-                initializeConfiguration(userConfiguration, securityProvider, userParams, rootProvider, treeProvider));
+            initializeConfiguration(userConfiguration, securityProvider, userParams, rootProvider,
+                treeProvider));
 
         // authorization
         if (authorizationConfiguration == null) {
             CompositeAuthorizationConfiguration ac = new CompositeAuthorizationConfiguration();
-            ac.withCompositionType(configuration.getConfigValue("authorizationCompositionType", CompositeAuthorizationConfiguration.CompositionType.AND.toString()));
+            ac.withCompositionType(configuration.getConfigValue("authorizationCompositionType",
+                CompositeAuthorizationConfiguration.CompositionType.AND.toString()));
             ac.setDefaultConfig(initializeConfiguration(new AuthorizationConfigurationImpl(),
-                    securityProvider, rootProvider, treeProvider));
+                securityProvider, rootProvider, treeProvider));
             authorizationConfiguration = ac;
         }
 
         if (authorizationConfiguration instanceof CompositeAuthorizationConfiguration) {
-            initializeConfigurations((CompositeAuthorizationConfiguration) authorizationConfiguration, securityProvider, authorizationParams, rootProvider, treeProvider);
+            initializeConfigurations(
+                (CompositeAuthorizationConfiguration) authorizationConfiguration, securityProvider,
+                authorizationParams, rootProvider, treeProvider);
         } else {
-            initializeConfiguration(authorizationConfiguration, securityProvider, authorizationParams, rootProvider, treeProvider);
+            initializeConfiguration(authorizationConfiguration, securityProvider,
+                authorizationParams, rootProvider, treeProvider);
         }
         securityProvider.setAuthorizationConfiguration(authorizationConfiguration);
 
         // principal
         if (principalConfiguration == null) {
             CompositePrincipalConfiguration pc = new CompositePrincipalConfiguration();
-            pc.setDefaultConfig(initializeConfiguration(new PrincipalConfigurationImpl(), securityProvider, rootProvider, treeProvider));
+            pc.setDefaultConfig(
+                initializeConfiguration(new PrincipalConfigurationImpl(), securityProvider,
+                    rootProvider, treeProvider));
             principalConfiguration = pc;
         }
 
         if (principalConfiguration instanceof CompositePrincipalConfiguration) {
-            initializeConfigurations((CompositePrincipalConfiguration) principalConfiguration, securityProvider, principalParams, rootProvider, treeProvider);
+            initializeConfigurations((CompositePrincipalConfiguration) principalConfiguration,
+                securityProvider, principalParams, rootProvider, treeProvider);
         } else {
-            initializeConfiguration(principalConfiguration, securityProvider, principalParams, rootProvider, treeProvider);
+            initializeConfiguration(principalConfiguration, securityProvider, principalParams,
+                rootProvider, treeProvider);
         }
         securityProvider.setPrincipalConfiguration(principalConfiguration);
 
         // token
         if (tokenConfiguration == null) {
             CompositeTokenConfiguration tc = new CompositeTokenConfiguration();
-            tc.setDefaultConfig(initializeConfiguration(new TokenConfigurationImpl(), securityProvider, rootProvider, treeProvider));
+            tc.setDefaultConfig(
+                initializeConfiguration(new TokenConfigurationImpl(), securityProvider,
+                    rootProvider, treeProvider));
             tokenConfiguration = tc;
         }
 
         if (tokenConfiguration instanceof CompositeTokenConfiguration) {
-            initializeConfigurations((CompositeTokenConfiguration) tokenConfiguration, securityProvider, tokenParams, rootProvider, treeProvider);
+            initializeConfigurations((CompositeTokenConfiguration) tokenConfiguration,
+                securityProvider, tokenParams, rootProvider, treeProvider);
         } else {
-            initializeConfiguration(tokenConfiguration, securityProvider, tokenParams, rootProvider, treeProvider);
+            initializeConfiguration(tokenConfiguration, securityProvider, tokenParams, rootProvider,
+                treeProvider);
         }
         securityProvider.setTokenConfiguration(tokenConfiguration);
 

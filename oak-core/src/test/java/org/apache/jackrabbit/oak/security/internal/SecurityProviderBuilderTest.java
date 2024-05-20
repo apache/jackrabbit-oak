@@ -51,24 +51,36 @@ public class SecurityProviderBuilderTest extends AbstractSecurityTest {
 
     @Test
     public void testCompositeConfigurations() {
-        AuthenticationConfiguration ac = (AuthenticationConfiguration) mock(CompositeConfiguration.class, withSettings().extraInterfaces(AuthenticationConfiguration.class));
-        PrivilegeConfiguration pc = (PrivilegeConfiguration) mock(CompositeConfiguration.class, withSettings().extraInterfaces(PrivilegeConfiguration.class));
-        UserConfiguration uc = (UserConfiguration) mock(CompositeConfiguration.class, withSettings().extraInterfaces(UserConfiguration.class));
-        AuthorizationConfiguration auc = (AuthorizationConfiguration) mock(CompositeConfiguration.class, withSettings().extraInterfaces(AuthorizationConfiguration.class));
-        PrincipalConfiguration pnc = (PrincipalConfiguration) mock(CompositeConfiguration.class, withSettings().extraInterfaces(PrincipalConfiguration.class));
-        TokenConfiguration tc = (TokenConfiguration) mock(CompositeConfiguration.class, withSettings().extraInterfaces(TokenConfiguration.class));
+        AuthenticationConfiguration ac = (AuthenticationConfiguration) mock(
+            CompositeConfiguration.class,
+            withSettings().extraInterfaces(AuthenticationConfiguration.class));
+        PrivilegeConfiguration pc = (PrivilegeConfiguration) mock(CompositeConfiguration.class,
+            withSettings().extraInterfaces(PrivilegeConfiguration.class));
+        UserConfiguration uc = (UserConfiguration) mock(CompositeConfiguration.class,
+            withSettings().extraInterfaces(UserConfiguration.class));
+        AuthorizationConfiguration auc = (AuthorizationConfiguration) mock(
+            CompositeConfiguration.class,
+            withSettings().extraInterfaces(AuthorizationConfiguration.class));
+        PrincipalConfiguration pnc = (PrincipalConfiguration) mock(CompositeConfiguration.class,
+            withSettings().extraInterfaces(PrincipalConfiguration.class));
+        TokenConfiguration tc = (TokenConfiguration) mock(CompositeConfiguration.class,
+            withSettings().extraInterfaces(TokenConfiguration.class));
         SecurityProvider sp = builder.with(
-                ac, ConfigurationParameters.EMPTY,
-                pc, ConfigurationParameters.EMPTY,
-                uc, ConfigurationParameters.EMPTY,
-                auc, ConfigurationParameters.EMPTY,
-                pnc, ConfigurationParameters.EMPTY,
-                tc, ConfigurationParameters.EMPTY).build();
+            ac, ConfigurationParameters.EMPTY,
+            pc, ConfigurationParameters.EMPTY,
+            uc, ConfigurationParameters.EMPTY,
+            auc, ConfigurationParameters.EMPTY,
+            pnc, ConfigurationParameters.EMPTY,
+            tc, ConfigurationParameters.EMPTY).build();
 
-        assertTrue(sp.getConfiguration(AuthenticationConfiguration.class) instanceof CompositeConfiguration);
-        assertTrue(sp.getConfiguration(AuthorizationConfiguration.class) instanceof CompositeConfiguration);
-        assertTrue(sp.getConfiguration(PrincipalConfiguration.class) instanceof CompositeConfiguration);
-        assertTrue(sp.getConfiguration(PrivilegeConfiguration.class) instanceof CompositeConfiguration);
+        assertTrue(sp.getConfiguration(
+            AuthenticationConfiguration.class) instanceof CompositeConfiguration);
+        assertTrue(sp.getConfiguration(
+            AuthorizationConfiguration.class) instanceof CompositeConfiguration);
+        assertTrue(
+            sp.getConfiguration(PrincipalConfiguration.class) instanceof CompositeConfiguration);
+        assertTrue(
+            sp.getConfiguration(PrivilegeConfiguration.class) instanceof CompositeConfiguration);
         assertTrue(sp.getConfiguration(TokenConfiguration.class) instanceof CompositeConfiguration);
         assertTrue(sp.getConfiguration(UserConfiguration.class) instanceof CompositeConfiguration);
     }
@@ -76,18 +88,23 @@ public class SecurityProviderBuilderTest extends AbstractSecurityTest {
     @Test
     public void testSingularConfigurations() {
         SecurityProvider sp = builder.with(
-                mock(AuthenticationConfiguration.class), ConfigurationParameters.EMPTY,
-                mock(PrivilegeConfiguration.class), ConfigurationParameters.EMPTY,
-                mock(UserConfiguration.class), ConfigurationParameters.EMPTY,
-                mock(AuthorizationConfiguration.class), ConfigurationParameters.EMPTY,
-                mock(PrincipalConfiguration.class), ConfigurationParameters.EMPTY,
-                mock(TokenConfiguration.class), ConfigurationParameters.EMPTY).build();
+            mock(AuthenticationConfiguration.class), ConfigurationParameters.EMPTY,
+            mock(PrivilegeConfiguration.class), ConfigurationParameters.EMPTY,
+            mock(UserConfiguration.class), ConfigurationParameters.EMPTY,
+            mock(AuthorizationConfiguration.class), ConfigurationParameters.EMPTY,
+            mock(PrincipalConfiguration.class), ConfigurationParameters.EMPTY,
+            mock(TokenConfiguration.class), ConfigurationParameters.EMPTY).build();
 
-        assertFalse(sp.getConfiguration(AuthenticationConfiguration.class) instanceof CompositeConfiguration);
-        assertFalse(sp.getConfiguration(AuthorizationConfiguration.class) instanceof CompositeConfiguration);
-        assertFalse(sp.getConfiguration(PrincipalConfiguration.class) instanceof CompositeConfiguration);
-        assertFalse(sp.getConfiguration(PrivilegeConfiguration.class) instanceof CompositeConfiguration);
-        assertFalse(sp.getConfiguration(TokenConfiguration.class) instanceof CompositeConfiguration);
+        assertFalse(sp.getConfiguration(
+            AuthenticationConfiguration.class) instanceof CompositeConfiguration);
+        assertFalse(sp.getConfiguration(
+            AuthorizationConfiguration.class) instanceof CompositeConfiguration);
+        assertFalse(
+            sp.getConfiguration(PrincipalConfiguration.class) instanceof CompositeConfiguration);
+        assertFalse(
+            sp.getConfiguration(PrivilegeConfiguration.class) instanceof CompositeConfiguration);
+        assertFalse(
+            sp.getConfiguration(TokenConfiguration.class) instanceof CompositeConfiguration);
         assertFalse(sp.getConfiguration(UserConfiguration.class) instanceof CompositeConfiguration);
     }
 }

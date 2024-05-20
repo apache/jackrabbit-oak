@@ -63,7 +63,8 @@ class XPathQueryBuilder implements QueryBuilder<Condition> {
     }
 
     @Override
-    public void setSortOrder(@NotNull String propertyName, @NotNull Direction direction, boolean ignoreCase) {
+    public void setSortOrder(@NotNull String propertyName, @NotNull Direction direction,
+        boolean ignoreCase) {
         sortProperty = propertyName;
         sortDirection = direction;
         sortIgnoreCase = ignoreCase;

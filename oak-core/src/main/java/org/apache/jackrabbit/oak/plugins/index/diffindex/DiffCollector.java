@@ -21,16 +21,14 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 
 /**
- * In charge of collecting the paths of nodes that match a given filter from the
- * diff of the 2 states.
- * 
+ * In charge of collecting the paths of nodes that match a given filter from the diff of the 2
+ * states.
  */
 public interface DiffCollector {
 
     /**
-     * Get the cost for the given filter, and prepare the result if the index
-     * can be used.
-     * 
+     * Get the cost for the given filter, and prepare the result if the index can be used.
+     *
      * @param filter the filter
      * @return the cost
      */
@@ -38,7 +36,7 @@ public interface DiffCollector {
 
     /**
      * Get the result for this filter.
-     * 
+     *
      * @param filter the filter
      * @return the result
      */

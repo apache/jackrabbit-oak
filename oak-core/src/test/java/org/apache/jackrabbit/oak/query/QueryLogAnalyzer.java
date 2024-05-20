@@ -28,7 +28,7 @@ import java.util.TreeMap;
  * A simple standalone tool to analyze a log file and list slow queries.
  */
 public class QueryLogAnalyzer {
-    
+
     public static void main(String... args) throws IOException {
         if (args.length == 0) {
             System.out.println("Usage: java ... <logFile> [<logFile2> ...]");
@@ -105,16 +105,16 @@ public class QueryLogAnalyzer {
             if (q.index != null) {
                 System.out.println("  Index: " + q.index);
             }
-            System.out.printf("  %,d nodes traversed; " + 
+            System.out.printf("  %,d nodes traversed; " +
                     "ran %,d times, max %,d nodes, %,d lines\n",
-                    q.nodeCount, 
-                    q.runCount, q.maxNodeCount, q.lineCount                    
-                    );
+                q.nodeCount,
+                q.runCount, q.maxNodeCount, q.lineCount
+            );
         }
         System.out.println();
         r.close();
     }
-    
+
     private static String formatQuery(String q) {
         if (q.toLowerCase(Locale.ENGLISH).indexOf("select ") >= 0) {
             // (?i) means case insensitive
@@ -131,27 +131,27 @@ public class QueryLogAnalyzer {
         }
         return q;
     }
-    
+
     private static String filterParams(String x) {
         // uuid
-        x = x.replaceAll("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", 
-                "<uuid>");
+        x = x.replaceAll("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+            "<uuid>");
         // timestamp
-        x = x.replaceAll("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]*[Z]", 
-                "<timestamp>");
+        x = x.replaceAll("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]*[Z]",
+            "<timestamp>");
         // number
-        x = x.replaceAll("[0-9]+", 
-                "0");
+        x = x.replaceAll("[0-9]+",
+            "0");
 
         // timestamp
-        x = x.replaceAll("<timestamp>", 
-                "2000-01-01T00:00:00.000Z");
+        x = x.replaceAll("<timestamp>",
+            "2000-01-01T00:00:00.000Z");
         // uuid
-        x = x.replaceAll("<uuid>", 
-                "12345678-1234-1234-123456789012");
+        x = x.replaceAll("<uuid>",
+            "12345678-1234-1234-123456789012");
         return x;
     }
-    
+
     private static String retrieve(String s, String prefix, String suffix) {
         int start = s.indexOf(prefix);
         if (start < 0) {
@@ -169,8 +169,9 @@ public class QueryLogAnalyzer {
         }
         return s.substring(start, end);
     }
-    
+
     static class QueryStats implements Comparable<QueryStats> {
+
         String query;
         String longestQuery;
         String index;
@@ -179,7 +180,7 @@ public class QueryLogAnalyzer {
         int nodeCount;
         int runCount;
         int maxNodeCount;
-        
+
         @Override
         public int compareTo(QueryStats o) {
             int comp = Long.signum(o.nodeCount - nodeCount);

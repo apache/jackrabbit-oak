@@ -30,16 +30,17 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_PRIVILEGES;
 
 /**
- * {@code PrivilegeValidatorProvider} to construct a {@code Validator} instance
- * to make sure modifications to the /jcr:system/rep:privileges tree are compliant
- * with constraints applied for custom privileges.
+ * {@code PrivilegeValidatorProvider} to construct a {@code Validator} instance to make sure
+ * modifications to the /jcr:system/rep:privileges tree are compliant with constraints applied for
+ * custom privileges.
  */
 class PrivilegeValidatorProvider extends ValidatorProvider {
 
     private final RootProvider rootProvider;
     private final TreeProvider treeProvider;
 
-    PrivilegeValidatorProvider(@NotNull RootProvider rootProvider, @NotNull TreeProvider treeProvider) {
+    PrivilegeValidatorProvider(@NotNull RootProvider rootProvider,
+        @NotNull TreeProvider treeProvider) {
         this.rootProvider = rootProvider;
         this.treeProvider = treeProvider;
     }
@@ -47,7 +48,9 @@ class PrivilegeValidatorProvider extends ValidatorProvider {
     @NotNull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
-        return new SubtreeValidator(new PrivilegeValidator(createRoot(before), createRoot(after), treeProvider), JCR_SYSTEM, REP_PRIVILEGES);
+        return new SubtreeValidator(
+            new PrivilegeValidator(createRoot(before), createRoot(after), treeProvider), JCR_SYSTEM,
+            REP_PRIVILEGES);
     }
 
     private Root createRoot(NodeState nodeState) {

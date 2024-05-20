@@ -53,7 +53,8 @@ public class UserContextTest implements UserConstants {
     private static Tree mockTree(@NotNull String name, @NotNull String ntName) {
         Tree t = Mockito.mock(Tree.class);
         when(t.getName()).thenReturn(name);
-        when(t.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, ntName, Type.NAME));
+        when(t.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(
+            PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, ntName, Type.NAME));
         return t;
     }
 
@@ -88,7 +89,7 @@ public class UserContextTest implements UserConstants {
 
     @Test
     public void testDefinesAuthorizableProperty() {
-        for (String propName : new String[] {REP_AUTHORIZABLE_ID, REP_PRINCIPAL_NAME}) {
+        for (String propName : new String[]{REP_AUTHORIZABLE_ID, REP_PRINCIPAL_NAME}) {
             PropertyState property = PropertyStates.createProperty(propName, "value");
 
             assertTrue(ctx.definesProperty(mockTree("nodeName", NT_REP_USER), property));
@@ -122,7 +123,7 @@ public class UserContextTest implements UserConstants {
 
     @Test
     public void testDefinesMemberProperty() {
-        for (String propName : new String[] {"any", "prop"}) {
+        for (String propName : new String[]{"any", "prop"}) {
             PropertyState property = PropertyStates.createProperty(propName, "value");
 
             assertTrue(ctx.definesProperty(mockTree("nodeName", NT_REP_MEMBERS), property));
@@ -135,7 +136,7 @@ public class UserContextTest implements UserConstants {
 
     @Test
     public void testNameNotDefinesProperty() {
-        for (String propName : new String[] {"anyName", JcrConstants.JCR_PRIMARYTYPE}) {
+        for (String propName : new String[]{"anyName", JcrConstants.JCR_PRIMARYTYPE}) {
             PropertyState property = PropertyStates.createProperty(propName, "value");
 
             for (String ntName : NT_NAMES) {
@@ -150,7 +151,8 @@ public class UserContextTest implements UserConstants {
         for (String propName : Iterables.concat(USER_PROPERTY_NAMES, GROUP_PROPERTY_NAMES)) {
             PropertyState property = PropertyStates.createProperty(propName, "value");
 
-            for (String ntName : new String[] {NodeTypeConstants.NT_OAK_UNSTRUCTURED, NT_REP_AUTHORIZABLE_FOLDER}) {
+            for (String ntName : new String[]{NodeTypeConstants.NT_OAK_UNSTRUCTURED,
+                NT_REP_AUTHORIZABLE_FOLDER}) {
                 assertFalse(ctx.definesProperty(mockTree("anyName", ntName), property));
             }
         }
@@ -165,12 +167,12 @@ public class UserContextTest implements UserConstants {
 
     @Test
     public void testNotDefinesContextRoot() {
-        for (String ntName : new String[] {
-                JcrConstants.NT_UNSTRUCTURED,
-                JcrConstants.NT_BASE,
-                NodeTypeConstants.NT_REP_SYSTEM,
-                NodeTypeConstants.NT_REP_ROOT,
-                NT_REP_AUTHORIZABLE_FOLDER}) {
+        for (String ntName : new String[]{
+            JcrConstants.NT_UNSTRUCTURED,
+            JcrConstants.NT_BASE,
+            NodeTypeConstants.NT_REP_SYSTEM,
+            NodeTypeConstants.NT_REP_ROOT,
+            NT_REP_AUTHORIZABLE_FOLDER}) {
             assertFalse(ctx.definesContextRoot(mockTree("anyName", ntName)));
         }
     }
@@ -190,12 +192,12 @@ public class UserContextTest implements UserConstants {
 
     @Test
     public void testNotDefinesTree() {
-        for (String ntName : new String[] {
-                JcrConstants.NT_UNSTRUCTURED,
-                JcrConstants.NT_BASE,
-                NodeTypeConstants.NT_REP_SYSTEM,
-                NodeTypeConstants.NT_REP_ROOT,
-                NT_REP_AUTHORIZABLE_FOLDER}) {
+        for (String ntName : new String[]{
+            JcrConstants.NT_UNSTRUCTURED,
+            JcrConstants.NT_BASE,
+            NodeTypeConstants.NT_REP_SYSTEM,
+            NodeTypeConstants.NT_REP_ROOT,
+            NT_REP_AUTHORIZABLE_FOLDER}) {
             assertFalse(ctx.definesTree(mockTree("anyName", ntName)));
         }
     }
@@ -216,10 +218,10 @@ public class UserContextTest implements UserConstants {
     @Test
     public void testPropertyDefinesLocation() {
         Map<String, Collection<String>> m = ImmutableMap.of(
-                NT_REP_GROUP, GROUP_PROPERTY_NAMES,
-                NT_REP_USER, USER_PROPERTY_NAMES,
-                NT_REP_PASSWORD, PWD_PROPERTY_NAMES,
-                NT_REP_MEMBER_REFERENCES, ImmutableList.of(REP_MEMBERS)
+            NT_REP_GROUP, GROUP_PROPERTY_NAMES,
+            NT_REP_USER, USER_PROPERTY_NAMES,
+            NT_REP_PASSWORD, PWD_PROPERTY_NAMES,
+            NT_REP_MEMBER_REFERENCES, ImmutableList.of(REP_MEMBERS)
         );
 
         m.forEach((key, value) -> {
@@ -285,8 +287,8 @@ public class UserContextTest implements UserConstants {
 
     @Test
     public void testNoTreeDefinesLocationIntermediate() {
-        for (String name : new String[] {REP_MEMBERS, REP_MEMBERS_LIST, REP_PWD}) {
-            String path = "/some/path/with/intermediate/" +name+ "/reserved";
+        for (String name : new String[]{REP_MEMBERS, REP_MEMBERS_LIST, REP_PWD}) {
+            String path = "/some/path/with/intermediate/" + name + "/reserved";
             TreeLocation location = Mockito.mock(TreeLocation.class);
             when(location.getPath()).thenReturn(path);
 
@@ -297,10 +299,10 @@ public class UserContextTest implements UserConstants {
     @Test
     public void testNotDefinesLocation() {
         List<String> paths = ImmutableList.of(
-                PathUtils.ROOT_PATH,
-                NodeTypeConstants.NODE_TYPES_PATH,
-                "/content",
-                ""
+            PathUtils.ROOT_PATH,
+            NodeTypeConstants.NODE_TYPES_PATH,
+            "/content",
+            ""
         );
 
         for (String path : paths) {

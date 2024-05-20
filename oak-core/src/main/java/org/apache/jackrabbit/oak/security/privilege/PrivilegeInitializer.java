@@ -36,10 +36,9 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
 
 /**
- * {@code RepositoryInitializer} that asserts the existence and node type of
- * the /jcr:system/jcr:privileges node that is used to store privilege definitions.
- * In addition it writes all built-in privilege definitions except jcr:all to
- * the repository.
+ * {@code RepositoryInitializer} that asserts the existence and node type of the
+ * /jcr:system/jcr:privileges node that is used to store privilege definitions. In addition it
+ * writes all built-in privilege definitions except jcr:all to the repository.
  */
 class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants {
 
@@ -54,7 +53,8 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
     @Override
     public void initialize(@NotNull NodeBuilder builder) {
         if (!builder.hasChildNode(JcrConstants.JCR_SYSTEM)) {
-            throw new IllegalStateException("Missing " + JcrConstants.JCR_SYSTEM + " node, NodeStore not initialized.");
+            throw new IllegalStateException(
+                "Missing " + JcrConstants.JCR_SYSTEM + " node, NodeStore not initialized.");
         }
         NodeBuilder system = builder.getChildNode(JcrConstants.JCR_SYSTEM);
         if (!system.hasChildNode(REP_PRIVILEGES)) {

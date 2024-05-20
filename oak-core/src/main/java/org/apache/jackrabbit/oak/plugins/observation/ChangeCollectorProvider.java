@@ -43,18 +43,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A ChangeCollectorProvider can be hooked into Oak thus enabling the collection
- * of ChangeSets of changed items of a commit, which downstream Observers can
- * then use at their convenience.
+ * A ChangeCollectorProvider can be hooked into Oak thus enabling the collection of ChangeSets of
+ * changed items of a commit, which downstream Observers can then use at their convenience.
  * <p>
- * 
- * @see ChangeSet for details on what is tracked and how that data should be
- *      interpreted
+ *
+ * @see ChangeSet for details on what is tracked and how that data should be interpreted
  */
 @Component(
-        immediate = true,
-        service = {ValidatorProvider.class, EditorProvider.class},
-        property = "type=" + ChangeCollectorProvider.TYPE)
+    immediate = true,
+    service = {ValidatorProvider.class, EditorProvider.class},
+    property = "type=" + ChangeCollectorProvider.TYPE)
 @Designate(ocd = ChangeCollectorProvider.Configuration.class)
 public class ChangeCollectorProvider extends ValidatorProvider {
 
@@ -65,32 +63,38 @@ public class ChangeCollectorProvider extends ValidatorProvider {
     private static final boolean DEFAULT_ENABLED = true;
 
     @ObjectClassDefinition(
-            name = "Apache Jackrabbit Oak Change Collector Service",
-            description = "It hooks into the commit and collects a ChangeSet of changed items of a commit which " +
-                    "is then used to speed up observation processing"
+        name = "Apache Jackrabbit Oak Change Collector Service",
+        description =
+            "It hooks into the commit and collects a ChangeSet of changed items of a commit which "
+                +
+                "is then used to speed up observation processing"
     )
     @interface Configuration {
+
         @AttributeDefinition(
-                name = "Maximum Number of Collected Items (per type)",
-                description = "Integer value indicating maximum number of individual items of changes - "
-                + "such as property, nodeType, node name, path - to be collected. If there are "
-                + "more changes, the collection is considered failed and marked as such. "
-                + "Default is " + DEFAULT_MAX_ITEMS)
+            name = "Maximum Number of Collected Items (per type)",
+            description =
+                "Integer value indicating maximum number of individual items of changes - "
+                    + "such as property, nodeType, node name, path - to be collected. If there are "
+                    + "more changes, the collection is considered failed and marked as such. "
+                    + "Default is " + DEFAULT_MAX_ITEMS)
         int maxItems() default DEFAULT_MAX_ITEMS;
 
         @AttributeDefinition(
-                name = "Maximum depth of paths to collect",
-                description = "Integer value indicating maximum depth of paths to collect. "
+            name = "Maximum depth of paths to collect",
+            description = "Integer value indicating maximum depth of paths to collect. "
                 + "Paths deeper than this will not be individually reported, and instead "
                 + "a path at this max depth will be added. Note that this doesn't affect "
                 + "any other collected item such as property, nodeType - ie those will "
-                + "all be collected irrespective of this config param." + "Default is " + DEFAULT_MAX_PATH_DEPTH)
+                + "all be collected irrespective of this config param." + "Default is "
+                + DEFAULT_MAX_PATH_DEPTH)
         int maxPathDepth() default DEFAULT_MAX_PATH_DEPTH;
 
         @AttributeDefinition(
-                name = "enable/disable this validator",
-                description = "Whether this validator is enabled. If disabled no ChangeSet will be generated. Default is "
-                        + DEFAULT_ENABLED)
+            name = "enable/disable this validator",
+            description =
+                "Whether this validator is enabled. If disabled no ChangeSet will be generated. Default is "
+                    + DEFAULT_ENABLED)
         boolean enabled() default DEFAULT_ENABLED;
 
 
@@ -103,17 +107,19 @@ public class ChangeCollectorProvider extends ValidatorProvider {
     public static final String COMMIT_CONTEXT_OBSERVATION_CHANGESET = "oak.observation.changeSet";
 
     /**
-     * There is one CollectorSupport per validation process - it is shared
-     * between multiple instances of ChangeCollector (Validator) - however it
-     * can remain unsynchronized as validators are executed single-threaded.
+     * There is one CollectorSupport per validation process - it is shared between multiple
+     * instances of ChangeCollector (Validator) - however it can remain unsynchronized as validators
+     * are executed single-threaded.
      */
     private static class CollectorSupport {
+
         final CommitInfo info;
         final int maxPathDepth;
         final ChangeSetBuilder changeSetBuilder;
 
-        public CollectorSupport(@NotNull CommitInfo info, @NotNull ChangeSetBuilder changeSetBuilder,
-                int maxPathDepth) {
+        public CollectorSupport(@NotNull CommitInfo info,
+            @NotNull ChangeSetBuilder changeSetBuilder,
+            int maxPathDepth) {
             this.info = info;
             this.changeSetBuilder = changeSetBuilder;
             this.maxPathDepth = maxPathDepth;
@@ -126,14 +132,14 @@ public class ChangeCollectorProvider extends ValidatorProvider {
     }
 
     /**
-     * ChangeCollectors are the actual working-horse Validators that are created
-     * for each level thus as a whole propage through the entire change.
+     * ChangeCollectors are the actual working-horse Validators that are created for each level thus
+     * as a whole propage through the entire change.
      * <p>
-     * The actual data is collected via a per-commit CollectorSupport and its
-     * underlying ChangeSet (the latter is where the actual changes end up in).
+     * The actual data is collected via a per-commit CollectorSupport and its underlying ChangeSet
+     * (the latter is where the actual changes end up in).
      * <p>
-     * When finished - ie in the last==root leave() - the resulting ChangeSet is
-     * marked immutable and set in the CommitContext.
+     * When finished - ie in the last==root leave() - the resulting ChangeSet is marked immutable
+     * and set in the CommitContext.
      */
     private static class ChangeCollector implements Validator {
 
@@ -148,18 +154,23 @@ public class ChangeCollectorProvider extends ValidatorProvider {
 
         private boolean changed;
 
-        private static ChangeCollector newRootCollector(@NotNull CommitInfo info, int maxItems, int maxPathDepth) {
+        private static ChangeCollector newRootCollector(@NotNull CommitInfo info, int maxItems,
+            int maxPathDepth) {
             ChangeSetBuilder changeSetBuilder = new ChangeSetBuilder(maxItems, maxPathDepth);
             CollectorSupport support = new CollectorSupport(info, changeSetBuilder, maxPathDepth);
             return new ChangeCollector(support, true, null, null, "/", null, 0);
         }
 
-        private ChangeCollector newChildCollector(@Nullable NodeState beforeParentNodeOrNull, @Nullable NodeState afterParentNodeOrNull, @NotNull String childName) {
-            return new ChangeCollector(support, false, beforeParentNodeOrNull, afterParentNodeOrNull, concat(path, childName), childName, level + 1);
+        private ChangeCollector newChildCollector(@Nullable NodeState beforeParentNodeOrNull,
+            @Nullable NodeState afterParentNodeOrNull, @NotNull String childName) {
+            return new ChangeCollector(support, false, beforeParentNodeOrNull,
+                afterParentNodeOrNull, concat(path, childName), childName, level + 1);
         }
 
-        private ChangeCollector(@NotNull CollectorSupport support, boolean isRoot, @Nullable NodeState beforeParentNodeOrNull,
-                @Nullable NodeState afterParentNodeOrNull, @NotNull String path, @Nullable String childNameOrNull, int level) {
+        private ChangeCollector(@NotNull CollectorSupport support, boolean isRoot,
+            @Nullable NodeState beforeParentNodeOrNull,
+            @Nullable NodeState afterParentNodeOrNull, @NotNull String path,
+            @Nullable String childNameOrNull, int level) {
             this.support = support;
             this.isRoot = isRoot;
             this.beforeParentNodeOrNull = beforeParentNodeOrNull;
@@ -189,7 +200,7 @@ public class ChangeCollectorProvider extends ValidatorProvider {
                 support.changeSetBuilder.addParentNodeName(childName);
             }
 
-            if (changed){
+            if (changed) {
                 addParentNodeType(beforeParentNodeOrNull);
                 addParentNodeType(afterParentNodeOrNull);
             }
@@ -201,7 +212,8 @@ public class ChangeCollectorProvider extends ValidatorProvider {
 
             // but if we're at the root, then we add the ChangeSet to the
             // CommitContext of the CommitInfo
-            CommitContext commitContext = (CommitContext) support.info.getInfo().get(CommitContext.NAME);
+            CommitContext commitContext = (CommitContext) support.info.getInfo()
+                                                                      .get(CommitContext.NAME);
             ChangeSet changeSet = support.changeSetBuilder.build();
             commitContext.set(ChangeSet.COMMIT_CONTEXT_OBSERVATION_CHANGESET, changeSet);
             LOG.debug("Collected changeSet for commit {} is {}", support.info, changeSet);
@@ -213,7 +225,8 @@ public class ChangeCollectorProvider extends ValidatorProvider {
         }
 
         @Override
-        public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
+        public void propertyChanged(PropertyState before, PropertyState after)
+            throws CommitFailedException {
             addPropertyName(before);
         }
 
@@ -223,7 +236,8 @@ public class ChangeCollectorProvider extends ValidatorProvider {
         }
 
         @Override
-        public Validator childNodeAdded(String childName, NodeState after) throws CommitFailedException {
+        public Validator childNodeAdded(String childName, NodeState after)
+            throws CommitFailedException {
             changed = true;
             addToAllNodeType(after);
             return newChildCollector(null, after, childName);
@@ -231,7 +245,7 @@ public class ChangeCollectorProvider extends ValidatorProvider {
 
         @Override
         public Validator childNodeChanged(String childName, NodeState before, NodeState after)
-                throws CommitFailedException {
+            throws CommitFailedException {
             if (level == support.maxPathDepth) {
                 // then we'll cut off further paths below.
                 // to compensate, add the current path at this level
@@ -240,7 +254,7 @@ public class ChangeCollectorProvider extends ValidatorProvider {
                 // however, continue normally to handle names/types/properties
                 // below
             }
-            
+
             // in theory the node type could be changed, so collecting both before and after
             addToAllNodeType(before);
             addToAllNodeType(after);
@@ -249,12 +263,13 @@ public class ChangeCollectorProvider extends ValidatorProvider {
         }
 
         @Override
-        public Validator childNodeDeleted(String childName, NodeState before) throws CommitFailedException {
+        public Validator childNodeDeleted(String childName, NodeState before)
+            throws CommitFailedException {
             changed = true;
             addToAllNodeType(before);
             return newChildCollector(before, null, childName);
         }
-        
+
         private void addToAllNodeType(NodeState state) {
             String primaryType = state.getName(JcrConstants.JCR_PRIMARYTYPE);
             if (primaryType != null) {
@@ -264,14 +279,15 @@ public class ChangeCollectorProvider extends ValidatorProvider {
         }
 
         private void addParentNodeType(@Nullable NodeState state) {
-            if (state == null){
+            if (state == null) {
                 return;
             }
             String primaryType = state.getName(JcrConstants.JCR_PRIMARYTYPE);
             if (primaryType != null) {
                 support.changeSetBuilder.addParentNodeType(primaryType);
             }
-            support.changeSetBuilder.addParentNodeTypes(state.getNames(JcrConstants.JCR_MIXINTYPES));
+            support.changeSetBuilder.addParentNodeTypes(
+                state.getNames(JcrConstants.JCR_MIXINTYPES));
         }
 
         private void addPropertyName(PropertyState after) {
@@ -284,19 +300,21 @@ public class ChangeCollectorProvider extends ValidatorProvider {
     private int maxItems = DEFAULT_MAX_ITEMS;
 
     private int maxPathDepth = DEFAULT_MAX_PATH_DEPTH;
-    
+
     private boolean enabled = DEFAULT_ENABLED;
 
     @Activate
     protected void activate(final Configuration config) {
         reconfig(config);
-        LOG.info("activate: maxItems=" + maxItems + ", maxPathDepth=" + maxPathDepth + ", enabled=" + enabled);
+        LOG.info("activate: maxItems=" + maxItems + ", maxPathDepth=" + maxPathDepth + ", enabled="
+            + enabled);
     }
 
     @Modified
     protected void modified(final Configuration config) {
         reconfig(config);
-        LOG.info("modified: maxItems=" + maxItems + ", maxPathDepth=" + maxPathDepth + ", enabled=" + enabled);
+        LOG.info("modified: maxItems=" + maxItems + ", maxPathDepth=" + maxPathDepth + ", enabled="
+            + enabled);
     }
 
     private void reconfig(final Configuration config) {
@@ -305,22 +323,30 @@ public class ChangeCollectorProvider extends ValidatorProvider {
         enabled = config.enabled();
     }
 
-    /** FOR TESTING-ONLY **/
+    /**
+     * FOR TESTING-ONLY
+     **/
     protected void setMaxPathDepth(int maxPathDepth) {
         this.maxPathDepth = maxPathDepth;
     }
 
-    /** FOR TESTING-ONLY **/
+    /**
+     * FOR TESTING-ONLY
+     **/
     protected int getMaxPathDepth() {
         return this.maxPathDepth;
     }
 
-    /** FOR TESTING-ONLY **/
+    /**
+     * FOR TESTING-ONLY
+     **/
     protected void setMaxItems(int maxItems) {
         this.maxItems = maxItems;
     }
 
-    /** FOR TESTING-ONLY **/
+    /**
+     * FOR TESTING-ONLY
+     **/
     protected int getMaxItems() {
         return this.maxItems;
     }

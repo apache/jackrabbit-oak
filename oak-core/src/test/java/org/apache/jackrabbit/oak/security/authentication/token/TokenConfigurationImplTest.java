@@ -60,8 +60,8 @@ public class TokenConfigurationImplTest extends AbstractSecurityTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         ConfigurationParameters config = ConfigurationParameters.of(
-                TokenProvider.PARAM_TOKEN_EXPIRATION, 60,
-                TokenProvider.PARAM_TOKEN_REFRESH, true);
+            TokenProvider.PARAM_TOKEN_EXPIRATION, 60,
+            TokenProvider.PARAM_TOKEN_REFRESH, true);
         return ConfigurationParameters.of(TokenConfiguration.NAME, config);
     }
 
@@ -72,25 +72,29 @@ public class TokenConfigurationImplTest extends AbstractSecurityTest {
 
     @Test
     public void testConfigOptions() {
-        long exp = tc.getParameters().getConfigValue(TokenProvider.PARAM_TOKEN_EXPIRATION, TokenProviderImpl.DEFAULT_TOKEN_EXPIRATION);
+        long exp = tc.getParameters().getConfigValue(TokenProvider.PARAM_TOKEN_EXPIRATION,
+            TokenProviderImpl.DEFAULT_TOKEN_EXPIRATION);
         assertEquals(60, exp);
     }
 
     @Test
     public void testConfigOptions2() {
-        long exp = getConfig(TokenConfiguration.class).getParameters().getConfigValue(TokenProvider.PARAM_TOKEN_EXPIRATION, TokenProviderImpl.DEFAULT_TOKEN_EXPIRATION);
+        long exp = getConfig(TokenConfiguration.class).getParameters().getConfigValue(
+            TokenProvider.PARAM_TOKEN_EXPIRATION, TokenProviderImpl.DEFAULT_TOKEN_EXPIRATION);
         assertEquals(60, exp);
     }
 
     @Test
     public void testRefresh() {
-        boolean refresh = getConfig(TokenConfiguration.class).getParameters().getConfigValue(TokenProvider.PARAM_TOKEN_REFRESH, false);
+        boolean refresh = getConfig(TokenConfiguration.class).getParameters().getConfigValue(
+            TokenProvider.PARAM_TOKEN_REFRESH, false);
         assertTrue(refresh);
     }
 
     @Test
     public void testGetValidators() {
-        List<? extends ValidatorProvider> validators = tc.getValidators(root.getContentSession().getWorkspaceName(), ImmutableSet.of(), new MoveTracker());
+        List<? extends ValidatorProvider> validators = tc.getValidators(
+            root.getContentSession().getWorkspaceName(), ImmutableSet.of(), new MoveTracker());
         assertNotNull(validators);
         assertEquals(1, validators.size());
         assertTrue(validators.get(0) instanceof TokenValidatorProvider);
@@ -162,7 +166,7 @@ public class TokenConfigurationImplTest extends AbstractSecurityTest {
         verify(cs, times(4)).getCredentialClasses();
         verify(cs, times(2)).getAttributes(creds);
     }
-    
+
     @Test
     public void testGetContext() {
         Context ctx = tc.getContext();

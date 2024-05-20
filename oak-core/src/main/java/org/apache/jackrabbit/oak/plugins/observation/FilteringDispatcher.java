@@ -26,14 +26,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Part of the FilteringObserver: the FilteringDispatcher is used
- * to implement the skipping (filtering) of content changes
- * which the FilteringDispatcher flags as NOOP_CHANGE.
- * When the FilteringDispatcher notices a NOOP_CHANGE it does
- * not forward the change but only updates the before NodeState.
+ * Part of the FilteringObserver: the FilteringDispatcher is used to implement the skipping
+ * (filtering) of content changes which the FilteringDispatcher flags as NOOP_CHANGE. When the
+ * FilteringDispatcher notices a NOOP_CHANGE it does not forward the change but only updates the
+ * before NodeState.
  */
 public class FilteringDispatcher implements Observer {
-    
+
     private final FilteringAwareObserver observer;
 
     private NodeState before;
@@ -44,8 +43,8 @@ public class FilteringDispatcher implements Observer {
 
     @Override
     public void contentChanged(@NotNull NodeState root,
-                               @NotNull CommitInfo info) {
-        if (before != null) { 
+        @NotNull CommitInfo info) {
+        if (before != null) {
             // avoid null being passed as before to observer
             // before == null happens only at startup
             if (info != FilteringObserver.NOOP_CHANGE) {

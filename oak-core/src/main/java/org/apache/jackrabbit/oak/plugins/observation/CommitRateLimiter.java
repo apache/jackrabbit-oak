@@ -33,10 +33,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This {@code CommitHook} can be used to block or delay commits for any length of time.
- * As long as commits are blocked this hook throws a {@code CommitFailedException}.
+ * This {@code CommitHook} can be used to block or delay commits for any length of time. As long as
+ * commits are blocked this hook throws a {@code CommitFailedException}.
  */
 public class CommitRateLimiter implements CommitHook {
+
     private static final Logger LOG = LoggerFactory.getLogger(CommitRateLimiter.class);
     private volatile boolean blockCommits;
     private volatile long delay;
@@ -44,11 +45,11 @@ public class CommitRateLimiter implements CommitHook {
     // the observation call depth of the current thread
     // (only updated by the current thread, so technically isn't necessary that
     // this is an AtomicInteger, but it's simpler to use it)
-    private static ThreadLocal<AtomicInteger> NON_BLOCKING_LEVEL = 
-            new ThreadLocal<AtomicInteger>();
-    
-    private static boolean EXCEPTION_ON_BLOCK = 
-            Boolean.getBoolean("oak.commitRateLimiter.exceptionOnBlock");
+    private static ThreadLocal<AtomicInteger> NON_BLOCKING_LEVEL =
+        new ThreadLocal<AtomicInteger>();
+
+    private static boolean EXCEPTION_ON_BLOCK =
+        Boolean.getBoolean("oak.commitRateLimiter.exceptionOnBlock");
 
     /**
      * Block any further commits until {@link #unblockCommits()} is called.
@@ -69,9 +70,10 @@ public class CommitRateLimiter implements CommitHook {
     }
 
     /**
-     * Number of milliseconds to delay commits going through this hook.
-     * If {@code 0}, any currently blocked commit will be unblocked.
-     * @param delay  milliseconds
+     * Number of milliseconds to delay commits going through this hook. If {@code 0}, any currently
+     * blocked commit will be unblocked.
+     *
+     * @param delay milliseconds
      */
     public void setDelay(long delay) {
         if (LOG.isTraceEnabled()) {
@@ -91,7 +93,7 @@ public class CommitRateLimiter implements CommitHook {
     @NotNull
     @Override
     public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (blockCommits && isThreadBlocking()) {
             blockCommit();
         } else {
@@ -99,7 +101,7 @@ public class CommitRateLimiter implements CommitHook {
         }
         return after;
     }
-    
+
     public void blockCommit() throws CommitFailedException {
         if (EXCEPTION_ON_BLOCK) {
             throw new CommitFailedException(OAK, 1, "System busy. Try again later.");
@@ -112,7 +114,7 @@ public class CommitRateLimiter implements CommitHook {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new CommitFailedException(OAK, 2,
-                        "Interrupted while waiting to commit", e);
+                    "Interrupted while waiting to commit", e);
             }
         }
     }
@@ -130,16 +132,16 @@ public class CommitRateLimiter implements CommitHook {
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    throw new CommitFailedException(OAK, 2, "Interrupted while waiting to commit", e);
+                    throw new CommitFailedException(OAK, 2, "Interrupted while waiting to commit",
+                        e);
                 }
             }
         }
     }
 
     /**
-     * The current thread will now run code that must not be throttled or
-     * blocked, such as processing events (EventListener.onEvent is going to be
-     * called).
+     * The current thread will now run code that must not be throttled or blocked, such as
+     * processing events (EventListener.onEvent is going to be called).
      */
     public void beforeNonBlocking() {
         AtomicInteger value = NON_BLOCKING_LEVEL.get();
@@ -152,8 +154,7 @@ public class CommitRateLimiter implements CommitHook {
     }
 
     /**
-     * The current thread finished running code that must not be throttled or
-     * blocked.
+     * The current thread finished running code that must not be throttled or blocked.
      */
     public void afterNonBlocking() {
         AtomicInteger value = NON_BLOCKING_LEVEL.get();
@@ -161,12 +162,12 @@ public class CommitRateLimiter implements CommitHook {
             // TODO should not happen (log an error?)
         } else {
             value.decrementAndGet();
-        }        
+        }
     }
-    
+
     /**
      * Check whether the current thread is non-blocking.
-     * 
+     *
      * @return whether thread thread is non-blocking
      */
     public boolean isThreadBlocking() {

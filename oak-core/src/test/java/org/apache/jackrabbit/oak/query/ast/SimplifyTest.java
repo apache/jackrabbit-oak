@@ -31,25 +31,25 @@ import org.junit.Test;
 public class SimplifyTest {
 
     private static final StaticOperandImpl A =
-            new LiteralImpl(PropertyValues.newString("A"));
+        new LiteralImpl(PropertyValues.newString("A"));
 
     private static final StaticOperandImpl B =
-            new LiteralImpl(PropertyValues.newString("B"));
+        new LiteralImpl(PropertyValues.newString("B"));
 
     private static final StaticOperandImpl C =
-            new LiteralImpl(PropertyValues.newString("C"));
+        new LiteralImpl(PropertyValues.newString("C"));
 
     private static final PropertyValueImpl foo =
-            new PropertyValueImpl("a", "foo");
+        new PropertyValueImpl("a", "foo");
 
     private static final ComparisonImpl fooIsA =
-            new ComparisonImpl(foo, Operator.EQUAL, A);
+        new ComparisonImpl(foo, Operator.EQUAL, A);
 
     private static final ComparisonImpl fooIsB =
-            new ComparisonImpl(foo, Operator.EQUAL, B);
+        new ComparisonImpl(foo, Operator.EQUAL, B);
 
     private static final ComparisonImpl fooIsC =
-            new ComparisonImpl(foo, Operator.EQUAL, C);
+        new ComparisonImpl(foo, Operator.EQUAL, C);
 
     private static final InImpl fooInAB = new InImpl(foo, Arrays.asList(A, B));
 

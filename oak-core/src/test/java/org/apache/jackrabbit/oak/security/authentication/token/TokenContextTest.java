@@ -54,93 +54,99 @@ public class TokenContextTest {
         assertFalse(ctx.definesProperty(t, ps));
 
         when(t.getName()).thenReturn("anyName");
-        PropertyState primaryType = PropertyStates.createProperty(JCR_PRIMARYTYPE, TokenConstants.TOKEN_NT_NAME, Type.NAME);
+        PropertyState primaryType = PropertyStates.createProperty(JCR_PRIMARYTYPE,
+            TokenConstants.TOKEN_NT_NAME, Type.NAME);
         when(t.getProperty(JCR_PRIMARYTYPE)).thenReturn(primaryType);
-        
+
         assertTrue(ctx.definesProperty(t, ps));
 
-        PropertyState primaryType2 = PropertyStates.createProperty(JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
+        PropertyState primaryType2 = PropertyStates.createProperty(JCR_PRIMARYTYPE,
+            JcrConstants.NT_UNSTRUCTURED, Type.NAME);
         when(t.getProperty(JCR_PRIMARYTYPE)).thenReturn(primaryType2);
 
         assertFalse(ctx.definesProperty(t, primaryType2));
-        
+
         verifyNoInteractions(ps);
         verify(t, never()).getName();
         verify(t, times(3)).getProperty(JCR_PRIMARYTYPE);
         verifyNoMoreInteractions(t);
     }
-    
+
     @Test
     public void testDefinesContextRoot() {
         Tree t = when(mock(Tree.class).getName()).thenReturn(TOKENS_NODE_NAME).getMock();
         assertTrue(ctx.definesContextRoot(t));
-        
-        when(t.getName()).thenReturn("anyName", TokenConstants.TOKEN_ATTRIBUTE, TokenConstants.TOKEN_ATTRIBUTE_KEY);
+
+        when(t.getName()).thenReturn("anyName", TokenConstants.TOKEN_ATTRIBUTE,
+            TokenConstants.TOKEN_ATTRIBUTE_KEY);
         assertFalse(ctx.definesContextRoot(t));
         assertFalse(ctx.definesContextRoot(t));
         assertFalse(ctx.definesContextRoot(t));
-        
+
         verify(t, times(4)).getName();
         verifyNoMoreInteractions(t);
     }
-    
+
     @Test
     public void testDefinesTree() {
         Tree t = when(mock(Tree.class).getName()).thenReturn(TOKENS_NODE_NAME).getMock();
         assertTrue(ctx.definesTree(t));
 
         when(t.getName()).thenReturn("anyName");
-        PropertyState ps = PropertyStates.createProperty(JCR_PRIMARYTYPE, TokenConstants.TOKEN_NT_NAME, Type.NAME);
+        PropertyState ps = PropertyStates.createProperty(JCR_PRIMARYTYPE,
+            TokenConstants.TOKEN_NT_NAME, Type.NAME);
         when(t.getProperty(JCR_PRIMARYTYPE)).thenReturn(ps);
 
         assertTrue(ctx.definesTree(t));
 
-        PropertyState ps2 = PropertyStates.createProperty(JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
+        PropertyState ps2 = PropertyStates.createProperty(JCR_PRIMARYTYPE,
+            JcrConstants.NT_UNSTRUCTURED, Type.NAME);
         when(t.getProperty(JCR_PRIMARYTYPE)).thenReturn(ps2);
 
         assertFalse(ctx.definesTree(t));
 
         verify(t, times(3)).getName();
         verify(t, times(2)).getProperty(anyString());
-        
+
         verifyNoMoreInteractions(t);
     }
-    
+
     @Test
     public void testDefinesLocation() {
         PropertyState ps = mock(PropertyState.class);
 
         TreeLocation tl = mock(TreeLocation.class);
         when(tl.getName()).thenReturn(TOKENS_NODE_NAME);
-        
+
         assertFalse(ctx.definesLocation(tl));
         verifyTL(tl, false);
 
         when(tl.getName()).thenReturn("any");
-        
+
         assertFalse(ctx.definesLocation(tl));
         verifyTL(tl, false);
 
         Tree t = when(mock(Tree.class).getName()).thenReturn(TOKENS_NODE_NAME).getMock();
         when(tl.getTree()).thenReturn(t);
-        
+
         assertTrue(ctx.definesLocation(tl));
         verifyTL(tl, false);
         verify(t).getName();
         verifyNoMoreInteractions(t);
         reset(t);
-        
+
         when(t.getName()).thenReturn("any").getMock();
-        PropertyState primary = PropertyStates.createProperty(JCR_PRIMARYTYPE, TokenConstants.TOKEN_NT_NAME, Type.NAME);
+        PropertyState primary = PropertyStates.createProperty(JCR_PRIMARYTYPE,
+            TokenConstants.TOKEN_NT_NAME, Type.NAME);
         when(t.getProperty(JCR_PRIMARYTYPE)).thenReturn(primary);
         when(tl.getTree()).thenReturn(t);
-        
+
         assertTrue(ctx.definesLocation(tl));
         verifyTL(tl, false);
         verify(t).getName();
         verify(t).getProperty(JCR_PRIMARYTYPE);
         verifyNoMoreInteractions(t);
-        
+
         when(tl.getProperty()).thenReturn(ps);
         when(tl.getTree()).thenReturn(t);
         when(tl.getParent()).thenReturn(tl);
@@ -148,19 +154,20 @@ public class TokenContextTest {
         assertTrue(ctx.definesLocation(tl));
         verifyTL(tl, true);
 
-        PropertyState primary2 = PropertyStates.createProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, Type.NAME);
+        PropertyState primary2 = PropertyStates.createProperty(JCR_PRIMARYTYPE,
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED, Type.NAME);
         when(t.getProperty(JCR_PRIMARYTYPE)).thenReturn(primary2);
 
         when(tl.getProperty()).thenReturn(ps);
         when(tl.getTree()).thenReturn(t);
         when(tl.getParent()).thenReturn(tl);
-        
+
         assertFalse(ctx.definesLocation(tl));
         verifyTL(tl, true);
-        
+
         verifyNoInteractions(ps);
     }
-    
+
     private static void verifyTL(@NotNull TreeLocation tl, boolean isProperty) {
         verify(tl).getProperty();
         verify(tl).getTree();
@@ -170,7 +177,7 @@ public class TokenContextTest {
         verifyNoMoreInteractions(tl);
         reset(tl);
     }
-     
+
     @Test
     public void testDefinesInternal() {
         Tree t = when(mock(Tree.class).getName()).thenReturn(TOKENS_NODE_NAME).getMock();
