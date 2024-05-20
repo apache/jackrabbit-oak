@@ -47,10 +47,11 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
- * TextWriter implementation which just stores the extracted text
- * as files using the same layout as used by FileDataStore
+ * TextWriter implementation which just stores the extracted text as files using the same layout as
+ * used by FileDataStore
  */
 public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedTextProvider {
+
     private static final String ERROR_BLOB_FILE = "blobs_error.txt";
     private static final String EMPTY_BLOB_FILE = "blobs_empty.txt";
 
@@ -61,9 +62,8 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
     private final SetHolder errorBlobsHolder;
     private boolean closed;
     /**
-     * Flag indicating that blobId passed is one from DataStoreBlobStore
-     * As those blobId's have the length encoded which would need to be
-     * stripped of
+     * Flag indicating that blobId passed is one from DataStoreBlobStore As those blobId's have the
+     * length encoded which would need to be stripped of
      */
     private boolean dataStoreBlobId = true;
 
@@ -71,7 +71,8 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
 
     public DataStoreTextWriter(File directory, boolean readOnlyMode) throws IOException {
         if (!directory.exists()) {
-            checkArgument(directory.mkdirs(), "Cannot create directory %s", directory.getAbsolutePath());
+            checkArgument(directory.mkdirs(), "Cannot create directory %s",
+                directory.getAbsolutePath());
         }
         this.directory = directory;
         this.readOnlyMode = readOnlyMode;
@@ -80,7 +81,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
 
         if (!readOnlyMode) {
             log.info("Using {} to store the extracted text content. Empty count {}, Error count {}",
-                    directory.getAbsolutePath(), getEmptyBlobs().size(), getErrorBlobs().size());
+                directory.getAbsolutePath(), getEmptyBlobs().size(), getErrorBlobs().size());
         } else {
             log.info("Using extracted store from {}", directory.getAbsolutePath());
         }
@@ -97,7 +98,8 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
         blobId = stripLength(blobId);
         //Check for ref being non null to ensure its not an inlined binary
         if (InMemoryDataRecord.isInstance(blobId)) {
-            log.debug("Pre extraction is not supported for in memory records. Path {}, BlobId {}", propertyPath, blobId);
+            log.debug("Pre extraction is not supported for in memory records. Path {}, BlobId {}",
+                propertyPath, blobId);
             return null;
         }
 
@@ -114,15 +116,17 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
             }
         }
 
-        if (log.isDebugEnabled()){
-            String extractionResult = result != null ? result.getExtractionResult().toString() : null;
-            log.debug("Extraction result for [{}] at path [{}] is [{}]", blobId, propertyPath, extractionResult);
+        if (log.isDebugEnabled()) {
+            String extractionResult =
+                result != null ? result.getExtractionResult().toString() : null;
+            log.debug("Extraction result for [{}] at path [{}] is [{}]", blobId, propertyPath,
+                extractionResult);
         }
         return result;
     }
 
     @Override
-    public void write(@NotNull String blobId,@NotNull String text) throws IOException {
+    public void write(@NotNull String blobId, @NotNull String text) throws IOException {
         checkIfReadOnlyModeEnabled();
         checkNotNull(blobId, "BlobId cannot be null");
         checkNotNull(text, "Text passed for [%s] was null", blobId);
@@ -170,7 +174,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
         return "FileDataStore based text provider";
     }
 
-    SetHolder getEmptyBlobsHolder(){
+    SetHolder getEmptyBlobsHolder() {
         return emptyBlobsHolder;
     }
 
@@ -179,8 +183,8 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
     }
 
     /**
-     * Returns the identified file. This method implements the pattern
-     * used to avoid problems with too many files in a single directory.
+     * Returns the identified file. This method implements the pattern used to avoid problems with
+     * too many files in a single directory.
      * <p/>
      * No sanity checks are performed on the given identifier.
      *
@@ -238,7 +242,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
     }
 
     private void writeToFile(String fileName, Set<String> blobIds) throws IOException {
-        if (blobIds.isEmpty()){
+        if (blobIds.isEmpty()) {
             return;
         }
         File file = new File(directory, fileName);
@@ -258,13 +262,12 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
     }
 
 
-
     /**
-     * While running in read only mode the PreExtractedTextProvider
-     * would only be used while reindexing. So as to avoid holding memory
-     * SoftReference would be used
+     * While running in read only mode the PreExtractedTextProvider would only be used while
+     * reindexing. So as to avoid holding memory SoftReference would be used
      */
     static class SetHolder {
+
         private final Set<String> state;
         private SoftReference<Set<String>> stateRef;
         private final Callable<Set<String>> loader;
