@@ -45,7 +45,7 @@ public class VersionManagementTest extends AbstractEvaluationTest {
 
     @Override
     @Before
-    protected void setUp() throws Exception {
+    public void setUp() throws Exception {
         super.setUp();
 
         versionPrivileges = privilegesFromName(Privilege.JCR_VERSION_MANAGEMENT);
@@ -55,14 +55,26 @@ public class VersionManagementTest extends AbstractEvaluationTest {
     }
 
     private Node createVersionableNode(Node parent) throws Exception {
-        Node n = (parent.hasNode(nodeName1)) ? parent.getNode(nodeName1) : parent.addNode(nodeName1);
-        if (n.canAddMixin(mixVersionable)) {
-            n.addMixin(mixVersionable);
+        return createVersionableNode(parent, nodeName1);
+    }
+
+    /**
+     * Creates a versionable node with the specified name under the given parent node, then
+     * saves the session.
+     * @param parent
+     * @param nodeName
+     * @return
+     * @throws Exception
+     */
+    private Node createVersionableNode(Node parent, String nodeName) throws Exception {
+        Node newNode = (parent.hasNode(nodeName)) ? parent.getNode(nodeName) : parent.addNode(nodeName);
+        if (newNode.canAddMixin(mixVersionable)) {
+            newNode.addMixin(mixVersionable);
         } else {
             throw new NotExecutableException();
         }
-        n.getSession().save();
-        return n;
+        newNode.getSession().save();
+        return newNode;
     }
 
     @Test
@@ -440,23 +452,29 @@ public class VersionManagementTest extends AbstractEvaluationTest {
             siblingPath = nodeName2
      */
     @Test
-    public void testMoveVersionableNode() throws Exception {
+    public void testMoveVersionableNodeOverDeletedVersionableNode() throws Exception {
         modify(path, REP_WRITE, true);
         modify(path, Privilege.JCR_NODE_TYPE_MANAGEMENT, true);
         modify(path, Privilege.JCR_VERSION_MANAGEMENT, true);
 
+        String newNodeName = "sourceNode";
         Node sourceParent = testSession.getNode(childNPath); // nodeName1/nodeName2
-        Node sourceNode = createVersionableNode(sourceParent); // nodeName1/nodeName2/nodeName1
+        Node sourceNode = createVersionableNode(sourceParent, newNodeName); // nodeName1/nodeName2/sourceNode
+                Node destParent = testSession.getNode(childNPath2); // nodeName1/nodeName3
+        Node destNode = createVersionableNode(destParent, newNodeName); // nodeName1/nodeName3/sourceNode
+
+        // make source node versionable and check it out
         sourceNode.checkin();
         sourceNode.checkout();
 
-        Node destParent = testSession.getNode(childNPath2); // nodeName1/nodeName3
-        Node destNode = createVersionableNode(destParent); // nodeName1/nodeName3/nodeName1
+        // make dest node versionable and check it out
         destNode.checkin();
         destNode.checkout();
 
+        String destPath = destNode.getPath();
         superuser.removeItem(destNode.getPath());
-        superuser.move(sourceNode.getPath(), destNode.getPath());
+
+        superuser.move(sourceNode.getPath(), destPath);
         superuser.save();
     }
 }

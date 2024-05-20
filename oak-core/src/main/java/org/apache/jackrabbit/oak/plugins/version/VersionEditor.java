@@ -158,7 +158,10 @@ class VersionEditor implements Editor {
                 node.setProperty(JCR_BASEVERSION, baseVersion, Type.REFERENCE);
             }
             vMgr.restore(node, baseVersion, null);
-        } else if (isVersionProperty(after)) {
+        } else if (isVersionProperty(after)
+                //OAK-8848: moving a versionable node in the same location as a node
+                // deleted in the same session should be allowed
+                && !node.isReplaced()) {
             throwProtected(after.getName());
         } else if (isReadOnly && getOPV(after) != OnParentVersionAction.IGNORE) {
             throwCheckedIn("Cannot change property " + after.getName()
