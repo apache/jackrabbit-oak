@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -38,6 +39,19 @@ import static org.junit.Assert.assertEquals;
 public class DocumentPropertyStateTest {
 
     private static final int BLOB_SIZE = 16 * 1024;
+    public static final String TEST = "test";
+    public static final String STRING_HUGEVALUE = "dummyalgjalegaafdajflalsdddkajf;kdfjakdfjadlsfjalkdsfjakldsfjkladsfjalkdsfjadlk;" +
+            "sfjakldsjflasfjldasjfladksfjlakdsfjlasudfiuadsoifuadsiofuadsoiuoaids;ua;odlasidladsladsaldksjadkljalsjdklsjdklsjakljls;kjdklsjdsal;" +
+            "kjdwweiouewoifjlasdkfjdlaksfjdklasfjdklasfjkldasjfd;alsjfa;lsdkfj;dlaskjfl;adskjfl;dkasjflkadsjfla;dskjf;ladksjf;lkadsjfl;kadsjflk;" +
+            "adsjf;lakdsjfl;kadsjfm/lkdasjfl;akdsjfl;dsafjk;lkdsafjkl;das.jfl;kasdfj;ladskfjalk;dsfjl;kawdsfjlaksddummyalgjalegaafdajflalsdddkajf;" +
+            "kdfjakdfjadlsfjalkdsfjakldsfjkladsfjalkdsfjadlk;sfjakldsjflasfjldasjfladksfjlakdsfjlasudfiuadsoifuadsiofuadsoiuoaids;ua;" +
+            "odlasidladsladsaldksjadkljalsjdklsjdklsjakljls;kjdklsjdsal;kjdwweiouewoifjlasdkfjdlaksfjdklasfjdklasfjkldasjfd;alsjfa;lsdkfj;" +
+            "dlaskjfl;adskjfl;dkasjflkadsjfla;dskjf;ladksjf;lkadsjfl;kadsjflk;adsjf;lakdsjfl;kadsjfm/lkdasjfl;akdsjfl;dsafjk;lkdsafjkl;das.jfl;kasdfj;" +
+            "ladskfjalk;dsfjl;kawdsfjlaksddummyalgjalegaafdajflalsdddkajf;kdfjakdfjadlsfjalkdsfjakldsfjkladsfjalkdsfjadlk;sfjakldsjflasfjldasjfladksfjlakdsfjlasudfiuadsoifuadsiofuadsoiuoaids;" +
+            "ua;odlasidladsladsaldksjadkljalsjdklsjdklsjakljls;kjdklsjdsal;kjdwweiouewoifjlasdkfjdlaksfjdklasfjdklasfjkldasjfd;" +
+            "alsjfa;lsdkfj;dlaskjfl;adskjfl;dkasjflkadsjfla;dskjf;ladksjf;lkadsjfl;kadsjflk;adsjf;lakdsjfl;kadsjfm/lkdasjfl;akdsjfl;dsafjk;lkdsafjkl;das.jfl;" +
+            "kasdfj;ladskfjalk;dsfjl;kawdsfjlaksd";
+
 
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
@@ -68,16 +82,71 @@ public class DocumentPropertyStateTest {
         for (int i = 0; i < 3; i++) {
             blobs.add(builder.createBlob(new RandomStream(BLOB_SIZE, i)));
         }
-        builder.child("test").setProperty("p", blobs, Type.BINARIES);
+        builder.child(TEST).setProperty("p", blobs, Type.BINARIES);
         TestUtils.merge(ns, builder);
 
-        PropertyState p = ns.getRoot().getChildNode("test").getProperty("p");
+        PropertyState p = ns.getRoot().getChildNode(TEST).getProperty("p");
         assertEquals(Type.BINARIES, p.getType());
         assertEquals(3, p.count());
 
         reads.clear();
         assertEquals(BLOB_SIZE, p.size(0));
         // must not read the blob via stream
+        assertEquals(0, reads.size());
+    }
+
+    @Test
+    public void multiValuedAboveThresholdSize() throws Exception {
+        NodeBuilder builder = ns.getRoot().builder();
+        List<Blob> blobs = newArrayList();
+        for (int i = 0; i < 13; i++) {
+            blobs.add(builder.createBlob(new RandomStream(BLOB_SIZE, i)));
+        }
+        builder.child(TEST).setProperty("p", blobs, Type.BINARIES);
+        TestUtils.merge(ns, builder);
+
+        PropertyState p = ns.getRoot().getChildNode(TEST).getProperty("p");
+        assertEquals(Type.BINARIES, Objects.requireNonNull(p).getType());
+        assertEquals(13, p.count());
+
+        reads.clear();
+        assertEquals(BLOB_SIZE, p.size(0));
+        // must not read the blob via stream
+        assertEquals(0, reads.size());
+    }
+
+    @Test
+    public void stringBelowThresholdSize() throws Exception {
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child(TEST).setProperty("p", "dummy", Type.STRING);
+        TestUtils.merge(ns, builder);
+
+        PropertyState p = ns.getRoot().getChildNode(TEST).getProperty("p");
+        assert p != null;
+        assertEquals(Type.STRING, p.getType());
+        assertEquals(1, p.count());
+
+        reads.clear();
+        assertEquals(5, p.size(0));
+        // must not read the string via stream
+        assertEquals(0, reads.size());
+    }
+
+    @Test
+    public void stringAboveThresholdSize() throws Exception {
+        NodeBuilder builder = ns.getRoot().builder();
+        List<Blob> blobs = newArrayList();
+        builder.child(TEST).setProperty("p", STRING_HUGEVALUE, Type.STRING);
+        TestUtils.merge(ns, builder);
+
+        PropertyState p = ns.getRoot().getChildNode(TEST).getProperty("p");
+        assert p != null;
+        assertEquals(Type.STRING, p.getType());
+        assertEquals(1, p.count());
+
+        reads.clear();
+        assertEquals(1329, p.size(0));
+        // must not read the string via stream
         assertEquals(0, reads.size());
     }
 
