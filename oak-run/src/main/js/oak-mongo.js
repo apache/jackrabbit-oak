@@ -722,7 +722,7 @@ var oak = (function(global){
         } else {
             prefix = path + "/";
         }
-        db.nodes.find({_id: pathFilter(pathDepth(path) + 1, prefix)}).forEach(function(doc) {
+        db.nodes.find({_id: pathFilter(pathDepth(path) + 1, prefix)}, {_id: 1}).forEach(function(doc) {
             print(api.pathFromId(doc._id));
             numChildren++;
         });
