@@ -227,7 +227,7 @@ class Utils {
 
     @Nullable
     static DocumentNodeStoreBuilder<?> createDocumentMKBuilder(NodeStoreOptions options,
-            Closer closer)
+                                                               Closer closer)
             throws IOException {
         String src = options.getStoreArg();
         if (src == null || src.length() == 0) {
