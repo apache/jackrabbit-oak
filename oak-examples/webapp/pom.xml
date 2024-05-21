@@ -35,7 +35,7 @@
   <description>Web application that hosts and serves a Jackrabbit Oak content repository</description>
 
   <properties>
-    <tomcat.version>9.0.87</tomcat.version>
+    <tomcat.version>9.0.89</tomcat.version>
     <skip.deployment>true</skip.deployment>
   </properties>
 
@@ -215,7 +215,7 @@
       <plugin>
          <groupId>org.eclipse.jetty</groupId>
          <artifactId>jetty-maven-plugin</artifactId>
-         <version>11.0.20</version>
+         <version>11.0.21</version>
          <configuration>
            <scan>-1</scan>
            <httpConnector>
