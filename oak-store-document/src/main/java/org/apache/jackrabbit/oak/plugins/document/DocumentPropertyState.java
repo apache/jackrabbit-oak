@@ -63,7 +63,7 @@ final class DocumentPropertyState implements PropertyState {
     private byte[] compressedValue;
     private final Compression compression = Compression.GZIP;
 
-    public static final int DEFAULT_COMPRESSION_THRESHOLD = Integer.getInteger("oak.mongo.compressionThreshold", 1024);
+    private static final int DEFAULT_COMPRESSION_THRESHOLD = Integer.getInteger("oak.mongo.compressionThreshold", 1024);
 
     DocumentPropertyState(DocumentNodeStore store, String name, String value) {
         this.store = store;
@@ -86,15 +86,8 @@ final class DocumentPropertyState implements PropertyState {
             compressionOutputStream.close();
             return out.toByteArray();
         } catch (IOException e) {
-            throw new RuntimeException("Failed to compress data", e);
-        }
-    }
-
-    private String decompress(byte[] value) {
-        try {
-            return new String(compression.getInputStream(new ByteArrayInputStream(value)).readAllBytes());
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to decompress data", e);
+            LOG.warn("Failed to compress data: ", value);
+            return value;
         }
     }
 
@@ -157,6 +150,15 @@ final class DocumentPropertyState implements PropertyState {
     @NotNull
     String getValue() {
         return value != null ? value : decompress(this.compressedValue);
+    }
+
+    private String decompress(byte[] value) {
+        try {
+            return new String(compression.getInputStream(new ByteArrayInputStream(value)).readAllBytes());
+        } catch (IOException e) {
+            LOG.warn("Failed to decompress data.", value);
+            throw new RuntimeException("Failed to decompress data ", e);
+        }
     }
 
     //------------------------------------------------------------< Object >--
